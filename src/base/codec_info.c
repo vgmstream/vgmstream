@@ -22,6 +22,9 @@ extern const codec_info_t ffmpeg_decoder;
 #ifdef VGM_USE_ATRAC9
 extern const codec_info_t atrac9_decoder;
 #endif
+#ifdef VGM_USE_CELT
+extern const codec_info_t celt_fsb_decoder;
+#endif
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -63,6 +66,10 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
 #ifdef VGM_USE_ATRAC9
         case coding_ATRAC9:
             return &atrac9_decoder;
+#endif
+#ifdef VGM_USE_CELT
+        case coding_CELT_FSB:
+            return &celt_fsb_decoder;
 #endif
         default:
             return NULL;

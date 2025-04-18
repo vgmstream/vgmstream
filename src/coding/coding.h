@@ -578,15 +578,8 @@ size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t config_data);
 
 
 #ifdef VGM_USE_CELT
-/* celt_fsb_decoder */
-typedef enum { CELT_0_06_1,CELT_0_11_0} celt_lib_t;
-typedef struct celt_codec_data celt_codec_data;
-
-celt_codec_data* init_celt_fsb(int channels, celt_lib_t version);
-void decode_celt_fsb(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_celt_fsb(celt_codec_data* data);
-void seek_celt_fsb(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_celt_fsb(celt_codec_data* data);
+void* init_celt_fsb_v1(int channels);
+void* init_celt_fsb_v2(int channels);
 #endif
 
 

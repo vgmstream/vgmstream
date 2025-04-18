@@ -99,12 +99,6 @@ void decode_free(VGMSTREAM* vgmstream) {
     }
 #endif
 
-#ifdef VGM_USE_CELT
-    if (vgmstream->coding_type == coding_CELT_FSB) {
-        free_celt_fsb(vgmstream->codec_data);
-    }
-#endif
-
     if (vgmstream->coding_type == coding_ACM) {
         free_acm(vgmstream->codec_data);
     }
@@ -155,12 +149,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
         seek_mp4_aac(vgmstream, vgmstream->loop_current_sample);
-    }
-#endif
-
-#ifdef VGM_USE_CELT
-    if (vgmstream->coding_type == coding_CELT_FSB) {
-        seek_celt_fsb(vgmstream, vgmstream->loop_current_sample);
     }
 #endif
 
@@ -242,12 +230,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_G719
     if (vgmstream->coding_type == coding_G719) {
         reset_g719(vgmstream->codec_data, vgmstream->channels);
-    }
-#endif
-
-#ifdef VGM_USE_CELT
-    if (vgmstream->coding_type == coding_CELT_FSB) {
-        reset_celt_fsb(vgmstream->codec_data);
     }
 #endif
 
@@ -465,10 +447,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             return mp4_get_samples_per_frame(vgmstream->codec_data);
-#endif
-#ifdef VGM_USE_CELT
-        case coding_CELT_FSB:
-            return 0; /* 512? */
 #endif
         default:
             return 0;
@@ -1284,11 +1262,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_g719(vgmstream, buffer+ch, vgmstream->channels, samples_to_do, ch);
             }
-            break;
-#endif
-#ifdef VGM_USE_CELT
-        case coding_CELT_FSB:
-            decode_celt_fsb(vgmstream, buffer, samples_to_do, vgmstream->channels);
             break;
 #endif
         case coding_ACM:
