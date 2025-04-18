@@ -570,14 +570,9 @@ typedef struct {
     uint32_t config_data;   /* ATRAC9 config header */
     int encoder_delay;      /* initial samples to discard */
 } atrac9_config;
-typedef struct atrac9_codec_data atrac9_codec_data;
 
-atrac9_codec_data* init_atrac9(atrac9_config* cfg);
-void decode_atrac9(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_atrac9(atrac9_codec_data* data);
-void seek_atrac9(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_atrac9(atrac9_codec_data* data);
-size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data* data);
+void* init_atrac9(atrac9_config* cfg);
+size_t atrac9_bytes_to_samples(size_t bytes, void* priv_data);
 size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t config_data);
 #endif
 

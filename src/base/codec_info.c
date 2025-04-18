@@ -19,6 +19,9 @@ extern const codec_info_t pcmfloat_decoder;
 #ifdef VGM_USE_FFMPEG
 extern const codec_info_t ffmpeg_decoder;
 #endif
+#ifdef VGM_USE_ATRAC9
+extern const codec_info_t atrac9_decoder;
+#endif
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -56,6 +59,10 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
             return &ffmpeg_decoder;
+#endif
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9:
+            return &atrac9_decoder;
 #endif
         default:
             return NULL;

@@ -99,12 +99,6 @@ void decode_free(VGMSTREAM* vgmstream) {
     }
 #endif
 
-#ifdef VGM_USE_ATRAC9
-    if (vgmstream->coding_type == coding_ATRAC9) {
-        free_atrac9(vgmstream->codec_data);
-    }
-#endif
-
 #ifdef VGM_USE_CELT
     if (vgmstream->coding_type == coding_CELT_FSB) {
         free_celt_fsb(vgmstream->codec_data);
@@ -161,12 +155,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
         seek_mp4_aac(vgmstream, vgmstream->loop_current_sample);
-    }
-#endif
-
-#ifdef VGM_USE_ATRAC9
-    if (vgmstream->coding_type == coding_ATRAC9) {
-        seek_atrac9(vgmstream, vgmstream->loop_current_sample);
     }
 #endif
 
@@ -254,12 +242,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_G719
     if (vgmstream->coding_type == coding_G719) {
         reset_g719(vgmstream->codec_data, vgmstream->channels);
-    }
-#endif
-
-#ifdef VGM_USE_ATRAC9
-    if (vgmstream->coding_type == coding_ATRAC9) {
-        reset_atrac9(vgmstream->codec_data);
     }
 #endif
 
@@ -484,10 +466,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_MP4_AAC:
             return mp4_get_samples_per_frame(vgmstream->codec_data);
 #endif
-#ifdef VGM_USE_ATRAC9
-        case coding_ATRAC9:
-            return 0; /* varies with config data, usually 256 or 1024 */
-#endif
 #ifdef VGM_USE_CELT
         case coding_CELT_FSB:
             return 0; /* 512? */
@@ -679,7 +657,6 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         /* UBI_ADPCM: varies per mode? */
         /* IMUSE: VBR */
         /* EA_MT: VBR, frames of bit counts or PCM frames */
-        /* ATRAC9: CBR around  0x100-200 */
         /* CELT FSB: varies, usually 0x80-100 */
         /* TAC: VBR around ~0x200-300 */
         default: /* (VBR or managed by decoder) */
@@ -1307,11 +1284,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_g719(vgmstream, buffer+ch, vgmstream->channels, samples_to_do, ch);
             }
-            break;
-#endif
-#ifdef VGM_USE_ATRAC9
-        case coding_ATRAC9:
-            decode_atrac9(vgmstream, buffer, samples_to_do, vgmstream->channels);
             break;
 #endif
 #ifdef VGM_USE_CELT
