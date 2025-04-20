@@ -65,7 +65,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5, FSBKEY_ADD("cbfjZTlUPaZI") }, // JDM: Japanese Drift Master (PC)
         { MODE_FSB3, FSBKEY_ADD("tkdnsem000") }, // Ys Online: The Call of Solum (PC) [FSB3] (alt key: 2ED62676CEA6B60C0C0C)
         { MODE_FSB4, FSBKEY_ADD("4DxgpNV3pQLPD6GT7g9Gf6eWU7SXutGQ") }, // Test Drive: Ferrari Racing Legends (PC)
-        { MODE_FSB4, FSBKEY_ADD("AjaxIsTheGoodestBoy") }, // Hello Kitty: Island Adventure (iOS)
+        { MODE_FSB5, FSBKEY_ADD("AjaxIsTheGoodestBoy") }, // Hello Kitty: Island Adventure (iOS)
         { MODE_FSB5, FSBKEY_ADD("resoforce") }, // Rivals of Aether 2 (PC)
         { MODE_FSB5, FSBKEY_ADD("3cfe772db5b55b806541d3faf894020e") }, // Final Fantasy XV: War for Eos (Android)
         { MODE_FSB5, FSBKEY_ADD("aj#$kLucf2lh}eqh") }, // Forza Motorsport 2023 (PC)
