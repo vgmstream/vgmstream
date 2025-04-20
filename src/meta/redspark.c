@@ -111,7 +111,7 @@ static uint32_t decrypt_chunk(uint8_t* buf, int buf_size, uint32_t key) {
     return key; /* to resume decrypting if needed */
 }
 
-#define HEADER_MAX 0x2800 /* seen 0x2420 in one bank */
+#define HEADER_MAX 0x3000 /* seen 0x2BD0 in one bank */
 
 /* header is encrypted except in M&L 3DS so decrypt + handle in buffer; format
  * base 0x30 header + subheader with tables/headers depending on type */
@@ -259,11 +259,12 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
         coef_offset         = target_pos + 0x28;
 
         h->channels = 1;
-        h->loop_flag = (h->loop_start != -1); /* TODO: many files sound kind of odd */
+        h->loop_flag = 0; // (h->loop_start != -1); // TODO: many files sound kind of odd
         if (h->num_samples == 0)
             h->num_samples = h->loop_end;
+        // seems correct based on MadWorld, not 100% sure in Imabikisou
         if (h->sample_rate == 0)
-            h->sample_rate = 32000;
+            h->sample_rate = 24000;
         
         /* empty entry */
         if (h->stream_size == 0)
