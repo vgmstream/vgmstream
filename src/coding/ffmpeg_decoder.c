@@ -720,6 +720,12 @@ static void samples_fltp_to_flt(float* obuf, float** ibuf, int ichs, int samples
     }
 }
 
+static void samples_s32_to_s24(int32_t* obuf, int32_t* ibuf, int ichs, int samples) {
+    for (int s = 0; s < samples * ichs; s++) {
+        obuf[s] = ibuf[s] >> 8;
+    }
+}
+
 static void copy_samples(ffmpeg_codec_data* data, void* sbuf, int samples_to_do, int max_channels) {
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(59, 24, 100)
     int channels = data->codecCtx->channels;
@@ -778,6 +784,12 @@ static void copy_samples(ffmpeg_codec_data* data, void* sbuf, int samples_to_do,
         default:
             break;
     }
+
+    // FFmpeg can't do PCM24 and upsamples to PCM32, if needed
+    if (data->fmt == SFMT_S24) {
+        samples_s32_to_s24(sbuf, ibuf, channels, samples_to_do);
+    }
+
 }
 
 void remap_audio(ffmpeg_codec_data* data, sbuf_t* sbuf) {
@@ -1059,6 +1071,15 @@ void ffmpeg_set_invert_floats(ffmpeg_codec_data* data) {
     if (!data)
         return;
     data->invert_floats_set = true;
+}
+
+// for flac 24-bit, since FFMpeg upsamples to PCM32 (ignored if flac 16-bit)
+void ffmpeg_set_allow_pcm24(ffmpeg_codec_data* data) {
+    if (!data)
+        return;
+    if (data->fmt != SFMT_S32)
+        return;
+    data->fmt = SFMT_S24;
 }
 
 const char* ffmpeg_get_metadata_value(ffmpeg_codec_data* data, const char* key) {
