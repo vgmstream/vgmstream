@@ -703,6 +703,9 @@
     <ClCompile Include="coding\mpc3_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\mpeg_custom_info.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\mpeg_custom_utils.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

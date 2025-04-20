@@ -451,15 +451,6 @@ void free_vorbis_custom(void* data);
 int32_t vorbis_custom_get_samples(VGMSTREAM* v);
 #endif
 
-typedef struct {
-    int version;
-    int layer;
-    int bit_rate;
-    int sample_rate;
-    int frame_samples;
-    int frame_size; /* bytes */
-    int channels;
-} mpeg_frame_info;
 
 #ifdef VGM_USE_MPEG
 /* mpeg_decoder */
@@ -515,10 +506,22 @@ int mpeg_get_sample_rate(mpeg_codec_data* data);
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data);
 
 uint32_t mpeg_get_tag_size(STREAMFILE* sf, uint32_t offset, uint32_t header);
+bool test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey);
+#endif
+
+typedef struct {
+    int version;
+    int layer;
+    int bit_rate;
+    int sample_rate;
+    int frame_samples;
+    int frame_size; /* bytes */
+    int channels;
+} mpeg_frame_info;
 bool mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info);
 bool mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info* info);
-int test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey);
-#endif
+size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
+int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, uint32_t* p_loop_start, uint32_t* p_loop_end, int is_vbr);
 
 
 #ifdef VGM_USE_G7221
@@ -724,8 +727,6 @@ size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
 size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
 size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
-size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
-int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, uint32_t* p_loop_start, uint32_t* p_loop_end, int is_vbr);
 int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay);
 
 

@@ -291,6 +291,7 @@
     <ClCompile Include="coding\mio_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mpc3_decoder.c" />
+    <ClCompile Include="coding\mpeg_custom_info.c" />
     <ClCompile Include="coding\mpeg_custom_utils.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ahx.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c" />
