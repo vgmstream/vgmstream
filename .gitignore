@@ -32,6 +32,8 @@ ipch
 /ext_libs/**/*.exp
 /ext_libs/**/*.lib
 /cli/*.exe
+/cli/vgmstream-cli
+/cli/vgmstream123
 /winamp/*.dll
 /xmplay/*.dll
 
@@ -59,6 +61,7 @@ stamp-h1
 *.in
 *.m4
 *.lo
+*.la
 AUTHORS
 compile
 config.*
