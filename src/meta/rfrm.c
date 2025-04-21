@@ -145,12 +145,12 @@ VGMSTREAM* init_vgmstream_rfrm(STREAMFILE* sf) {
         goto fail;
 
     version = read_32bitBE(0x18,sf); /* assumed, also at 0x1c */
-    if (version == 0x0a) { /* Wii U */
+    if (version == 0x0a) { /* DKCTF Wii U */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
         big_endian = 1;
     }
-    else if (version == 0x12) { /* Switch */
+    else if (version == 0x11 || version == 0x12) { /* RS11 and DKCTF Switch */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
         big_endian = 0;
