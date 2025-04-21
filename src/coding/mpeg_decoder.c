@@ -50,7 +50,7 @@ static mpg123_handle* init_mpg123_handle(void) {
     mpg123_param(handle, MPG123_REMOVE_FLAGS, MPG123_GAPLESS, 0.0); // wonky support
     mpg123_param(handle, MPG123_RESYNC_LIMIT, -1, 0x2000); // just in case, games shouldn't need this
 #ifndef VGM_DEBUG_OUTPUT
-    mpg123_param(m, MPG123_ADD_FLAGS, MPG123_QUIET, 1);
+    mpg123_param(handle, MPG123_ADD_FLAGS, MPG123_QUIET, 1);
 #endif
 
     rc = mpg123_open_feed(handle);
