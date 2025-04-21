@@ -9,7 +9,7 @@ typedef struct {
     int channels;
     int frame_size;
 
-    int16_t fbuf[RELIC_SAMPLES_PER_FRAME * RELIC_MAX_CHANNELS];
+    float fbuf[RELIC_SAMPLES_PER_FRAME * RELIC_MAX_CHANNELS];
 
     int32_t discard;
 } relic_codec_data;
@@ -69,9 +69,9 @@ static bool decode_frame_relic(VGMSTREAM* v) {
     if (samples <= 0)
         return false;
 
-    relic_get_pcm16(data->handle, data->fbuf);
+    relic_get_float(data->handle, data->fbuf);
 
-    sbuf_init_s16(&ds->sbuf, data->fbuf, samples, data->channels);
+    sbuf_init_f16(&ds->sbuf, data->fbuf, samples, data->channels);
     ds->sbuf.filled = samples;
 
     if (data->discard) {
@@ -103,7 +103,7 @@ int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate) {
 }
 
 const codec_info_t relic_decoder = {
-    .sample_type = SFMT_S16, //could be adapted to SFMT_F16
+    .sample_type = SFMT_F16,
     .decode_frame = decode_frame_relic,
     .free = free_relic,
     .reset = reset_relic,

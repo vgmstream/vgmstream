@@ -424,8 +424,8 @@ static inline int clamp16(int32_t val) {
 void relic_get_pcm16(relic_handle_t* handle, int16_t* sbuf) {
     int ichs = handle->channels;
 
-    for (int ch = 0; ch < ichs; ch++) {
-        for (int s = 0; s < RELIC_SAMPLES_PER_FRAME; s++) {
+    for (int s = 0; s < RELIC_SAMPLES_PER_FRAME; s++) {
+        for (int ch = 0; ch < ichs; ch++) {
             double d64_sample = handle->wave_cur[ch][s];
             int pcm_sample = clamp16((int32_t)d64_sample);
 
@@ -439,14 +439,12 @@ void relic_get_pcm16(relic_handle_t* handle, int16_t* sbuf) {
     }
 }
 
-#if 0
-// original lib always converts to pcm16
+// original lib always converts to pcm16, this is just a freebie
 void relic_get_float(relic_handle_t* handle, float* sbuf) {
     int pos = 0;
-    for (int ch = 0; ch < handle->channels; ch++) {
-        for (int s = 0; s < RELIC_SAMPLES_PER_FRAME; s++) {
+    for (int s = 0; s < RELIC_SAMPLES_PER_FRAME; s++) {
+        for (int ch = 0; ch < handle->channels; ch++) {
             sbuf[pos++] = handle->wave_cur[ch][s];
         }
     }
 }
-#endif

@@ -19,6 +19,8 @@ int relic_get_frame_size(relic_handle_t* handle);
 
 int relic_decode_frame(relic_handle_t* handle, uint8_t* buf, int channel);
 
-void relic_get_pcm16(relic_handle_t* handle, int16_t* outbuf);
+void relic_get_pcm16(relic_handle_t* handle, int16_t* sbuf);
+
+void relic_get_float(relic_handle_t* handle, float* sbuf);
 
 #endif
