@@ -127,10 +127,10 @@ fail:
 static int eamp3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, eamp3_frame_info* eaf) {
     mpeg_custom_stream* ms = &data->streams[num_stream];
 
-    sample_t* sbuf = ms->sbuf;
+    float* sbuf = ms->sbuf;
     sbuf += ms->samples_filled * data->channels_per_frame;
 
-    int bytes_filled = sizeof(sample_t) * ms->samples_filled * data->channels_per_frame;
+    int bytes_filled = sizeof(float) * ms->samples_filled * data->channels_per_frame;
     if (bytes_filled + eaf->pcm_size > ms->sbuf_size) {
         VGM_LOG("EAMP3: can't fill the sample buffer with 0x%x\n", eaf->pcm_size);
         goto fail;
@@ -143,7 +143,7 @@ static int eamp3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data
         for (int i = 0; i < eaf->pcm_number * data->channels_per_frame; i++) {
             int16_t pcm_sample = read_s16le(pcm_offset, stream->streamfile);
 
-            sbuf[i] = pcm_sample;
+            sbuf[i] = pcm_sample / 32767.0f;
             pcm_offset += 0x02;
         }
         ms->samples_filled += eaf->pcm_number;

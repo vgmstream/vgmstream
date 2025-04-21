@@ -19,7 +19,7 @@ typedef struct {
 
     void* handle;
 
-    int16_t* sbuf;
+    float* sbuf;
     int sbuf_size;      // in bytes for mpg123
     int samples_filled;
     int samples_used;
@@ -61,7 +61,7 @@ struct mpeg_codec_data {
     int skip_samples; /* base encoder delay */
     int samples_to_discard; /* for custom mpeg looping */
 
-    int16_t* sbuf;                // decoded samples from all streams
+    float* sbuf;                // decoded samples from all streams
     int sbuf_size;              // in bytes for mpg123
 };
 
