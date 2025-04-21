@@ -5,6 +5,7 @@
 
 #define RELIC_BUFFER_SIZE 0x104
 #define RELIC_SAMPLES_PER_FRAME 512
+#define RELIC_MAX_CHANNELS  2
 
 typedef struct relic_handle_t relic_handle_t;
 
@@ -18,6 +19,8 @@ int relic_get_frame_size(relic_handle_t* handle);
 
 int relic_decode_frame(relic_handle_t* handle, uint8_t* buf, int channel);
 
-void relic_get_pcm16(relic_handle_t* handle, int16_t* outbuf, int32_t samples, int32_t skip);
+void relic_get_pcm16(relic_handle_t* handle, int16_t* sbuf);
+
+void relic_get_float(relic_handle_t* handle, float* sbuf);
 
 #endif

@@ -192,7 +192,7 @@ fail:
 #define AHX_KEY_TEST_FRAMES  25 /* wrong keys may work ok in some frames (specially blank) */
 
 /* check if current key ends properly in frame syncs */
-int test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey) {
+bool test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey) {
     int bytes = 0;
     uint8_t buf[AHX_KEY_BUFFER];
     const int buf_size = sizeof(buf);

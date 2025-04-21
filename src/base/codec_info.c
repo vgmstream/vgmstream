@@ -16,6 +16,19 @@ extern const codec_info_t mio_decoder;
 extern const codec_info_t pcm32_decoder;
 extern const codec_info_t pcm24_decoder;
 extern const codec_info_t pcmfloat_decoder;
+#ifdef VGM_USE_FFMPEG
+extern const codec_info_t ffmpeg_decoder;
+#endif
+#ifdef VGM_USE_ATRAC9
+extern const codec_info_t atrac9_decoder;
+#endif
+#ifdef VGM_USE_CELT
+extern const codec_info_t celt_fsb_decoder;
+#endif
+#ifdef VGM_USE_MPEG
+extern const codec_info_t mpeg_decoder;
+#endif
+extern const codec_info_t relic_decoder;
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -50,6 +63,28 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
             return &pcm24_decoder;
         case coding_PCMFLOAT:
             return &pcmfloat_decoder;
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+            return &ffmpeg_decoder;
+#endif
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9:
+            return &atrac9_decoder;
+#endif
+#ifdef VGM_USE_CELT
+        case coding_CELT_FSB:
+            return &celt_fsb_decoder;
+#endif
+#ifdef VGM_USE_MPEG
+        case coding_MPEG_custom:
+        case coding_MPEG_ealayer3:
+        case coding_MPEG_layer1:
+        case coding_MPEG_layer2:
+        case coding_MPEG_layer3:
+            return &mpeg_decoder;
+#endif
+        case coding_RELIC:
+            return &relic_decoder;
         default:
             return NULL;
     }

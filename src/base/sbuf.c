@@ -5,10 +5,10 @@
 #include "../util/log.h"
 
 // float-to-int modes
-//#define PCM16_ROUNDING_LRINT  // potentially faster in some systems/compilers and much slower in others
+//#define PCM16_ROUNDING_LRINT  // rounding down, potentially faster in some systems/compilers and much slower in others (also affects rounding)
 //#define PCM16_ROUNDING_HALF   // rounding half + down (vorbis-style), more 'accurate' but slower
 
-#ifdef PCM16_ROUNDING_HALF
+#if defined(PCM16_ROUNDING_HALF) || defined(PCM16_ROUNDING_LRINT)
 #include <math.h>
 #endif
 
@@ -27,7 +27,7 @@
  * It's slightly faster (~5%) but causes fuzzy PCM<>float<>PCM conversions.
  */
 static inline int float_to_int(float val) {
-#if PCM16_ROUNDING_LRINT
+#ifdef PCM16_ROUNDING_LRINT
     return lrintf(val);
 #elif defined(_MSC_VER)
     return (int)val;
@@ -38,7 +38,7 @@ static inline int float_to_int(float val) {
 
 #if 0
 static inline int double_to_int(double val) {
-#if PCM16_ROUNDING_LRINT
+#ifdef PCM16_ROUNDING_LRINT
     return lrint(val);
 #elif defined(_MSC_VER)
     return (int)val;

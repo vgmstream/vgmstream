@@ -6,5 +6,11 @@ rm -rf audacious/config.h.in audacious/main.loT audacious/Makefile.autotools.in 
 rm -rf src/coding/Makefile.autotools.in src/meta/Makefile.autotools.in src/layout/Makefile.autotools.in cli/Makefile.autotools.in
 rm -rf config.log config.status libtool Makefile.autotools
 
-#find . -type f -name "*.lo" -exec rm -f {} \;
-#find . -type f -name "*.la" -exec rm -f {} \;
+find . -type f -name "*.lo" -exec rm -f {} \;
+find . -type f -name "*.la" -exec rm -f {} \;
+find . -type d -name ".deps" -exec rm -r {} +;
+find . -type d -name ".libs" -exec rm -r {} +;
+find . -type f -name "*.Plo" -exec rm -f {} \;
+find . -type f -name ".dirstamp" -exec rm -f {} \;
+find . -type f -name "stamp-h1" -exec rm -f {} \;
+
