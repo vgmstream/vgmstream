@@ -25,6 +25,9 @@ extern const codec_info_t atrac9_decoder;
 #ifdef VGM_USE_CELT
 extern const codec_info_t celt_fsb_decoder;
 #endif
+#ifdef VGM_USE_MPEG
+extern const codec_info_t mpeg_decoder;
+#endif
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -70,6 +73,14 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
 #ifdef VGM_USE_CELT
         case coding_CELT_FSB:
             return &celt_fsb_decoder;
+#endif
+#ifdef VGM_USE_MPEG
+        case coding_MPEG_custom:
+        case coding_MPEG_ealayer3:
+        case coding_MPEG_layer1:
+        case coding_MPEG_layer2:
+        case coding_MPEG_layer3:
+            return &mpeg_decoder;
 #endif
         default:
             return NULL;

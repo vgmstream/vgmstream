@@ -77,16 +77,6 @@ void decode_free(VGMSTREAM* vgmstream) {
     }
 #endif
 
-#ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type == coding_MPEG_custom ||
-        vgmstream->coding_type == coding_MPEG_ealayer3 ||
-        vgmstream->coding_type == coding_MPEG_layer1 ||
-        vgmstream->coding_type == coding_MPEG_layer2 ||
-        vgmstream->coding_type == coding_MPEG_layer3) {
-        free_mpeg(vgmstream->codec_data);
-    }
-#endif
-
 #ifdef VGM_USE_G7221
     if (vgmstream->coding_type == coding_G7221C) {
         free_g7221(vgmstream->codec_data);
@@ -152,16 +142,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
     }
 #endif
 
-#ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type == coding_MPEG_custom ||
-        vgmstream->coding_type == coding_MPEG_ealayer3 ||
-        vgmstream->coding_type == coding_MPEG_layer1 ||
-        vgmstream->coding_type == coding_MPEG_layer2 ||
-        vgmstream->coding_type == coding_MPEG_layer3) {
-        seek_mpeg(vgmstream, vgmstream->loop_current_sample);
-    }
-#endif
-
     if (vgmstream->coding_type == coding_NWA) {
         seek_nwa(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
@@ -208,16 +188,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
         reset_mp4_aac(vgmstream);
-    }
-#endif
-
-#ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type == coding_MPEG_custom ||
-        vgmstream->coding_type == coding_MPEG_ealayer3 ||
-        vgmstream->coding_type == coding_MPEG_layer1 ||
-        vgmstream->coding_type == coding_MPEG_layer2 ||
-        vgmstream->coding_type == coding_MPEG_layer3) {
-        reset_mpeg(vgmstream->codec_data);
     }
 #endif
 
@@ -288,13 +258,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_PCM24BE:
         case coding_PCM32LE:
             return 1;
-#ifdef VGM_USE_MPEG
-        case coding_MPEG_custom:
-        case coding_MPEG_ealayer3:
-        case coding_MPEG_layer1:
-        case coding_MPEG_layer2:
-        case coding_MPEG_layer3:
-#endif
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
@@ -1241,15 +1204,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             }
             break;
 
-#ifdef VGM_USE_MPEG
-        case coding_MPEG_custom:
-        case coding_MPEG_ealayer3:
-        case coding_MPEG_layer1:
-        case coding_MPEG_layer2:
-        case coding_MPEG_layer3:
-            decode_mpeg(vgmstream, buffer, samples_to_do, vgmstream->channels);
-            break;
-#endif
 #ifdef VGM_USE_G7221
         case coding_G7221C:
             for (ch = 0; ch < vgmstream->channels; ch++) {
