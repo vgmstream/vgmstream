@@ -50,10 +50,6 @@ void decode_free(VGMSTREAM* vgmstream) {
         free_circus_vq(vgmstream->codec_data);
     }
 
-    if (vgmstream->coding_type == coding_RELIC) {
-        free_relic(vgmstream->codec_data);
-    }
-
     if (vgmstream->coding_type == coding_ICE_RANGE ||
         vgmstream->coding_type == coding_ICE_DCT) {
         free_ice(vgmstream->codec_data);
@@ -115,10 +111,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
         seek_circus_vq(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
-    if (vgmstream->coding_type == coding_RELIC) {
-        seek_relic(vgmstream->codec_data, vgmstream->loop_current_sample);
-    }
-
     if (vgmstream->coding_type == coding_ICE_RANGE ||
         vgmstream->coding_type == coding_ICE_DCT) {
         seek_ice(vgmstream->codec_data, vgmstream->loop_current_sample);
@@ -162,10 +154,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
         reset_circus_vq(vgmstream->codec_data);
-    }
-
-    if (vgmstream->coding_type == coding_RELIC) {
-        reset_relic(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_ICE_RANGE ||
@@ -402,8 +390,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* 432, but variable in looped files */
         case coding_CIRCUS_VQ:
             return 0;
-        case coding_RELIC:
-            return 0; /* 512 */
         case coding_ICE_RANGE:
         case coding_ICE_DCT:
             return 0; /* ~100 (range), ~16 (DCT) */
@@ -1005,9 +991,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             break;
         case coding_CIRCUS_VQ:
             decode_circus_vq(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);
-            break;
-        case coding_RELIC:
-            decode_relic(&vgmstream->ch[0], vgmstream->codec_data, buffer, samples_to_do);
             break;
         case coding_ICE_RANGE:
         case coding_ICE_DCT:

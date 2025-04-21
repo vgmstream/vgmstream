@@ -318,13 +318,7 @@ void free_ea_mt(ea_mt_codec_data* data, int channels);
 
 
 /* relic_decoder */
-typedef struct relic_codec_data relic_codec_data;
-
-relic_codec_data* init_relic(int channels, int bitrate, int codec_rate);
-void decode_relic(VGMSTREAMCHANNEL* stream, relic_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
-void reset_relic(relic_codec_data* data);
-void seek_relic(relic_codec_data* data, int32_t num_sample);
-void free_relic(relic_codec_data* data);
+void* init_relic(int channels, int bitrate, int codec_rate);
 int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate);
 
 

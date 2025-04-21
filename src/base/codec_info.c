@@ -28,6 +28,7 @@ extern const codec_info_t celt_fsb_decoder;
 #ifdef VGM_USE_MPEG
 extern const codec_info_t mpeg_decoder;
 #endif
+extern const codec_info_t relic_decoder;
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -82,6 +83,8 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
         case coding_MPEG_layer3:
             return &mpeg_decoder;
 #endif
+        case coding_RELIC:
+            return &relic_decoder;
         default:
             return NULL;
     }
