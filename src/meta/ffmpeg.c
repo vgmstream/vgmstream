@@ -72,6 +72,10 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
         loop_flag = find_meta_loops(data, &loop_start, &loop_end);
     }
 
+    if (is_id32be(0x00, sf, "fLaC")) {
+        ffmpeg_set_allow_pcm24(data);
+    }
+
     /* hack for AAC files (will return 0 samples if not an actual file) */
     if (!num_samples && check_extensions(sf, "aac,laac")) {
         num_samples = aac_get_samples(sf, 0x00, get_streamfile_size(sf));

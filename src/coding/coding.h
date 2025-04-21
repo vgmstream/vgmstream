@@ -318,13 +318,7 @@ void free_ea_mt(ea_mt_codec_data* data, int channels);
 
 
 /* relic_decoder */
-typedef struct relic_codec_data relic_codec_data;
-
-relic_codec_data* init_relic(int channels, int bitrate, int codec_rate);
-void decode_relic(VGMSTREAMCHANNEL* stream, relic_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
-void reset_relic(relic_codec_data* data);
-void seek_relic(relic_codec_data* data, int32_t num_sample);
-void free_relic(relic_codec_data* data);
+void* init_relic(int channels, int bitrate, int codec_rate);
 int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate);
 
 
@@ -451,15 +445,6 @@ void free_vorbis_custom(void* data);
 int32_t vorbis_custom_get_samples(VGMSTREAM* v);
 #endif
 
-typedef struct {
-    int version;
-    int layer;
-    int bit_rate;
-    int sample_rate;
-    int frame_samples;
-    int frame_size; /* bytes */
-    int channels;
-} mpeg_frame_info;
 
 #ifdef VGM_USE_MPEG
 /* mpeg_decoder */
@@ -506,19 +491,27 @@ typedef struct {
 
 mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t *coding_type, int channels);
 mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* coding_type, int channels, mpeg_custom_t custom_type, mpeg_custom_config* config);
-void decode_mpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_mpeg(mpeg_codec_data* data);
-void seek_mpeg(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_mpeg(mpeg_codec_data* data);
 
 int mpeg_get_sample_rate(mpeg_codec_data* data);
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data);
 
 uint32_t mpeg_get_tag_size(STREAMFILE* sf, uint32_t offset, uint32_t header);
+bool test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey);
+#endif
+
+typedef struct {
+    int version;
+    int layer;
+    int bit_rate;
+    int sample_rate;
+    int frame_samples;
+    int frame_size; /* bytes */
+    int channels;
+} mpeg_frame_info;
 bool mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info);
 bool mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info* info);
-int test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey);
-#endif
+size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
+int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, uint32_t* p_loop_start, uint32_t* p_loop_end, int is_vbr);
 
 
 #ifdef VGM_USE_G7221
@@ -570,28 +563,16 @@ typedef struct {
     uint32_t config_data;   /* ATRAC9 config header */
     int encoder_delay;      /* initial samples to discard */
 } atrac9_config;
-typedef struct atrac9_codec_data atrac9_codec_data;
 
-atrac9_codec_data* init_atrac9(atrac9_config* cfg);
-void decode_atrac9(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_atrac9(atrac9_codec_data* data);
-void seek_atrac9(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_atrac9(atrac9_codec_data* data);
-size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data* data);
+void* init_atrac9(atrac9_config* cfg);
+size_t atrac9_bytes_to_samples(size_t bytes, void* priv_data);
 size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t config_data);
 #endif
 
 
 #ifdef VGM_USE_CELT
-/* celt_fsb_decoder */
-typedef enum { CELT_0_06_1,CELT_0_11_0} celt_lib_t;
-typedef struct celt_codec_data celt_codec_data;
-
-celt_codec_data* init_celt_fsb(int channels, celt_lib_t version);
-void decode_celt_fsb(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_celt_fsb(celt_codec_data* data);
-void seek_celt_fsb(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_celt_fsb(celt_codec_data* data);
+void* init_celt_fsb_v1(int channels);
+void* init_celt_fsb_v2(int channels);
 #endif
 
 
@@ -610,10 +591,7 @@ ffmpeg_codec_data* init_ffmpeg_offset(STREAMFILE* sf, uint64_t start, uint64_t s
 ffmpeg_codec_data* init_ffmpeg_header_offset(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size);
 ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong);
 
-void decode_ffmpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_ffmpeg(ffmpeg_codec_data* data);
-void seek_ffmpeg(ffmpeg_codec_data* data, int32_t num_sample);
-void free_ffmpeg(ffmpeg_codec_data* data);
+void free_ffmpeg(void* data);
 
 void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples);
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data);
@@ -621,6 +599,7 @@ void ffmpeg_set_channel_remapping(ffmpeg_codec_data* data, int* channels_remap);
 const char* ffmpeg_get_codec_name(ffmpeg_codec_data* data);
 void ffmpeg_set_force_seek(ffmpeg_codec_data* data);
 void ffmpeg_set_invert_floats(ffmpeg_codec_data* data);
+void ffmpeg_set_allow_pcm24(ffmpeg_codec_data* data);
 const char* ffmpeg_get_metadata_value(ffmpeg_codec_data* data, const char* key);
 
 int32_t ffmpeg_get_samples(ffmpeg_codec_data* data);
@@ -739,8 +718,6 @@ size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
 size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
 size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
-size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
-int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, uint32_t* p_loop_start, uint32_t* p_loop_end, int is_vbr);
 int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay);
 
 

@@ -1,21 +1,33 @@
 #include "coding.h"
+#include "../base/decode_state.h"
+#include "../base/codec_info.h"
 #include "libs/relic_lib.h"
 
-//TODO: fix looping
 
-struct relic_codec_data {
+typedef struct {
     relic_handle_t* handle;
     int channels;
     int frame_size;
 
-    int32_t samples_discard;
-    int32_t samples_consumed;
-    int32_t samples_filled;
-};
+    float fbuf[RELIC_SAMPLES_PER_FRAME * RELIC_MAX_CHANNELS];
+
+    int32_t discard;
+} relic_codec_data;
 
 
-relic_codec_data* init_relic(int channels, int bitrate, int codec_rate) {
+static void free_relic(void* priv_data) {
+    relic_codec_data* data = priv_data;
+    if (!data) return;
+
+    relic_free(data->handle);
+    free(data);
+}
+
+void* init_relic(int channels, int bitrate, int codec_rate) {
     relic_codec_data* data = NULL;
+
+    if (channels > RELIC_MAX_CHANNELS)
+        goto fail;
 
     data = calloc(1, sizeof(relic_codec_data));
     if (!data) goto fail;
@@ -32,92 +44,68 @@ fail:
     return NULL;
 }
 
-static int decode_frame_next(VGMSTREAMCHANNEL* stream, relic_codec_data* data) {
-    int ch;
-    int bytes;
-    int ok;
+static int decode_frame_channels(VGMSTREAMCHANNEL* stream, relic_codec_data* data) {
     uint8_t buf[RELIC_BUFFER_SIZE];
 
-    for (ch = 0; ch < data->channels; ch++) {
-        bytes = read_streamfile(buf, stream->offset, data->frame_size, stream->streamfile);
-        if (bytes != data->frame_size) goto fail;
+    for (int ch = 0; ch < data->channels; ch++) {
+        int bytes = read_streamfile(buf, stream->offset, data->frame_size, stream->streamfile);
+
         stream->offset += data->frame_size;
 
-        ok = relic_decode_frame(data->handle, buf, ch);
-        if (!ok) goto fail;
+        if (bytes != data->frame_size) return -1;
+
+        int ok = relic_decode_frame(data->handle, buf, ch);
+        if (!ok) return -1;
     }
 
-    data->samples_consumed = 0;
-    data->samples_filled = RELIC_SAMPLES_PER_FRAME;
-    return 1;
-fail:
-    return 0;
+    return RELIC_SAMPLES_PER_FRAME;
 }
 
-void decode_relic(VGMSTREAMCHANNEL* stream, relic_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
+static bool decode_frame_relic(VGMSTREAM* v) {
+    decode_state_t* ds = v->decode_state;
+    relic_codec_data* data = v->codec_data;
 
-    while (samples_to_do > 0) {
+    int samples = decode_frame_channels(&v->ch[0], data);
+    if (samples <= 0)
+        return false;
 
-        if (data->samples_consumed < data->samples_filled) {
-            /* consume samples */
-            int samples_to_get = (data->samples_filled - data->samples_consumed);
+    relic_get_float(data->handle, data->fbuf);
 
-            if (data->samples_discard) {
-                /* discard samples for looping */
-                if (samples_to_get > data->samples_discard)
-                    samples_to_get = data->samples_discard;
-                data->samples_discard -= samples_to_get;
-            }
-            else {
-                /* get max samples and copy */
-                if (samples_to_get > samples_to_do)
-                    samples_to_get = samples_to_do;
+    sbuf_init_f16(&ds->sbuf, data->fbuf, samples, data->channels);
+    ds->sbuf.filled = samples;
 
-                relic_get_pcm16(data->handle, outbuf, samples_to_get, data->samples_consumed);
-
-                samples_to_do -= samples_to_get;
-                outbuf += samples_to_get * data->channels;
-            }
-
-            /* mark consumed samples */
-            data->samples_consumed += samples_to_get;
-        }
-        else {
-            int ok = decode_frame_next(stream, data);
-            if (!ok) goto decode_fail;
-        }
+    if (data->discard) {
+        ds->discard = data->discard;
+        data->discard = 0;
     }
-    return;
 
-decode_fail:
-    /* on error just put some 0 samples */
-    VGM_LOG("RELIC: decode fail, missing %i samples\n", samples_to_do);
-    memset(outbuf, 0, samples_to_do * data->channels * sizeof(sample_t));
+    return true;
 }
 
-void reset_relic(relic_codec_data* data) {
+static void reset_relic(void* priv_data) {
+    relic_codec_data* data = priv_data;
     if (!data) return;
 
     relic_reset(data->handle);
-    data->samples_filled = 0;
-    data->samples_consumed = 0;
-    data->samples_discard = 0;
+    data->discard = 0;
 }
 
-void seek_relic(relic_codec_data* data, int32_t num_sample) {
+static void seek_relic(VGMSTREAM* v, int32_t num_sample) {
+    relic_codec_data* data = v->codec_data;
     if (!data) return;
 
     reset_relic(data);
-    data->samples_discard = num_sample;
-}
-
-void free_relic(relic_codec_data* data) {
-    if (!data) return;
-
-    relic_free(data->handle);
-    free(data);
+    data->discard = num_sample;
 }
 
 int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate) {
     return bytes / channels / (bitrate / 8) * RELIC_SAMPLES_PER_FRAME;
 }
+
+const codec_info_t relic_decoder = {
+    .sample_type = SFMT_F16,
+    .decode_frame = decode_frame_relic,
+    .free = free_relic,
+    .reset = reset_relic,
+    .seek = seek_relic,
+};

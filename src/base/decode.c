@@ -50,10 +50,6 @@ void decode_free(VGMSTREAM* vgmstream) {
         free_circus_vq(vgmstream->codec_data);
     }
 
-    if (vgmstream->coding_type == coding_RELIC) {
-        free_relic(vgmstream->codec_data);
-    }
-
     if (vgmstream->coding_type == coding_ICE_RANGE ||
         vgmstream->coding_type == coding_ICE_DCT) {
         free_ice(vgmstream->codec_data);
@@ -71,25 +67,9 @@ void decode_free(VGMSTREAM* vgmstream) {
         free_ea_mt(vgmstream->codec_data, vgmstream->channels);
     }
 
-#ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) {
-        free_ffmpeg(vgmstream->codec_data);
-    }
-#endif
-
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
         free_mp4_aac(vgmstream->codec_data);
-    }
-#endif
-
-#ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type == coding_MPEG_custom ||
-        vgmstream->coding_type == coding_MPEG_ealayer3 ||
-        vgmstream->coding_type == coding_MPEG_layer1 ||
-        vgmstream->coding_type == coding_MPEG_layer2 ||
-        vgmstream->coding_type == coding_MPEG_layer3) {
-        free_mpeg(vgmstream->codec_data);
     }
 #endif
 
@@ -102,18 +82,6 @@ void decode_free(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_G719
     if (vgmstream->coding_type == coding_G719) {
         free_g719(vgmstream->codec_data, vgmstream->channels);
-    }
-#endif
-
-#ifdef VGM_USE_ATRAC9
-    if (vgmstream->coding_type == coding_ATRAC9) {
-        free_atrac9(vgmstream->codec_data);
-    }
-#endif
-
-#ifdef VGM_USE_CELT
-    if (vgmstream->coding_type == coding_CELT_FSB) {
-        free_celt_fsb(vgmstream->codec_data);
     }
 #endif
 
@@ -143,10 +111,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
         seek_circus_vq(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
-    if (vgmstream->coding_type == coding_RELIC) {
-        seek_relic(vgmstream->codec_data, vgmstream->loop_current_sample);
-    }
-
     if (vgmstream->coding_type == coding_ICE_RANGE ||
         vgmstream->coding_type == coding_ICE_DCT) {
         seek_ice(vgmstream->codec_data, vgmstream->loop_current_sample);
@@ -164,37 +128,9 @@ void decode_seek(VGMSTREAM* vgmstream) {
         seek_ea_mt(vgmstream, vgmstream->loop_current_sample);
     }
 
-#ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) {
-        seek_ffmpeg(vgmstream->codec_data, vgmstream->loop_current_sample);
-    }
-#endif
-
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
         seek_mp4_aac(vgmstream, vgmstream->loop_current_sample);
-    }
-#endif
-
-#ifdef VGM_USE_ATRAC9
-    if (vgmstream->coding_type == coding_ATRAC9) {
-        seek_atrac9(vgmstream, vgmstream->loop_current_sample);
-    }
-#endif
-
-#ifdef VGM_USE_CELT
-    if (vgmstream->coding_type == coding_CELT_FSB) {
-        seek_celt_fsb(vgmstream, vgmstream->loop_current_sample);
-    }
-#endif
-
-#ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type == coding_MPEG_custom ||
-        vgmstream->coding_type == coding_MPEG_ealayer3 ||
-        vgmstream->coding_type == coding_MPEG_layer1 ||
-        vgmstream->coding_type == coding_MPEG_layer2 ||
-        vgmstream->coding_type == coding_MPEG_layer3) {
-        seek_mpeg(vgmstream, vgmstream->loop_current_sample);
     }
 #endif
 
@@ -220,10 +156,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
         reset_circus_vq(vgmstream->codec_data);
     }
 
-    if (vgmstream->coding_type == coding_RELIC) {
-        reset_relic(vgmstream->codec_data);
-    }
-
     if (vgmstream->coding_type == coding_ICE_RANGE ||
         vgmstream->coding_type == coding_ICE_DCT) {
         reset_ice(vgmstream->codec_data);
@@ -247,16 +179,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
     }
 #endif
 
-#ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type == coding_MPEG_custom ||
-        vgmstream->coding_type == coding_MPEG_ealayer3 ||
-        vgmstream->coding_type == coding_MPEG_layer1 ||
-        vgmstream->coding_type == coding_MPEG_layer2 ||
-        vgmstream->coding_type == coding_MPEG_layer3) {
-        reset_mpeg(vgmstream->codec_data);
-    }
-#endif
-
 #ifdef VGM_USE_G7221
     if (vgmstream->coding_type == coding_G7221C) {
         reset_g7221(vgmstream->codec_data);
@@ -266,24 +188,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_G719
     if (vgmstream->coding_type == coding_G719) {
         reset_g719(vgmstream->codec_data, vgmstream->channels);
-    }
-#endif
-
-#ifdef VGM_USE_ATRAC9
-    if (vgmstream->coding_type == coding_ATRAC9) {
-        reset_atrac9(vgmstream->codec_data);
-    }
-#endif
-
-#ifdef VGM_USE_CELT
-    if (vgmstream->coding_type == coding_CELT_FSB) {
-        reset_celt_fsb(vgmstream->codec_data);
-    }
-#endif
-
-#ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) {
-        reset_ffmpeg(vgmstream->codec_data);
     }
 #endif
 
@@ -342,13 +246,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_PCM24BE:
         case coding_PCM32LE:
             return 1;
-#ifdef VGM_USE_MPEG
-        case coding_MPEG_custom:
-        case coding_MPEG_ealayer3:
-        case coding_MPEG_layer1:
-        case coding_MPEG_layer2:
-        case coding_MPEG_layer3:
-#endif
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
@@ -465,10 +362,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_G719:
             return 48000/50;
 #endif
-#ifdef VGM_USE_FFMPEG
-        case coding_FFmpeg:
-            return 0;
-#endif
         case coding_MTAF:
             return 128*2;
         case coding_MTA2:
@@ -497,22 +390,12 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* 432, but variable in looped files */
         case coding_CIRCUS_VQ:
             return 0;
-        case coding_RELIC:
-            return 0; /* 512 */
         case coding_ICE_RANGE:
         case coding_ICE_DCT:
             return 0; /* ~100 (range), ~16 (DCT) */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             return mp4_get_samples_per_frame(vgmstream->codec_data);
-#endif
-#ifdef VGM_USE_ATRAC9
-        case coding_ATRAC9:
-            return 0; /* varies with config data, usually 256 or 1024 */
-#endif
-#ifdef VGM_USE_CELT
-        case coding_CELT_FSB:
-            return 0; /* 512? */
 #endif
         default:
             return 0;
@@ -680,9 +563,6 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_G719
         case coding_G719:
 #endif
-#ifdef VGM_USE_FFMPEG
-        case coding_FFmpeg:
-#endif
         case coding_MTAF:
             return vgmstream->interleave_block_size;
         case coding_MTA2:
@@ -704,7 +584,6 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         /* UBI_ADPCM: varies per mode? */
         /* IMUSE: VBR */
         /* EA_MT: VBR, frames of bit counts or PCM frames */
-        /* ATRAC9: CBR around  0x100-200 */
         /* CELT FSB: varies, usually 0x80-100 */
         /* TAC: VBR around ~0x200-300 */
         default: /* (VBR or managed by decoder) */
@@ -1113,18 +992,10 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_CIRCUS_VQ:
             decode_circus_vq(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);
             break;
-        case coding_RELIC:
-            decode_relic(&vgmstream->ch[0], vgmstream->codec_data, buffer, samples_to_do);
-            break;
         case coding_ICE_RANGE:
         case coding_ICE_DCT:
             decode_ice(vgmstream->codec_data, buffer, samples_to_do);
             break;
-#ifdef VGM_USE_FFMPEG
-        case coding_FFmpeg:
-            decode_ffmpeg(vgmstream, buffer, samples_to_do, vgmstream->channels);
-            break;
-#endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             decode_mp4_aac(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);
@@ -1316,15 +1187,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             }
             break;
 
-#ifdef VGM_USE_MPEG
-        case coding_MPEG_custom:
-        case coding_MPEG_ealayer3:
-        case coding_MPEG_layer1:
-        case coding_MPEG_layer2:
-        case coding_MPEG_layer3:
-            decode_mpeg(vgmstream, buffer, samples_to_do, vgmstream->channels);
-            break;
-#endif
 #ifdef VGM_USE_G7221
         case coding_G7221C:
             for (ch = 0; ch < vgmstream->channels; ch++) {
@@ -1337,16 +1199,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_g719(vgmstream, buffer+ch, vgmstream->channels, samples_to_do, ch);
             }
-            break;
-#endif
-#ifdef VGM_USE_ATRAC9
-        case coding_ATRAC9:
-            decode_atrac9(vgmstream, buffer, samples_to_do, vgmstream->channels);
-            break;
-#endif
-#ifdef VGM_USE_CELT
-        case coding_CELT_FSB:
-            decode_celt_fsb(vgmstream, buffer, samples_to_do, vgmstream->channels);
             break;
 #endif
         case coding_ACM:

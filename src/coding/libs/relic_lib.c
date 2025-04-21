@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <math.h>
 #include "relic_lib.h"
@@ -14,7 +15,6 @@
 extern void relic_mixfft_fft(int n, float* xRe, float* xIm, float* yRe, float* yIm);
 
 
-#define RELIC_MAX_CHANNELS  2
 #define RELIC_MAX_SCALES  6
 #define RELIC_BASE_SCALE  10.0f
 #define RELIC_FREQUENCY_MASKING_FACTOR  1.0f
@@ -61,10 +61,9 @@ static const int16_t critical_band_data[RELIC_CRITICAL_BAND_COUNT] = {
 };
 
 static void init_dct(float* dct, int dct_size) {
-    int i;
-    int dct_quarter = dct_size >> 2;
+    const int dct_quarter = dct_size >> 2;
 
-    for (i = 0; i < dct_quarter; i++) {
+    for (int i = 0; i < dct_quarter; i++) {
         double temp = ((float)i + 0.125f) * (RELIC_PI * 2.0f) * (1.0f / (float)dct_size);
         dct[i] = sin(temp);
         dct[dct_quarter + i] = cos(temp);
@@ -72,19 +71,17 @@ static void init_dct(float* dct, int dct_size) {
 }
 
 static int apply_idct(const float* freq, float* wave, const float* dct, int dct_size) {
-    int i;
-    float factor;
     float out_re[RELIC_MAX_FFT];
     float out_im[RELIC_MAX_FFT];
     float in_re[RELIC_MAX_FFT];
     float in_im[RELIC_MAX_FFT];
     float wave_tmp[RELIC_MAX_SIZE];
-    int dct_half = dct_size >> 1;
-    int dct_quarter = dct_size >> 2;
-    int dct_3quarter = 3 * (dct_size >> 2);
+    const int dct_half = dct_size >> 1;
+    const int dct_quarter = dct_size >> 2;
+    const int dct_3quarter = 3 * (dct_size >> 2);
 
     /* prerotation? */
-    for (i = 0; i < dct_quarter; i++) {
+    for (int i = 0; i < dct_quarter; i++) {
         float coef1 = freq[2 * i] * 0.5f;
         float coef2 = freq[dct_half - 1 - 2 * i] * 0.5f;
         in_re[i] = coef1 * dct[dct_quarter + i] + coef2 * dct[i];
@@ -95,32 +92,31 @@ static int apply_idct(const float* freq, float* wave, const float* dct, int dct_
     relic_mixfft_fft(dct_quarter, in_re, in_im, out_re, out_im);
 
     /* postrotation, window and reorder? */
-    factor = 8.0 / sqrt(dct_size);
-    for (i = 0; i < dct_quarter; i++) {
+    float factor = 8.0 / sqrt(dct_size);
+    for (int i = 0; i < dct_quarter; i++) {
         float out_re_i = out_re[i];
         out_re[i] = (out_re[i] * dct[dct_quarter + i] + out_im[i] * dct[i]) * factor;
         out_im[i] = (-out_re_i * dct[i] + out_im[i] * dct[dct_quarter + i]) * factor;
         wave_tmp[i * 2] = out_re[i];
         wave_tmp[i * 2 + dct_half] = out_im[i];
     }
-    for (i = 1; i < dct_size; i += 2) {
+    for (int i = 1; i < dct_size; i += 2) {
         wave_tmp[i] = -wave_tmp[dct_size - 1 - i];
     }
 
     /* wave mix thing? */
-    for (i = 0; i < dct_3quarter; i++) {
+    for (int i = 0; i < dct_3quarter; i++) {
         wave[i] = wave_tmp[dct_quarter + i];
     }
-    for (i = dct_3quarter; i < dct_size; i++) {
+    for (int i = dct_3quarter; i < dct_size; i++) {
         wave[i] = -wave_tmp[i - dct_3quarter];
     }
     return 0;
 }
 
 static void decode_frame(const float* freq1, const float* freq2, float* wave_cur, float* wave_prv, const float* dct, const float* window, int dct_size) {
-    int i;
     float wave_tmp[RELIC_MAX_SIZE];
-    int dct_half = dct_size >> 1;
+    const int dct_half = dct_size >> 1;
 
     /* copy for first half(?) */
     memcpy(wave_cur, wave_prv, RELIC_MAX_SIZE * sizeof(float));
@@ -130,22 +126,19 @@ static void decode_frame(const float* freq1, const float* freq2, float* wave_cur
     apply_idct(freq2, wave_prv, dct, dct_size);
 
     /* overlap and apply window function to filter this block's beginning */
-    for (i = 0; i < dct_half; i++) {
+    for (int i = 0; i < dct_half; i++) {
         wave_cur[dct_half + i] = wave_tmp[i] * window[i] + wave_cur[dct_half + i] * window[dct_half + i];
         wave_prv[i]            = wave_prv[i] * window[i] + wave_tmp[dct_half + i] * window[dct_half + i];
     }
 }
 
 static void init_window(float *window, int dct_size) {
-    int i;
-
-    for (i = 0; i < dct_size; i++) {
+    for (int i = 0; i < dct_size; i++) {
         window[i] = sin((float)i * (RELIC_PI / dct_size));
     }
 }
 
 static void decode_frame_base(const float* freq1, const float* freq2, float* wave_cur, float* wave_prv, const float* dct, const float* window, int dct_mode, int samples_mode) {
-    int i;
     float wave_tmp[RELIC_MAX_SIZE];
 
     /* dec_relic only uses 512/512 mode, source references 256/256 (effects only?) too */
@@ -160,7 +153,7 @@ static void decode_frame_base(const float* freq1, const float* freq2, float* wav
         if (dct_mode == RELIC_SIZE_LOW) { 
             /* 128 DCT to 256 samples (repeat sample x2) */
             decode_frame(freq1, freq2, wave_tmp, wave_prv, dct, window, RELIC_SIZE_LOW);
-            for (i = 0; i < 256 - 1; i += 2) {
+            for (int i = 0; i < 256 - 1; i += 2) {
                 wave_cur[i + 0] = wave_tmp[i >> 1];
                 wave_cur[i + 1] = wave_tmp[i >> 1];
             }
@@ -174,7 +167,7 @@ static void decode_frame_base(const float* freq1, const float* freq2, float* wav
         if (dct_mode == RELIC_SIZE_LOW) {
             /* 128 DCT to 512 samples (repeat sample x4) */
             decode_frame(freq1, freq2, wave_tmp, wave_prv, dct, window, RELIC_SIZE_LOW);
-            for (i = 0; i < 512 - 1; i += 4) {
+            for (int i = 0; i < 512 - 1; i += 4) {
                 wave_cur[i + 0] = wave_tmp[i >> 2];
                 wave_cur[i + 1] = wave_tmp[i >> 2];
                 wave_cur[i + 2] = wave_tmp[i >> 2];
@@ -184,7 +177,7 @@ static void decode_frame_base(const float* freq1, const float* freq2, float* wav
         else if (dct_mode == RELIC_SIZE_MID) {
             /* 256 DCT to 512 samples (repeat sample x2) */
             decode_frame(freq1, freq2, wave_tmp, wave_prv, dct, window, RELIC_SIZE_MID);
-            for (i = 0; i < 512 - 1; i += 2) {
+            for (int i = 0; i < 512 - 1; i += 2) {
                 wave_cur[i + 0] = wave_tmp[i >> 1];
                 wave_cur[i + 1] = wave_tmp[i >> 1];
             }
@@ -225,25 +218,22 @@ static int read_sbits(uint8_t bits, uint32_t offset, uint8_t* buf) {
 }
 
 static void init_dequantization(float* scales) {
-    int i;
-
     scales[0] = RELIC_BASE_SCALE;
-    for (i = 1; i < RELIC_MAX_SCALES; i++) {
+    for (int i = 1; i < RELIC_MAX_SCALES; i++) {
         scales[i] = scales[i - 1] * scales[0];
     }
-    for (i = 0; i < RELIC_MAX_SCALES; i++) {
+    for (int i = 0; i < RELIC_MAX_SCALES; i++) {
         scales[i] = RELIC_FREQUENCY_MASKING_FACTOR / (double) ((1 << (i + 1)) - 1) * scales[i];
     }
 }
 
-static int unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, const float* scales, uint8_t* exponents, int freq_size) {
+static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, const float* scales, uint8_t* exponents, int freq_size) {
     uint8_t flags, cb_bits, ev_bits, ei_bits, qv_bits;
-    int qv, pos;
+    int qv;
     uint8_t ev;
     uint8_t move;
     uint32_t bit_offset, max_offset;
-    int i, j;
-    int freq_half = freq_size >> 1;
+    const int freq_half = freq_size >> 1;
 
 
     memset(freq1, 0, RELIC_MAX_FREQ * sizeof(float));
@@ -263,8 +253,8 @@ static int unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, 
 
     /* read packed exponents indexes for all bands */
     if (cb_bits > 0 && ev_bits > 0) {
-        pos = 0;
-        for (i = 0; i < RELIC_CRITICAL_BAND_COUNT - 1; i++) {
+        int pos = 0;
+        for (int i = 0; i < RELIC_CRITICAL_BAND_COUNT - 1; i++) {
             if (bit_offset + cb_bits > max_offset)
                 goto fail;
             move = read_ubits(cb_bits, bit_offset, buf);
@@ -281,7 +271,7 @@ static int unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, 
 
             if (pos + 1 >= sizeof(critical_band_data))
                 goto fail;
-            for (j = critical_band_data[pos]; j < critical_band_data[pos + 1]; j++) {
+            for (int j = critical_band_data[pos]; j < critical_band_data[pos + 1]; j++) {
                 exponents[j] = ev;
             }
         }
@@ -291,8 +281,8 @@ static int unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, 
     if (freq_half > 0 && ei_bits > 0) {
 
         /* read first part */
-        pos = 0;
-        for (i = 0; i < RELIC_MAX_FREQ; i++) {
+        int pos = 0;
+        for (int i = 0; i < RELIC_MAX_FREQ; i++) {
             if (bit_offset + ei_bits > max_offset)
                 goto fail;
             move = read_ubits(ei_bits, bit_offset, buf);
@@ -322,7 +312,7 @@ static int unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, 
         }
         else {
             pos = 0;
-            for (i = 0; i < RELIC_MAX_FREQ; i++) {
+            for (int i = 0; i < RELIC_MAX_FREQ; i++) {
                 if (bit_offset + ei_bits > max_offset)
                     goto fail;
                 move = read_ubits(ei_bits, bit_offset, buf);
@@ -413,12 +403,11 @@ int relic_get_frame_size(relic_handle_t* handle) {
 }
 
 int relic_decode_frame(relic_handle_t* handle, uint8_t* buf, int channel) {
-    int ok;
 
     /* clean extra bytes for bitreader (due to a quirk in the original code it may read outside max frame size) */
     memset(buf + handle->frame_size, 0, RELIC_BUFFER_SIZE - handle->frame_size);
 
-    ok = unpack_frame(buf, RELIC_BUFFER_SIZE, handle->freq1, handle->freq2, handle->scales, handle->exponents[channel], handle->freq_size);
+    bool ok = unpack_frame(buf, RELIC_BUFFER_SIZE, handle->freq1, handle->freq2, handle->scales, handle->exponents[channel], handle->freq_size);
     if (!ok) return ok;
 
     decode_frame_base(handle->freq1, handle->freq2, handle->wave_cur[channel], handle->wave_prv[channel], handle->dct, handle->window, handle->dct_mode, handle->samples_mode);
@@ -432,13 +421,12 @@ static inline int clamp16(int32_t val) {
     else return val;
 }
 
-void relic_get_pcm16(relic_handle_t* handle, int16_t* outbuf, int32_t samples, int32_t skip) {
-    int s, ch;
+void relic_get_pcm16(relic_handle_t* handle, int16_t* sbuf) {
     int ichs = handle->channels;
 
-    for (ch = 0; ch < ichs; ch++) {
-        for (s = 0; s < samples; s++) {
-            double d64_sample = handle->wave_cur[ch][skip + s];
+    for (int s = 0; s < RELIC_SAMPLES_PER_FRAME; s++) {
+        for (int ch = 0; ch < ichs; ch++) {
+            double d64_sample = handle->wave_cur[ch][s];
             int pcm_sample = clamp16((int32_t)d64_sample);
 
             /* f32 in PCM 32767.0 .. -32768.0 format, original code
@@ -446,7 +434,17 @@ void relic_get_pcm16(relic_handle_t* handle, int16_t* outbuf, int32_t samples, i
             //FQ_BNUM ((float)(1<<26)*(1<<26)*1.5)
             //rint(x) ((d64 = (double)(x)+FQ_BNUM), *(int*)(&d64))
 
-            outbuf[s*ichs + ch] = pcm_sample;
+            sbuf[s*ichs + ch] = pcm_sample;
+        }
+    }
+}
+
+// original lib always converts to pcm16, this is just a freebie
+void relic_get_float(relic_handle_t* handle, float* sbuf) {
+    int pos = 0;
+    for (int s = 0; s < RELIC_SAMPLES_PER_FRAME; s++) {
+        for (int ch = 0; ch < handle->channels; ch++) {
+            sbuf[pos++] = handle->wave_cur[ch][s];
         }
     }
 }

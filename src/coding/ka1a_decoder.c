@@ -84,7 +84,7 @@ static bool read_frame(VGMSTREAM* v) {
     return true;
 }
 
-bool decode_frame_ka1a(VGMSTREAM* v) {
+static bool decode_frame_ka1a(VGMSTREAM* v) {
     bool ok = read_frame(v);
     if (!ok)
         return false;

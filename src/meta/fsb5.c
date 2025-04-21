@@ -405,7 +405,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                 vgmstream->layout_type = layout_layered;
             }
             else {
-                vgmstream->codec_data = init_celt_fsb(vgmstream->channels, CELT_0_11_0);
+                vgmstream->codec_data = init_celt_fsb_v2(vgmstream->channels);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
                 vgmstream->layout_type = layout_none;
@@ -591,7 +591,7 @@ static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, f
         switch (fsb5->codec) {
 #ifdef VGM_USE_CELT
             case 0x0C: { /* CELT */
-                data->layers[i]->codec_data = init_celt_fsb(layer_channels, CELT_0_11_0);
+                data->layers[i]->codec_data = init_celt_fsb_v2(layer_channels);
                 if (!data->layers[i]->codec_data) goto fail;
                 data->layers[i]->coding_type = coding_CELT_FSB;
                 data->layers[i]->layout_type = layout_none;
