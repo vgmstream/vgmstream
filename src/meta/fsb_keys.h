@@ -71,6 +71,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5, FSBKEY_ADD("aj#$kLucf2lh}eqh") }, // Forza Motorsport 2023 (PC)
         { MODE_FSB4, FSBKEY_ADD("dpdjeoqkr") }, // AirRider CrazyRacing (PC)
         { MODE_FSB5, FSBKEY_ADD("weareAbsolutelyUnsure2018") }, //  Wanderstop (PC)
+        { MODE_FSB5, FSBKEY_ADD(".xW3uXQ8q79yunvMjL6nahLXts9esEXX2VgetuPCxdLrAjUUbZAmB7R*A6KjW24NU_8ifMZ8TC4Qk@_oEsjsK2QLpAaG-Fy!wYKP") }, //  UNBEATABLE Demo (PC)
 
         /* some games use a key per file, generated from the filename
          * (could add all of them but there are a lot of songs, so external .fsbkey are probably better) */
