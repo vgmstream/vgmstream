@@ -84,18 +84,18 @@ asks all plugins if they support the file. Here vgmstream accepts files it can
 play and rejects anything it can't, but if no plugin "claims" the file (and most
 don't), Winamp will just pass it to the *first* `.dll` in the plugin folder that
 reports the extension. Since vgmstream supports tons of extensions sometimes it
-may receive files it can't play (even after rejecting them before). This oddness
-can be solved by renaming the plugins' `.dll` so vgmstream goes *last*.
+may receive files it can't play (even after rejecting them). This oddness can be
+solved by renaming the plugins' `.dll` so vgmstream goes *last*.
 
-For example, vgmstream ignores sequenced `.vgm` but supports streamed `.vgm` (another
-format). If your *in_vgm* plugin version doesn't "claim" sequenced `.vgm` Winamp
-may send it to vgmstream by mistake (so won't be playable), depending on how it's
-named. Here vgmstream has higher priority and fail:
+For example, vgmstream ignores *sequenced* `.vgm` but supports *streamed* `.vgm` (another
+format). If your *in_vgm* plugin version doesn't "claim" *sequenced* `.vgm`, Winamp
+may send it to vgmstream by mistake (won't be playable), depending on how the plugin
+is named. Here vgmstream has higher priority and `.vgm` will fail:
 ```
 in_vgmstream.dll
 in_vgmW.dll
 ```
-And here has lower and will be playable:
+And here has lower and `.vgm` will be playable:
 ```
 in_vgm.dll
 in_vgmstream.dll
@@ -113,6 +113,11 @@ bundle.
 *Others*: may be possible to use through *Wine*.
 
 Note that vgmstream currently requires at least foobar v1.5 to run.
+
+#### Playlist issues
+A known quirk is that when loop options or tags change, playlist time/info won't
+update automatically. You need to manually refresh it by selecting songs and doing
+**shift + right click > Tagging > Reload info from file(s)**.
 
 #### Plugin priority
 If multiple plugins supports the same format, which plugin is used depends on config.
@@ -147,10 +152,6 @@ You can also set an unique *Destination* pattern when converting to .wav (even w
 setting *override title*). For example `[$num(%stream_index%,2)] %filename%[-%stream_name%]` 
 may create a name like `02 BGM-EVENT_SAD`.
 
-#### Playlist issues
-A known quirk is that when loop options or tags change, playlist time/info won't
-update automatically. You need to manually refresh it by selecting songs and doing
-**shift + right click > Tagging > Reload info from file(s)**.
 
 
 ### xmp-vgmstream (XMPlay plugin)
@@ -162,16 +163,20 @@ and follow the above instructions for installing the other files needed.
 Note that this has less features compared to *in_vgmstream* and has no config.
 Since XMPlay supports Winamp plugins you may also use `in_vgmstream.dll` instead.
 
+#### Missing subsongs
+XMPlay cannot support vgmstream's type of mixed subsongs due to player limitations
+(with neither *xmp-vgmstream* nor *in_vgmstream* plugins). You can make one *TXTP*
+per subsong to play them instead (explained below).
+
+#### Playlist issues
+A known quirk is that when loop options or tags change, playlist time/info won't
+update automatically. You need to re-add files to the playlist to refresh it.
+
 #### Plugin priority
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream extensions,
 you need to manually fix it by going to **options > plugins > input > vgmstream**
 and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,lwav,msf,p3d,rak,scd,txth,xvag`
 (or any other similar case).
-
-#### Missing subsongs
-XMPlay cannot support vgmstream's type of mixed subsongs due to player limitations
-(with neither *xmp-vgmstream* nor *in_vgmstream* plugins). You can make one *TXTP*
-per subsong to play them instead (explained below).
 
 
 ### Audacious plugin
@@ -180,9 +185,19 @@ per subsong to play them instead (explained below).
 *Others*: needs to be manually built. Instructions can be found in [BUILD.md](BUILD.md)
 document in vgmstream's source code (can be done with CMake or autotools).
 
+#### Enabling subsongs
+In Audacious 3.10+ subsongs only work when enabling: *Settings* > *Advanced* >
+*Probe contents of files with no recognized file name extensions*.
+
+Without that option enabled, a workaround is adding a file with subsongs, removing
+it from the playlist, then adding it again. Somehow that makes Audacious unpack the
+file properly (possibly a bug, may not work in new versions).
+
 #### Plugin priority
 vgmstream sets its priority on compile time, low enough for most other plugins to
-go first (but not all). Can be changed with `AUDACIOUS_VGMSTREAM_PRIORITY`.
+go first (but not all), so there is a chance other plugins will "steal" vgmstream
+formats. Can be changed passing `AUDACIOUS_VGMSTREAM_PRIORITY=N` to compilation
+options (where N 0=highest, 10=lowest).
 
 
 ### vgmstream123 (command line player)
