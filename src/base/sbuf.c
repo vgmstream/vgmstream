@@ -439,7 +439,7 @@ void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_max)
 
 typedef void (*sbuf_fade_t)(void* vsrc, int start, int to_do, int fade_pos, int fade_duration);
 
-#define DEFINE_SBUF_FADE(suffix, buftype) \
+#define DEFINE_SBUF_FADE(suffix, buftype, func) \
     static void sbuf_fade_##suffix(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) { \
         buftype* buf = sbuf->buf; \
         int s = start * sbuf->channels; \
@@ -447,14 +447,14 @@ typedef void (*sbuf_fade_t)(void* vsrc, int start, int to_do, int fade_pos, int 
         while (s < s_end) { \
             float fadedness = (float)(fade_duration - fade_pos) / fade_duration; \
             for (int i = 0; i < sbuf->channels; i++) { \
-                buf[s] = float_to_int(buf[s] * fadedness); \
+                buf[s] = func(buf[s] * fadedness); \
                 s++; \
             } \
             fade_pos++; \
         } \
     }
 
-#define DEFINE_SBUF_FD24(suffix, buftype) \
+#define DEFINE_SBUF_FD24(suffix, buftype, func) \
     static void sbuf_fade_##suffix(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) { \
         buftype* buf = sbuf->buf; \
         int s = start * sbuf->channels; \
@@ -462,17 +462,21 @@ typedef void (*sbuf_fade_t)(void* vsrc, int start, int to_do, int fade_pos, int 
         while (s < s_end) { \
             float fadedness = (float)(fade_duration - fade_pos) / fade_duration; \
             for (int i = 0; i < sbuf->channels; i++) { \
-                put_u24ne(buf + s * 3, float_to_int(get_s24ne(buf + s * 3) * fadedness) ); \
+                put_u24ne(buf + s * 3, func(get_s24ne(buf + s * 3) * fadedness) ); \
                 s++; \
             } \
             fade_pos++; \
         } \
     }
 
-DEFINE_SBUF_FADE(i16, int16_t);
-DEFINE_SBUF_FADE(i32, int32_t);
-DEFINE_SBUF_FADE(flt, float);
-DEFINE_SBUF_FD24(o24, uint8_t);
+// no need to clamp in fade outs
+#define CONV_FADE_FLT(x) (x)
+#define CONV_FADE_PCM(x) float_to_int(x)
+
+DEFINE_SBUF_FADE(i16, int16_t, CONV_FADE_PCM);
+DEFINE_SBUF_FADE(i32, int32_t, CONV_FADE_PCM);
+DEFINE_SBUF_FADE(flt, float, CONV_FADE_FLT);
+DEFINE_SBUF_FD24(o24, uint8_t, CONV_FADE_PCM);
 
 void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) {
     //TODO: use interpolated fadedness to improve performance?
