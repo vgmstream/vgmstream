@@ -217,7 +217,7 @@ void input_vgmstream::put_into_tagfile(file_info& p_info, abort_callback& p_abor
 
 // include main info, note that order doesn't matter (foobar sorts by fixed order + name)
 void input_vgmstream::put_info_details(file_info& p_info, vgmstream_info_t& v_info) {
-    p_info.info_set("vgmstream_version", PLUGIN_VERSION); //to make clearer vgmsrteam is actually opening the file
+    p_info.info_set("vgmstream_version", PLUGIN_VERSION); //to make clearer vgmstream is actually opening the file
 
     // not quite accurate but some people are confused by "lossless"
     // (could set lossless if PCM, but then again in vgm may be converted/"lossy" vs original source)
