@@ -145,6 +145,18 @@ void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_chan
 
 sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {
 
+    if (vgmstream->layout_type == layout_layered) {
+        layered_layout_data* data = vgmstream->layout_data;
+        if (data)
+            return data->fmt;
+    }
+
+    if (vgmstream->layout_type == layout_segmented) {
+        segmented_layout_data* data = vgmstream->layout_data;
+        if (data)
+            return data->fmt;
+    }
+
     const codec_info_t* codec_info = codec_get_info(vgmstream);
     if (codec_info) {
         if (codec_info->sample_type)

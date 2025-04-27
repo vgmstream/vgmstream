@@ -178,14 +178,14 @@ void VgmstreamPlugin::cleanup() {
     vgmstream_settings_save();
 }
 
-static int get_basename_subtune(const char* filename, char* buf, int buf_len, int* p_subtune) {
+static bool get_basename_subtune(const char* filename, char* buf, int buf_len, int* p_subtune) {
     int subtune;
 
     const char* pos = strrchr(filename, '?');
     if (!pos)
-        return 0;
+        return false;
     if (sscanf(pos, "?%i", &subtune) != 1)
-        return 0;
+        return false;
 
     if (p_subtune)
         *p_subtune = subtune;
@@ -195,7 +195,7 @@ static int get_basename_subtune(const char* filename, char* buf, int buf_len, in
     if (pos2) //removes '?'
         pos2[0] = '\0';
 
-    return 1;
+    return true;
 }
 static void load_vconfig(libvgmstream_config_t* vcfg, audacious_settings_t* cfg) {
     vcfg->allow_play_forever = true;
@@ -213,7 +213,7 @@ static bool read_info(const char* filename, Tuple & tuple) {
     // Audacious first calls this as a regular file (use_subtune is 0). If file has subsongs,
     // you need to detect and call set_subtunes below and return. Then Audacious will call again
     // this and "play" with "filename?N" (where N=subtune, 1=first), that must be detected and handled
-    // (see plugin.h)
+    // (see plugin.h + audacious-plugins/src/sid)
     char basename[AU_PATH_LIMIT]; //filename without '?'
     int subtune = 0;
     bool use_subtune = get_basename_subtune(filename, basename, sizeof(basename), &subtune);
@@ -232,50 +232,62 @@ static bool read_info(const char* filename, Tuple & tuple) {
         return false;
     }
 
+
     int total_subtunes = infostream->format->subsong_count;
     // int was changed to short in some version, though vgmstream formats can exceed it
     if (total_subtunes > 32767)
         total_subtunes = 32767;
+
     // format has subsongs but Audacious didn't ask for subsong yet
     if (total_subtunes >= 1 && !use_subtune) {
-        //set nullptr to leave subsong index linear (must add +1 to subtune)
-        tuple.set_subtunes(total_subtunes, nullptr);
+        // pass nullptr to leave subsong index linear (must add +1 to subtune on open)
+        tuple.set_subtunes(total_subtunes, nullptr); // equivalent to setting NumSubtunes
 
-        libvgmstream_free(infostream);
-        return true;
+        // In Audacious 3.10+ (95e229a) subsongs only work for extensions in VgmstreamPlugin::exts, unless the "slow_probe"
+        // option is set (*Settings > Advanced > Probe contents of files with no recognized file name extensions*).
+        // Can't quite maintain extensions for subsongs so simply hope the option is enabled.
+        // BUT! with slow_probe disabled, adding a file > removing it > adding it again unpacks subsongs (bug?).
+        // Keep going if not enabled, will play first subsong normally.
+        bool subtunes_enabled = aud_get_bool("slow_probe");
+        if (subtunes_enabled) {
+            // stop for performance reasons (could set info but would be ignored)
+            libvgmstream_free(infostream);
+            return true;
+        }
     }
 
-    int bitrate = infostream->format->stream_bitrate;
+
+    int bitrate = infostream->format->stream_bitrate; // must be in kb/s
     int length_samples = infostream->format->play_samples;
     int length_ms = length_samples * 1000LL / infostream->format->sample_rate;
 
-    //todo: set_format may throw std::bad_alloc if output_channels isn't supported (only 2?)
-    // short form, not sure if better way
-    tuple.set_format("vgmstream codec", infostream->format->channels, infostream->format->sample_rate, bitrate);
-    tuple.set_filename(filename); //used?
-    tuple.set_int(Tuple::Bitrate, bitrate); //in kb/s
+    // pass some defaults, same as manual tuple.set_x(Tuple::Thing, x) (info only, actual validations are in open_audio)
+    tuple.set_format(infostream->format->codec_name, infostream->format->channels, infostream->format->sample_rate, bitrate);
+    //tuple.set_filename(filename); //used?
     tuple.set_int(Tuple::Length, length_ms);
+    tuple.set_str(Tuple::Comment, "vgmstream " VGMSTREAM_VERSION); //to make clearer vgmstream is actually opening the file
 
-    //todo here we could call describe_vgmstream() and get substring to add tags and stuff
-    tuple.set_str(Tuple::Codec, "vgmstream codec");
-    if (use_subtune) {
+    { /*if (use_subtune)*/
         tuple.set_int(Tuple::Subtune, subtune);
-        tuple.set_int(Tuple::NumSubtunes, infostream->format->subsong_count);
+        tuple.set_int(Tuple::NumSubtunes, total_subtunes);
 
-        char title[1024];
-        libvgmstream_get_title(infostream, NULL, title, sizeof(title));
+        char title[1024] = {0};
+        libvgmstream_title_t cfg = {
+            .filename = use_subtune ? basename : filename
+        };
+        libvgmstream_get_title(infostream, &cfg, title, sizeof(title));
         tuple.set_str(Tuple::Title, title); //may be overwritten by tags
     }
 
 
     // this function is only called when files are added to playlist,
-    // so to reload tags files need to readded
+    // so to reload tags files need to re-added
     if (!settings.tagfile_disable) {
         //todo improve string functions
         char tagfile_path[AU_PATH_LIMIT];
         strcpy(tagfile_path, filename);
 
-        char *path = strrchr(tagfile_path,'/');
+        char* path = strrchr(tagfile_path,'/');
         if (path != NULL) {
             path[1] = '\0';  /* includes "/", remove after that from tagfile_path */
             strcat(tagfile_path,tagfile_name);

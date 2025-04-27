@@ -23,6 +23,7 @@ typedef struct {
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
     bool mixed_channels;     /* segments have different number of channels */
+    sfmt_t fmt;
 } segmented_layout_data;
 
 void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream);
@@ -44,6 +45,7 @@ typedef struct {
     int output_channels;    /* resulting channels (after mixing, if applied) */
     int external_looping;   /* don't loop using per-layer loops, but layout's own looping */
     int curr_layer;         /* helper */
+    sfmt_t fmt;
 } layered_layout_data;
 
 void render_vgmstream_layered(sbuf_t* sbuf, VGMSTREAM* vgmstream);

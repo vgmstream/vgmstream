@@ -74,11 +74,11 @@ LIBVGMSTREAM_API bool libvgmstream_is_valid(const char* filename, libvgmstream_v
 
 
 LIBVGMSTREAM_API int libvgmstream_get_title(libvgmstream_t* lib, libvgmstream_title_t* cfg, char* buf, int buf_len) {
-    if (!buf || !buf_len || !cfg)
+    if (!buf || !buf_len)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     buf[0] = '\0';
-    if (!lib || !lib->priv)
+    if (!lib || !lib->priv || !cfg)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     libvgmstream_priv_t* priv = lib->priv;

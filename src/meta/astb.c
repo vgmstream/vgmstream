@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* ASTB - found in Dead Rising (X360) */
+/* ASTB - from early MT Framework games [Dead Rising (X360), Lost Planet (X360)] */
 VGMSTREAM* init_vgmstream_astb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, data_size;
