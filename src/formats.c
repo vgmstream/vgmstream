@@ -89,6 +89,7 @@ static const char* extension_list[] = {
     "aud",
     "audio", //txth/reserved [Grimm Echoes (Android)]
     "audio_data",
+    "audiopkg",
     "aus",
     "awa", //txth/reserved [Missing Parts Side A (PS2)]
     "awb",
@@ -1479,6 +1480,7 @@ static const meta_info meta_info_list[] = {
         {meta_SHAA,                 "Nintendo SHAA header"},
         {meta_OOR,                  "age .OOR header"},
         {meta_MIO,                  "Entis .MIO header"},
+        {meta_AUDIOPKG,             "Inevitable .AUDIOPKG header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

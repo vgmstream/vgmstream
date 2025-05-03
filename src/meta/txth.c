@@ -5,6 +5,7 @@
 #include "../util/text_reader.h"
 #include "../util/endianness.h"
 #include "../util/paths.h"
+#include "../util/companion_files.h"
 
 #define TXT_LINE_MAX 2048 /* probably ~1000 would be ok */
 #define TXT_LINE_KEY_MAX 128
@@ -1424,7 +1425,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     }
 
     /* HEADER/BODY CONFIG */
-    else if (is_string(key,"header_file")) {
+    else if (is_string(key,"header_file") || is_string(key,"head_file")) {
 
         /* first remove old head if needed */
         if (txth->sf_head_opened) {
@@ -1447,12 +1448,17 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         else if (val[0]=='*' && val[1]=='.') { /* basename + extension */
             txth->sf_head = open_streamfile_by_ext(txth->sf, (val+2));
             if (!txth->sf_head) goto fail;
-            txth->sf_head_opened = 1;
+            txth->sf_head_opened = true;
+        }
+        else if (is_string(val,".txtm")) {
+            txth->sf_head = read_filemap_file(txth->sf, 0);
+            if (!txth->sf_head) goto fail;
+            txth->sf_head_opened = true;
         }
         else { /* open file */
             txth->sf_head = open_path_streamfile(txth->sf, val);
             if (!txth->sf_head) goto fail;
-            txth->sf_head_opened = 1;
+            txth->sf_head_opened = true;
         }
     }
     else if (is_string(key,"body_file")) {
@@ -1478,12 +1484,17 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         else if (val[0]=='*' && val[1]=='.') { /* basename + extension */
             txth->sf_body = open_streamfile_by_ext(txth->sf, (val+2));
             if (!txth->sf_body) goto fail;
-            txth->sf_body_opened = 1;
+            txth->sf_body_opened = true;
+        }
+        else if (is_string(val,".txtm")) {
+            txth->sf_body = read_filemap_file(txth->sf, 0);
+            if (!txth->sf_body) goto fail;
+            txth->sf_body_opened = true;
         }
         else { /* open file */
             txth->sf_body = open_path_streamfile(txth->sf, val);
             if (!txth->sf_body) goto fail;
-            txth->sf_body_opened = 1;
+            txth->sf_body_opened = true;
         }
 
         /* use body as header when opening a .txth directly to simplify things */

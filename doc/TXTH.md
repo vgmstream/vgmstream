@@ -449,19 +449,20 @@ hist_endianness = BE|LE|(value)
 #### HEADER/BODY SETTINGS
 Changes internal header/body representation to external files.
 
-TXTH commands are done on a "header", and decoding on "body". When loading an unsupported file it becomes the "base" file
-that loads the .txth, and is both header and body.
+TXTH commands are done on a "header", and decoding on "body". When loading an unsupported file it becomes the "base" file that loads the .txth, and is both header and body.
 
 You can alter those, mainly for files that split header and body in separate files (load base file and txth sets header on another file). It's also possible to load the .txth directly with a set body, as a sort of "reverse TXTH" (useful with bigfiles, as you could have one .txth per song).
 
 Allowed values:
-- (filename): open any file, subdirs also work (dir/filename)
-- *.(extension): opens with same name as the "base" file (the one you open, not the .txth) plus another extension
-- null: unloads file and goes back to defaults (body/header = base file).
+- `(filename)`: open any file, subdirs also work (dir/filename)
+- `*.(extension)`: opens with same name as the "base" file (the one you open, not the .txth) plus another extension
+- `.txtm`: uses an external .txtm to decide which file is opened (see USAGE.md).
+- `null`: unloads file and goes back to defaults (body/header = base file).
 ```
 header_file = (filename)|*.(extension)|null
 body_file = (filename)|*.(extension)|null
 ```
+`head_file` can be used as an alt of `header_file`.
 
 #### SUBSONGS
 Sets the number of subsongs in the file, adjusting reads per subsong N: `value = @(offset) + subsong_spacing*N`. Number/constants values aren't adjusted though.
@@ -1083,7 +1084,7 @@ subfile_size      = ((@0x04 - @0x00) & 0xFFFFF) * 0x800
 
 #### Zack & Wiki (Wii) .ssd.txth
 ```
-header_file = bgm_S01.srt
+header_file = .txtm
 name_table = .names.txt
 
 base_offset = @0x0c:BE
@@ -1107,53 +1108,36 @@ coef_endianness = BE
 ```
 *.names.txt*
 ```
-st_s01_00a.ssd: 0*0x04
-st_s01_00b.ssd: 1*0x04
-st_s01_00c.ssd: 2*0x04
-st_s01_01a.ssd: 3*0x04
-st_s01_01b.ssd: 4*0x04
-st_s01_02a.ssd: 5*0x04
-st_s01_02b.ssd: 6*0x04
-st_s01_02c.ssd: 7*0x04
+01_st_s01_01b.ssd: 0 * 0x04
+02_st_s01_00b.ssd: 1 * 0x04
+03_st_s01_01a.ssd: 2 * 0x04
+04_st_s01_02a.ssd: 3 * 0x04
+05_st_s01_02b.ssd: 4 * 0x04
+06_st_s02_00.ssd: 5 * 0x04
+...
+st_s_ajito.ssd: 0 * 0x04
+st_s_select.ssd: 1 * 0x04
+st_s_result.ssd: 2 * 0x04
+st_s_remocon.ssd: 3 * 0x04
+st_s_usagi.ssd: 4 * 0x04
+st_j_item.ssd: 5 * 0x04
+...
 ```
-
-#### Zack & Wiki (Wii) st_s01_00a.txth
+*.txtm*
 ```
-#alt from above with untouched folders
-header_file = Sound/BGM/bgm_S01.srt
-body_file = snd/stream/st_s01_00a.ssd
-name_table = .names.txt
+01_st_s01_01b.ssd: srt/bgm_S09.srt
+02_st_s01_00b.ssd: srt/bgm_S09.srt
+03_st_s01_01a.ssd: srt/bgm_S09.srt
+04_st_s01_02a.ssd: srt/bgm_S09.srt
+05_st_s01_02b.ssd: srt/bgm_S09.srt
+...
 
-base_offset = @0x0c:BE
-base_offset = base_offset + @0x08:BE + name_value
-base_offset = base_offset + @0x00:BE - name_value
-
-codec = NGC_DSP
-channels = 2
-interleave = half_size
-sample_rate = @0x08:BE
-loop_flag = @0x04:BE
-
-sample_type = bytes
-loop_start_sample = @0x10:BE
-loop_end_sample = @0x14:BE
-num_samples = @0x18:BE
-
-coef_offset = 0x20
-coef_spacing = 0x40
-coef_endianness = BE
-```
-*.names.txt*
-```
-*snd/stream/st_s01_00a.ssd: 0*0x04
-*snd/stream/st_s01_00b.ssd: 1*0x04
-*snd/stream/st_s01_00c.ssd: 2*0x04
-*snd/stream/st_s01_01a.ssd: 3*0x04
-*snd/stream/st_s01_01b.ssd: 4*0x04
-*snd/stream/st_s01_02a.ssd: 5*0x04
-*snd/stream/st_s01_02b.ssd: 6*0x04
-*snd/stream/st_s01_02c.ssd: 7*0x04
-# uses wildcards for full paths from plugins
+st_s_ajito.ssd: srt/bgm_SYS.srt
+st_s_select.ssd: srt/bgm_SYS.srt
+st_s_result.ssd: srt/bgm_SYS.srt
+st_s_remocon.ssd: srt/bgm_SYS.srt
+st_s_usagi.ssd: srt/bgm_SYS.srt
+...
 ```
 
 #### Croc (SAT) .asf.txth
