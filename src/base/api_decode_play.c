@@ -137,6 +137,11 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
         buf_copied += copy_samples;
     }
 
+    // detect EOF, to avoid another call to _fill that returns with 0 samples
+    if (!done && priv->decode_done && priv->buf.consumed >= priv->buf.samples) {
+        done = true;
+    }
+
     // TODO improve
     priv->dec.buf = buf;
     priv->dec.buf_samples = buf_copied;
