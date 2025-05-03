@@ -251,6 +251,9 @@
     <ClInclude Include="meta\apa3_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\audiopkg_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\awc_decryption_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -1160,6 +1163,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\atsl.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\audiopkg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\aus.c">

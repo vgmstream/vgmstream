@@ -139,6 +139,7 @@
     <ClInclude Include="meta\ahx_keys.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\apa3_streamfile.h" />
+    <ClInclude Include="meta\audiopkg_streamfile.h" />
     <ClInclude Include="meta\awc_decryption_streamfile.h" />
     <ClInclude Include="meta\awc_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
@@ -444,6 +445,7 @@
     <ClCompile Include="meta\ast_mmv.c" />
     <ClCompile Include="meta\ast_mv.c" />
     <ClCompile Include="meta\atsl.c" />
+    <ClCompile Include="meta\audiopkg.c" />
     <ClCompile Include="meta\aus.c" />
     <ClCompile Include="meta\awb.c" />
     <ClCompile Include="meta\awc.c" />
