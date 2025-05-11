@@ -9,7 +9,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_brwav,
     init_vgmstream_bfwav,
     init_vgmstream_bcwav,
-    init_vgmstream_brwar,
+    init_vgmstream_rwar,
     init_vgmstream_nds_strm,
     init_vgmstream_afc,
     init_vgmstream_ast,

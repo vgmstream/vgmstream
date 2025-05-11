@@ -682,6 +682,7 @@
     <ClCompile Include="meta\rs03.c" />
     <ClCompile Include="meta\rsd.c" />
     <ClCompile Include="meta\rstm_rockstar.c" />
+    <ClCompile Include="meta\rwar.c" />
     <ClCompile Include="meta\rwax.c" />
     <ClCompile Include="meta\rwsd.c" />
     <ClCompile Include="meta\rws_809.c" />

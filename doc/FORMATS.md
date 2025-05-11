@@ -43,9 +43,11 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *brwav*: `.brwav .rwav`
   - *bfwav*: `.bfwav .fwav`
   - *bcwav*: `.bcwav .adpcm .bms .sfx .str .zic`
-  - *brwar*: `.rwar`
-    - Subfiles: *brwav*
   - Codecs: PCM8 PCM16BE PCM16LE NGC_DSP IMA_mono
+- **rwar.c**
+  - (container)
+  - *rwar*: `.rwar`
+    - Subfiles: *brwav*
 - **nds_strm.c**
   - Nintendo STRM header [*STRM*]
   - *nds_strm*: `.strm`
