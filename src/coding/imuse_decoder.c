@@ -480,10 +480,10 @@ static int decode_vima_comp(imuse_codec_data* data, block_entry_t* entry) {
             VGM_LOG("IMUSE: found PCM block %i\n", data->current_block);
 
             /* presumably PCM data (not seen) */
-            for (int i = 0, j = pos; i < copy_size / sizeof(sample_t); i++, j += 2) {
+            for (int i = 0, j = pos; i < copy_size / sizeof(int16_t); i++, j += 2) {
                 data->pbuf[i] = get_s16le(data->block + j);
             }
-            filled += copy_size / chs / sizeof(sample_t);
+            filled += copy_size / chs / sizeof(int16_t);
 
             pos += copy_size;
             data_left -= copy_size;

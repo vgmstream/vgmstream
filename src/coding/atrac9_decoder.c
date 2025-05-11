@@ -62,7 +62,7 @@ void* init_atrac9(atrac9_config* cfg) {
     if (!data->buf) goto fail;
 
     // while ATRAC9 uses float internally, Sony's API only returns PCM16
-    data->sbuf = calloc(data->info.channels * data->info.frameSamples * data->info.framesInSuperframe, sizeof(sample_t));
+    data->sbuf = calloc(data->info.channels * data->info.frameSamples * data->info.framesInSuperframe, sizeof(int16_t));
     if (!data->sbuf) goto fail;
 
     data->discard = cfg->encoder_delay;
