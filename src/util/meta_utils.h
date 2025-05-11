@@ -56,6 +56,7 @@ typedef struct {
     bool open_stream;
 
     bool has_subsongs;
+    bool has_empty_banks;
     bool allow_dual_stereo;
 } meta_header_t;
 

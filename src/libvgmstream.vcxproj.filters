@@ -1591,9 +1591,6 @@
     <ClCompile Include="meta\mjb_mjh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\mn_str.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\mogg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1879,6 +1876,9 @@
     <ClCompile Include="meta\rstm_rockstar.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\rwar.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\rwax.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2081,6 +2081,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\svs.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\swar.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\swav.c">
@@ -2339,9 +2342,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\zsnd.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\zwdsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\zwv.c">

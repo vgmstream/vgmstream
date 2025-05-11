@@ -587,7 +587,6 @@
     <ClCompile Include="meta\mic_koei.c" />
     <ClCompile Include="meta\mio.c" />
     <ClCompile Include="meta\mjb_mjh.c" />
-    <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\mp4_faac.c" />
@@ -683,6 +682,7 @@
     <ClCompile Include="meta\rs03.c" />
     <ClCompile Include="meta\rsd.c" />
     <ClCompile Include="meta\rstm_rockstar.c" />
+    <ClCompile Include="meta\rwar.c" />
     <ClCompile Include="meta\rwax.c" />
     <ClCompile Include="meta\rwsd.c" />
     <ClCompile Include="meta\rws_809.c" />
@@ -751,6 +751,7 @@
     <ClCompile Include="meta\svag_snk.c" />
     <ClCompile Include="meta\svgp.c" />
     <ClCompile Include="meta\svs.c" />
+    <ClCompile Include="meta\swar.c" />
     <ClCompile Include="meta\swav.c" />
     <ClCompile Include="meta\tac.c" />
     <ClCompile Include="meta\tgc.c" />
@@ -837,7 +838,6 @@
     <ClCompile Include="meta\ymf.c" />
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zsnd.c" />
-    <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="util\chunks.c" />
     <ClCompile Include="util\cipher_blowfish.c" />

@@ -547,15 +547,23 @@ VGMSTREAM* init_vgmstream_nub_dsp(STREAMFILE* sf) {
 
     /* paste header+data together and pass to meta, which has loop info too */
     header_offset = 0xBC;
-    stream_size = read_32bitBE(0x14, sf);
-    header_size = read_32bitBE(0x1c, sf);
+    stream_size = read_u32be(0x14, sf);
+    header_size = read_u32be(0x1c, sf);
     stream_offset = align_size_to_block(header_offset + header_size, 0x10);
 
     temp_sf = setup_nub_streamfile(sf, header_offset, header_size, stream_offset, stream_size, "dsp");
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_ngc_dsp_std(temp_sf);
-    if (!vgmstream) goto fail;
+    
+    if (stream_size <= 0x10) {
+        // SoulCalibur Legends (Wii) empty subsongs (tc_jp0b.nub#4)
+        vgmstream = init_vgmstream_silence(0, 0, 0);
+        if (!vgmstream) goto fail;
+    }
+    else {
+        vgmstream = init_vgmstream_ngc_dsp_std(temp_sf);
+        if (!vgmstream) goto fail;
+    }
 
     close_streamfile(temp_sf);
     return vgmstream;
@@ -576,6 +584,7 @@ VGMSTREAM* init_vgmstream_nub_idsp(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "idsp"))
         return NULL;
+    // .idsp: internal extension before packing, seen in debug files with filenames
     if (!check_extensions(sf,"idsp"))
         return NULL;
 

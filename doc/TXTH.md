@@ -439,7 +439,7 @@ State values can be little or big endian (usually BE for DSP), set `hist_endiann
 
 Normally audio starts with silence or hist samples are set to zero and can be ignored, but it does affect a bit resulting output.
 
-Currently used by DSP.
+Currently used by DSP and IMA.
 ```
 hist_offset = (value)
 hist_spacing = (value)
