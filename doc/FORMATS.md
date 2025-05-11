@@ -1054,7 +1054,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG_custom MPEG VORBIS_custom ATRAC9 NGC_DSP Opus
 - **opus.c**
   - Nintendo Switch OPUS header [*OPUS*]
-  - *opus_std*: `.opus .lopus .bgm .opu .ogg .logg + .psi`
+  - *opus_std*: `.opus .lopus .bgm .opu .ogg .logg .opusnx + .psi`
   - *opus_n1*: `.opus .lopus`
   - *opus_capcom*: `.opus .lopus`
   - *opus_nop*: `.nop`
@@ -1829,6 +1829,14 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Entis .MIO header [*MIO*]
   - *mio*: `.mio`
   - Codecs: MIO
+- **audiopkg.c**
+  - Inevitable .AUDIOPKG header [*AUDIOPKG*]
+  - *audiopkg*: `.audiopkg`
+  - Codecs: PCM16BE PCM16LE PSX XBOX_IMA_mono NGC_DSP MPEG
+- **swar.c**
+  - Nintendo SWAV header [*SWAV*]
+  - *swar*: `.swar`
+  - Codecs: PCM8 PCM16LE IMA
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`

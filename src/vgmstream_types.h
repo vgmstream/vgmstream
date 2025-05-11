@@ -722,6 +722,7 @@ typedef enum {
     meta_OOR,
     meta_MIO,
     meta_AUDIOPKG,
+    meta_SWAR,
 } meta_t;
 
 #endif

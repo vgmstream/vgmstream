@@ -580,6 +580,7 @@ static const char* extension_list[] = {
     "svs",
     "svg",
     "swag",
+    "swar",
     "swav",
     "swd",
     "switch", //txth/reserved (.m4a-x.switch) [Ikinari Maou (Switch)]
@@ -1481,6 +1482,7 @@ static const meta_info meta_info_list[] = {
         {meta_OOR,                  "age .OOR header"},
         {meta_MIO,                  "Entis .MIO header"},
         {meta_AUDIOPKG,             "Inevitable .AUDIOPKG header"},
+        {meta_SWAR,                 "Nintendo SWAR header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

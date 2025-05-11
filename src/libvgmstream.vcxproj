@@ -751,6 +751,7 @@
     <ClCompile Include="meta\svag_snk.c" />
     <ClCompile Include="meta\svgp.c" />
     <ClCompile Include="meta\svs.c" />
+    <ClCompile Include="meta\swar.c" />
     <ClCompile Include="meta\swav.c" />
     <ClCompile Include="meta\tac.c" />
     <ClCompile Include="meta\tgc.c" />
