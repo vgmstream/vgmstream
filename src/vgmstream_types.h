@@ -505,7 +505,6 @@ typedef enum {
     meta_MTAF,
     meta_ALP,
     meta_WPD,
-    meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */
     meta_MCSS,
     meta_PS2_HSF,           /* Lowrider (PS2) */
     meta_IVAG,

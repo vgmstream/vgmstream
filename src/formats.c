@@ -352,7 +352,6 @@ static const char* extension_list[] = {
     "mib",
     "mic",
     "mio",
-    "mnstr",
     "mogg",
     //"m4a", //common
     //"m4v", //common
@@ -1263,7 +1262,6 @@ static const meta_info meta_info_list[] = {
         {meta_MTAF,                 "Konami MTAF header"},
         {meta_ALP,                  "High Voltage ALP header"},
         {meta_WPD,                  "Navel WPD header"},
-        {meta_MN_STR,               "Mini Ninjas 'STR' header"},
         {meta_MCSS,                 "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
         {meta_IVAG,                 "Namco IVAG header"},

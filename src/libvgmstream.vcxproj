@@ -587,7 +587,6 @@
     <ClCompile Include="meta\mic_koei.c" />
     <ClCompile Include="meta\mio.c" />
     <ClCompile Include="meta\mjb_mjh.c" />
-    <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\mp4_faac.c" />
