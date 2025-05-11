@@ -316,8 +316,6 @@ VGMSTREAM* init_vgmstream_riff_ima(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_knon(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE * streamFile);
-
 VGMSTREAM * init_vgmstream_gca(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_spt_spd(STREAMFILE * streamFile);

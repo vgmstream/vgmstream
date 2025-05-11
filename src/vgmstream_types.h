@@ -384,7 +384,6 @@ typedef enum {
     meta_SEG,
     meta_RIFF_IMA,
     meta_KNON,
-    meta_ZWDSP,             /* Zack and Wiki */
     meta_VGS,               /* Guitar Hero Encore - Rocks the 80s */
     meta_DCS_WAV,
     meta_SMP,

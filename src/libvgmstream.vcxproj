@@ -838,7 +838,6 @@
     <ClCompile Include="meta\ymf.c" />
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zsnd.c" />
-    <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="util\chunks.c" />
     <ClCompile Include="util\cipher_blowfish.c" />

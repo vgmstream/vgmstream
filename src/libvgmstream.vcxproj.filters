@@ -2344,9 +2344,6 @@
     <ClCompile Include="meta\zsnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\zwdsp.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\zwv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

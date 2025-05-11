@@ -729,7 +729,6 @@ static const char* extension_list[] = {
     "zsd",
     "zsm",
     "zss",
-    "zwdsp",
     "zwv",
 
     "vgmstream" /* fake extension, catch-all for FFmpeg/txth/etc */
@@ -1159,7 +1158,6 @@ static const meta_info meta_info_list[] = {
         {meta_SEG,                  "Stormfront SEG header"},
         {meta_RIFF_IMA,             "Square Enix RIFF IMA eader"},
         {meta_KNON,                 "Paon KNON header"},
-        {meta_ZWDSP,                "Zack and Wiki custom DSP Header"},
         {meta_GCA,                  "GCA DSP Header"},
         {meta_SPT_SPD,              "SPT+SPD DSP Header"},
         {meta_ISH_ISD,              "ISH+ISD DSP Header"},
