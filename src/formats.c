@@ -89,6 +89,7 @@ static const char* extension_list[] = {
     "aud",
     "audio", //txth/reserved [Grimm Echoes (Android)]
     "audio_data",
+    "audiopkg",
     "aus",
     "awa", //txth/reserved [Missing Parts Side A (PS2)]
     "awb",
@@ -351,7 +352,6 @@ static const char* extension_list[] = {
     "mib",
     "mic",
     "mio",
-    "mnstr",
     "mogg",
     //"m4a", //common
     //"m4v", //common
@@ -579,6 +579,7 @@ static const char* extension_list[] = {
     "svs",
     "svg",
     "swag",
+    "swar",
     "swav",
     "swd",
     "switch", //txth/reserved (.m4a-x.switch) [Ikinari Maou (Switch)]
@@ -727,7 +728,6 @@ static const char* extension_list[] = {
     "zsd",
     "zsm",
     "zss",
-    "zwdsp",
     "zwv",
 
     "vgmstream" /* fake extension, catch-all for FFmpeg/txth/etc */
@@ -1157,7 +1157,6 @@ static const meta_info meta_info_list[] = {
         {meta_SEG,                  "Stormfront SEG header"},
         {meta_RIFF_IMA,             "Square Enix RIFF IMA eader"},
         {meta_KNON,                 "Paon KNON header"},
-        {meta_ZWDSP,                "Zack and Wiki custom DSP Header"},
         {meta_GCA,                  "GCA DSP Header"},
         {meta_SPT_SPD,              "SPT+SPD DSP Header"},
         {meta_ISH_ISD,              "ISH+ISD DSP Header"},
@@ -1263,7 +1262,6 @@ static const meta_info meta_info_list[] = {
         {meta_MTAF,                 "Konami MTAF header"},
         {meta_ALP,                  "High Voltage ALP header"},
         {meta_WPD,                  "Navel WPD header"},
-        {meta_MN_STR,               "Mini Ninjas 'STR' header"},
         {meta_MCSS,                 "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
         {meta_IVAG,                 "Namco IVAG header"},
@@ -1479,6 +1477,8 @@ static const meta_info meta_info_list[] = {
         {meta_SHAA,                 "Nintendo SHAA header"},
         {meta_OOR,                  "age .OOR header"},
         {meta_MIO,                  "Entis .MIO header"},
+        {meta_AUDIOPKG,             "Inevitable .AUDIOPKG header"},
+        {meta_SWAR,                 "Nintendo SWAR header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

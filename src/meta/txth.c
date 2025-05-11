@@ -5,6 +5,7 @@
 #include "../util/text_reader.h"
 #include "../util/endianness.h"
 #include "../util/paths.h"
+#include "../util/companion_files.h"
 
 #define TXT_LINE_MAX 2048 /* probably ~1000 would be ok */
 #define TXT_LINE_KEY_MAX 128
@@ -413,8 +414,22 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 vgmstream->codec_config = 1; /* CONFIG_HIGH_NIBBLE */
             }
 
+            /* get hist */
+            if (txth.hist_set) {
+                read_s16_t read_s16 = txth.hist_big_endian ? read_s16be : read_s16le;
+
+                if (txth.codec == IMA || txth.codec == DVI_IMA) {
+                    for (int i = 0; i < txth.channels; i++) {
+                        vgmstream->ch[i].adpcm_history1_32 = read_s16(txth.hist_offset + i * txth.hist_spacing + 0x00, sf);
+                        vgmstream->ch[i].adpcm_step_index = read_u8(txth.hist_offset + i * txth.hist_spacing + 0x02, sf);
+                    }
+                }
+            }
+
+
+
             //TODO recheck and use only for needed cases
-            vgmstream->allow_dual_stereo = 1; /* known to be used in: PSX, AICA, YMZ */
+            vgmstream->allow_dual_stereo = true; /* known to be used in: PSX, AICA, YMZ */
             break;
 
         case coding_DPCM_KCEJ:
@@ -554,7 +569,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
             /* get hist */
             if (txth.hist_set) {
-                read_s16_t read_s16 = txth.coef_big_endian ? read_s16be : read_s16le;
+                read_s16_t read_s16 = txth.hist_big_endian ? read_s16be : read_s16le;
 
                 for (i = 0; i < vgmstream->channels; i++) {
                     off_t offset = txth.hist_offset + i*txth.hist_spacing;
@@ -1353,7 +1368,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_num(txth->sf_head,txth,val, &txth->hist_offset)) goto fail;
         txth->hist_set = true;
         /* special adjustment */
-        txth->hist_offset += txth->hist_offset;
+        txth->hist_offset += txth->base_offset;
         if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->hist_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
@@ -1424,7 +1439,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     }
 
     /* HEADER/BODY CONFIG */
-    else if (is_string(key,"header_file")) {
+    else if (is_string(key,"header_file") || is_string(key,"head_file")) {
 
         /* first remove old head if needed */
         if (txth->sf_head_opened) {
@@ -1447,12 +1462,17 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         else if (val[0]=='*' && val[1]=='.') { /* basename + extension */
             txth->sf_head = open_streamfile_by_ext(txth->sf, (val+2));
             if (!txth->sf_head) goto fail;
-            txth->sf_head_opened = 1;
+            txth->sf_head_opened = true;
+        }
+        else if (is_string(val,".txtm")) {
+            txth->sf_head = read_filemap_file(txth->sf, 0);
+            if (!txth->sf_head) goto fail;
+            txth->sf_head_opened = true;
         }
         else { /* open file */
             txth->sf_head = open_path_streamfile(txth->sf, val);
             if (!txth->sf_head) goto fail;
-            txth->sf_head_opened = 1;
+            txth->sf_head_opened = true;
         }
     }
     else if (is_string(key,"body_file")) {
@@ -1478,12 +1498,17 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         else if (val[0]=='*' && val[1]=='.') { /* basename + extension */
             txth->sf_body = open_streamfile_by_ext(txth->sf, (val+2));
             if (!txth->sf_body) goto fail;
-            txth->sf_body_opened = 1;
+            txth->sf_body_opened = true;
+        }
+        else if (is_string(val,".txtm")) {
+            txth->sf_body = read_filemap_file(txth->sf, 0);
+            if (!txth->sf_body) goto fail;
+            txth->sf_body_opened = true;
         }
         else { /* open file */
             txth->sf_body = open_path_streamfile(txth->sf, val);
             if (!txth->sf_body) goto fail;
-            txth->sf_body_opened = 1;
+            txth->sf_body_opened = true;
         }
 
         /* use body as header when opening a .txth directly to simplify things */

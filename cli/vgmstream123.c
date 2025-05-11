@@ -393,6 +393,10 @@ static int play_vgmstream(const char* filename, song_config_t* cfg) {
             int buf_bytes = vgmstream->decoder->buf_bytes;
             int buf_samples = vgmstream->decoder->buf_samples;
             int sample_size = vgmstream->format->sample_size;
+
+            // some drivers return errors with 0 samples
+            if (!buf_samples)
+                continue;
     
 #if LITTLE_ENDIAN_OUTPUT
             wav_swap_samples_le(buf, vgmstream->format->channels * buf_samples, sample_size);

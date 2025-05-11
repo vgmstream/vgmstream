@@ -353,10 +353,6 @@ static bool write_file(libvgmstream_t* vgmstream, cli_config_t* cfg) {
             fprintf(stderr, "failed to open %s for output\n", cfg->outfilename);
             goto fail;
         }
-
-        /* no improvement */
-        //setvbuf(outfile, NULL, _IOFBF, cfg->sample_buffer_size * sizeof(sample_t) * input_channels);
-        //setvbuf(outfile, NULL, _IONBF, 0);
     }
     else {
         // decode only: outfile is NULL (won't write anything)

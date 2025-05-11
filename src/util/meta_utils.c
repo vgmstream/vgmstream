@@ -15,6 +15,11 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
         return NULL;
     }
 
+    if (h->has_subsongs && h->has_empty_banks && h->total_subsongs == 0) {
+        vgm_logi("VGMSTREAM: bank has no subsongs (ignore)\n");
+        return NULL;
+    }
+
     if (h->has_subsongs && (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1)) {
         VGM_LOG("meta: wrong subsongs %i vs %i\n", h->target_subsong, h->total_subsongs);
         return NULL;

@@ -251,6 +251,9 @@
     <ClInclude Include="meta\apa3_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\audiopkg_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\awc_decryption_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -1162,6 +1165,9 @@
     <ClCompile Include="meta\atsl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\audiopkg.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\aus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1585,9 +1591,6 @@
     <ClCompile Include="meta\mjb_mjh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\mn_str.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\mogg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1873,6 +1876,9 @@
     <ClCompile Include="meta\rstm_rockstar.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\rwar.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\rwax.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2075,6 +2081,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\svs.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\swar.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\swav.c">
@@ -2333,9 +2342,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\zsnd.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\zwdsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\zwv.c">

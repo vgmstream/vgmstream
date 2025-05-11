@@ -43,9 +43,11 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *brwav*: `.brwav .rwav`
   - *bfwav*: `.bfwav .fwav`
   - *bcwav*: `.bcwav .adpcm .bms .sfx .str .zic`
-  - *brwar*: `.rwar`
-    - Subfiles: *brwav*
   - Codecs: PCM8 PCM16BE PCM16LE NGC_DSP IMA_mono
+- **rwar.c**
+  - (container)
+  - *rwar*: `.rwar`
+    - Subfiles: *brwav*
 - **nds_strm.c**
   - Nintendo STRM header [*STRM*]
   - *nds_strm*: `.strm`
@@ -853,10 +855,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Navel WPD header [*WPD*]
   - *wpd*: `.wpd`
   - Codecs: PCM16LE
-- **mn_str.c**
-  - Mini Ninjas 'STR' header [*MN_STR*]
-  - *mn_str*: `.mnstr`
-  - Codecs: PCM16LE
 - **mcss.c**
   - Guerilla MCSS header [*MCSS*]
   - *mcss*: `.mss`
@@ -1054,7 +1052,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG_custom MPEG VORBIS_custom ATRAC9 NGC_DSP Opus
 - **opus.c**
   - Nintendo Switch OPUS header [*OPUS*]
-  - *opus_std*: `.opus .lopus .bgm .opu .ogg .logg + .psi`
+  - *opus_std*: `.opus .lopus .bgm .opu .ogg .logg .opusnx + .psi`
   - *opus_n1*: `.opus .lopus`
   - *opus_capcom*: `.opus .lopus`
   - *opus_nop*: `.nop`
@@ -1829,6 +1827,14 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Entis .MIO header [*MIO*]
   - *mio*: `.mio`
   - Codecs: MIO
+- **audiopkg.c**
+  - Inevitable .AUDIOPKG header [*AUDIOPKG*]
+  - *audiopkg*: `.audiopkg`
+  - Codecs: PCM16BE PCM16LE PSX XBOX_IMA_mono NGC_DSP MPEG
+- **swar.c**
+  - Nintendo SWAV header [*SWAV*]
+  - *swar*: `.swar`
+  - Codecs: PCM8 PCM16LE IMA
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`

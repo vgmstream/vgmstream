@@ -9,7 +9,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_brwav,
     init_vgmstream_bfwav,
     init_vgmstream_bcwav,
-    init_vgmstream_brwar,
+    init_vgmstream_rwar,
     init_vgmstream_nds_strm,
     init_vgmstream_afc,
     init_vgmstream_ast,
@@ -210,7 +210,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mtaf,
     init_vgmstream_alp,
     init_vgmstream_wpd,
-    init_vgmstream_mn_str,
     init_vgmstream_mcss,
     init_vgmstream_ps2_hsf,
     init_vgmstream_ivag,
@@ -511,6 +510,8 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_undefind,
     init_vgmstream_oor,
     init_vgmstream_mio,
+    init_vgmstream_audiopkg,
+    init_vgmstream_swar,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,
@@ -558,7 +559,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_raw_s14_sss,     /* .s14/sss raw siren14 */
     init_vgmstream_exakt_sc,        /* .sc raw PCM */
-    init_vgmstream_zwdsp,           /* fake format */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
     init_vgmstream_rwsd,            /* crap, to be removed */
 #ifdef VGM_USE_FFMPEG
