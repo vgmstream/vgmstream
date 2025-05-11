@@ -19,17 +19,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="vgmstream_cli.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vjson.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="wav_utils.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="vgmstream_cli.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,5 +28,16 @@
     <ClCompile Include="wav_utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="vgmstream_cli.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vjson.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wav_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
