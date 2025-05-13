@@ -64,7 +64,7 @@
 LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void);
 
 /* CHANGELOG:
- * - 1.0.0: beta version
+ * - 1.0.0: initial version
  */
 
 

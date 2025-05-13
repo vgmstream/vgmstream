@@ -26,7 +26,8 @@ jobs:
       uses: mymindstorm/setup-emsdk@v11
       with:
           version: ${{env.EM_VERSION}}
-          actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+          # currently broken: https://github.com/mymindstorm/setup-emsdk/issues/47
+          #actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
     - name: Create build environment
       run: cmake -E make_directory ${{runner.workspace}}/embuild
