@@ -345,7 +345,7 @@ int render_main(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     return sbuf->filled;
 }
 
-int render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
+int render_vgmstream2(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
     sbuf_t sbuf = {0};
     sbuf_init_s16(&sbuf, buf, sample_count, vgmstream->channels);
 
