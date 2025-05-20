@@ -8,7 +8,7 @@ set_target_properties(vgmstream_cli PROPERTIES
 	OUTPUT_NAME "vgmstream-cli")
 
 # Link to the vgmstream library
-target_link_libraries(vgmstream_cli libvgmstream)
+target_link_libraries(vgmstream_cli PUBLIC libvgmstream)
 
 
 setup_target(vgmstream_cli TRUE)
@@ -18,7 +18,7 @@ if(WIN32)
 	target_compile_definitions(vgmstream_cli PRIVATE _CONSOLE)
 
 	# Link to the getopt library
-	target_link_libraries(vgmstream_cli getopt)
+	target_link_libraries(vgmstream_cli PUBLIC getopt)
 
 	# Make sure that the binary directory is included (for version.h), as well as the getopt library include directory
 	target_include_directories(vgmstream_cli PRIVATE
@@ -64,7 +64,7 @@ if(NOT WIN32 AND BUILD_V123)
 		vgmstream123.c wav_utils.c)
 
 	# Link to the vgmstream library as well as libao
-	target_link_libraries(vgmstream123
+	target_link_libraries(vgmstream123 PUBLIC
 		libvgmstream
 		ao pthread dl)
 

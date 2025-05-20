@@ -16,7 +16,7 @@ add_library(foo_input_vgmstream SHARED
 	${RESOURCES})
 
 # Link to the vgmstream library and foobar2000's shared library
-target_link_libraries(foo_input_vgmstream
+target_link_libraries(foo_input_vgmstream PUBLIC
 	libvgmstream
 	${FB2K_SDK_PATH}/foobar2000/shared/shared.lib)
 
