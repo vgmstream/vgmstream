@@ -5,7 +5,7 @@ add_library(xmp-vgmstream SHARED
 	xmpin.def)
 
 # Link to the vgmstream library
-target_link_libraries(xmp-vgmstream libvgmstream)
+target_link_libraries(xmp-vgmstream PUBLIC libvgmstream)
 
 setup_target(xmp-vgmstream TRUE)
 

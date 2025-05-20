@@ -5,7 +5,7 @@ add_library(audacious_vgmstream SHARED
 	vfs.cc)
 
 # Link to the vgmstream library and audacious library
-target_link_libraries(audacious_vgmstream
+target_link_libraries(audacious_vgmstream PUBLIC
 	libvgmstream
 	${AUDACIOUS_LINK_LIBRARIES}
 	${GTK_LINK_LIBRARIES})
