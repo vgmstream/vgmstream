@@ -32,21 +32,23 @@ source_group("Source Files\\meta" FILES ${META_SOURCES})
 source_group("Source Files\\util" FILES ${UTIL_SOURCES})
 
 set(libvgmstream_sources
-	${BASE_HEADERS}
 	${BASE_SOURCES}
-	${CODING_HEADERS}
 	${CODING_SOURCES}
-	${CLIBS_HEADERS}
 	${CLIBS_SOURCES}
-	${LAYOUT_HEADERS}
 	${LAYOUT_SOURCES}
-	${META_HEADERS}
 	${META_SOURCES}
-	${UTIL_HEADERS}
 	${UTIL_SOURCES}
-	${EXT_HEADERS}
-	${MAIN_HEADERS}
 	${MAIN_SOURCES}
+	${EXT_HEADERS}
+)
+set(libvgmstream_headers
+	${BASE_HEADERS}
+	${CODING_HEADERS}
+	${CLIBS_HEADERS}
+	${LAYOUT_HEADERS}
+	${META_HEADERS}
+	${UTIL_HEADERS}
+	${MAIN_HEADERS}
 )
 # Set up the proper include directories
 set(libvgmstream_includes
@@ -59,7 +61,7 @@ set(libvgmstream_includes
 )
 
 # libvgmstream.a
-add_library(libvgmstream STATIC ${libvgmstream_sources})
+add_library(libvgmstream STATIC ${libvgmstream_sources} ${libvgmstream_headers})
 set_target_properties(libvgmstream PROPERTIES PREFIX "")
 
 if(USE_FFMPEG AND FFMPEG_COMPILE)
@@ -71,11 +73,14 @@ setup_target(libvgmstream)
 target_include_directories(libvgmstream PRIVATE ${libvgmstream_includes})
 
 # libvgmstream.so
-if(NOT EMSCRIPTEN)
-	add_library(libvgmstream_shared SHARED EXCLUDE_FROM_ALL ${libvgmstream_sources})
+if(BUILD_SHARED_LIBS)
+	add_library(libvgmstream_shared SHARED ${libvgmstream_sources} ${libvgmstream_headers})
+	target_include_directories(libvgmstream_shared INTERFACE $<INSTALL_INTERFACE:include>)
 	set_target_properties(libvgmstream_shared PROPERTIES
 		PREFIX ""
 		OUTPUT_NAME "libvgmstream"
+		EXPORT_NAME "vgmstream"
+		PUBLIC_HEADER "${libvgmstream_headers}"
 	)
 	
 	if(USE_FFMPEG AND FFMPEG_COMPILE)
@@ -85,8 +90,16 @@ if(NOT EMSCRIPTEN)
 	setup_target(libvgmstream_shared TRUE)
 	
 	target_include_directories(libvgmstream_shared PRIVATE ${libvgmstream_includes})
-	
-	if(CMAKE_CXX_COMPILER_ID MATCHES Clang OR CMAKE_CXX_COMPILER_ID MATCHES GNU)
-		set_target_properties(libvgmstream_shared PROPERTIES LINK_FLAGS_RELEASE -s)
-	endif()
+
+	install(TARGETS libvgmstream_shared EXPORT vgmstream-targets PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vgmstream)
+	install(EXPORT vgmstream-targets FILE vgmstream-targets.cmake NAMESPACE vgmstream:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vgmstream)
+	include(CMakePackageConfigHelpers)
+	configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/vgmstream-config.cmake.in
+		"${CMAKE_CURRENT_BINARY_DIR}/vgmstream-config.cmake"
+		INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vgmstream
+	)
+	install(
+		FILES "${CMAKE_CURRENT_BINARY_DIR}/vgmstream-config.cmake"
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vgmstream
+	)
 endif()
