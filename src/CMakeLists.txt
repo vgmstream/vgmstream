@@ -74,6 +74,8 @@ target_include_directories(libvgmstream PRIVATE ${libvgmstream_includes})
 
 # libvgmstream.so
 if(BUILD_SHARED_LIBS)
+	include(GNUInstallDirs)
+
 	add_library(libvgmstream_shared SHARED ${libvgmstream_sources} ${libvgmstream_headers})
 	target_include_directories(libvgmstream_shared INTERFACE $<INSTALL_INTERFACE:include>)
 	set_target_properties(libvgmstream_shared PROPERTIES
