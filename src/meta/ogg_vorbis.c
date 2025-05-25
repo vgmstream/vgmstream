@@ -400,7 +400,7 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
                 /* try in ../(file) too since that's how the .isl is stored on disc */
                 char isl_path[PATH_LIMIT];
                 snprintf(isl_path, sizeof(isl_path), "../%s", isl_name);
-                sf_isl = open_streamfile_by_filename(sf, isl_path);
+                sf_isl = open_streamfile_by_pathname(sf, isl_path);
             }
 
             if (sf_isl) {

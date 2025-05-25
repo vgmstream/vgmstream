@@ -2779,8 +2779,8 @@ static void config_sb_random_old(ubi_sb_header* sb, off_t sequence_count, off_t 
     sb->cfg.random_percent_int = 1;
 }
 
-static int check_project_file(STREAMFILE *sf_header, const char *name, int has_localized_banks) {
-    STREAMFILE *sf_test = open_streamfile_by_filename(sf_header, name);
+static int check_project_file(STREAMFILE* sf_header, const char *name, bool has_localized_banks) {
+    STREAMFILE *sf_test = open_streamfile_by_pathname(sf_header, name);
     if (sf_test) {
         close_streamfile(sf_test);
         return 1;
@@ -3107,7 +3107,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
     /* Tonic Touble Special Edition has garbage instead of version */
     if (sb->is_bnm && sb->version > 0x00000000 && sb->platform == UBI_PC) {
-        if (check_project_file(sf, "ED_MAIN.LCB", 0) || check_project_file(sf, "../ED_MAIN.LCB", 0)) {
+        if (check_project_file(sf, "ED_MAIN.LCB", true)) {
             is_ttse_pc = true;
             sb->version = 0x00000000;
         }

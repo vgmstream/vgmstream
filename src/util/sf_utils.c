@@ -2,6 +2,7 @@
 #include "../vgmstream.h"
 #include "reader_sf.h"
 #include "paths.h"
+#include "log.h"
 
 
 /* change pathname's extension to another (or add it if extensionless) */
@@ -34,12 +35,25 @@ STREAMFILE* open_streamfile_by_ext(STREAMFILE* sf, const char* ext) {
     return open_streamfile(sf, filename);
 }
 
-STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
+static STREAMFILE* open_streamfile_internal(STREAMFILE* sf, const char* filename, bool allow_relpaths) {
     char fullname[PATH_LIMIT];
     char partname[PATH_LIMIT];
     char *path, *name, *otherpath;
 
-    if (!sf || !filename || !filename[0]) return NULL;
+    if (!sf || !filename || !filename[0])
+        return NULL;
+
+    // Some formats open companion files in current dir or subfolders. Relative paths are restricted by default
+    // for better control access. Mainly for doc purposes (most formats wouldn't need that), since
+    // the security risk of a format opening an arbitrary file is low given regular .m3u allow arbitrary paths
+    // anyway, and without RCE it can't leave your system (and web player can't read the filesystem).
+    if (!allow_relpaths) {
+        // disallow relative or absolute paths (crafty users could mimic plugin's internal URIs though)
+        if (strstr(filename, "..") || strstr(filename, ":\\") || filename[0] == '/') {
+            VGM_LOG("SF: ignored relative path %s\n", filename);
+            return NULL;
+        }
+    }
 
     get_streamfile_name(sf, fullname, sizeof(fullname));
 
@@ -91,6 +105,14 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
     }
 
     return open_streamfile(sf, fullname);
+}
+
+STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
+    return open_streamfile_internal(sf, filename, false);
+}
+
+STREAMFILE* open_streamfile_by_pathname(STREAMFILE* sf, const char* filename) {
+    return open_streamfile_internal(sf, filename, true);
 }
 
 /* ************************************************************************* */

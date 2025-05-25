@@ -1108,7 +1108,7 @@ static STREAMFILE* open_path_streamfile(STREAMFILE* sf, char* path) {
     if (is_absolute(path))
         return open_streamfile(sf, path); /* from path as is */
     else
-        return open_streamfile_by_filename(sf, path); /* from current path */
+        return open_streamfile_by_pathname(sf, path); /* from current path */
 }
 
 static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
