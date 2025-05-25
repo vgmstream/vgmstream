@@ -62,11 +62,33 @@ in_char info_fn[WINAMP_PATH_LIMIT] = {0};
 in_char info_title[GETFILEINFO_TITLE_LENGTH];
 int64_t info_time;
 bool info_valid;
+bool info_was_protocol;
 
 
 /* ***************************************** */
 /* IN_VGMSTREAM UTILS                        */
 /* ***************************************** */
+
+#if 0
+#if defined(VGM_LOG_OUTPUT) || defined(VGM_DEBUG_OUTPUT)
+    static void vgm_logi(const char* fmt, ...) {
+        va_list args;
+
+        va_start(args, fmt);
+
+        char line[256];
+        int out;
+        out = vsnprintf(line, sizeof(line), fmt, args);
+        if (out < 0 || out > sizeof(line))
+            strcpy(line, "(ignored log)"); //to-do something better, meh
+        logger_callback(LIBVGMSTREAM_LOG_LEVEL_INFO, line);
+
+        va_end(args);
+    }
+#else
+    #define static vgm_logi(...) {} /* nothing */
+#endif
+#endif
 
 /* parses a modified filename ('fakename') extracting tags parameters (NULL tag for first = filename) */
 static int parse_fn_string(const in_char* fn, const in_char* tag, in_char* dst, int dst_size) {
@@ -288,39 +310,52 @@ int winamp_IsOurFile(const in_char *fn) {
     char filename_utf8[WINAMP_PATH_LIMIT];
     bool valid;
 
+    //;vgm_logi("\nwinamp_IsOurFile: init\n");
+
     /* Winamp file opening 101:
-     * - load modules from plugin dir, in NTFS order (mostly alphabetical *.dll but not 100% like explorer)
+     * - load modules from plugin dir, in NTFS order (mostly alphabetical *.dll but not 100% like explorer.exe)
      *   > plugin list in options is ordered by description so doesn't reflect this priority
      * - make path to file
-     * - find first module that returns 1 in "IsOurFile" (continue otherwise)
-     *   > generally plugins just return 0 there as it's meant for protocols (a few do check the file's header there)
+     * - find first module that returns 1 in "IsOurFile", continue otherwise
+     *   > generally plugins just return 0 as it's meant for protocols (a few do check the file's header there)
      * - find first module that reports that supports file extension (see build_extension_list)
-     *   > this means plugin priority affects who hijacks the file, for shared extensions
-     * - if no result, retry the above 2 with "hi." + default extension (from config, default .mp3, path if not set?)
+     *   > for shared extensions this means plugin priority affects who hijacks the file
+     * - if still no result, retry the above 2 steps with "hi." + default extension (from config: default .mp3, path if not set?)
+     *   > procotols supported by Winamp (cda:// http:// rtcp:// etc) also reach this "hi.mp3" stage (only if no extension is used?)
      *   > seems skipped when doing playlist manipulation/subsongs
-     * ! if module/vgmstream is given the file (even if can't play it) Winamp will call GetInfo and stop if not valid info is returned
-     * ! on init seems Winamp calls IsOurFile with "cda://" protocol, but should be ignored by is_valid()
+     * - if still nothing, any unplayable file will be considered "hi.mp3" by Winamp and accepted as a 0:00 file
+     *   > this is annoying so vgmstream "accepts" hi.mp3 yet won't play it, so time is blank instead of 0:00
+     *   > but must ignore "hi.mp3" if current file was a protocol to allow it
+     *
+     * Notes:
+     * * if module/vgmstream is given the file (even if can't play it) Winamp will call GetInfo and stop if not valid info is returned
+     * * on init seems Winamp calls IsOurFile with "cda://" protocol, should be ignored by is_valid() as well as any other protocol
      */
 
-    /* Detect repeat retries and fake "hi." calls as they are useless for our detection.
-     * before only ignored "hi's" when commons exts where on but who wants unplayable files reporting 0:00. */
+    // detect repeat retries
     if (wa_strcmp(fn, info_fn) == 0) { //TODO may need to check file size to invalidate cache
         //;vgm_logi("winamp_IsOurFile: repeated call\n");
         return info_valid;
     }
 
+    // 'accept' hi.mp3; won't play so it'll show with blank time instead of 0:00
     if (/*settings.exts_common_on &&*/ wa_strncmp(fn, wa_L("hi."), 3) == 0) {
-        //;vgm_logi("winamp_IsOurFile: ignored fakefile\n");
+        if (info_was_protocol) { 
+            // don't 'accept' with protocols, that somehow also go through hi.mp3 before playing
+            //;vgm_logi("winamp_IsOurFile: ignored fakefile (was a protocol)\n");
+            return 0;
+        }
+        //;vgm_logi("winamp_IsOurFile: accepted fakefile\n");
         return 1;
     }
 
+    info_was_protocol = wa_strstr(fn, wa_L("://"));
 
     vcfg.skip_standard = false; /* validated by Winamp after IsOurFile, reject just in case */
     vcfg.accept_unknown = settings.exts_unknown_on;
     vcfg.accept_common = settings.exts_common_on;
 
     wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, fn);
-
     //;vgm_logi("winamp_IsOurFile: %s\n", filename_utf8);
 
     /* Return 1 if we actually handle the format or 0 to let other plugins handle it. Checking the 
@@ -333,7 +368,7 @@ int winamp_IsOurFile(const in_char *fn) {
     /* basic extension check */
     valid = libvgmstream_is_valid(filename_utf8, &vcfg);
     if (!valid) {
-        //;vgm_logi("winamp_IsOurFile: invalid extension\n");
+        //;vgm_logi("winamp_IsOurFile: false is-valid\n");
         return 0;
     }
 
