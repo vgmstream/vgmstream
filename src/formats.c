@@ -1355,7 +1355,6 @@ static const meta_info meta_info_list[] = {
         {meta_HD3_BD3,              "Sony HD3+BD3 header"},
         {meta_BNK_SONY,             "Sony BNK header"},
         {meta_SSCF,                 "Square Enix SSCF header"},
-        {meta_DSP_VAG,              ".VAG DSP header"},
         {meta_DSP_ITL,              ".ITL DSP header"},
         {meta_A2M,                  "Artificial Mind & Movement A2M header"},
         {meta_AHV,                  "Amuze AHV header"},
@@ -1479,6 +1478,7 @@ static const meta_info meta_info_list[] = {
         {meta_MIO,                  "Entis .MIO header"},
         {meta_AUDIOPKG,             "Inevitable .AUDIOPKG header"},
         {meta_SWAR,                 "Nintendo SWAR header"},
+        {meta_IVB,                  "Metro IVB header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

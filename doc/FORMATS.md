@@ -91,7 +91,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - IADP Header [*NGC_DSP_IADP*]
   - Bethesda .mcadpcm header [*DSP_MCADPCM*]
   - UE4 Switch Audio header [*DSP_SWITCH_AUDIO*]
-  - .VAG DSP header [*DSP_VAG*]
   - .ITL DSP header [*DSP_ITL*]
   - AQUASTYLE ADPY header [*DSP_ADPY*]
   - AQUASTYLE ADPX header [*DSP_ADPX*]
@@ -127,7 +126,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ngc_dsp_iadp*: `.adp .iadp`
   - *dsp_mcadpcm*: `.mcadpcm`
   - *dsp_switch_audio*: `.switch_audio .dsp`
-  - *dsp_sps_n1*: `.vag .nlsd`
   - *dsp_itl_ch*: `.itl`
   - *dsp_adpy*: `.adpcmx`
   - *dsp_adpx*: `.adpcmx`
@@ -1148,8 +1146,8 @@ different internally (encrypted, different versions, etc) and not always can be 
     - Subfiles: *ogg_vorbis riff xma ktac ktss*
 - **sps_n1.c**
   - Nippon Ichi .SPS header [*SPS_N1*]
-  - *sps_n1*: `.sps`
-    - Subfiles: *vag riff*
+  - *sps_n1*: `.sps .vag .nlsd`
+    - Subfiles: *vag riff ngc_dsp_std_le*
   - *sps_n1_segmented*: `.at9 .nlsd`
     - Subfiles: *ogg_vorbis opus_std*
 - **apa3.c**
@@ -1835,6 +1833,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Nintendo SWAV header [*SWAV*]
   - *swar*: `.swar`
   - Codecs: PCM8 PCM16LE IMA
+- **ivb.c**
+  - Metro IVB header [*IVB*]
+  - *ivb*: `.ivb`
+  - Codecs: PSX
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`

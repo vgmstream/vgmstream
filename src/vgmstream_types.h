@@ -596,7 +596,6 @@ typedef enum {
     meta_HD3_BD3,           /* Sony PS3 bank */
     meta_BNK_SONY,          /* Sony Scream Tool bank */
     meta_SSCF,
-    meta_DSP_VAG,           /* Penny-Punching Princess (Switch) sfx */
     meta_DSP_ITL,           /* Charinko Hero (GC) */
     meta_A2M,               /* Scooby-Doo! Unmasked (PS2) */
     meta_AHV,               /* Headhunter (PS2) */
@@ -721,6 +720,7 @@ typedef enum {
     meta_MIO,
     meta_AUDIOPKG,
     meta_SWAR,
+    meta_IVB,
 } meta_t;
 
 #endif

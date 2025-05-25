@@ -1035,4 +1035,6 @@ VGMSTREAM* init_vgmstream_audiopkg(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_swar(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_ivb(STREAMFILE* sf);
+
 #endif
