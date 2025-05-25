@@ -3,7 +3,6 @@
 
 #ifdef VGM_USE_FFMPEG
 
-static int read_pos_file(uint8_t* buf, size_t bufsize, STREAMFILE* sf);
 static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end);
 
 /* parses any format supported by FFmpeg and not handled elsewhere:
@@ -53,19 +52,6 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     total_subsongs = ffmpeg_get_subsong_count(data); /* uncommon, ex. wmv [Lost Odyssey (X360)] */
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    /* try to get .pos data */
-    {
-        uint8_t posbuf[0x04*3];
-
-        if (read_pos_file(posbuf, sizeof(posbuf), sf)) {
-            loop_start = get_s32le(posbuf+0x00);
-            loop_end = get_s32le(posbuf+0x04);
-            loop_flag = 1; /* incorrect looping will be validated outside */
-            /* FFmpeg can't always determine samples correctly so optionally load it (can be 0/NULL)
-             * won't crash and will output silence if no loop points and bigger than actual stream's samples */
-            num_samples = get_s32le(posbuf+8);
-        }
-    }
 
     /* try to read Ogg/Flac loop tags (abridged) */
     if (!loop_flag && (is_id32be(0x00, sf, "OggS") || is_id32be(0x00, sf, "fLaC"))) {
@@ -157,45 +143,6 @@ fail:
         close_vgmstream(vgmstream);
     }
     return NULL;
-}
-
-
-/* open file containing looping data and copy to buffer, returns true if found and copied */
-int read_pos_file(uint8_t* buf, size_t bufsize, STREAMFILE* sf) {
-    char posname[PATH_LIMIT];
-    char filename[PATH_LIMIT];
-    /*size_t bytes_read;*/
-    STREAMFILE* sf_pos = NULL;
-
-    get_streamfile_name(sf,filename,sizeof(filename));
-
-    if (strlen(filename)+4 > sizeof(posname))
-        goto fail;
-
-    /* try to open a posfile using variations: "(name.ext).pos" */
-    {
-        strcpy(posname, filename);
-        strcat(posname, ".pos");
-        sf_pos = open_streamfile(sf, posname);;
-        if (sf_pos) goto found;
-
-        goto fail;
-    }
-
-found:
-    //if (get_streamfile_size(sf_pos) != bufsize) goto fail;
-
-    /* allow pos files to be of different sizes in case of new features, just fill all we can */
-    memset(buf, 0, bufsize);
-    read_streamfile(buf, 0, bufsize, sf_pos);
-
-    close_streamfile(sf_pos);
-
-    return 1;
-
-fail:
-    close_streamfile(sf_pos);
-    return 0;
 }
 
 
