@@ -1206,38 +1206,6 @@ fail:
     return NULL;
 }
 
-
-/* .vag - Nippon Ichi SPS wrapper [Penny-Punching Princess (Switch), Ys VIII (Switch)] */
-VGMSTREAM* init_vgmstream_dsp_sps_n1(STREAMFILE* sf) {
-    dsp_meta dspm = {0};
-
-    /* checks */
-    if (read_u32be(0x00,sf) != 0x08000000) /* file type (see other N1 SPS) */
-        goto fail;
-
-    /* .vag: Penny-Punching Princess (Switch)
-     * .nlsd: Ys VIII (Switch) */
-    if (!check_extensions(sf, "vag,nlsd"))
-        goto fail;
-    if (read_u16le(0x08,sf) != read_u32le(0x24,sf)) /* header has various repeated values */
-        goto fail;
-
-    dspm.channels = 1;
-    dspm.max_channels = 1;
-    dspm.little_endian = 1;
-
-    dspm.header_offset = 0x1c;
-    dspm.header_spacing = 0x60;
-    dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channels;
-    dspm.interleave = 0;
-
-    dspm.meta_type = meta_DSP_VAG;
-    return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
-}
-
-
 /* .itl - from Chanrinko Hero (GC) */
 VGMSTREAM* init_vgmstream_dsp_itl_ch(STREAMFILE* sf) {
     dsp_meta dspm = {0};
