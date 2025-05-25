@@ -105,6 +105,7 @@ extern winamp_log_t* walog;
 #define wa_strcat wcscat
 #define wa_strlen wcslen
 #define wa_strchr wcschr
+#define wa_strstr wcsstr
 #define wa_sscanf swscanf
 #define wa_snprintf _snwprintf
 #define wa_strrchr wcsrchr
@@ -119,6 +120,7 @@ extern winamp_log_t* walog;
 #define wa_strcat strcat
 #define wa_strlen strlen
 #define wa_strchr strchr
+#define wa_strstr strstr
 #define wa_sscanf sscanf
 #define wa_snprintf snprintf
 #define wa_strrchr strrchr

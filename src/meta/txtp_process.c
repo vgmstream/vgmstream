@@ -253,7 +253,7 @@ static bool parse_entries(txtp_header_t* txtp, STREAMFILE* sf) {
         if (is_absolute(filename))
             temp_sf = open_streamfile(sf, filename); /* from path as is */
         else
-            temp_sf = open_streamfile_by_filename(sf, filename); /* from current path */
+            temp_sf = open_streamfile_by_pathname(sf, filename); /* from current path */
         if (!temp_sf) {
             vgm_logi("TXTP: cannot open %s\n", filename);
             goto fail;

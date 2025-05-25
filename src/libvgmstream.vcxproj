@@ -159,6 +159,7 @@
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\hca_keys_awb.h" />
     <ClInclude Include="meta\idtech_streamfile.h" />
+    <ClInclude Include="meta\ivb_streamfile.h" />
     <ClInclude Include="meta\jstm_streamfile.h" />
     <ClInclude Include="meta\kma9_streamfile.h" />
     <ClInclude Include="meta\ktsr_streamfile.h" />
@@ -560,6 +561,7 @@
     <ClCompile Include="meta\isb.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivag.c" />
+    <ClCompile Include="meta\ivb.c" />
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ka1a.c" />
     <ClCompile Include="meta\kat.c" />

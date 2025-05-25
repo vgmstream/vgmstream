@@ -57,7 +57,6 @@ VGMSTREAM* init_vgmstream_dsp_dspw(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ngc_dsp_iadp(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_mcadpcm(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_switch_audio(STREAMFILE* sf);
-VGMSTREAM* init_vgmstream_dsp_sps_n1(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_itl_ch(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_adpy(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_adpx(STREAMFILE* sf);
@@ -1035,5 +1034,7 @@ VGMSTREAM* init_vgmstream_ssp(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_audiopkg(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_swar(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_ivb(STREAMFILE* sf);
 
 #endif

@@ -22,16 +22,16 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sdk\in2.h">
-      <Filter>Header Files</Filter>
+      <Filter>sdk\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sdk\ipc_pe.h">
-      <Filter>Header Files</Filter>
+      <Filter>sdk\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sdk\out.h">
-      <Filter>Header Files</Filter>
+      <Filter>sdk\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sdk\wa_ipc.h">
-      <Filter>Header Files</Filter>
+      <Filter>sdk\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

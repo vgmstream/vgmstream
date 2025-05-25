@@ -4,26 +4,27 @@
 #include "../util/endianness.h"
 #include "../util/layout_utils.h"
 
-/* also see init_vgmstream_dsp_sps_n1 and init_vgmstream_opus_sps_n1 */
-
 /* Nippon Ichi SPS wrapper [ClaDun (PSP), Legasista (PS3)] */
 VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    int type, sample_rate;
-    off_t subfile_offset;
-    size_t subfile_size;
-
     init_vgmstream_t init_vgmstream = NULL;
     const char* extension = NULL;
-    uint32_t (*read_u32)(off_t,STREAMFILE*);
-    uint16_t (*read_u16)(off_t,STREAMFILE*);
+    read_u32_t read_u32;
+    read_u16_t read_u16;
 
     /* checks */
-    if (!check_extensions(sf,"sps"))
-        goto fail;
+    int type = read_u32le(0x00,sf);
+    if (!((type > 0 && type < 10) || type == 0x01000000 || type == 0x02000000))
+        return NULL;
 
-    if (guess_endian32(0x00, sf)) { /* PS3 */
+    /* .sps: common, ClaDun X3 (Switch)
+     * .vag: Penny-Punching Princess (Switch)
+     * .nlsd: Ys VIII (Switch) */
+    if (!check_extensions(sf,"sps,vag,nlsd"))
+        return NULL;
+
+    if (guess_endian32(0x00, sf)) { // PS3
         read_u32 = read_u32be;
         read_u16 = read_u16be;
     }
@@ -31,12 +32,25 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
         read_u32 = read_u32le;
         read_u16 = read_u16le;
     }
+
     type = read_u32(0x00,sf);
-    subfile_size = read_u32(0x04,sf);
-    sample_rate = read_u16(0x08,sf);
-    /* 0x0a: flag? (stereo?) */
-    /* 0x0b: flag? */
-    /* 0x0c: num_samples */
+    uint32_t subfile_size = read_u32(0x04,sf);
+    int sample_rate = read_u16(0x08,sf);
+    // 0x0a: flag? (stereo?)
+    // 0x0b: flag?
+    // 0x0c: num_samples
+    // newer games with loop section (>7?):
+    // 0x10: loop start
+    // 0x14: loop end
+    // some games extra value (>8?):
+    // 0x18: null?
+
+    if (sample_rate < 8000 || sample_rate > 48000) //arbitrary max
+        return NULL;
+
+    uint32_t subfile_offset = get_streamfile_size(sf) - subfile_size;
+    if (subfile_offset <= 0 || subfile_offset > 0x1c)
+        return NULL;
 
     switch(type) {
         case 1:
@@ -49,13 +63,21 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
             extension = "at3";
             break;
 
+        case 8:
+            init_vgmstream = init_vgmstream_ngc_dsp_std_le;
+            extension = "adpcm";
+            break;
+
+        case 7:
+            // init_vgmstream_ogg_vorbis (init_vgmstream_sps_n1_segmented)
+        case 9:
+            // init_vgmstream_opus_sps_n1
+            // init_vgmstream_opus_std (init_vgmstream_sps_n1_segmented)
+
         default:
-            goto fail;
+            return NULL;
     }
 
-    subfile_offset = 0x10;
-    if (subfile_size + subfile_offset != get_streamfile_size(sf))
-        goto fail;
 
     /* init the VGMSTREAM */
     temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, extension);
@@ -64,7 +86,14 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
     vgmstream = init_vgmstream(temp_sf);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = sample_rate; /* .vag header doesn't match */
+    vgmstream->sample_rate = sample_rate; // internal header isn't always correct vs .sps info
+
+    if (type == 8) {
+        // most files set loops in DSP header but don't loop, though some do full loops
+        uint32_t loop_start = read_u32(0x10, sf);
+        if (loop_start == 0)
+            vgmstream->loop_flag = false;
+    }
 
     close_streamfile(temp_sf);
     return vgmstream;
@@ -91,7 +120,7 @@ VGMSTREAM* init_vgmstream_sps_n1_segmented(STREAMFILE* sf) {
 
     /* checks */
     type = read_u32le(0x00,sf);
-    if (type > 10)
+    if (type < 7 || type > 10)
         return NULL;
 
     /* .at9: Penny-Punching Princess (Switch), Labyrinth of Galleria (PC)

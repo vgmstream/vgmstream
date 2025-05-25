@@ -337,7 +337,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
     init_vgmstream_sscf,
-    init_vgmstream_dsp_sps_n1,
     init_vgmstream_dsp_itl_ch,
     init_vgmstream_a2m,
     init_vgmstream_ahv,
@@ -512,6 +511,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mio,
     init_vgmstream_audiopkg,
     init_vgmstream_swar,
+    init_vgmstream_ivb,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

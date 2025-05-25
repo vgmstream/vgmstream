@@ -8,10 +8,13 @@
  * Can be used to get companion headers. */
 STREAMFILE* open_streamfile_by_ext(STREAMFILE* sf, const char* ext);
 
-/* Opens a STREAMFILE from a base path + new filename.
- * Can be used to get companion files. Relative paths like
- * './filename', '../filename', 'dir/filename' also work. */
+/* Opens a STREAMFILE from a base path + new filename. Can be used to get companion files.
+ * Subfolders like 'dir/filename' also work (not as common but some formats do use it). */
 STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename);
+
+/* Same as above, but relative paths like '../filename' also work.
+ * Not much difference but helps identifying which formats need prev folders */
+STREAMFILE* open_streamfile_by_pathname(STREAMFILE* sf, const char* filename);
 
 /* various STREAMFILE helpers functions */
 
