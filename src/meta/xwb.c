@@ -314,8 +314,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
     else if (xwb.version <= XACT2_2_MAX) {
         switch(xwb.tag) {
             case 0: xwb.codec = PCM; break;
-            /* Table Tennis (v34): XMA1, Prey (v38): XMA2, v35/36/37: ? */
-            case 1: xwb.codec = xwb.version <= XACT2_0_MAX ? XMA1 : XMA2; break;
+            /* Table Tennis (v34)~Prey (v38): XMA1, Just Cause (v39): XMA2 */
+            case 1: xwb.codec = xwb.version <= XACT2_1_MAX ? XMA1 : XMA2; break;
             case 2: xwb.codec = MS_ADPCM; break;
             default: goto fail;
         }
