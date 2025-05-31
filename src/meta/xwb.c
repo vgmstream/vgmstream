@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 #include <string.h>
 #include "xwb_xsb.h"
 
@@ -84,8 +85,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
     off_t start_offset, offset, suboffset;
     xwb_header xwb = {0};
     int target_subsong = sf->stream_index;
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
-    int32_t (*read_s32)(off_t,STREAMFILE*) = NULL;
+    read_u32_t read_u32 = NULL;
+    read_s32_t read_s32 = NULL;
     char stream_name[STREAM_NAME_SIZE], file_name[STREAM_NAME_SIZE];
 
 

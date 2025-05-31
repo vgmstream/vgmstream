@@ -83,8 +83,8 @@ static void xsb_check_stream(xsb_header *xsb, int stream_index, int wavebank_ind
 
 
 static int parse_xsb_old_cue_entry(xsb_header *xsb, STREAMFILE *sf, off_t name_offset, int entry) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
     uint8_t flags, subflags;
     uint32_t sound_type, sound_size;
     int stream_index, wavebank_index;
@@ -259,8 +259,8 @@ fail:
  * - others
  */
 static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
   //uint16_t flags;
     int cue_entry;
     off_t offset, name_offset, jump_offset;
@@ -313,8 +313,8 @@ static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
 }
 
 static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = xsb->big_endian ? read_u32be : read_u32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_u32_t read_u32 = xsb->big_endian ? read_u32be : read_u32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
     uint32_t flags;
     int stream_index, wavebank_index;
@@ -478,8 +478,8 @@ fail:
 }
 
 static int parse_xsb_sound(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
     uint8_t flags;
     int stream_index = 0, wavebank_index = 0;
@@ -548,9 +548,9 @@ static int parse_xsb_sound(xsb_header *xsb, off_t offset, off_t name_offset, STR
 }
 
 static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    uint16_t (*read_u16)(off_t,STREAMFILE*) = xsb->big_endian ? read_u16be : read_u16le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_u16_t read_u16 = xsb->big_endian ? read_u16be : read_u16le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
     uint16_t flags;
     int stream_index, wavebank_index;
@@ -639,7 +639,7 @@ fail:
 
 
 static int parse_xsb_cues(xsb_header *xsb, STREAMFILE *sf) {
-    int32_t (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
 
     uint8_t flags;
     off_t offset, name_offset, sound_offset;
@@ -712,9 +712,6 @@ static int parse_xsb_cues(xsb_header *xsb, STREAMFILE *sf) {
  * - https://github.com/espes/MacTerrariaWrapper/tree/master/xactxtract
  */
 static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = NULL;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = NULL;
-
 
     /* check header */
     if ((read_u32be(0x00,sf) != 0x5344424B) &&    /* "SDBK" (LE) */
@@ -722,8 +719,8 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         goto fail;
 
     xsb->big_endian = (read_u32be(0x00,sf) == 0x4B424453); /* "KBDS" */
-    read_s32 = xsb->big_endian ? read_s32be : read_s32le;
-    read_s16 = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
 
     /* parse sound bank header */
@@ -787,7 +784,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         xsb->entry_size             = 0x14;
     }
     else if (xsb->version <= XSB_XACT2_2_MAX) {
-        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 (always LE) */
         /* 08(1): platform? (3=X360) */
         xsb->simple_cues_count      = read_s16(0x09, sf);
         xsb->complex_cues_count     = read_s16(0x0B, sf);
