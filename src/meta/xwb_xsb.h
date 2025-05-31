@@ -3,12 +3,12 @@
 #include "meta.h"
 #include "../util/companion_files.h"
 
-#define XSB_XACT1_0_MAX 5       /* Unreal Championship (Xbox) */
-#define XSB_XACT1_1_MAX 8       /* Die Hard: Vendetta (Xbox) */
-#define XSB_XACT1_2_MAX 11      /* other Xbox games */
-#define XSB_XACT2_0_MAX 34      /* Table Tennis (v34) */
-//#define XSB_XACT2_1_MAX 38    /* Prey (v38) */ // v39 too?
-#define XSB_XACT2_2_MAX 41      /* other PC/X360 games */
+#define XSB_XACT1_0_MAX 0x05    /* Unreal Championship (Xbox) */
+#define XSB_XACT1_1_MAX 0x08    /* Die Hard: Vendetta (Xbox) */
+#define XSB_XACT1_2_MAX 0x0B    /* other Xbox games */
+#define XSB_XACT2_0_MAX 0x22    /* Table Tennis (v34) */
+//#define XSB_XACT2_1_MAX 0x29  /* Prey (v38) */ // v39 too?
+#define XSB_XACT2_2_MAX 0x29    /* other PC/X360 games */
 
 
 typedef struct {
@@ -729,7 +729,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
     /* parse sound bank header */
     xsb->version = read_s16(0x04, sf); /* tool version */
     if (xsb->version <= XSB_XACT1_0_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
         xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x04) */
         /* 10(4): unknown2 offset */
@@ -748,7 +748,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
 
     }
     else if (xsb->version <= XSB_XACT1_1_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
         xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x04) */
         /* 10(4): unknown2 offset */
@@ -767,7 +767,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         xsb->entry_size             = 0x14;
     }
     else if (xsb->version <= XSB_XACT1_2_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
         xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x14) */
         /* 10(4): unknown2 offset (entry: variable) */
@@ -787,7 +787,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         xsb->entry_size             = 0x14;
     }
     else if (xsb->version <= XSB_XACT2_2_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
         /* 08(1): platform? (3=X360) */
         xsb->simple_cues_count      = read_s16(0x09, sf);
         xsb->complex_cues_count     = read_s16(0x0B, sf);
@@ -813,7 +813,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
     }
     else {
         /* 06(2): format version */
-        /* 08(2): crc (fcs16 checksum of all following data) */
+        /* 08(2): CRC-16/IBM-SDLC of data starting from 0x12 */
         /* 0a(4): last modified low */
         /* 0e(4): last modified high */
         /* 12(1): platform? (1=PC, 3=X360) */

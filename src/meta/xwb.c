@@ -9,12 +9,12 @@
 #define WAVEBANKENTRY_FLAGS_IGNORELOOP      0x00000008  // Used internally when the loop region can't be used (no idea...)
 
 /* the x.x version is just to make it clearer, MS only classifies XACT as 1/2/3 */
-#define XACT1_0_MAX     1           /* Project Gotham Racing 2 (Xbox)-v01, Silent Hill 4 (Xbox)-v01, Shin Megami Tensei NINE (Xbox)-v01 */
-#define XACT1_1_MAX     3           /* Unreal Championship (Xbox)-v02, The King of Fighters 2003 (Xbox)-v03 */
-#define XACT2_0_MAX     34          /* Project Gotham Racing 3 (X360)-v22, Dead or Alive 4 (X360)-v23, Table Tennis (X360)-v34 */ // v35/36/37 too?
-#define XACT2_1_MAX     38          /* Prey (X360)-v38 */
-#define XACT2_2_MAX     41          /* Just Cause (X360)-v39, Blue Dragon (X360)-v40 */
-#define XACT3_0_MAX     46          /* Ninja Blade (X360)-t43-v42, Saints Row 2 (PC)-t44-v42, Persona 4 Ultimax NESSICA (PC)-t45-v43, BlazBlue (X360)-t46-v44 */
+#define XACT1_0_MAX     0x01        /* Project Gotham Racing 2 (Xbox)-v01, Silent Hill 4 (Xbox)-v01, Shin Megami Tensei NINE (Xbox)-v01 */
+#define XACT1_1_MAX     0x03        /* Unreal Championship (Xbox)-v02, The King of Fighters 2003 (Xbox)-v03 */
+#define XACT2_0_MAX     0x22        /* Project Gotham Racing 3 (X360)-v22, Dead or Alive 4 (X360)-v23, Table Tennis (X360)-v34 */ // v35/36/37 too?
+#define XACT2_1_MAX     0x26        /* Prey (X360)-v38 */
+#define XACT2_2_MAX     0x29        /* Just Cause (X360)-v39, Blue Dragon (X360)-v40 */
+#define XACT3_0_MAX     0x2E        /* Ninja Blade (X360)-t43-v42, Saints Row 2 (PC)-t44-v42, Persona 4 Ultimax NESSICA (PC)-t45-v43, BlazBlue (X360)-t46-v44 */
 #define XACT_TECHLAND   0x10000     /* Sniper Ghost Warrior (PS3/X360), Nail'd (PS3/X360), equivalent to XACT3_0 */
 #define XACT_CRACKDOWN  0x87        /* Crackdown 1, equivalent to XACT2_2 */
 
