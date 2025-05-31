@@ -3,12 +3,12 @@
 #include "meta.h"
 #include "../util/companion_files.h"
 
-#define XSB_XACT1_0_MAX 0x05    /* Unreal Championship (Xbox) */
-#define XSB_XACT1_1_MAX 0x08    /* Die Hard: Vendetta (Xbox) */
-#define XSB_XACT1_2_MAX 0x0B    /* other Xbox games */
-#define XSB_XACT2_0_MAX 0x22    /* Table Tennis (v34) */
-//#define XSB_XACT2_1_MAX 0x29  /* Prey (v38) */ // v39 too?
-#define XSB_XACT2_2_MAX 0x29    /* other PC/X360 games */
+#define XSB_XACT1_0_MAX 5    // 0x05 // Unreal Championship (Xbox)
+#define XSB_XACT1_1_MAX 8    // 0x08 // Die Hard: Vendetta (Xbox)
+#define XSB_XACT1_2_MAX 11   // 0x0B // other Xbox games
+#define XSB_XACT2_0_MAX 34   // 0x22 // Table Tennis (v34)
+//#define XSB_XACT2_1_MAX 38 // 0x26 // Prey (v38) // v39 too?
+#define XSB_XACT2_2_MAX 41   // 0x29 // other PC/X360 games
 
 
 typedef struct {
@@ -813,7 +813,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
     }
     else {
         /* 06(2): format version */
-        /* 08(2): CRC-16/IBM-SDLC of data starting from 0x12 */
+        /* 08(2): CRC-16/IBM-SDLC of data starting from 0x12 (always LE) */
         /* 0a(4): last modified low */
         /* 0e(4): last modified high */
         /* 12(1): platform? (1=PC, 3=X360) */
