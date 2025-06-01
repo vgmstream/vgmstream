@@ -3,12 +3,12 @@
 #include "meta.h"
 #include "../util/companion_files.h"
 
-#define XSB_XACT1_0_MAX 5       /* Unreal Championship (Xbox) */
-#define XSB_XACT1_1_MAX 8       /* Die Hard: Vendetta (Xbox) */
-#define XSB_XACT1_2_MAX 11      /* other Xbox games */
-#define XSB_XACT2_0_MAX 34      /* Table Tennis (v34) */
-//#define XSB_XACT2_1_MAX 38    /* Prey (v38) */ // v39 too?
-#define XSB_XACT2_2_MAX 41      /* other PC/X360 games */
+#define XSB_XACT1_0_MAX 5    // 0x05 // Unreal Championship (Xbox)
+#define XSB_XACT1_1_MAX 8    // 0x08 // Die Hard: Vendetta (Xbox)
+#define XSB_XACT1_2_MAX 11   // 0x0B // other Xbox games
+#define XSB_XACT2_0_MAX 34   // 0x22 // Table Tennis (v34)
+//#define XSB_XACT2_1_MAX 38 // 0x26 // Prey (v38) // v39 too?
+#define XSB_XACT2_2_MAX 41   // 0x29 // other PC/X360 games
 
 
 typedef struct {
@@ -83,8 +83,8 @@ static void xsb_check_stream(xsb_header *xsb, int stream_index, int wavebank_ind
 
 
 static int parse_xsb_old_cue_entry(xsb_header *xsb, STREAMFILE *sf, off_t name_offset, int entry) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
     uint8_t flags, subflags;
     uint32_t sound_type, sound_size;
     int stream_index, wavebank_index;
@@ -259,8 +259,8 @@ fail:
  * - others
  */
 static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
   //uint16_t flags;
     int cue_entry;
     off_t offset, name_offset, jump_offset;
@@ -313,8 +313,8 @@ static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
 }
 
 static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = xsb->big_endian ? read_u32be : read_u32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_u32_t read_u32 = xsb->big_endian ? read_u32be : read_u32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
     uint32_t flags;
     int stream_index, wavebank_index;
@@ -478,8 +478,8 @@ fail:
 }
 
 static int parse_xsb_sound(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
     uint8_t flags;
     int stream_index = 0, wavebank_index = 0;
@@ -548,9 +548,9 @@ static int parse_xsb_sound(xsb_header *xsb, off_t offset, off_t name_offset, STR
 }
 
 static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
-    uint16_t (*read_u16)(off_t,STREAMFILE*) = xsb->big_endian ? read_u16be : read_u16le;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_u16_t read_u16 = xsb->big_endian ? read_u16be : read_u16le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
     uint16_t flags;
     int stream_index, wavebank_index;
@@ -639,7 +639,7 @@ fail:
 
 
 static int parse_xsb_cues(xsb_header *xsb, STREAMFILE *sf) {
-    int32_t (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
 
     uint8_t flags;
     off_t offset, name_offset, sound_offset;
@@ -712,9 +712,6 @@ static int parse_xsb_cues(xsb_header *xsb, STREAMFILE *sf) {
  * - https://github.com/espes/MacTerrariaWrapper/tree/master/xactxtract
  */
 static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = NULL;
-    int16_t  (*read_s16)(off_t,STREAMFILE*) = NULL;
-
 
     /* check header */
     if ((read_u32be(0x00,sf) != 0x5344424B) &&    /* "SDBK" (LE) */
@@ -722,14 +719,14 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         goto fail;
 
     xsb->big_endian = (read_u32be(0x00,sf) == 0x4B424453); /* "KBDS" */
-    read_s32 = xsb->big_endian ? read_s32be : read_s32le;
-    read_s16 = xsb->big_endian ? read_s16be : read_s16le;
+    read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
+    read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
 
     /* parse sound bank header */
     xsb->version = read_s16(0x04, sf); /* tool version */
     if (xsb->version <= XSB_XACT1_0_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
         xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x04) */
         /* 10(4): unknown2 offset */
@@ -748,7 +745,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
 
     }
     else if (xsb->version <= XSB_XACT1_1_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
         xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x04) */
         /* 10(4): unknown2 offset */
@@ -767,7 +764,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         xsb->entry_size             = 0x14;
     }
     else if (xsb->version <= XSB_XACT1_2_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 */
         xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x14) */
         /* 10(4): unknown2 offset (entry: variable) */
@@ -787,7 +784,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         xsb->entry_size             = 0x14;
     }
     else if (xsb->version <= XSB_XACT2_2_MAX) {
-        /* 06(2): crc */
+        /* 06(2): CRC-16/IBM-SDLC of data starting from 0x08 (always LE) */
         /* 08(1): platform? (3=X360) */
         xsb->simple_cues_count      = read_s16(0x09, sf);
         xsb->complex_cues_count     = read_s16(0x0B, sf);
@@ -813,7 +810,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
     }
     else {
         /* 06(2): format version */
-        /* 08(2): crc (fcs16 checksum of all following data) */
+        /* 08(2): CRC-16/IBM-SDLC of data starting from 0x12 (always LE) */
         /* 0a(4): last modified low */
         /* 0e(4): last modified high */
         /* 12(1): platform? (1=PC, 3=X360) */

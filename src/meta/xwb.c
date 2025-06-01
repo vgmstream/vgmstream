@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 #include <string.h>
 #include "xwb_xsb.h"
 
@@ -9,14 +10,14 @@
 #define WAVEBANKENTRY_FLAGS_IGNORELOOP      0x00000008  // Used internally when the loop region can't be used (no idea...)
 
 /* the x.x version is just to make it clearer, MS only classifies XACT as 1/2/3 */
-#define XACT1_0_MAX     1           /* Project Gotham Racing 2 (Xbox)-v01, Silent Hill 4 (Xbox)-v01, Shin Megami Tensei NINE (Xbox)-v01 */
-#define XACT1_1_MAX     3           /* Unreal Championship (Xbox)-v02, The King of Fighters 2003 (Xbox)-v03 */
-#define XACT2_0_MAX     34          /* Project Gotham Racing 3 (X360)-v22, Dead or Alive 4 (X360)-v23, Table Tennis (X360)-v34 */ // v35/36/37 too?
-#define XACT2_1_MAX     38          /* Prey (X360)-v38 */
-#define XACT2_2_MAX     41          /* Just Cause (X360)-v39, Blue Dragon (X360)-v40 */
-#define XACT3_0_MAX     46          /* Ninja Blade (X360)-t43-v42, Saints Row 2 (PC)-t44-v42, Persona 4 Ultimax NESSICA (PC)-t45-v43, BlazBlue (X360)-t46-v44 */
-#define XACT_TECHLAND   0x10000     /* Sniper Ghost Warrior (PS3/X360), Nail'd (PS3/X360), equivalent to XACT3_0 */
-#define XACT_CRACKDOWN  0x87        /* Crackdown 1, equivalent to XACT2_2 */
+#define XACT1_0_MAX     1   // 0x01 // Project Gotham Racing 2 (Xbox)-v01, Silent Hill 4 (Xbox)-v01, Shin Megami Tensei NINE (Xbox)-v01
+#define XACT1_1_MAX     3   // 0x03 // Unreal Championship (Xbox)-v02, The King of Fighters 2003 (Xbox)-v03
+#define XACT2_0_MAX     34  // 0x22 // Project Gotham Racing 3 (X360)-v22, Dead or Alive 4 (X360)-v23, Table Tennis (X360)-v34 // v35/36/37 too?
+#define XACT2_1_MAX     38  // 0x26 // Prey (X360)-v38
+#define XACT2_2_MAX     41  // 0x29 // Just Cause (X360)-v39, Blue Dragon (X360)-v40
+#define XACT3_0_MAX     46  // 0x2E // Ninja Blade (X360)-t43-v42, Saints Row 2 (PC)-t44-v42, Persona 4 Ultimax NESSICA (PC)-t45-v43, BlazBlue (X360)-t46-v44
+#define XACT_TECHLAND   0x10000     // Sniper Ghost Warrior (PS3/X360), Nail'd (PS3/X360), equivalent to XACT3_0 
+#define XACT_CRACKDOWN  0x87        // Crackdown 1, equivalent to XACT2_2
 
 static const int wma_avg_bps_index[7] = {
     12000, 24000, 4000, 6000, 8000, 20000, 2500
@@ -84,8 +85,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
     off_t start_offset, offset, suboffset;
     xwb_header xwb = {0};
     int target_subsong = sf->stream_index;
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
-    int32_t (*read_s32)(off_t,STREAMFILE*) = NULL;
+    read_u32_t read_u32 = NULL;
+    read_s32_t read_s32 = NULL;
     char stream_name[STREAM_NAME_SIZE], file_name[STREAM_NAME_SIZE];
 
 
@@ -313,8 +314,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
     else if (xwb.version <= XACT2_2_MAX) {
         switch(xwb.tag) {
             case 0: xwb.codec = PCM; break;
-            /* Table Tennis (v34): XMA1, Prey (v38): XMA2, v35/36/37: ? */
-            case 1: xwb.codec = xwb.version <= XACT2_0_MAX ? XMA1 : XMA2; break;
+            /* Table Tennis (v34)~Prey (v38): XMA1, Just Cause (v39): XMA2 */
+            case 1: xwb.codec = xwb.version <= XACT2_1_MAX ? XMA1 : XMA2; break;
             case 2: xwb.codec = MS_ADPCM; break;
             default: goto fail;
         }
