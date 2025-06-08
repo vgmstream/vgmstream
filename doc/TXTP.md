@@ -55,6 +55,12 @@ bgm01.fsb #e
 bgm01.fsb #v 2.0
 ```
 
+### play track a fixed duration
+```
+# 10 minutes + 10 seconds fade
+bgm01.adx #b 10:00.0 #f 10.0
+```
+
 ### mini txtp (empty .txtp with filename)
 `bgm01.flac #I 10.0 .txtp` 
 
@@ -377,10 +383,10 @@ Those steps are defined separate from "base" decoding (file's actual loops/sampl
 boss2_3ningumi_ver6.adx  #l 3                   #default is usually 2.0
 ```
 ```
-boss2_3ningumi_ver6.adx  #f11.5                 #default is usually 10.0
+boss2_3ningumi_ver6.adx  #f 11.5                #default is usually 10.0
 ```
 ```
-boss2_3ningumi_ver6.adx  #d0.5                  #default is usually 0.0
+boss2_3ningumi_ver6.adx  #d 0.5                 #default is usually 0.0
 ```
 ```
 boss2_3ningumi_ver6.adx  #i                     #this song has a nice stop
@@ -413,7 +419,7 @@ boss2_3ningumi_ver6.adx  #p 1.0 2.0  #f 10.0    #adds 1s to start, fade 10s, add
 boss2_3ningumi_ver6.adx  #r 1.0                 #removes 1s from start
 ```
 ```
-boss2_3ningumi_ver6.adx  #b 100.0s  #f 10.0     #plays for 100s + 10s seconds
+boss2_3ningumi_ver6.adx  #b 100.0  #f 10.0     #plays for 100s + 10s seconds
 ```
 
 
