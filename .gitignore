@@ -58,7 +58,7 @@ stamp-h1
 *.cache
 *.autotools
 *.am
-/*.in
+*.in
 *.m4
 *.lo
 *.la

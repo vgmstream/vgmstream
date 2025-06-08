@@ -1,7 +1,7 @@
 /**
  * vgmstream for Audacious
  */
-
+#include <glib.h>
 #include <cstdlib>
 #include <algorithm>
 #include <string.h>
@@ -271,12 +271,19 @@ static bool read_info(const char* filename, Tuple & tuple) {
         tuple.set_int(Tuple::Subtune, subtune);
         tuple.set_int(Tuple::NumSubtunes, total_subtunes);
 
+        // Audacious uses URLs,  must decode back and forth (see vfs.cc too)
+        gchar* hostname;
+        gchar* dec_name = g_filename_from_uri(use_subtune ? basename : filename, &hostname, NULL);
+
         char title[1024] = {0};
         libvgmstream_title_t cfg = {
-            .filename = use_subtune ? basename : filename
+            .filename = dec_name
         };
         libvgmstream_get_title(infostream, &cfg, title, sizeof(title));
         tuple.set_str(Tuple::Title, title); //may be overwritten by tags
+
+        g_free(hostname);
+        g_free(mod_name);
     }
 
 
