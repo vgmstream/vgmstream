@@ -711,14 +711,14 @@ static int parse_xsb_cues(xsb_header *xsb, STREAMFILE *sf) {
  * - https://github.com/MonoGame/MonoGame/blob/master/MonoGame.Framework/Audio/Xact/
  * - https://github.com/espes/MacTerrariaWrapper/tree/master/xactxtract
  */
-static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
+static bool parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
 
     /* check header */
-    if ((read_u32be(0x00,sf) != 0x5344424B) &&    /* "SDBK" (LE) */
-        (read_u32be(0x00,sf) != 0x4B424453))      /* "KBDS" (BE) */
-        goto fail;
+    if (!is_id32be(0x00,sf, "SDBK") &&    // LE
+        !is_id32be(0x00,sf, "KBDS"))       // BE
+        return false;
 
-    xsb->big_endian = (read_u32be(0x00,sf) == 0x4B424453); /* "KBDS" */
+    xsb->big_endian = (is_id32be(0x00,sf, "KBDS"));
     read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
     read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
@@ -843,20 +843,18 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
 
     if (xsb->version > XSB_XACT1_2_MAX && xsb->cue_names_size <= 0) {
         VGM_LOG("XSB: no names found\n");
-        return 1;
+        return true;
     }
 
 
     /* find target wavebank */
     if (xsb->wavebanks_count) {
         char xsb_wavebank_name[64+1];
-        int i;
-        off_t offset;
 
         xsb->selected_wavebank = -1;
 
-        offset = xsb->wavebanks_offset;
-        for (i = 0; i < xsb->wavebanks_count; i++) {
+        off_t offset = xsb->wavebanks_offset;
+        for (int i = 0; i < xsb->wavebanks_count; i++) {
             read_string(xsb_wavebank_name,xsb->wavebanks_name_size, offset, sf);
             //;VGM_LOG("XSB wavebanks: bank %i\n", i); //, wavebank_name
             if (strcasecmp(xsb_wavebank_name, xwb_wavebank_name)==0) {
@@ -883,9 +881,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         parse_xsb_cues(xsb, sf);
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 static STREAMFILE * open_xsb_filename_pair(STREAMFILE *streamXwb) {
