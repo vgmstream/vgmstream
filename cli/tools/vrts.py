@@ -63,6 +63,7 @@ def parse_args():
     ap.add_argument("-co","--cli-old", help="sets name of old CLI (can be a path)")
     ap.add_argument("-m","--multiprocesses", help="uses N multiprocesses to compare for performance\n(note that pypy w/ single process is faster than multiprocesses)", type=int, default=1)
     ap.add_argument("-d","--diffs", help="compares input files directly (won't decode)", action='store_true')
+    ap.add_argument("-f","--flags", help="sets CLI flags (enclose in double quotes, like \"-l 3.0 -F\")")
 
     args = ap.parse_args()
     
@@ -530,8 +531,13 @@ class VrtsApp:
 
     def _get_performance_args(self, cli):
         args = [cli, '-O'] #flag to not write files
+
         if not self._args.looping:
             args.append('-i')
+        if self._args.flags:
+            flags = self._args.flags.split(" ")
+            args.extend(flags)
+        
         args.extend(self._files.filenames)
         return args
 
@@ -583,8 +589,13 @@ class VrtsApp:
 
     def _get_compare_args(self, cli, outwav, filename):
         args = [cli, '-o', outwav] #flag to not write files
+
         if not self._args.looping:
             args.append('-i')
+        if self._args.flags:
+            flags = self._args.flags.split(" ")
+            args.extend(flags)
+
         args.append(filename)
         return args
 
