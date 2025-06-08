@@ -106,4 +106,5 @@ void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* vcfg) {
 
      vgmstream->config_enabled = def->config_set;
      setup_vgmstream_play_state(vgmstream);
+     setup_vgmstream(vgmstream);
 }

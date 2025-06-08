@@ -168,10 +168,6 @@ XMPlay cannot support vgmstream's type of mixed subsongs due to player limitatio
 (with neither *xmp-vgmstream* nor *in_vgmstream* plugins). You can make one *TXTP*
 per subsong to play them instead (explained below).
 
-#### Playlist issues
-A known quirk is that when loop options or tags change, playlist time/info won't
-update automatically. You need to re-add files to the playlist to refresh it.
-
 #### Plugin priority
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream extensions,
 you need to manually fix it by going to **options > plugins > input > vgmstream**
@@ -185,13 +181,17 @@ and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,lwav,msf,p3d,rak,
 *Others*: needs to be manually built. Instructions can be found in [BUILD.md](BUILD.md)
 document in vgmstream's source code (can be done with CMake or autotools).
 
+#### Playlist issues
+A known quirk is that when loop options or tags change, playlist time/info won't
+update automatically. You need to re-add files to the playlist to refresh it.
+
 #### Enabling subsongs
 In Audacious 3.10+ subsongs only work when enabling: *Settings* > *Advanced* >
 *Probe contents of files with no recognized file name extensions*.
 
 Without that option enabled, a workaround is adding a file with subsongs, removing
 it from the playlist, then adding it again. Somehow that makes Audacious unpack the
-file properly (possibly a bug, may not work in new versions).
+file properly (possibly a bug, may not work in current versions).
 
 #### Plugin priority
 vgmstream sets its priority on compile time, low enough for most other plugins to
@@ -251,29 +251,28 @@ vgmstream aims to support most audio formats as-is, but some files require extra
 handling.
 
 ### Subsongs
-Certain container formats have multiple audio files, usually called "subsongs", 
-which usually are not meant to be extracted as single files (can't easily separate
-from their container).
+Certain container files have multiple audio subsections, usually called "subsongs", 
+which *vgmstream* can play directly.
 
-By default vgmstream plays first subsong and reports total subsongs, if the format
-is able to contain them. Easiest to use would be the *foobar/winamp/Audacious*
-plugins, that are able to "unpack" those subsongs automatically into the playlist.
+Easiest would be using the *foobar/winamp/Audacious* plugins, that automatically
+"unpack" subsongs into the playlist.
 
-With CLI tools, you can select a subsong using the `-s` flag followed by a number,
-for example: `vgmstream-cli -s 5 file.bank` or `vgmstream123 -s 5 file.bank`.
+With CLI tools you can select a subsong using `-s (number)`, for example:
+`vgmstream-cli -s 5 file.bank` or `vgmstream123 -s 5 file.bank`. By default it
+plays first subsong and reports total subsongs.
 
-Using *vgmstream-cli* you can convert multiple subsongs at once using the `-S` flag.
-**WARNING, MAY TAKE A LOT OF SPACE!** Some containers have been observed to contain +20000
-subsongs, so don't use this lightly. Remember to set an output name (`-o`) with subsong
-wildcards (or leave it alone for good defaults).
+You can convert multiple subsongs at once using the `-S` flag.
+**WARNING, MAY TAKE A LOT OF SPACE!** Some containers have thousands of subsongs,
+so don't use this lightly. Remember to set an output name (`-o`) with subsong
+wildcards, or leave it alone for good defaults.
 - `vgmstream-cli -s 1 -S 100 file.bank`: writes from subsong 1 to subsong 100
-- `vgmstream-cli -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong (automatically changes 0 to max)
 - `vgmstream-cli -S 0 file.bank`: writes from subsong 1 to max subsong
+- `vgmstream-cli -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong (automatically changes 0 to max)
 - `vgmstream-cli -s 1 -S 5 -o bgm.wav file.bank`: writes 5 subsongs, but all overwrite the same file = wrong.
 - `vgmstream-cli -s 1 -S 5 -o bgm_?02s.wav file.bank`: writes 5 subsongs, each named differently = correct.
 
 For players without subsong support, or to play only a few choice subsongs you can
-create multiple `.txtp` (explained later) to select one subsong, like `bgm.sxd#10.txtp`
+create `.txtp` (explained later) to select one subsong, like `bgm.sxd#10.txtp`
 (plays subsong 10 in `bgm.sxd`).
 
 You can use this python script to autogenerate one `.txtp` per subsong:

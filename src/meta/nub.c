@@ -30,8 +30,10 @@ VGMSTREAM* init_vgmstream_nub(STREAMFILE* sf) {
         goto fail;
 
     /* .nub: standard
-     * .nub2: rare [iDOLM@STER: Gravure For You (PS3), Noby Noby Boy (iOS)] */
-    if (!check_extensions(sf, "nub,nub2"))
+     * .nub2: rare [iDOLM@STER: Gravure For You (PS3), Noby Noby Boy (iOS)] 
+     * .nps: Ace Combat Joint Assault (PSP) BGM only
+     */
+    if (!check_extensions(sf, "nub,nub2,nps"))
         goto fail;
 
     /* sometimes LE [Soul Calibur: Broken Destiny (PSP), Tales of Vesperia (PS4) */

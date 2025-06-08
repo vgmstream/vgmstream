@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../util/chunks.h"
 
+static uint32_t get_name_offset(STREAMFILE* sf_sxd1, uint32_t first_offset, int target_subsong);
 
 /* SXDF/SXDS - Sony/SCE's SNDX lib format (cousin of SGXD) [Gravity Rush, Freedom Wars, Soul Sacrifice PSV] */
 VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
@@ -147,19 +148,7 @@ VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
         }
     }
 
-    /* get stream name (NAME is tied to REQD/cues, and SFX cues repeat WAVEs, but should work ok for streams) */
-    if (is_dual && find_chunk_le(sf_sxd1, get_id32be("NAME"),first_offset,0, &chunk_offset,NULL)) {
-        /* table: relative offset (32b) + hash? (32b) + cue index (32b) */
-        int i;
-        int num_entries = read_s16le(chunk_offset + 0x04, sf_sxd1); /* can be bigger than streams */
-        for (i = 0; i < num_entries; i++) {
-            uint32_t index = read_u32le(chunk_offset + 0x08 + 0x08 + i * 0x0c,sf_sxd1);
-            if (index+1 == target_subsong) {
-                name_offset = chunk_offset + 0x08 + 0x00 + i*0x0c + read_u32le(chunk_offset + 0x08 + 0x00 + i * 0x0c, sf_sxd1);
-                break;
-            }
-        }
-    }
+    name_offset = get_name_offset(sf_sxd1, first_offset, target_subsong);
 
     if (is_external && !is_dual) {
         VGM_LOG("SXD: found single sxd with external data\n");
@@ -228,14 +217,6 @@ VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
             goto fail;
     }
 
-    /* .sxd have names but they are a bit complex:
-     * - WAVE chunk has N subsongs
-     * - NAME chunk may define M names but usually doesn't match with subsongs (may be less or more)
-     * - LVRN may define some state and LVAR its possible values (battle_state=bgm_battle_start/win/intro)
-     * - TRNS also has names based on possible transition 
-     * - final WAVE seem to depend on NAME (event?) + state=value, similar to Wwise
-     * - presumably TONE/REQD/SEQD chunks have WAVE<>event matching info since they seem to always appear
-     */
 
     /* open the file for reading */
     if (!vgmstream_open_stream(vgmstream, sf_data, start_offset))
@@ -250,4 +231,33 @@ fail:
     if (sf_b) close_streamfile(sf_b);
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+/* .sxd have names but they are a bit complex:
+ * - WAVE chunk has N subsongs
+ * - NAME chunk may define M names but may not match with subsongs (less or more, ex. randoms)
+ * - LVRN may define some state and LVAR its possible values (battle_state=bgm_battle_start/win/intro)
+ * - TRNS also has names based on possible transition 
+ * - final WAVE seem to depend on NAME (event?) + state=value, similar to Wwise
+ * - presumably TONE/REQD/SEQD chunks have WAVE<>event matching info since they seem to always appear
+ * For now do simple matching.
+ */
+static uint32_t get_name_offset(STREAMFILE* sf_sxd1, uint32_t first_offset, int target_subsong) {
+    off_t chunk_offset = 0;
+
+    if (!find_chunk_le(sf_sxd1, get_id32be("NAME"),first_offset,0, &chunk_offset,NULL))
+        return 0;
+
+    // table: relative offset (32b) + hash? (32b) + cue index (32b)
+    int num_entries = read_s16le(chunk_offset + 0x04, sf_sxd1);
+
+    // TODO: index N to subsong N works ok for streams but not always for SFX
+    for (int i = 0; i < num_entries; i++) {
+        uint32_t index = read_u32le(chunk_offset + 0x08 + 0x08 + i * 0x0c,sf_sxd1);
+        if (index+1 != target_subsong)
+            continue;
+        return chunk_offset + 0x08 + 0x00 + i*0x0c + read_u32le(chunk_offset + 0x08 + 0x00 + i * 0x0c, sf_sxd1);
+    }
+
+    return 0;
 }
