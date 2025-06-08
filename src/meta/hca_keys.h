@@ -1552,6 +1552,9 @@ static const hcakey_info hcakey_list[] = {
     // Suikoden I & II HD Remaster (PC)
     {14510296783270449627u},    // C95EEE0BA85411DB
 
+    // CHUNITHM Chinese Version (AC)
+    {30194896045700459},        // 006B461914D5756B
+
 };
 
 #endif
