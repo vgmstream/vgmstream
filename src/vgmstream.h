@@ -73,9 +73,6 @@ typedef struct {
 
 
 typedef struct {
-    int input_channels;
-    int output_channels;
-
     int32_t pad_begin_duration;
     int32_t pad_begin_left;
     int32_t trim_begin_duration;

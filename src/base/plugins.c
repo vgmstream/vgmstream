@@ -159,8 +159,6 @@ void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int
     mixing_setup(vgmstream, max_sample_count);
     mixing_info(vgmstream, input_channels, output_channels);
 
-    /* update internals */
-    mixing_info(vgmstream, &vgmstream->pstate.input_channels, &vgmstream->pstate.output_channels);
     setup_vgmstream(vgmstream);
 }
 

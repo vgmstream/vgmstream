@@ -166,10 +166,6 @@ static void setup_state_processing(VGMSTREAM* vgmstream) {
     ps->fade_start = ps->pad_begin_duration + ps->body_duration;
   //ps->pad_end_left = ps->pad_end_duration;
     ps->pad_end_start = ps->fade_start + ps->fade_duration;
-
-    /* other info (updated once mixing is enabled) */
-    ps->input_channels = vgmstream->channels;
-    ps->output_channels = vgmstream->channels;
 }
 
 /* apply play config to internal state */
@@ -179,7 +175,4 @@ void setup_vgmstream_play_state(VGMSTREAM* vgmstream) {
 
     setup_state_modifiers(vgmstream);
     setup_state_processing(vgmstream);
-
-    /* save new config for resets */
-    setup_vgmstream(vgmstream);
 }
