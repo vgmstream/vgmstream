@@ -283,7 +283,7 @@ static bool read_info(const char* filename, Tuple & tuple) {
         tuple.set_str(Tuple::Title, title); //may be overwritten by tags
 
         g_free(hostname);
-        g_free(mod_name);
+        g_free(dec_name);
     }
 
 
