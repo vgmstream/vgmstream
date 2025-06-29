@@ -482,8 +482,6 @@ VGMSTREAM * init_vgmstream_lsf_n1nj4n(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_xwav_new(STREAMFILE* sf);
 VGMSTREAM * init_vgmstream_xwav_old(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_raw_snds(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_hyperscan_kvag(STREAMFILE* streamFile);
 
 VGMSTREAM* init_vgmstream_psnd(STREAMFILE* sf);

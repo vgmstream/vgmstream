@@ -674,7 +674,6 @@
     <ClCompile Include="meta\raw_pcm.c" />
     <ClCompile Include="meta\raw_rsf.c" />
     <ClCompile Include="meta\raw_s14_sss.c" />
-    <ClCompile Include="meta\raw_snds.c" />
     <ClCompile Include="meta\raw_wavm.c" />
     <ClCompile Include="meta\redspark.c" />
     <ClCompile Include="meta\rfrm.c" />
