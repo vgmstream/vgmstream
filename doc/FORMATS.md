@@ -1482,7 +1482,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX PSX_pivotal NGC_DSP PCM16BE
 - **nub.c**
   - Namco NUB header [*NUB*]
-  - *nub*: `.nub .nub2 + .(external)`
+  - *nub*: `.nub .nub2 .nps + .(external)`
     - Subfiles: *nub_xma nub_wav nub_vag nub_at3 nub_dsp nub_idsp nub_is14 nub_caf function*
   - *nub_wav*: `.wav .lwav`
     - Subfiles: *riff*
@@ -1932,6 +1932,11 @@ different internally (encrypted, different versions, etc) and not always can be 
   - (container)
   - *sli_loops*: `.sli + .(external)`
     - Subfiles: *ogg_opus ogg_vorbis riff*
+- **txth.c**
+  - TXTH generic header [*TXTH*]
+  - *txth*: `.txth + .(external)`
+    - Subfiles: *from_STREAMFILE*
+  - Codecs: PSX PSX_badflags HEVAG XBOX_IMA NGC_DTK PCM24LE PCM24BE PCM16LE PCM16BE PCM8 PCM8_U PCM8_SB ULAW ALAW DPCM_KCEJ PCMFLOAT SDX2 DVI_IMA HV_IMA SNDS_IMA MPEG_layer3 IMA AICA MSADPCM NGC_DSP MS_IMA APPLE_IMA4 PCFX PCM4 PCM4_U OKI16 OKI4S TGC ASF EA_XA XA XA_EA CP_YM SDX2_int DVI_IMA_mono IMA_mono AICA_int EA_XA_int MS_IMA_mono MSADPCM_mono XBOX_IMA_mono NGC_DSP_subint FFmpeg(various) AAC ATRAC3 ATRAC3PLUS XMA1 XMA2
 - **ngc_adpdtk.c**
   - Nintendo .DTK raw header [*DTK*]
   - *dtk*: `.dtk .adp .trk .wav .lwav`
@@ -1968,10 +1973,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - PS2 .int raw header [*RAW_INT*]
   - *raw_int*: `.int .wp2`
   - Codecs: PCM16LE
-- **raw_snds.c**
-  - PC .snds raw header [*RAW_SNDS*]
-  - *raw_snds*: `.snds`
-  - Codecs: SNDS_IMA
 - **raw_wavm.c**
   - Xbox .wavm raw header [*RAW_WAVM*]
   - *raw_wavm*: `.wavm`
