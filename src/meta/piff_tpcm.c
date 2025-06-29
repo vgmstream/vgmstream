@@ -10,19 +10,27 @@ VGMSTREAM* init_vgmstream_piff_tpcm(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "PIFF"))
+        return NULL;
+
     /* .tad: from internal filenames */
     if (!check_extensions(sf, "tad"))
-        goto fail;
-    /* Tantalus also has PIFF without this */
-    if (!is_id32be(0x00,sf, "PIFF") || !is_id32be(0x08,sf, "TPCM") || !is_id32be(0x0c,sf, "TADH"))
-        goto fail;
+        return NULL;
+
+    uint32_t piff_size = read_s32le(0x04,sf);
+    if (piff_size + 0x08 != get_streamfile_size(sf))
+        return NULL;
+
+    // Tantalus also has PIFF without this
+    if (!is_id32be(0x08,sf, "TPCM") || !is_id32be(0x0c,sf, "TADH"))
+        return NULL;
 
     header_offset = 0x14;
-    /* 0x00: 1? */
-    /* 0x01: 1? */
+    // 0x00: 1?
+    // 0x01: 1?
     channels = read_u16le(header_offset + 0x02,sf);
     sample_rate = read_s32le(header_offset + 0x04,sf);
-    /* 0x08+: ? (mostly fixed, maybe related to ADPCM?) */
+    // 0x08+: ? (mostly fixed, maybe related to ADPCM?)
     loop_flag  = 0;
 
     if (!is_id32be(0x38,sf, "BODY"))

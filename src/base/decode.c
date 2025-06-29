@@ -474,6 +474,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_OKI16:
         case coding_OKI4S:
         case coding_MTF_IMA:
+        case coding_SNDS_IMA:
             return 0x01;
         case coding_RAD_IMA:
         case coding_NDS_IMA:
@@ -487,7 +488,6 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return 0x800;
         case coding_RAD_IMA_mono:
             return 0x14;
-        case coding_SNDS_IMA:
         case coding_QD_IMA:
             return 0; //todo: 0x01?
         case coding_UBI_IMA: /* variable (PCM then IMA) */

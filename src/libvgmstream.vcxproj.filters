@@ -1852,9 +1852,6 @@
     <ClCompile Include="meta\raw_s14_sss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\raw_snds.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\raw_wavm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

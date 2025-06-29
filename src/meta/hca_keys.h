@@ -1566,6 +1566,12 @@ static const hcakey_info hcakey_list[] = {
     // CHUNITHM Chinese Version (AC)
     {30194896045700459},        // 006B461914D5756B
 
+    // Raidou Remastered: The Mystery of the Soulless Army (PS4)
+    {954534454324},             // 000000DE3EAFE434
+
+    // Sand Land (multi)
+    {910990237314908160},       // 0CA47CCB51010000
+
 };
 
 #endif

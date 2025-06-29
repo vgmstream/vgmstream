@@ -145,24 +145,27 @@ static void camelot_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offs
     if (*step_index > 88) *step_index=88;
 }
 
-/* The Incredibles PC, updates step_index before doing current sample */
-static void snds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+/* The Incredibles PC, updates step_index before doing current sample, reverse engineered from the .exe
+ * (has no apparent name, files are raw data with .WAV extension but are inside a 'SNDS' folder).
+ * A few voices show slight drifting but tables and algo look fine, encoder issue? */
+static void snds_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+    int sample, step, delta;
 
-    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
+    uint8_t code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
+    sample = *hist1;
 
-    *step_index += ima_index_table[sample_nibble];
-    if (*step_index < 0) *step_index=0;
-    if (*step_index > 88) *step_index=88;
+    int code_pos = code & 7;
+    *step_index += ima_index_table[code_pos]; //OG table doesn't have negative indexes
+    if (*step_index < 0) *step_index = 0;
+    if (*step_index > 88) *step_index = 88;
 
     step = ima_step_size_table[*step_index];
 
-    delta = (sample_nibble & 7) * step / 4 + step / 8; /* standard IMA */
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    delta = (step >> 3) + ((step * code_pos) >> 2);
+    if (code & 8) delta = -delta;
+    sample += delta;
 
-    *hist1 = clamp16(sample_decoded);
+    *hist1 = clamp16(sample);
 }
 
 /* Omikron: The Nomad Soul, algorithm from the .exe */
@@ -440,20 +443,27 @@ void decode_camelot_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
 }
 
 void decode_snds_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count;
-    int32_t hist1 = stream->adpcm_history1_32;
-    int step_index = stream->adpcm_step_index;
+    bool is_stereo = channelspacing > 1;
+
+    int32_t hist1 = stream->adpcm_history1_32; // starts at 0
+    int step_index = stream->adpcm_step_index; // starts at 0
 
     //external interleave
 
     //no header
 
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + i;//one nibble per channel
-        int nibble_shift = (channel==0?0:4); //high nibble first, based on channel
+    int sample_count = 0;
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
+        off_t byte_offset = is_stereo ?
+                stream->offset + i :    // stereo: one nibble per channel
+                stream->offset + i/2;   // mono: consecutive nibbles
+        int nibble_shift = is_stereo ?
+                ((channel&1) ? 4:0) : //high nibble first
+                ((i&1) ? 4:0);
 
         snds_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
+        sample_count += channelspacing;
     }
 
     stream->adpcm_history1_32 = hist1;

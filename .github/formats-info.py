@@ -49,7 +49,7 @@ RE_FORMATS_META = re.compile(r"{meta_([A-Z0-9][A-Za-z0-9_]+)[ ]*,[ ]* \"(.+)\"[ 
 RE_SORT_INIT = re.compile(r"[ ]+init_vgmstream_([A-Za-z0-9_]+),")
 
 FILES_SKIP = [
-    'txth.c','txtp.c','genh.c', 
+    'txtp.c','genh.c', 
     'silence.c', 'mp4_faac.c', 'deblock_streamfile.c', 
     'ps_headerless.c',
     'txtp_parser.c', 'txtp_process.c',

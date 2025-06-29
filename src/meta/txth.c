@@ -58,6 +58,7 @@ typedef enum {
     ULAW,
     ALAW,
     DPCM_KCEJ,
+    IMA_SNDS,
 
     UNKNOWN = 255,
 } txth_codec_t;
@@ -273,6 +274,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case SDX2:          coding = coding_SDX2; break;
         case DVI_IMA:       coding = coding_DVI_IMA; break;
         case IMA_HV:        coding = coding_HV_IMA; break;
+        case IMA_SNDS:      coding = coding_SNDS_IMA; break;
 #ifdef VGM_USE_MPEG
         case MPEG:          coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
@@ -1056,6 +1058,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"CP_YM"))        return CP_YM;
     else if (is_string(val,"PCM_FLOAT_LE")) return PCM_FLOAT_LE;
     else if (is_string(val,"IMA_HV"))       return IMA_HV;
+    else if (is_string(val,"IMA_SNDS"))     return IMA_SNDS;
     else if (is_string(val,"HEVAG"))        return HEVAG;
     else if (is_string(val,"ULAW"))         return ULAW;
     else if (is_string(val,"ALAW"))         return ALAW;
@@ -2268,6 +2271,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case IMA:
         case DVI_IMA:
         case IMA_HV:
+        case IMA_SNDS:
             return ima_bytes_to_samples(bytes, txth->channels);
         case AICA:
         case YMZ:
@@ -2293,6 +2297,34 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
     }
 }
 
+//TODO move
+static uint32_t find_padding(STREAMFILE* sf, uint32_t start_offset, uint32_t data_size) {
+    uint8_t buf[0x2000];
+    uint32_t read_size = sizeof(buf);
+
+    int32_t offset = start_offset + data_size;
+    while (offset > start_offset) {
+        int32_t read_offset = offset - read_size;
+        if (read_offset < 0)
+            read_offset = 0;
+
+        int bytes = read_streamfile(buf, read_offset, read_size, sf);
+        while (bytes >= 0) {
+            bytes--;
+
+            if (buf[bytes] != 0) {
+                uint32_t last_offset = start_offset + data_size;
+                uint32_t curr_offset = read_offset + bytes + 1;
+                return last_offset - curr_offset;
+            }
+        }
+
+        offset -= read_size;
+    }
+
+    return 0;
+}
+
 static int get_padding_size(txth_header* txth, int discard_empty) {
     if (txth->data_size == 0 || txth->channels == 0)
         return 0;
@@ -2300,6 +2332,11 @@ static int get_padding_size(txth_header* txth, int discard_empty) {
     switch(txth->codec) {
         case PSX:
             return ps_find_padding(txth->sf_body, txth->start_offset, txth->data_size, txth->channels, txth->interleave, discard_empty);
+
+        case IMA_SNDS: {
+            // several files seems to be 1/8 too long
+            return find_padding(txth->sf_body, txth->start_offset, txth->data_size);
+        }
         default:
             return 0;
     }

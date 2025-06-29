@@ -554,7 +554,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_raw_rsf,         /* raw GC streamed files */
     init_vgmstream_raw_int,         /* .int raw PCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
-    init_vgmstream_raw_snds,        /* .snds raw SNDS IMA */
     init_vgmstream_raw_wavm,        /* .wavm raw xbox */
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_raw_s14_sss,     /* .s14/sss raw siren14 */
