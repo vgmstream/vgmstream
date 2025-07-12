@@ -585,6 +585,7 @@
     <ClCompile Include="meta\maxis_xa.c" />
     <ClCompile Include="meta\mcg.c" />
     <ClCompile Include="meta\mcss.c" />
+    <ClCompile Include="meta\mhwk.c" />
     <ClCompile Include="meta\mib_mih.c" />
     <ClCompile Include="meta\mic_koei.c" />
     <ClCompile Include="meta\mio.c" />
