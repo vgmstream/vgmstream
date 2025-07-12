@@ -558,6 +558,7 @@ static const char* extension_list[] = {
     "spsd",
     "spw",
     "srsa",
+    "srcd",
     "ss2",
     "ssd", //txth/reserved [Zack & Wiki (Wii)]
     "ssf",
@@ -1479,6 +1480,7 @@ static const meta_info meta_info_list[] = {
         {meta_AUDIOPKG,             "Inevitable .AUDIOPKG header"},
         {meta_SWAR,                 "Nintendo SWAR header"},
         {meta_IVB,                  "Metro IVB header"},
+        {meta_SRCD,                 "Capcom SRCD header"}
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
