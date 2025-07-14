@@ -79,7 +79,8 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
         //Myst 1993
         case 0x0000: /* 8-bit unsigned PCM. Default */
             vgmstream->coding_type = coding_PCM8_U;
-            vgmstream->layout_type = layout_none;
+            vgmstream->layout_type = layout_interleave; // Usually mono.
+            vgmstream->interleave_block_size = 0x01;
             break;
 
         //Carmen Sandiego: Word Detective
