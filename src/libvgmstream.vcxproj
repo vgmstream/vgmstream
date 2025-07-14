@@ -734,6 +734,7 @@
     <ClCompile Include="meta\sqex_scd.c" />
     <ClCompile Include="meta\sqex_sead.c" />
     <ClCompile Include="meta\squeak.c" />
+    <ClCompile Include="meta\srcd.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
     <ClCompile Include="meta\ssp.c" />
