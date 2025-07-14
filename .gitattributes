@@ -12,3 +12,6 @@
 *.bat text eol=crlf
 *.vcxproj text eol=crlf
 *.vcxproj.filters text eol=crlf
+
+#Fixes CRLF/LF conflict.
+* text=auto
