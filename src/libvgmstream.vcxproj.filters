@@ -1585,6 +1585,9 @@
     <ClCompile Include="meta\mcss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\mhwk.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\mib_mih.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
