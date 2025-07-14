@@ -75,11 +75,14 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
 
     /* Determine coding type based on format ID */
     switch (format) {
-        case 0x0000: /* 8-bit unsigned PCM */
+
+        //Myst 1993
+        case 0x0000: /* 8-bit unsigned PCM. Default */
             vgmstream->coding_type = coding_PCM8_U;
             vgmstream->layout_type = layout_none;
             break;
 
+        //Carmen Sandiego: Word Detective
         case 0x0001: /* IMA ADPCM */
             vgmstream->coding_type = coding_IMA;
             vgmstream->layout_type = layout_none;
