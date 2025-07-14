@@ -2404,5 +2404,8 @@
     <ClCompile Include="util\vorbis_codebooks.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\srcd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
