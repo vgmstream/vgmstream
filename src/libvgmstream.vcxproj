@@ -226,6 +226,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c" />
+    <ClCompile Include="meta\srcd.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
