@@ -19,7 +19,9 @@ typedef struct {
     int loop_flag;
 
     off_t start_offset;
-    size_t stream_size;
+    //size_t stream_size;
+    off_t loop_start;
+    off_t loop_end;
 } ea_fixed_header;
 
 static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t start_offset, int bnk_version);
@@ -135,11 +137,13 @@ static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header
     vgmstream = allocate_vgmstream(ea->channels, ea->loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->stream_size = ea->stream_size;
+    //vgmstream->stream_size = ea->stream_size; /* only on PS1, and sometimes uninitialised garbage? */
     vgmstream->sample_rate = ea->sample_rate;
     vgmstream->num_samples = ea->num_samples;
-    //vgmstream->loop_start_sample = ea->loop_start;
-    //vgmstream->loop_end_sample = ea->loop_end;
+    /* loops are rare, loop_end might also need +1 just like variable_header?
+     * NBA Live 97 (PS1, JPN) ZAUDIOFX.BKH #15-#18 loop_end == num_samples-1 */
+    vgmstream->loop_start_sample = ea->loop_start;
+    vgmstream->loop_end_sample = ea->loop_end;
 
     vgmstream->codec_endian = ea->big_endian;
 
@@ -194,8 +198,8 @@ static int parse_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t offset)
         /* 0x04: 0? */
         ea->sample_rate  = read_u16le(offset + 0x06, sf);
         ea->num_samples  = read_s32le(offset + 0x08, sf);
-        /* 0x0c: -1? loop_start? */
-        /* 0x10: -1? loop_end? */
+        ea->loop_start   = read_s32le(offset + 0x0c, sf);
+        ea->loop_end     = read_s32le(offset + 0x10, sf);
         ea->start_offset = read_u32le(offset + 0x14, sf); /* BNKl only */
         /* 0x18: -1? */ /* SCHl only */
     }
@@ -210,11 +214,11 @@ static int parse_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t offset)
         ea->sample_rate  = read_u16le(offset + 0x06, sf);
         /* 0x08: 0x20C? */
         ea->num_samples  = read_s32le(offset + 0x0c, sf);
-        /* 0x10: -1? loop_start? */
-        /* 0x14: -1? loop_end? */
+        ea->loop_start   = read_s32le(offset + 0x10, sf);
+        ea->loop_end     = read_s32le(offset + 0x14, sf);
         ea->start_offset = read_u32le(offset + 0x18, sf); /* BNKl only */
         /* 0x1c: 0? */
-        ea->stream_size  = read_u32le(offset + 0x20, sf); /* BNKl only */
+        //ea->stream_size  = read_u32le(offset + 0x20, sf); /* BNKl only */
         /* 0x24: 0? */
         /* 0x28: -1? */
         /* 0x2c: -1? */
@@ -227,7 +231,7 @@ static int parse_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t offset)
     /* after header bodies */
     /* 0x00: volume? (127 or 128) */
 
-    //ea->loop_flag = (ea->loop_end_sample);
+    ea->loop_flag = (ea->loop_end != -1);
 
     return 1;
 fail:
