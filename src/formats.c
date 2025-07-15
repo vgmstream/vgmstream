@@ -116,6 +116,7 @@ static const char* extension_list[] = {
     "binka", //FFmpeg/not parsed (BINK AUDIO)
     //"bin", //common
     "bk2",
+    "bkh",
     "bkr",  //txth/reserved [P.N.03 (GC), Viewtiful Joe (GC)]
     "blk",
     "bmdx", //fake extension (to be removed?)
@@ -1301,6 +1302,7 @@ static const meta_info meta_info_list[] = {
         {meta_XA_04SW,              "Reflections 04SW header"},
         {meta_TXTH,                 "TXTH generic header"},
         {meta_EA_BNK,               "Electronic Arts BNK header"},
+        {meta_EA_BNK_fixed,         "Electronic Arts BNK header (fixed)"},
         {meta_SK_AUD,               "Silicon Knights AUD header"},
         {meta_AHX,                  "CRI AHX header"},
         {meta_STMA,                 "Angel Studios/Rockstar San Diego STMA header"},

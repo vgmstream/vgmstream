@@ -401,6 +401,7 @@ typedef enum {
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
     meta_EA_SCHL_fixed,     /* Electronic Arts SCHl with fixed header */
     meta_EA_BNK,            /* Electronic Arts BNK */
+    meta_EA_BNK_fixed,      /* Electronic Arts BNK with fixed header */
     meta_EA_1SNH,           /* Electronic Arts 1SNh/EACS */
     meta_EA_EACS,
     meta_RAW_PCM,

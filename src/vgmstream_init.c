@@ -255,6 +255,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xa_xa30,
     init_vgmstream_xa_04sw,
     init_vgmstream_ea_bnk,
+    init_vgmstream_ea_bnk_fixed,
     init_vgmstream_ea_abk_schl,
     init_vgmstream_ea_amb_schl,
     init_vgmstream_ea_hdr_dat,
