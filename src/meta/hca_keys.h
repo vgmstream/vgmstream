@@ -1572,6 +1572,9 @@ static const hcakey_info hcakey_list[] = {
     // Sand Land (multi)
     {910990237314908160},       // 0CA47CCB51010000
 
+    // Patapon 1 & 2 Reloaded (PC)
+    {3316332033470531258},      // 2E05FA69EC4286BA
+
 };
 
 #endif
