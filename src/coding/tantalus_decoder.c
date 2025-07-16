@@ -10,7 +10,6 @@ void decode_tantalus(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspac
     size_t bytes_per_frame, samples_per_frame;
 
     int32_t hist1 = stream->adpcm_history1_32;
-    int32_t hist2 = stream->adpcm_history2_32;
 
 
     /* external interleave (fixed size), mono */
