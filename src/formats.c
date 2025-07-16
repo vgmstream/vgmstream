@@ -537,7 +537,7 @@ static const char* extension_list[] = {
     "skx",
     "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
-    "smc",
+    "smh",
     "smk",
     "smp",
     "smv",

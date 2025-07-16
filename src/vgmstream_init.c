@@ -317,7 +317,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ubi_lyn_container,
     init_vgmstream_msb_msh,
     init_vgmstream_txtp,
-    init_vgmstream_smc_smh,
     init_vgmstream_ppst,
     init_vgmstream_sps_n1_segmented,
     init_vgmstream_ubi_bao_pk,
@@ -541,6 +540,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_imc,
     init_vgmstream_imc_container,
     init_vgmstream_wv6,
+    init_vgmstream_smh_smc,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,
