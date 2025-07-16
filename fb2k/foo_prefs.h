@@ -5,6 +5,8 @@
 
 #include <foobar2000/helpers/foobar2000+atl.h>
 #include <foobar2000/helpers/atl-misc.h>
+#include <foobar2000/SDK/coreDarkMode.h>
+
 #include "resource.h"
 
 #define DEFAULT_FADE_SECONDS "10.00"
@@ -60,6 +62,8 @@ private:
 	void OnChanged();
 
 	const preferences_page_callback::ptr m_callback;
+
+    fb2k::CCoreDarkModeHooks m_darkhooks;
 };
 
 

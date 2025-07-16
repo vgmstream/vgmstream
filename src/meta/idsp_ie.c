@@ -3,38 +3,39 @@
 
 
 /* IDSP - from Inevitable Entertainment games [Defender (GC)] */
-VGMSTREAM * init_vgmstream_idsp_ie(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_idsp_ie(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
 
     /* checks */
-    if ( !check_extensions(streamFile,"idsp") )
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x49445350) /* "IDSP" */
-        goto fail;
+    if (!is_id32be(0x00, sf, "IDSP"))
+        return NULL;
+    if (!check_extensions(sf,"idsp"))
+        return NULL;
+
+    channels = read_s32be(0x0C,sf);
+    if (channels > 2) return NULL;
 
     loop_flag = 0;
-    channel_count = read_32bitBE(0x0C,streamFile);
-    if (channel_count > 2) goto fail;
     start_offset = 0x70;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_IDSP_IE;
-    vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
+    vgmstream->sample_rate = read_s32be(0x08,sf);
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = dsp_bytes_to_samples(read_32bitBE(0x04,streamFile), channel_count);
+    vgmstream->num_samples = dsp_bytes_to_samples(read_u32be(0x04,sf), channels);
 
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitBE(0x10,streamFile);
-    dsp_read_coefs_be(vgmstream,streamFile,0x14,0x2E);
+    vgmstream->interleave_block_size = read_u32be(0x10,sf);
+    dsp_read_coefs_be(vgmstream, sf, 0x14, 0x2E);
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

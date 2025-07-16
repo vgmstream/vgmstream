@@ -12,11 +12,11 @@ VGMSTREAM* init_vgmstream_srcd(STREAMFILE* sf) {
     const char* extension = NULL;
     VGMSTREAM* (*init_vgmstream_function)(STREAMFILE*) = NULL;
 
-    if (!check_extensions(sf, "srcd,asrc,14,21,26,31"))
-        goto fail;
-
     if (!is_id32be(0x00, sf, "srcd"))
-        goto fail;
+        return NULL;
+
+    if (!check_extensions(sf, "srcd,asrc,14,21,26,31"))
+        return NULL;
 
     {
         enum versions { VERSION_31, VERSION_21_26, VERSION_14, VERSION_UNKNOWN };
@@ -59,7 +59,7 @@ VGMSTREAM* init_vgmstream_srcd(STREAMFILE* sf) {
                 break;
 
             default:
-                VGM_LOG("SRCD: Unknown version, disabling loop\n", loop_start_sample, loop_end_sample);
+                VGM_LOG("SRCD: Unknown version, disabling loop\n");
                 loop_flag = 0;
                 break;
         }

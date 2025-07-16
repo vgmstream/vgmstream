@@ -9,7 +9,7 @@ VGMSTREAM * init_vgmstream_bar(STREAMFILE *streamFile) {
     off_t start_offset;
     off_t ch2_start_offset;
     int loop_flag;
-	int channel_count;
+    int channel_count;
     long file_size;
 
 

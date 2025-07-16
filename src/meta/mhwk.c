@@ -11,12 +11,12 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
     uint32_t chunk_id;
     uint32_t chunk_size;
 
-    if (!check_extensions(sf, "mhk"))
-        goto fail;
-
     /* Check for MHWK magic word */
     if (!is_id32be(0x00, sf, "MHWK"))
-        goto fail;
+        return NULL;
+
+    if (!check_extensions(sf, "mhk"))
+        return NULL;
 
     /* Check for WAVE magic word, which follows the MHWK header */
     if (!is_id32be(0x08, sf, "WAVE"))
@@ -102,4 +102,3 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
-

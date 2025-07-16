@@ -80,11 +80,13 @@ BOOL vgmstreamPreferences::OnInitDialog(CWindow, LPARAM) {
     CheckDlgButton(IDC_EXTS_UNKNOWN_ON, get_check(cfg_ExtsUnknownOn));
     CheckDlgButton(IDC_EXTS_COMMON_ON, get_check(cfg_ExtsCommonOn));
 
+	m_darkhooks.AddDialogWithControls(m_hWnd);
+
 	return TRUE;
 }
 
 t_uint32 vgmstreamPreferences::get_state() {
-	t_uint32 state = preferences_state::resettable;
+	t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
 	if (HasChanged())
 		state |= preferences_state::changed;
 	return state;

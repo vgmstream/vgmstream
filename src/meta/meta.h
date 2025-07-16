@@ -701,7 +701,7 @@ VGMSTREAM * init_vgmstream_msb_msh(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_txtp(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_smc_smh(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_smh_smc(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ppst(STREAMFILE *streamFile);
 

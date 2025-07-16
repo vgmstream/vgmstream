@@ -2,53 +2,49 @@
 #include "../util.h"
 
 /* Maxis XA - found in Sim City 3000 (PC), The Sims 2 (PC) */
-VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
-    int avg_byte_rate, channel_count, loop_flag, resolution, sample_align, sample_rate;
+VGMSTREAM* init_vgmstream_maxis_xa(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    
+    /* checks */
+    if ((read_u32be(0x00,sf) & 0xFFFF0000) != get_id32be("XA\0\0")) // 02: "I"/"J"/null (version?)
+        return NULL;
 
-    /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"xa"))
-        goto fail;
+    uint32_t pcm_size = read_u32le(0x04,sf);
+    if (read_u16le(0x08,sf) != 0x0001)
+        return NULL;
 
-    /* check header */
-    if ((read_16bitBE(0x00,streamFile) != 0x5841))   /* "XA" */
-        goto fail;
+    if (!check_extensions(sf,"xa"))
+        return NULL;
 
-    /* check format tag */
-    if ((read_16bitLE(0x08,streamFile) != 0x0001))
-        goto fail;
-
-    channel_count = read_16bitLE(0x0A,streamFile);
-    sample_rate = read_32bitLE(0x0C,streamFile);
-    avg_byte_rate = read_32bitLE(0x10,streamFile);
-    sample_align = read_16bitLE(0x14,streamFile);
-    resolution = read_16bitLE(0x16,streamFile);
+    int channels = read_s16le(0x0A,sf);
+    int sample_rate = read_s32le(0x0C,sf);
+    int avg_byte_rate = read_s32le(0x10,sf);
+    int sample_align = read_u16le(0x14,sf);
+    int resolution = read_u16le(0x16,sf);
 
     /* check alignment */
-    if (sample_align != (resolution/8)*channel_count)
-        goto fail;
+    if (sample_align != (resolution / 8) * channels)
+        return NULL;
 
     /* check average byte rate */
-    if (avg_byte_rate != sample_rate*sample_align)
-        goto fail;
+    if (avg_byte_rate != sample_rate * sample_align)
+        return NULL;
 
-    loop_flag = 0;
-    start_offset = 0x18;
+    off_t start_offset = 0x18;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, false);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = read_32bitLE(0x04,streamFile)/2/channel_count;
+    vgmstream->num_samples = pcm_size / sizeof(short) / channels;
 
     vgmstream->meta_type = meta_MAXIS_XA;
     vgmstream->coding_type = coding_MAXIS_XA;
     vgmstream->layout_type = layout_none;
 
     /* open streams */
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

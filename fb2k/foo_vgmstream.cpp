@@ -225,8 +225,12 @@ void input_vgmstream::put_info_details(file_info& p_info, vgmstream_info_t& v_in
 
     p_info.info_set_int("channels", v_info.channels);
     p_info.info_set_int("samplerate", v_info.sample_rate);
-    p_info.info_set_int("bitspersample", v_info.bits_per_sample);
     p_info.info_set_bitrate(v_info.bitrate / 1000);
+
+    // "32-bit" float seems to confuse people, foobar's Ogg decoder doesn't set this either.
+    if (vgmstream->format->sample_format != LIBVGMSTREAM_SFMT_FLOAT) {
+        p_info.info_set_int("bitspersample", v_info.bits_per_sample);
+    }
 
     if (v_info.input_channels > 0 && v_info.channels != v_info.input_channels) {
         p_info.info_set_int("input_channels", v_info.input_channels);
