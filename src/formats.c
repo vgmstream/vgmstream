@@ -1255,7 +1255,7 @@ static const meta_info meta_info_list[] = {
         {meta_LSF_N1NJ4N,           "Gizmondo Studios Helsingborg LSF header"},
         {meta_XWAV,                 "feelplus XWAV header"},
         {meta_RAW_SNDS,             "PC .snds raw header"},
-        {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},
+        {meta_KVAG,                 "Mattel KVAG header"},
         {meta_PSND,                 "Polarbit PSND header"},
         {meta_ADP_WILDFIRE,         "Wildfire ADP! header"},
         {meta_QD_ADP,               "Quantic Dream .ADP header"},
