@@ -175,10 +175,10 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
         do {
             block_update(vgmstream->next_block_offset,vgmstream);
             switch(vgmstream->coding_type) {
-                case coding_PSX:     	num_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
-                case coding_NGC_DSP: 	num_samples = dsp_bytes_to_samples(vgmstream->current_block_size,1); break;
+                case coding_PSX:        num_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
+                case coding_NGC_DSP:    num_samples = dsp_bytes_to_samples(vgmstream->current_block_size,1); break;
                 case coding_PCM8_U_int: num_samples = pcm_bytes_to_samples(vgmstream->current_block_size,1,8); break;
-                default:             	num_samples = 0; break;
+                default:                num_samples = 0; break;
             }
             vgmstream->num_samples += num_samples;
 

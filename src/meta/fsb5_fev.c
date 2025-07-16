@@ -50,10 +50,17 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
             goto fail;
 
         switch(chunk_type) {
-            case 0x4C495354: /* "LIST" with "SNDH" (usually v0x28 but also in Fall Guys's BNK_Music_RoundReveal) */
-                if (read_u32be(offset + 0x04, sf) == 0x534E4448) {
+            case 0x4C495354: /* "LIST" */
+                // "SNDH" (usually v0x28 but also in Fall Guys's BNK_Music_RoundReveal)
+                if (read_u32be(offset + 0x04, sf) == get_id32be("SNDH")) {
                     bank_offset = offset + 0x0c;
                     bank_size = read_s32le(offset + 0x08,sf);
+                }
+
+                // multiple CrankcaseAudio REV ADM3 [Rennsport (PC)]
+                if (read_u32be(offset + 0x00, sf) == get_id32be("PEFX")) {
+                    bank_offset = offset;
+                    bank_size = chunk_size;
                 }
                 break;
 

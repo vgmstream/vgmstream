@@ -8,8 +8,8 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
     char filename[PATH_LIMIT];
 
     int loop_flag=0;
-	int bits_per_sample;
-	int channel_count;
+    int bits_per_sample;
+    int channel_count;
     int sample_rate,bytes_per_second;
     long sample_count;
     int i;
@@ -22,7 +22,7 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
     if (strcasecmp("mxst",filename_extension(filename))) goto fail;
 
     /* looping info not found yet */
-	//loop_flag = get_streamfile_size(streamFile) > 700000;
+    //loop_flag = get_streamfile_size(streamFile) > 700000;
 
     /* check MxSt header */
     if (0x4d785374 != read_32bitBE(0, streamFile)) goto fail;
@@ -172,31 +172,31 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
         start_offset = MxCh;
     }
     
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
+    /* fill in the vital statistics */
+    vgmstream->channels = channel_count;
     vgmstream->sample_rate = sample_rate;
     vgmstream->layout_type = layout_blocked_mxch;
-	
+    
     vgmstream->meta_type = meta_PC_MXST;
-	if(bits_per_sample == 8)
-	{
-		vgmstream->coding_type = coding_PCM8_U;
-	}
-	else if (bits_per_sample == 16)
-	{
-		vgmstream->coding_type = coding_PCM16LE;
-	}
+    if(bits_per_sample == 8)
+    {
+        vgmstream->coding_type = coding_PCM8_U;
+    }
+    else if (bits_per_sample == 16)
+    {
+        vgmstream->coding_type = coding_PCM16LE;
+    }
     else goto fail;
-	vgmstream->num_samples = sample_count;
-	if(loop_flag)
-	{
-		vgmstream->loop_start_sample = 0;
-		vgmstream->loop_end_sample=vgmstream->num_samples;
-	}
+    vgmstream->num_samples = sample_count;
+    if(loop_flag)
+    {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample=vgmstream->num_samples;
+    }
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
