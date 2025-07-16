@@ -717,7 +717,7 @@
     <ClCompile Include="meta\sk_aud.c" />
     <ClCompile Include="meta\sl3.c" />
     <ClCompile Include="meta\sli.c" />
-    <ClCompile Include="meta\smc_smh.c" />
+    <ClCompile Include="meta\smh_smc.c" />
     <ClCompile Include="meta\smk.c" />
     <ClCompile Include="meta\smp.c" />
     <ClCompile Include="meta\smpl.c" />

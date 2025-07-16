@@ -1981,7 +1981,7 @@
     <ClCompile Include="meta\sli.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\smc_smh.c">
+    <ClCompile Include="meta\smh_smc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\smk.c">
@@ -2033,6 +2033,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\squeak.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\srcd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sscf.c">
@@ -2403,9 +2406,6 @@
     </ClCompile>
     <ClCompile Include="util\vorbis_codebooks.c">
       <Filter>util\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\srcd.c">
-      <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
