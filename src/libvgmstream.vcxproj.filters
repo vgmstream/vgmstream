@@ -1546,6 +1546,9 @@
     <ClCompile Include="meta\ktss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\kvag.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\kwb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1571,9 +1574,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\madp.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\mattel_hyperscan.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\maxis_xa.c">

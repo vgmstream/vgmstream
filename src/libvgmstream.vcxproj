@@ -572,6 +572,7 @@
     <ClCompile Include="meta\ktsc.c" />
     <ClCompile Include="meta\ktsr.c" />
     <ClCompile Include="meta\ktss.c" />
+    <ClCompile Include="meta\kvag.c" />
     <ClCompile Include="meta\kwb.c" />
     <ClCompile Include="meta\lopu_fb.c" />
     <ClCompile Include="meta\lpcm_fb.c" />
@@ -581,7 +582,6 @@
     <ClCompile Include="meta\lrmd.c" />
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\madp.c" />
-    <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\maxis_xa.c" />
     <ClCompile Include="meta\mcg.c" />
     <ClCompile Include="meta\mcss.c" />
