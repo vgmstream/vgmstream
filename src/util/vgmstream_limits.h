@@ -12,7 +12,7 @@ enum {
     VGMSTREAM_MAX_CHANNELS = 64,            /* +40ch multilayers */
     VGMSTREAM_MIN_SAMPLE_RATE = 300,        /* 300 is Wwise min */
     VGMSTREAM_MAX_SAMPLE_RATE = 192000,     /* found in some FSB5 */
-    VGMSTREAM_MAX_SUBSONGS = 65535,         /* +20000 isn't that uncommon */
+    VGMSTREAM_MAX_SUBSONGS = 90000,         /* +20000 isn't that uncommon, known max is 89734 in EA NHL 14 sbs+sbr */
     VGMSTREAM_MAX_NUM_SAMPLES = 1000000000, /* no ~5h vgm hopefully */
 };
 
