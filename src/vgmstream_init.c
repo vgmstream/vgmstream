@@ -330,7 +330,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xmd,
     init_vgmstream_cks,
     init_vgmstream_ckb,
-    init_vgmstream_wv6,
     init_vgmstream_str_wav,
     init_vgmstream_wavebatch,
     init_vgmstream_hd3_bd3,
@@ -541,6 +540,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_vgs_old,
     init_vgmstream_imc,
     init_vgmstream_imc_container,
+    init_vgmstream_wv6,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,
