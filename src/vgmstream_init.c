@@ -368,8 +368,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_adpx,
     init_vgmstream_ogg_opus,
     init_vgmstream_nus3audio,
-    init_vgmstream_imc,
-    init_vgmstream_imc_container,
     init_vgmstream_smp,
     init_vgmstream_gin,
     init_vgmstream_dsf,
@@ -541,6 +539,8 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_vai,
     init_vgmstream_ezw,
     init_vgmstream_vgs_old,
+    init_vgmstream_imc,
+    init_vgmstream_imc_container,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,
