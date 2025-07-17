@@ -194,8 +194,9 @@ VGMSTREAM * init_vgmstream_pos(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nwa(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_ea_eacs(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_ea_1snh(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_ea_crdf(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_xss(STREAMFILE * streamFile);
 

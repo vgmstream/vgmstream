@@ -150,6 +150,7 @@ static const char* extension_list[] = {
     "cnk",
     "cpk",
     "cps",
+    "crd",
     "csa", //txth/reserved [LEGO Racers 2 (PS2)]
     "csb",
     "csmp",

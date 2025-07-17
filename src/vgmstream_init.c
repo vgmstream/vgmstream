@@ -57,6 +57,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_nwa,
     init_vgmstream_ea_1snh,
     init_vgmstream_ea_eacs,
+    init_vgmstream_ea_crdf,
     init_vgmstream_xss,
     init_vgmstream_sl3,
     init_vgmstream_hgc1,
