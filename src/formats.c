@@ -178,6 +178,7 @@ static const char* extension_list[] = {
     "dsp",
     "dspw",
     "dtk",
+    "dty",
     "dvi",
     "dyx", //txth/reserved [Shrek 4 (iOS)]
 
@@ -358,6 +359,7 @@ static const char* extension_list[] = {
     "mogg",
     //"m4a", //common
     //"m4v", //common
+    "mon",
     //"mov", //common
     "move",
     //"mp+", //common [Moonshine Runners (PC)]
@@ -556,6 +558,7 @@ static const char* extension_list[] = {
     "sod",
     "son",
     "spd",
+    "sph",
     "spm",
     "sps",
     "spsd",

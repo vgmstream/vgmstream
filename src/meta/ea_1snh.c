@@ -109,8 +109,9 @@ VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
 
     /* .eas: single bank [Need for Speed (PC)]
      * .bnk: multi bank [Need for Speed (PC)]
-     * .as4: single [NBA Live 96 (PC)] */
-    if (!check_extensions(sf,"eas,bnk,as4"))
+     * .as4/sph: single [NBA Live 96 (PC)]
+     * .dty/mon: single [NBA Live 95 (PC)] */
+    if (!check_extensions(sf,"eas,bnk,as4,sph,dty,mon"))
         return NULL;
 
     /* plain data without blocks, can contain N*(EACS header) + N*(data), or N (EACS header + data) */
@@ -163,7 +164,7 @@ fail:
     return NULL;
 }
 
-/* EA CRDF - FIFA 96 crowd banks (later games use CRDl without audio) */
+/* EA CRDF - crowd banks (later games use CRDl without audio) */
 VGMSTREAM* init_vgmstream_ea_crdf(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     eacs_header ea = {0};
@@ -175,22 +176,45 @@ VGMSTREAM* init_vgmstream_ea_crdf(STREAMFILE* sf) {
     if (!is_id32be(0x00, sf, "CRDF"))
         return NULL;
 
-    /* .crd: FIFA Soccer 96 (PC) */
+    /* .crd: NBA Live 95/96 (PC), FIFA Soccer 96 (PC) */
     if (!check_extensions(sf, "crd"))
         return NULL;
 
 
+    /* filter out some weird variation [NBA Live 96 (PS1)] */
+    if (read_u32le(0x04, sf) != 0x02) goto fail;
+
     ea.is_bank = 1;
 
-    total_subsongs = read_u32le(0x24, sf);
-    //if (total_subsongs > 4) total_subsongs = 4 /* ? actual check done by the game */
-
     if (target_subsong == 0) target_subsong = 1;
+
+    // TODO: possibly unreliable variant checks
+    if (read_u32be(0x10, sf) == 0x02 && read_u32be(0x14, sf) == 0x04) {
+        /* Early variant, header size 0x344 [NBA 95 (PC)] */
+
+        total_subsongs = read_u32le(0x18, sf);
+        /* game does (0xC4 + 0x28) + i * (0x1C * 4) */
+        eacs_offset = 0xEC + (target_subsong - 1) * 0x70;
+    }
+    else if (read_u32le(0x10, sf) + read_u32le(0x14, sf) == 0x10000) {
+        /* Later variant, header size 0x38C [NBA 96 (PC), FIFA 96 (PC)] */
+
+        total_subsongs = read_u32le(0x24, sf);
+        /* game does (0x7C + 0x28) + i * (0x1D * 4) */
+        eacs_offset = 0xA4 + (target_subsong - 1) * 0x74;
+    }
+    else {
+        VGM_LOG("EA EACS: unknown CRDF variant\n");
+        goto fail;
+    }
+
+    /* actual check done by the games, seemingly always 4
+     * entries with the latter ones dummy if less tracks */
+    //if (total_subsongs > 4) total_subsongs = 4;
+
     if (total_subsongs < 1 || target_subsong > total_subsongs)
         goto fail;
 
-    /* game does (0x7C + 0x28) + i * (0x1D * 4) */
-    eacs_offset = 0xA4 + (target_subsong - 1) * 0x74;
 
     if (!parse_header(sf, &ea, eacs_offset))
         goto fail;
