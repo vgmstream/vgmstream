@@ -116,6 +116,7 @@ static const char* extension_list[] = {
     "binka", //FFmpeg/not parsed (BINK AUDIO)
     //"bin", //common
     "bk2",
+    "bkh",
     "bkr",  //txth/reserved [P.N.03 (GC), Viewtiful Joe (GC)]
     "blk",
     "bmdx", //fake extension (to be removed?)
@@ -149,6 +150,7 @@ static const char* extension_list[] = {
     "cnk",
     "cpk",
     "cps",
+    "crd",
     "csa", //txth/reserved [LEGO Racers 2 (PS2)]
     "csb",
     "csmp",
@@ -176,6 +178,7 @@ static const char* extension_list[] = {
     "dsp",
     "dspw",
     "dtk",
+    "dty",
     "dvi",
     "dyx", //txth/reserved [Shrek 4 (iOS)]
 
@@ -356,6 +359,7 @@ static const char* extension_list[] = {
     "mogg",
     //"m4a", //common
     //"m4v", //common
+    "mon",
     //"mov", //common
     "move",
     //"mp+", //common [Moonshine Runners (PC)]
@@ -554,6 +558,7 @@ static const char* extension_list[] = {
     "sod",
     "son",
     "spd",
+    "sph",
     "spm",
     "sps",
     "spsd",
@@ -1070,7 +1075,7 @@ static const meta_info meta_info_list[] = {
         {meta_PWB,                  "Double Fine WB header"},
         {meta_RAW_WAVM,             "Xbox .wavm raw header"},
         {meta_DSP_STR,              "Cauldron .STR header"},
-        {meta_EA_SCHL,              "Electronic Arts SCHl header"},
+        {meta_EA_SCHL,              "Electronic Arts SCHl header (variable)"},
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},
         {meta_CAF,                  "tri-Crescendo CAF header"},
         {meta_VPK,                  "SCE America VPK header"},
@@ -1300,7 +1305,8 @@ static const meta_info meta_info_list[] = {
         {meta_XA_XA30,              "Reflections XA30 header"},
         {meta_XA_04SW,              "Reflections 04SW header"},
         {meta_TXTH,                 "TXTH generic header"},
-        {meta_EA_BNK,               "Electronic Arts BNK header"},
+        {meta_EA_BNK,               "Electronic Arts BNK header (variable)"},
+        {meta_EA_BNK_fixed,         "Electronic Arts BNK header (fixed)"},
         {meta_SK_AUD,               "Silicon Knights AUD header"},
         {meta_AHX,                  "CRI AHX header"},
         {meta_STMA,                 "Angel Studios/Rockstar San Diego STMA header"},

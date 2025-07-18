@@ -53,7 +53,7 @@ VGMSTREAM* init_vgmstream_ea_1snh(STREAMFILE* sf) {
 
     if (!is_id32be(offset + 0x00, sf, "1SNh") &&
         !is_id32be(offset + 0x00, sf, "SEAD"))
-        goto fail;
+        return NULL;
 
     /* .asf/as4: common,
      * .lasf: fake for plugins
@@ -63,7 +63,7 @@ VGMSTREAM* init_vgmstream_ea_1snh(STREAMFILE* sf) {
      * .tgv: videos
      * (extensionless): Need for Speed (SAT) videos */
     if (!check_extensions(sf, "asf,lasf,sng,as4,cnk,uv,tgq,tgv,"))
-        goto fail;
+        return NULL;
 
     /* stream is divided into blocks/chunks: 1SNh=audio header, 1SNd=data xN, 1SNl=loop end, 1SNe=end.
      * Video uses various blocks (TGVk/TGVf/MUVf/etc) and sometimes alt audio blocks (SEAD/SNDC/SEND). */
@@ -105,13 +105,14 @@ VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "EACS") &&
         read_u32be(0x00,sf) != 0 && !is_id32be(0x228,sf, "EACS"))
-        goto fail;
+        return NULL;
 
     /* .eas: single bank [Need for Speed (PC)]
      * .bnk: multi bank [Need for Speed (PC)]
-     * .as4: single [NBA Live 96 (PC)] */
-    if (!check_extensions(sf,"eas,bnk,as4"))
-        goto fail;
+     * .as4/sph: single [NBA Live 96 (PC)]
+     * .dty/mon: single [NBA Live 95 (PC)] */
+    if (!check_extensions(sf,"eas,bnk,as4,sph,dty,mon"))
+        return NULL;
 
     /* plain data without blocks, can contain N*(EACS header) + N*(data), or N (EACS header + data) */
     ea.is_bank = 1;
@@ -128,7 +129,7 @@ VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0) goto fail;
 
-        /* offsets to EACSs are scattered in the first 0x200, then 0x28 info + EACS per subsong. 
+        /* offsets to EACSs are scattered in the first 0x200, then 0x28 info + EACS per subsong.
          * This looks dumb but seems like the only way. */
         eacs_offset = 0;
         for (i = 0x00; i < 0x200; i += 0x04) {
@@ -160,6 +161,72 @@ VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
     return init_vgmstream_main(sf, &ea);
 
 fail:
+    return NULL;
+}
+
+/* EA CRDF - crowd banks (later games use CRDl without audio) */
+VGMSTREAM* init_vgmstream_ea_crdf(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    eacs_header ea = {0};
+    off_t eacs_offset;
+    int total_subsongs, target_subsong = sf->stream_index;
+
+
+    /* checks */
+    if (!is_id32be(0x00, sf, "CRDF"))
+        return NULL;
+
+    /* .crd: NBA Live 95/96 (PC), FIFA Soccer 96 (PC) */
+    if (!check_extensions(sf, "crd"))
+        return NULL;
+
+
+    /* filter out some weird variation [NBA Live 96 (PS1)] */
+    if (read_u32le(0x04, sf) != 0x02) goto fail;
+
+    ea.is_bank = 1;
+
+    if (target_subsong == 0) target_subsong = 1;
+
+    // TODO: possibly unreliable variant checks
+    if (read_u32be(0x10, sf) == 0x02 && read_u32be(0x14, sf) == 0x04) {
+        /* Early variant, header size 0x344 [NBA 95 (PC)] */
+
+        total_subsongs = read_u32le(0x18, sf);
+        /* game does (0xC4 + 0x28) + i * (0x1C * 4) */
+        eacs_offset = 0xEC + (target_subsong - 1) * 0x70;
+    }
+    else if (read_u32le(0x10, sf) + read_u32le(0x14, sf) == 0x10000) {
+        /* Later variant, header size 0x38C [NBA 96 (PC), FIFA 96 (PC)] */
+
+        total_subsongs = read_u32le(0x24, sf);
+        /* game does (0x7C + 0x28) + i * (0x1D * 4) */
+        eacs_offset = 0xA4 + (target_subsong - 1) * 0x74;
+    }
+    else {
+        VGM_LOG("EA EACS: unknown CRDF variant\n");
+        goto fail;
+    }
+
+    /* actual check done by the games, seemingly always 4
+     * entries with the latter ones dummy if less tracks */
+    //if (total_subsongs > 4) total_subsongs = 4;
+
+    if (total_subsongs < 1 || target_subsong > total_subsongs)
+        goto fail;
+
+
+    if (!parse_header(sf, &ea, eacs_offset))
+        goto fail;
+
+    vgmstream = init_vgmstream_main(sf, &ea);
+    if (!vgmstream) goto fail;
+    vgmstream->num_streams = total_subsongs;
+
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

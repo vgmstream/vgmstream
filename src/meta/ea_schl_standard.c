@@ -46,20 +46,21 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
         return NULL;
 
     /* check header */
-    if (read_u32be(0x00, sf) != EA_BLOCKID_HEADER &&  /* "SCHl" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) && /* "SHEN" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) && /* "SHFR" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) && /* "SHGE" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_DE) && /* "SHDE" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) && /* "SHIT" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) && /* "SHSP" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_ES) && /* "SHES" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_MX) && /* "SHMX" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) && /* "SHRU" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA) && /* "SHJA" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JP) && /* "SHJP" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_PL) && /* "SHPL" */
-        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_BR))   /* "SHBR" */
+    uint32_t header = read_u32be(0x00, sf);
+    if (header != EA_BLOCKID_HEADER &&                           /* "SCHl" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) && /* "SHEN" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) && /* "SHFR" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) && /* "SHGE" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_DE) && /* "SHDE" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) && /* "SHIT" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) && /* "SHSP" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_ES) && /* "SHES" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_MX) && /* "SHMX" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) && /* "SHRU" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA) && /* "SHJA" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JP) && /* "SHJP" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_PL) && /* "SHPL" */
+        header != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_BR))   /* "SHBR" */
         return NULL;
 
     /* Stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
