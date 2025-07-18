@@ -91,6 +91,13 @@ VGMSTREAM* init_vgmstream_ea_bnk_fixed(STREAMFILE* sf) {
 
     bnk_version = read_u16le(0x04, sf);
     num_sounds  = read_u16le(0x06, sf);
+
+    /* (intentionally?) blanked fields [Triple Play 97 (PC)] */
+    if (!bnk_version && !num_sounds) {
+        bnk_version = 0x01;
+        num_sounds  = 0x80;
+    }
+
     /* bnk v2+ is only in standard (variable header) ea_schl */
     if (bnk_version != 0x01) goto fail;
     /* always a 0x200 sized buffer w/ dummy nullptr entries */
@@ -116,6 +123,41 @@ VGMSTREAM* init_vgmstream_ea_bnk_fixed(STREAMFILE* sf) {
     vgmstream = init_vgmstream_ea_fixed_header(sf_body, &ea, ea.start_offset, bnk_version);
     if (!vgmstream) goto fail;
     vgmstream->num_streams = total_subsongs;
+
+
+    close_streamfile(sf_body);
+    return vgmstream;
+
+fail:
+    close_streamfile(sf_body);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* EA standalone PATl fixed header - from EA games (~1997?) */
+VGMSTREAM* init_vgmstream_ea_patl(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf_body = NULL;
+    ea_fixed_header ea = {0};
+
+
+    /* checks */
+    if (!parse_fixed_header(sf, &ea, 0x00))
+        return NULL;
+
+    /* .pth: Triple Play 97 (PC) */
+    if (check_extensions(sf, "pth")) {
+        sf_body = open_streamfile_by_ext(sf, "ptd");
+        if (!sf_body) goto fail;
+    }
+    else
+        return NULL;
+
+
+    if (ea.start_offset != 0x00) goto fail;
+    vgmstream = init_vgmstream_ea_fixed_header(sf_body, &ea, ea.start_offset, 1);
+    if (!vgmstream) goto fail;
 
 
     close_streamfile(sf_body);
@@ -212,7 +254,7 @@ static int parse_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t offset)
         ea->codec        = read_u8   (offset + 0x03, sf);
         /* 0x04: 0? */
         ea->sample_rate  = read_u16le(offset + 0x06, sf);
-        /* 0x08: 0x20C? */
+        /* 0x08: 0x20C in SCHl, 0x800 in BNKl? */
         ea->num_samples  = read_s32le(offset + 0x0c, sf);
         ea->loop_start   = read_s32le(offset + 0x10, sf);
         ea->loop_end     = read_s32le(offset + 0x14, sf);

@@ -453,6 +453,7 @@ static const char* extension_list[] = {
     "psf",
     "psh", //fake extension for .vsv (to be removed)
     "psn",
+    "pth",
     "pwb",
 
     "qwv", //txth/reserved [Bishi Bashi Champ Online (AC)]

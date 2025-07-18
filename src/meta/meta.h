@@ -594,6 +594,7 @@ VGMSTREAM* load_vgmstream_ea_schl(STREAMFILE* sf, off_t offset);
 
 VGMSTREAM* init_vgmstream_ea_schl_fixed(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ea_bnk_fixed(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_ea_patl(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_sk_aud(STREAMFILE * streamFile);
 
