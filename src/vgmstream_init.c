@@ -266,6 +266,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ea_msb_mus_schl,
     init_vgmstream_ea_schl_fixed,
     init_vgmstream_ea_patl,
+    init_vgmstream_ea_pt,
     init_vgmstream_sk_aud,
     init_vgmstream_stma,
     init_vgmstream_ea_snu,

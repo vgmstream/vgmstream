@@ -558,6 +558,7 @@ static const char* extension_list[] = {
     "snz", //txth/reserved [Killzone HD (PS3)]
     "sod",
     "son",
+    "spc",
     "spd",
     "sph",
     "spm",
