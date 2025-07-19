@@ -195,7 +195,7 @@ VGMSTREAM* init_vgmstream_ea_pt(STREAMFILE* sf) {
     int is_split = 0;
 
 
-    /* .pth: split [Triple Play 97 (PC)]
+    /* .pth: split [NBA Live 97 (PC)]
      * .dat: joined [NBA Live 97/98 (PC)] */
     /* often also found as nameless file pairs in bigfiles [FIFA 97 (PC)] */
     if (check_extensions(sf, "pth")) {
@@ -212,7 +212,7 @@ VGMSTREAM* init_vgmstream_ea_pt(STREAMFILE* sf) {
         head_offset = 0x00;
         body_offset = 0x00;
     }
-    /* these contain multiple subsongs, but with no easy way
+    /* these contain multiple subsongs, but with no clear way
      * to get each of their offsets, unimplemented for now */
     //else { /* NBA 97 variant, NBA 98 has an even weirder variant */
     //    head_size = read_u32le(0x00, sf);
