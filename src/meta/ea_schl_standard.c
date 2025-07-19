@@ -203,7 +203,7 @@ VGMSTREAM* init_vgmstream_ea_pt(STREAMFILE* sf) {
         if (!sf_body) goto fail;
         is_split = 1;
     }
-    else if (!check_extensions(sf, "dat,ldat"))
+    else //if (!check_extensions(sf, "dat,ldat"))
         return NULL;
 
 
@@ -212,12 +212,14 @@ VGMSTREAM* init_vgmstream_ea_pt(STREAMFILE* sf) {
         head_offset = 0x00;
         body_offset = 0x00;
     }
-    else {
-        head_size = read_u32le(0x00, sf);
-        head_offset = 0x04;
-        body_offset = head_offset + head_size;
-        sf_body = sf;
-    }
+    /* these contain multiple subsongs, but with no easy way
+     * to get each of their offsets, unimplemented for now */
+    //else { /* NBA 97 variant, NBA 98 has an even weirder variant */
+    //    head_size = read_u32le(0x00, sf);
+    //    head_offset = 0x04;
+    //    body_offset = head_offset + head_size;
+    //    sf_body = sf;
+    //}
 
     if (!is_id32be(head_offset, sf, "PT\0\0")) /* does standalone GSTR also exist? */
         goto fail;

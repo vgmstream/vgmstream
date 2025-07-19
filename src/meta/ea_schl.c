@@ -534,6 +534,10 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
                 case coding_DVI_IMA:
                     /* 0x00 default all? very rarely used, only found in standalone PTH/PTD
                      * during the transition period from fixed to variable header format */
+                    //if (start_offset != ea->offsets[0]) goto fail;
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0];
+                    }
                     break;
 
                 default:
