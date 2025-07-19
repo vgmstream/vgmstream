@@ -110,8 +110,9 @@ VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
     /* .eas: single bank [Need for Speed (PC)]
      * .bnk: multi bank [Need for Speed (PC)]
      * .as4/sph: single [NBA Live 96 (PC)]
-     * .dty/mon: single [NBA Live 95 (PC)] */
-    if (!check_extensions(sf,"eas,bnk,as4,sph,dty,mon"))
+     * .dty/mon: single [NBA Live 95 (PC)] 
+     * .spc: single [FIFA Soccer 96 (PC)] */
+    if (!check_extensions(sf,"eas,bnk,as4,sph,dty,mon,spc"))
         return NULL;
 
     /* plain data without blocks, can contain N*(EACS header) + N*(data), or N (EACS header + data) */

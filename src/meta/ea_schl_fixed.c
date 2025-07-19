@@ -17,6 +17,7 @@ typedef struct {
 
     int big_endian;
     int loop_flag;
+    int is_bank;
 
     off_t start_offset;
     //size_t stream_size;
@@ -24,15 +25,15 @@ typedef struct {
     off_t loop_end;
 } ea_fixed_header;
 
-static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t start_offset, int bnk_version);
+static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header* ea);
 static int parse_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t offset);
 
 
 /* EA SCHl with fixed header - from EA games (~1997?) */
 VGMSTREAM* init_vgmstream_ea_schl_fixed(STREAMFILE* sf) {
     ea_fixed_header ea = {0};
-    off_t start_offset, offset;
     size_t header_size;
+    off_t offset;
 
 
     /* checks */
@@ -55,9 +56,8 @@ VGMSTREAM* init_vgmstream_ea_schl_fixed(STREAMFILE* sf) {
     if (!parse_fixed_header(sf, &ea, offset))
         return NULL;
 
-    start_offset = header_size; /* ea.start_offset/ea.stream_size has garbage data for SCHl */
-
-    return init_vgmstream_ea_fixed_header(sf, &ea, start_offset, 0);
+    ea.start_offset = header_size; /* has garbage data in PATl */
+    return init_vgmstream_ea_fixed_header(sf, &ea);
 }
 
 
@@ -89,8 +89,17 @@ VGMSTREAM* init_vgmstream_ea_bnk_fixed(STREAMFILE* sf) {
         return NULL;
 
 
+    ea.is_bank = 1;
+
     bnk_version = read_u16le(0x04, sf);
     num_sounds  = read_u16le(0x06, sf);
+
+    /* (intentionally?) blanked fields [Triple Play 97 (PC)] */
+    if (!bnk_version && !num_sounds) {
+        bnk_version = 0x01;
+        num_sounds  = 0x80;
+    }
+
     /* bnk v2+ is only in standard (variable header) ea_schl */
     if (bnk_version != 0x01) goto fail;
     /* always a 0x200 sized buffer w/ dummy nullptr entries */
@@ -113,7 +122,7 @@ VGMSTREAM* init_vgmstream_ea_bnk_fixed(STREAMFILE* sf) {
     if (total_subsongs < 1 || target_subsong > total_subsongs)
         goto fail;
 
-    vgmstream = init_vgmstream_ea_fixed_header(sf_body, &ea, ea.start_offset, bnk_version);
+    vgmstream = init_vgmstream_ea_fixed_header(sf_body, &ea);
     if (!vgmstream) goto fail;
     vgmstream->num_streams = total_subsongs;
 
@@ -128,9 +137,46 @@ fail:
 }
 
 
-static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t start_offset, int bnk_version) {
+/* EA standalone PATl fixed header - from EA games (~1997?) */
+VGMSTREAM* init_vgmstream_ea_patl(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    int is_bnk = bnk_version;
+    STREAMFILE* sf_body = NULL;
+    ea_fixed_header ea = {0};
+
+
+    /* checks */
+    if (!parse_fixed_header(sf, &ea, 0x00))
+        return NULL;
+
+    /* .pth: Triple Play 97 (PC) */
+    /* often also found as nameless file pairs in bigfiles [FIFA 97 (PC)] */
+    if (check_extensions(sf, "pth")) {
+        sf_body = open_streamfile_by_ext(sf, "ptd");
+        if (!sf_body) goto fail;
+    }
+    else
+        return NULL;
+
+
+    ea.is_bank = 1;
+    if (ea.start_offset != 0x00) goto fail;
+
+    vgmstream = init_vgmstream_ea_fixed_header(sf_body, &ea);
+    if (!vgmstream) goto fail;
+
+
+    close_streamfile(sf_body);
+    return vgmstream;
+
+fail:
+    close_streamfile(sf_body);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header* ea) {
+    VGMSTREAM* vgmstream = NULL;
 
 
     /* build the VGMSTREAM */
@@ -147,8 +193,8 @@ static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header
 
     vgmstream->codec_endian = ea->big_endian;
 
-    vgmstream->meta_type = is_bnk ? meta_EA_BNK_fixed : meta_EA_SCHL_fixed;
-    vgmstream->layout_type = is_bnk ? layout_none : layout_blocked_ea_schl;
+    vgmstream->meta_type = ea->is_bank ? meta_EA_BNK_fixed : meta_EA_SCHL_fixed;
+    vgmstream->layout_type = ea->is_bank ? layout_none : layout_blocked_ea_schl;
 
     switch (ea->codec) {
         case EA_CODEC_PCM:
@@ -169,7 +215,7 @@ static VGMSTREAM* init_vgmstream_ea_fixed_header(STREAMFILE* sf, ea_fixed_header
     }
 
 
-    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, ea->start_offset))
         goto fail;
     return vgmstream;
 
@@ -212,7 +258,7 @@ static int parse_fixed_header(STREAMFILE* sf, ea_fixed_header* ea, off_t offset)
         ea->codec        = read_u8   (offset + 0x03, sf);
         /* 0x04: 0? */
         ea->sample_rate  = read_u16le(offset + 0x06, sf);
-        /* 0x08: 0x20C? */
+        /* 0x08: 0x20C in SCHl, 0x800 in BNKl? */
         ea->num_samples  = read_s32le(offset + 0x0c, sf);
         ea->loop_start   = read_s32le(offset + 0x10, sf);
         ea->loop_end     = read_s32le(offset + 0x14, sf);
