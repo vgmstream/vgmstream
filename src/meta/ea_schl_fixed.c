@@ -149,7 +149,7 @@ VGMSTREAM* init_vgmstream_ea_patl(STREAMFILE* sf) {
         return NULL;
 
     /* .pth: Triple Play 97 (PC) */
-    /* often also found as nameless file pairs in bigfiles */
+    /* often also found as nameless file pairs in bigfiles [FIFA 97 (PC)] */
     if (check_extensions(sf, "pth")) {
         sf_body = open_streamfile_by_ext(sf, "ptd");
         if (!sf_body) goto fail;
