@@ -159,6 +159,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     }
 
     pitch = SsPitchFromNote(note, fine, center, shift);
+    if (pitch > 0x4000) pitch = 0x4000; /* SPU clamp */
 
     data_offset = is_vh ? 0x00 : (waves_off + 256 * 0x02);
     for (i = 0; i < wave_num; i++) {
