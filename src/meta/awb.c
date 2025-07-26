@@ -26,8 +26,9 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     if (!is_id32be(0x00,sf, "AFS2"))
         goto fail;
     /* .awb: standard
-     * .afs2: sometimes [Okami HD (PS4)] */
-    if (!check_extensions(sf, "awb,afs2"))
+     * .afs2: sometimes [Okami HD (PS4)] 
+     * .acx: Dariusburst - Chronicle Saviors (multi) */
+    if (!check_extensions(sf, "awb,afs2,awx"))
         goto fail;
 
     /* 0x04(1): version? 0x01=common, 0x02=2018+ (no apparent differences) */
@@ -179,6 +180,9 @@ static void load_acb_info(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
         /* try (name).awb + (name).acb */
         if (!sf_acb) {
             sf_acb = open_streamfile_by_ext(sf, "acb");
+            if (!sf_acb) {
+                sf_acb = open_streamfile_by_ext(sf, "acx");
+            }
         }
 
         /* try (name)_streamfiles.awb + (name).acb */
