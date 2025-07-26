@@ -95,6 +95,7 @@ static const char* extension_list[] = {
     "awb",
     "awc",
     "awd",
+    "awx",
 
     "b1s", //txth/reserved [7 Wonders of the Ancient World (PS2)]
     "baf",
@@ -156,6 +157,8 @@ static const char* extension_list[] = {
     "csmp",
     "cvs", //txth/reserved [Aladdin in Nasira's Revenge (PS1)]
     "cwav",
+    "cxb",
+    "cxk",
     "cxs",
 
     "d2", //txth/reserved [Dodonpachi Dai-Ou-Jou (PS2)]
@@ -693,6 +696,7 @@ static const char* extension_list[] = {
     "wvs",
     "wvx",
     "wxd",
+    "wxv",
 
     "x",
     "x360audio", //fake extension for Unreal Engine 3 XMA (real extension unknown)

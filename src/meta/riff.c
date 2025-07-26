@@ -484,8 +484,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .se: Rockman X4 (PC)
      * .v: Rozen Maiden: Duellwalzer (PS2)
      * .xst: Animaniacs: The Great Edgar Hunt (Xbox)
+     * .wxv: Dariusburst (PSP)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst,wxv")) {
         return NULL;
     }
 
