@@ -55,12 +55,17 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
 
     //;VGM_LOG("acb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
 
-    temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
-    if (!temp_sf) {
+    /* Try to load awb from acb extension in one of two ways:
+     * acb+awb combo, standard.
+     * acx+awx combo, exclusive to Dariusburst console games. */
+    if (!temp_sf && check_extensions(sf, "acb"))
+        temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
+    else if (!temp_sf && check_extensions(sf, "acx"))
         temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awx");
-        if (!temp_sf)
-            goto fail;
-    }
+
+    /* awb could not be loaded. */
+    if (!temp_sf)
+        goto fail;
 
     if (is_id32be(0x00, temp_sf, "CPK ")) {
         vgmstream = init_vgmstream_cpk_memory(temp_sf, sf); /* older */

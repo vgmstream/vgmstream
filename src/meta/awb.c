@@ -27,7 +27,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         goto fail;
     /* .awb: standard
      * .afs2: sometimes [Okami HD (PS4)] 
-     * .acx: Dariusburst - Chronicle Saviors (multi) */
+     * .awx: Dariusburst - Chronicle Saviors (multi) */
     if (!check_extensions(sf, "awb,afs2,awx"))
         goto fail;
 
@@ -178,15 +178,16 @@ static void load_acb_info(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
         sf_acb = read_filemap_file_pos(sf, 0, &port);
 
         /* try (name).awb + (name).acb */
-        if (!sf_acb) {
+        if (!sf_acb && check_extensions(sf, "awb")) {
             sf_acb = open_streamfile_by_ext(sf, "acb");
-            if (!sf_acb) {
-                sf_acb = open_streamfile_by_ext(sf, "acx");
-            }
+        }
+        /* try (name).awx + (name).acx, exclusive to Dariusburst console games. */
+        else if (!sf_acb && check_extensions(sf, "awx")) {
+            sf_acb = open_streamfile_by_ext(sf, "acx");
         }
 
         /* try (name)_streamfiles.awb + (name).acb */
-        if (!sf_acb) {
+        if (!sf_acb && check_extensions(sf, "awb")) {
             char *cmp = "_streamfiles";
             get_streamfile_basename(sf, filename, sizeof(filename));
             len_name = strlen(filename);
@@ -200,7 +201,7 @@ static void load_acb_info(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
         }
 
         /* try (name)_STR.awb + (name).acb */
-        if (!sf_acb) {
+        if (!sf_acb && check_extensions(sf, "awb")) {
             char *cmp = "_STR";
             get_streamfile_basename(sf, filename, sizeof(filename));
             len_name = strlen(filename);
