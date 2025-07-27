@@ -171,6 +171,7 @@ static const char* extension_list[] = {
     "dic",
     "diva",
     "dmsg", //fake extension/header id for .sgt (to be removed)
+    "drm", //txth/reserved [Ben 10 (HyperScan), IWL (HyperScan)]
     "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
     "dsb",
     "dsf",
