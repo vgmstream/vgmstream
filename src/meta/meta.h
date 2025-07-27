@@ -393,8 +393,6 @@ VGMSTREAM * init_vgmstream_gcub(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ngc_sck_dsp(STREAMFILE * streamFile);
-
 VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE* streamFile);

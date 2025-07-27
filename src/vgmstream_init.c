@@ -151,7 +151,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_kceje,
     init_vgmstream_gcub,
     init_vgmstream_maxis_xa,
-    init_vgmstream_ngc_sck_dsp,
     init_vgmstream_apple_caff,
     init_vgmstream_pc_mxst,
     init_vgmstream_sab,

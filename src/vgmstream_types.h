@@ -447,9 +447,8 @@ typedef enum {
     meta_2DX9,
     meta_VGV,
     meta_GCUB,
-    meta_MAXIS_XA,          /* Sim City 3000 (PC) */
-    meta_NGC_SCK_DSP,       /* Scorpion King (NGC) */
-    meta_CAFF,              /* iPhone .caf */
+    meta_MAXIS_XA,
+    meta_CAFF,
     meta_EXAKT_SC,          /* Activision EXAKT .SC (PS2) */
     meta_WII_WAS,           /* DiRT 2 (WII) */
     meta_PONA_3DO,          /* Policenauts (3DO) */
