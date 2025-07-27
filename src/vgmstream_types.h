@@ -376,11 +376,10 @@ typedef enum {
     meta_SADL,
     meta_FAG,               /* Jackie Chan - Stuntmaster */
     meta_MIC,
-    meta_NGC_PDT,           /* Mario Party 6 */
+    meta_PDT,
     meta_ASD_NAXAT,
     meta_SPSD,
     meta_RSD,
-    meta_PS2_ASS,
     meta_SEG,
     meta_RIFF_IMA,
     meta_KNON,
@@ -447,9 +446,8 @@ typedef enum {
     meta_2DX9,
     meta_VGV,
     meta_GCUB,
-    meta_MAXIS_XA,          /* Sim City 3000 (PC) */
-    meta_NGC_SCK_DSP,       /* Scorpion King (NGC) */
-    meta_CAFF,              /* iPhone .caf */
+    meta_MAXIS_XA,
+    meta_CAFF,
     meta_EXAKT_SC,          /* Activision EXAKT .SC (PS2) */
     meta_WII_WAS,           /* DiRT 2 (WII) */
     meta_PONA_3DO,          /* Policenauts (3DO) */
@@ -577,7 +575,7 @@ typedef enum {
     meta_EA_WVE_AD10,       /* Electronic Arts PS movies [Wing Commander 3/4 (PS)] */
     meta_STHD,              /* STHD .stx [Kakuto Chojin (Xbox)] */
     meta_MP4,               /* MP4/AAC */
-    meta_PCM_SRE,           /* .PCM+SRE [Viewtiful Joe (PS2)] */
+    meta_SRE_PCM,
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */

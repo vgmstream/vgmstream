@@ -925,9 +925,10 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
     if (!last_tags.loaded) /* tagfile not found, fail so default get_title takes over */
         return 0; //goto fail;
 
-    /* always called (value in ms), must return ok so other tags get called */
+    /* always called (value in ms), must return ok so other tags get called.
+     * "0" shows length 0 in the media library but works in the playlist, null seems correct (auto-loaded) */ 
     if (strcasecmp(metadata, "length") == 0) {
-        strcpy(ret, "0");//todo should export but shows GetFileInfo's ms if not provided
+        strcpy(ret, "\0");
         return 1;
     }
 
@@ -961,15 +962,19 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
         return 1;
     }
 
+    //TODO: is this always needed for Winamp to use replaygain?
+    if (!tag_found && strcasecmp(metadata, "replaygain_track_gain") == 0) {
+        //strcpy(ret, "1.0"); //should set some default value?
+        return 1;
+    }
+
     if (!tag_found)
         goto fail;
 
     return 1;
 
 fail:
-    //TODO: is this always needed for Winamp to use replaygain?
-    //strcpy(ret, "1.0"); //should set some default value?
-    return strcasecmp(metadata, "replaygain_track_gain") == 0 ? 1 : 0;
+    return 0;
 }
 
 

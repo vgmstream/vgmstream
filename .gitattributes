@@ -1,17 +1,10 @@
-# don't set for now (too many fixes at once)
-#* text=auto
-#*.c text=auto
-#*.h text=auto
-#* -text
-
 *.cpp text eol=lf
 *.cc text eol=lf
 *.h text eol=lf
+*.c text eol=lf
 
 *.sh text eol=lf
 *.bat text eol=crlf
+*.py text eol=lf
 *.vcxproj text eol=crlf
 *.vcxproj.filters text eol=crlf
-
-#Fixes CRLF/LF conflict.
-* text=auto

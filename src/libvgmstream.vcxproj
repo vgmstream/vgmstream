@@ -621,8 +621,6 @@
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_dsp_asura.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
-    <ClCompile Include="meta\ngc_pdt.c" />
-    <ClCompile Include="meta\ngc_sck_dsp.c" />
     <ClCompile Include="meta\ngc_ssm.c" />
     <ClCompile Include="meta\ngc_str_cauldron.c" />
     <ClCompile Include="meta\npsf.c" />
@@ -646,16 +644,15 @@
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pasx.c" />
     <ClCompile Include="meta\pcm_kceje.c" />
-    <ClCompile Include="meta\pcm_sre.c" />
     <ClCompile Include="meta\pcm_success.c" />
     <ClCompile Include="meta\pc_mxst.c" />
+    <ClCompile Include="meta\pdt.c" />
     <ClCompile Include="meta\piff_tpcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
     <ClCompile Include="meta\pphd.c" />
     <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2_adm.c" />
-    <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_joe.c" />
@@ -736,6 +733,7 @@
     <ClCompile Include="meta\sqex_sead.c" />
     <ClCompile Include="meta\squeak.c" />
     <ClCompile Include="meta\srcd.c" />
+    <ClCompile Include="meta\sre_pcm.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
     <ClCompile Include="meta\ssp.c" />
