@@ -45,7 +45,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_sfl_ogg,
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
-    init_vgmstream_wsi,
     init_vgmstream_aifc,
     init_vgmstream_str_snds,
     init_vgmstream_ws_aud,
@@ -103,8 +102,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_sadl,
     init_vgmstream_fag,
     init_vgmstream_mic,
-    init_vgmstream_ngc_pdt_split,
-    init_vgmstream_ngc_pdt,
     init_vgmstream_mus_krome,
     init_vgmstream_spsd,
     init_vgmstream_rsd,
@@ -117,7 +114,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_riff_ima,
     init_vgmstream_knon,
     init_vgmstream_gca,
-    init_vgmstream_spt_spd,
     init_vgmstream_ish_isd,
     init_vgmstream_gsnd,
     init_vgmstream_ydsp,
@@ -299,7 +295,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ea_sbr,
     init_vgmstream_ea_sbr_harmony,
     init_vgmstream_vid1,
-    init_vgmstream_flx,
     init_vgmstream_mogg,
     init_vgmstream_kma9,
     init_vgmstream_xwc,
@@ -315,7 +310,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ea_wve_au00,
     init_vgmstream_ea_wve_ad10,
     init_vgmstream_sthd,
-    init_vgmstream_pcm_sre,
     init_vgmstream_dsp_mcadpcm,
     init_vgmstream_ubi_lyn,
     init_vgmstream_ubi_lyn_container,
@@ -545,6 +539,11 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_imc_container,
     init_vgmstream_wv6,
     init_vgmstream_smh_smc,
+    init_vgmstream_flx,
+    init_vgmstream_pdt,
+    init_vgmstream_spt_spd,
+    init_vgmstream_wsi,
+    init_vgmstream_sre_pcm,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,
@@ -566,6 +565,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_exakt_sc,        /* .sc raw PCM */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
     init_vgmstream_rwsd,            /* crap, to be removed */
+    init_vgmstream_pdt_split,       /* fake format */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif
