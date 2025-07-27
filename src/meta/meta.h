@@ -305,8 +305,6 @@ VGMSTREAM* init_vgmstream_spsd(STREAMFILE* sf);
 VGMSTREAM * init_vgmstream_bgw(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_spw(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_ass(STREAMFILE * streamFile);
-
 VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ubi_jade_container(STREAMFILE * streamFile);
 

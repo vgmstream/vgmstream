@@ -107,7 +107,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_rsd,
     init_vgmstream_bgw,
     init_vgmstream_spw,
-    init_vgmstream_ps2_ass,
     init_vgmstream_ubi_jade,
     init_vgmstream_ubi_jade_container,
     init_vgmstream_seg,

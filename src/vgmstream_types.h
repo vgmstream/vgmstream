@@ -380,7 +380,6 @@ typedef enum {
     meta_ASD_NAXAT,
     meta_SPSD,
     meta_RSD,
-    meta_PS2_ASS,
     meta_SEG,
     meta_RIFF_IMA,
     meta_KNON,
