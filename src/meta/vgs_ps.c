@@ -11,10 +11,10 @@ VGMSTREAM* init_vgmstream_vgs_ps(STREAMFILE* sf) {
 
 
     /* check */
-    if (!check_extensions(sf,"vgs"))
-        goto fail;
     if (!is_id32be(0x00,sf, "VGS\0")) /* 'VAG stereo', presumably (simple VAG clone) */
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf,"vgs"))
+        return NULL;
 
     start_offset = 0x30;
     data_size = get_streamfile_size(sf) - start_offset;
