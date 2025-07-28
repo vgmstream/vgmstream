@@ -18,7 +18,9 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "@UTF"))
         goto fail;
-    if (!check_extensions(sf, "csb"))
+    /* .csb: standard
+     * .cxb: Dariusburst - Another Chronicle (AC) */
+    if (!check_extensions(sf, "csb,cxb"))
         goto fail;
 
     /* .csb is an early, simpler version of .acb+awk (see acb.c) used until ~2013?
