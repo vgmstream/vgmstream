@@ -270,6 +270,7 @@
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\compresswave_decoder.c" />
     <ClCompile Include="coding\derf_decoder.c" />
+    <ClCompile Include="coding\df_decoder.c" />
     <ClCompile Include="coding\dpcm_kcej_decoder.c" />
     <ClCompile Include="coding\dsa_decoder.c" />
     <ClCompile Include="coding\ea_mt_decoder.c" />
@@ -473,6 +474,7 @@
     <ClCompile Include="meta\bwav.c" />
     <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\caf.c" />
+    <ClCompile Include="meta\cf_df.c" />
     <ClCompile Include="meta\chatterbox.c" />
     <ClCompile Include="meta\ck.c" />
     <ClCompile Include="meta\compresswave.c" />
