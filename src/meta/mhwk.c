@@ -88,6 +88,18 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
             vgmstream->coding_type = coding_IMA;
             vgmstream->layout_type = layout_none;
             break;
+        //Riven DVD
+        case 0x0002: /* MPEG Layer II */
+#if defined(VGM_USE_FFMPEG)
+            vgmstream->coding_type = coding_FFmpeg;
+#elif defined(VGM_USE_MPEG)
+            vgmstream->coding_type = coding_MPEG_layer2;
+#else
+            goto fail;
+#endif
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = 0;
+            break;
 
         default: /* Unknown format */
             goto fail;
