@@ -19,7 +19,9 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
     if (read_u32be(0x04,sf) + 0x08 != get_streamfile_size(sf))
         goto fail;
 
-    if (!check_extensions(sf, "acb"))
+    /* .acb: standard
+     * .acx: Dariusburst - Chronicle Saviors (multi) */
+    if (!check_extensions(sf, "acb,acx"))
         goto fail;
 
     /* .acb is a cue sheet that uses @UTF (CRI's generic table format) to store row/columns
@@ -53,8 +55,17 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
 
     //;VGM_LOG("acb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
 
-    temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
-    if (!temp_sf) goto fail;
+    /* Try to load awb from acb extension in one of two ways:
+     * acb+awb combo, standard.
+     * acx+awx combo, exclusive to Dariusburst console games. */
+    if (!temp_sf && check_extensions(sf, "acb"))
+        temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
+    else if (!temp_sf && check_extensions(sf, "acx"))
+        temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awx");
+
+    /* awb could not be loaded. */
+    if (!temp_sf)
+        goto fail;
 
     if (is_id32be(0x00, temp_sf, "CPK ")) {
         vgmstream = init_vgmstream_cpk_memory(temp_sf, sf); /* older */
