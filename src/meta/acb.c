@@ -1219,19 +1219,17 @@ fail:
  */
 
 void load_acb_wave_info(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int port, int is_memory, int load_loops) {
-    acb_header acb = {0};
-    int i;
-
 
     if (!sf || !vgmstream || waveid < 0)
         return;
 
     //;VGM_LOG("acb: find waveid=%i, port=%i\n", waveid, port);
 
+    acb_header acb = {0};
     acb.acbFile = sf;
 
     acb.Header = utf_open(acb.acbFile, 0x00, NULL, NULL);
-    if (!acb.Header) return NULL;
+    if (!acb.Header) return;
 
     acb.target_waveid = waveid;
     acb.target_port = port;
@@ -1240,7 +1238,7 @@ void load_acb_wave_info(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
 
     /* read all possible cue names and find which waveids are referenced by it */
     preload_acb_cuename(&acb);
-    for (i = 0; i < acb.CueName_rows; i++) {
+    for (int i = 0; i < acb.CueName_rows; i++) {
         if (!load_acb_cuename(&acb, i))
             goto fail;
     }
