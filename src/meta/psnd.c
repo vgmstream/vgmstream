@@ -12,7 +12,7 @@ VGMSTREAM* init_vgmstream_psnd(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "PSND"))
         return NULL;
-    /* .psn: actual extension in exes */
+    /* .psn: actual extension in exes/bigfiles */
     if (!check_extensions(sf, "psn"))
         return NULL;
 
@@ -22,21 +22,23 @@ VGMSTREAM* init_vgmstream_psnd(STREAMFILE* sf) {
 
     switch (type) {
         case 0x0030006: /* CBNK */
-            channels    = read_u8(0xE,sf);
-            if (read_u8(0x0f, sf) != 16) goto fail; /* bps */
+            channels    = read_u8(0x0E,sf);
+            if (read_u8(0x0f, sf) != 16) // bps
+                goto fail;
             start_offset = 0x10;
-            
             break;
+
         case 0x0000004: /* RR */
             channels = 1;
             start_offset = 0x0e;
             break;
+
         default:
             goto fail;
     }
        
     data_size = data_size + 0x08 - start_offset;
-    loop_flag = 0; /* generally 22050hz music loops */
+    loop_flag = 0; // generally 22050hz music fully loops
 
 
     /* build the VGMSTREAM */
@@ -51,11 +53,16 @@ VGMSTREAM* init_vgmstream_psnd(STREAMFILE* sf) {
             vgmstream->interleave_block_size = 0x02;
             vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
             break;
+
         case 0x0000004:
-            vgmstream->coding_type = coding_DVI_IMA;
+            vgmstream->coding_type = coding_DVI_IMA_mono;
             vgmstream->layout_type = layout_none;
             vgmstream->num_samples = ima_bytes_to_samples(data_size, channels);
+
+            // Reckless Getaway 2 (Android), Xenowerk (Android)
+            vgmstream->allow_dual_stereo = true;
             break;
+
         default:
             goto fail;
     }
