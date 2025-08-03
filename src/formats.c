@@ -157,7 +157,7 @@ static const char* extension_list[] = {
     "cvs", //txth/reserved [Aladdin in Nasira's Revenge (PS1)]
     "cwav",
     "cxb",
-    "cxk", //NOT for txth but reserved regardless [Dariusburst - Another Chronicle (AC)]
+    "cxk", // ,acb+cpk/reserved [Dariusburst: Another Chronicle (AC)]
     "cxs",
 
     "d2", //txth/reserved [Dodonpachi Dai-Ou-Jou (PS2)]

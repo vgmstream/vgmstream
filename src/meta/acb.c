@@ -14,15 +14,15 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "@UTF"))
-        goto fail;
+        return NULL;
     /* mainly for bigger files (utf lib checks smaller) */
     if (read_u32be(0x04,sf) + 0x08 != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
 
     /* .acb: standard
      * .acx: Dariusburst - Chronicle Saviors (multi) */
     if (!check_extensions(sf, "acb,acx"))
-        goto fail;
+        return NULL;
 
     /* .acb is a cue sheet that uses @UTF (CRI's generic table format) to store row/columns
      * with complex info (cues, sequences, spatial info, etc). It can store a memory .awb
@@ -55,15 +55,14 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
 
     //;VGM_LOG("acb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
 
-    /* Try to load awb from acb extension in one of two ways:
-     * acb+awb combo, standard.
-     * acx+awx combo, exclusive to Dariusburst console games. */
-    if (!temp_sf && check_extensions(sf, "acb"))
+    // .acb+awb (most common)
+    if (!temp_sf)
         temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
-    else if (!temp_sf && check_extensions(sf, "acx"))
+
+    // .acx+awx [Dariusburst: Chronicle Saviors (multi)]
+    if (!temp_sf && check_extensions(sf, "acx"))
         temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awx");
 
-    /* awb could not be loaded. */
     if (!temp_sf)
         goto fail;
 
@@ -1232,7 +1231,7 @@ void load_acb_wave_info(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
     acb.acbFile = sf;
 
     acb.Header = utf_open(acb.acbFile, 0x00, NULL, NULL);
-    if (!acb.Header) goto fail;
+    if (!acb.Header) return NULL;
 
     acb.target_waveid = waveid;
     acb.target_port = port;
