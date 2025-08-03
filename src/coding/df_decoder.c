@@ -102,8 +102,7 @@ static bool decode_cf_df_v40(VGMSTREAM* v, sbuf_t* sdst) {
             outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev_sample);
         } else if ((control_byte & 0x40) == 0) {
             int count = (control_byte & 0x3f) + 1;
-            int j;
-            for (j = 0; j < count && i < samples_to_do; j++) {
+            for (int j = 0; j < count && i < samples_to_do; j++) {
                 uint8_t table_val = read_u8(stream->offset, stream->streamfile);
                 stream->offset++;
                 int8_t step_delta = StepSizeTable[table_val];
@@ -120,8 +119,7 @@ static bool decode_cf_df_v40(VGMSTREAM* v, sbuf_t* sdst) {
             }
         } else {
             int count = (control_byte & 0x3f) + 1;
-            int j;
-            for (j = 0; j < count && i < samples_to_do; j++) {
+            for (int j = 0; j < count && i < samples_to_do; j++) {
                 outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev_sample);
             }
         }
@@ -135,10 +133,9 @@ static bool decode_cf_df_v41(VGMSTREAM* v, sbuf_t* sdst) {
     VGMSTREAMCHANNEL* stream = &v->ch[0];
     int samples_to_do = sdst->samples - sdst->filled;
     sample_t* outbuf = sbuf_get_filled_buf(sdst);
-    int i;
     int16_t current_sample = stream->adpcm_history1_16;
 
-    for (i = 0; i < samples_to_do; i++) {
+    for (int i = 0; i < samples_to_do; i++) {
         uint8_t input_byte = read_u8(stream->offset, stream->streamfile);
         stream->offset++;
         if ((input_byte & 0x80) == 0) {

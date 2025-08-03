@@ -34,7 +34,7 @@ typedef struct {
     int32_t size;
     int32_t sample_rate;
     int32_t uncompressed_size;
-    char name[32];
+    char name[DF_CHUNK_NAME_SIZE + 1];
 } df_chunk_t;
 
 static int32_t find_segmented_chunk_size(df_chunk_t* chunks, int total_chunks) {
@@ -80,23 +80,30 @@ static void build_vgmstream_from_chunk(VGMSTREAM* vgmstream, df_chunk_t* chunk, 
 }
 
 /* Main function to build the VGMSTREAM object */
-VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
     VGMSTREAM * vgmstream = NULL;
     df_chunk_t* chunks = NULL;
     int i, j;
     int total_chunks = 0;
-    int target_subsong = streamFile->stream_index;
+    int target_subsong = sf->stream_index;
     int is_mov_file = 0;
     const int HEADER_SIZE = 0x400;
     const int TRACK_SUFFIX_SIZE = (5 + 1 + 1); // Subsongs up to 5 digits plus # and \0
 
-    if (!check_extensions(streamFile, "snd,sfx,mov,SND,SFX,MOV,Snd,Sfx,Mov"))
+    if (!check_extensions(sf, "snd,sfx,mov"))
         goto fail;
 
-    /* Header Check */
-    if (read_u32le(0x04, streamFile) != get_streamfile_size(streamFile))
+    /* Header Check:
+     *
+     * LPPALPPA more easily checked at 0x20.
+     * TO-DO: Possibly also start with 0x100, 0 at 0x08/0x0C? Needs confirmation.
+     *
+     */
+    if (read_32bitBE(0x20, sf) != get_id32be("LPPA") || read_32bitBE(0x24, sf) != get_id32be("LPPA"))
         goto fail;
-    int containers = read_u32le(0x14, streamFile);
+    if (read_u32le(0x04, sf) != get_streamfile_size(sf))
+        goto fail;
+    int containers = read_u32le(0x14, sf);
     if (containers <= 0 || containers > INT16_MAX) //Practically 2 bytes should be enough.
         goto fail;
 
@@ -105,24 +112,24 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
     if (!chunks) goto fail;
 
     for (i = 0; i < containers; i++) {
-        off_t container_pos = read_u32le(HEADER_SIZE + i * 0x04, streamFile);
-        if (container_pos <= 0 || container_pos >= get_streamfile_size(streamFile))
+        off_t container_pos = read_u32le(HEADER_SIZE + i * 0x04, sf);
+        if (container_pos <= 0 || container_pos >= get_streamfile_size(sf))
             continue;
 
         off_t header_pos = container_pos + 0x08;
-        if (header_pos + 0x30 > get_streamfile_size(streamFile))
+        if (header_pos + 0x30 > get_streamfile_size(sf))
             continue;
 
-        uint16_t codec_flag = read_u16le(header_pos + 0x1A, streamFile);
-        uint32_t hertz = read_u32le(header_pos + 0x1C, streamFile);
+        uint16_t codec_flag = read_u16le(header_pos + 0x1A, sf);
+        uint32_t hertz = read_u32le(header_pos + 0x1C, sf);
 
         if ((codec_flag == 1 || codec_flag == 2) && (hertz == 11025 || hertz == 22050 || hertz == 44100)) {
             chunks[total_chunks].id = i;
             chunks[total_chunks].codec_flag = codec_flag;
             chunks[total_chunks].sample_rate = hertz;
-            chunks[total_chunks].uncompressed_size = read_u32le(header_pos + 0x24, streamFile);
-            chunks[total_chunks].offset = header_pos + read_u32le(header_pos + 0x2C, streamFile);
-            chunks[total_chunks].size = read_u32le(container_pos + 0x04, streamFile) - read_u32le(header_pos + 0x2C, streamFile);
+            chunks[total_chunks].uncompressed_size = read_u32le(header_pos + 0x24, sf);
+            chunks[total_chunks].offset = header_pos + read_u32le(header_pos + 0x2C, sf);
+            chunks[total_chunks].size = read_u32le(container_pos + 0x04, sf) - read_u32le(header_pos + 0x2C, sf);
             total_chunks++;
         }
     }
@@ -132,35 +139,35 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
 
     /* Parse metadata to find named files (.SND/.SFX),
         * TO-DO: Metadata structure in .MOV files is inconsistent. */
-    is_mov_file = check_extensions(streamFile, "mov,MOV,Mov");
+    is_mov_file = check_extensions(sf, "mov");
 
     if (!is_mov_file) {
         off_t pointer_offset = 0x20; /* Standard offset for SND/SFX */
 
-        off_t container0_pos = read_u32le(HEADER_SIZE + 0 * 0x04, streamFile);
+        off_t container0_pos = read_u32le(HEADER_SIZE + 0 * 0x04, sf);
         int md_container_id = -1;
         if (container0_pos > 0) {
             /* The pointer is relative to the data payload, which starts after the 8-byte container header */
-            md_container_id = read_u32le(container0_pos + 0x08 + pointer_offset, streamFile);
+            md_container_id = read_u32le(container0_pos + 0x08 + pointer_offset, sf);
         }
 
 
 
         if (md_container_id >= 0 && md_container_id < containers) {
-            off_t md_pos = read_u32le(HEADER_SIZE + md_container_id * 0x04, streamFile);
+            off_t md_pos = read_u32le(HEADER_SIZE + md_container_id * 0x04, sf);
             if (md_pos > 0) {
                 /* Establish a base for the actual data, skipping the 8-byte container header */
                 const off_t md_payload_pos = md_pos + 0x08;
-                int records = read_u16le(md_payload_pos + 0x04, streamFile);
+                int records = read_u16le(md_payload_pos + 0x04, sf);
                 off_t current_record_offset = md_payload_pos + 0x08;
                 for (i = 0; i < records; i++) {
-                    int chunk_id = read_u32le(current_record_offset + 0x04, streamFile);
-                    uint8_t name_len = read_u8(current_record_offset + 10, streamFile);
+                    int chunk_id = read_u32le(current_record_offset + 0x04, sf);
+                    uint8_t name_len = read_u8(current_record_offset + 10, sf);
                     char name_buffer[DF_CHUNK_NAME_SIZE + 1] = {0};
 
                     /* Needs byte for byte reading for named SND/SFX. */
                     for (int k = 0; k < DF_CHUNK_NAME_SIZE; k++) {
-                        name_buffer[k] = read_u8(current_record_offset + 11 + k, streamFile);
+                        name_buffer[k] = read_u8(current_record_offset + 11 + k, sf);
                     }
 
                     if (name_len < DF_CHUNK_NAME_SIZE)
@@ -185,7 +192,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
     int32_t segmented_chunk_size = find_segmented_chunk_size(chunks, total_chunks);
 
     if (segmented_chunk_size > 0) {
-        const int SEGEMENT_LIMIT = 16;
+        const int SEGMENT_LIMIT = 16;
         int candidates = 0;
         for (i = 0; i < total_chunks; i++) {
             if (!chunks[i].is_named && chunks[i].uncompressed_size == segmented_chunk_size) {
@@ -194,7 +201,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
         }
 
         /* Only group chunks if not a MOV file, or if it is a MOV with many segments (avoids merging duplicate/reversed chunks) */
-        if (!is_mov_file || (candidates > SEGEMENT_LIMIT)) {
+        if (!is_mov_file || (candidates > SEGMENT_LIMIT)) {
             for (i = 0; i < total_chunks; i++) {
                 if (!chunks[i].is_named && chunks[i].uncompressed_size == segmented_chunk_size) {
                     chunks[i].is_segmented_chunk = 1;
@@ -251,7 +258,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
                     chunks[i].codec_flag = segmented_codec_flag; /* Ensure consistent codec */
                     build_vgmstream_from_chunk(segment_vgmstream, &chunks[i], segmented_sample_rate);
 
-                    if (!vgmstream_open_stream(segment_vgmstream, streamFile, chunks[i].offset)) {
+                    if (!vgmstream_open_stream(segment_vgmstream, sf, chunks[i].offset)) {
                         close_vgmstream(segment_vgmstream);
                         goto fail;
                     }
@@ -269,7 +276,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
             vgmstream->coding_type = (segmented_codec_flag == 1) ? coding_CF_DF_ADPCM_V40 : coding_CF_DF_DPCM_V41;
 
             char basename[STREAM_NAME_SIZE];
-            get_streamfile_filename(streamFile, basename, sizeof(basename));
+            get_streamfile_filename(sf, basename, sizeof(basename));
 
             int max_len = STREAM_NAME_SIZE - TRACK_SUFFIX_SIZE;
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", max_len, basename, target_subsong);
@@ -295,7 +302,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
             strcpy(vgmstream->stream_name, target_chunk->name);
         } else {
             char basename[STREAM_NAME_SIZE];
-            get_streamfile_filename(streamFile,basename,sizeof(basename));
+            get_streamfile_filename(sf,basename,sizeof(basename));
 
             /* Calculate the logical index for this unnamed track */
             int unnamed_track_idx = 0;
@@ -317,7 +324,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *streamFile) {
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", max_len, basename, unnamed_track_idx);
         }
 
-        if (!vgmstream_open_stream(vgmstream, streamFile, target_chunk->offset))
+        if (!vgmstream_open_stream(vgmstream, sf, target_chunk->offset))
             goto fail;
     }
 
