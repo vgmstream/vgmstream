@@ -26,14 +26,14 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
 
     /* checks */
     if ((read_u32be(0x00,sf) & 0xFFFFFF00) != 0) /* first atom BE size (usually ~0x18) */
-        goto fail;
+        return NULL;
     if (!is_id32be(0x04,sf, "ftyp"))
-        goto fail;
+        return NULL;
 
     /* .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS)
      * .msd: UNO (iOS) */
     if (!check_extensions(sf,"mp4,m4a,m4v,lmp4,bin,lbin,msd"))
-        goto fail;
+        return NULL;
 
     file_size = get_streamfile_size(sf);
 
@@ -179,57 +179,5 @@ static void parse_mp4(STREAMFILE* sf, mp4_header* mp4) {
         offset += size; /* atoms don't seem to need to padding byte, unlike RIFF */
     }
 }
-
-/* CRI's encryption info (for lack of a better place) [Final Fantasy Digital Card Game (Browser)]
- * 
- * Like other CRI stuff their MP4 can be encrypted, from file's beginning (including headers).
- * This is more or less how data is decrypted (supposedly, from decompilations), for reference:
- */
-#if 0
-void criAacCodec_SetDecryptionKey(uint64_t keycode, uint16_t* key) {
-    if (!keycode)
-        return;
-    uint16_t k0 = 4 * ((keycode >> 0)  & 0x0FFF) | 1;
-    uint16_t k1 = 2 * ((keycode >> 12) & 0x1FFF) | 1;
-    uint16_t k2 = 4 * ((keycode >> 25) & 0x1FFF) | 1;
-    uint16_t k3 = 2 * ((keycode >> 38) & 0x3FFF) | 1;
-
-    key[0] = k0 ^ k1;
-    key[1] = k1 ^ k2;
-    key[2] = k2 ^ k3;
-    key[3] = ~k3;
-
-    /* criatomexacb_generate_aac_decryption_key is slightly different, unsure which one is used: */
-  //key[0] = k0 ^ k3;
-  //key[1] = k2 ^ k3;
-  //key[2] = k2 ^ k3;
-  //key[3] = ~k3;
-}
-
-void criAacCodec_DecryptData(const uint16_t* key, uint8_t* data, uint32_t size) {
-    if (data_size)
-        return;
-    uint16_t seed0 = ~key[3];
-    uint16_t seed1 = seed0 ^ key[2];
-    uint16_t seed2 = seed1 ^ key[1];
-    uint16_t seed3 = seed2 ^ key[0];
-
-    uint16_t xor = 2 * seed0 | 1;
-    uint16_t add = 2 * seed0 | 1; /* not seed1 */
-    uint16_t mul = 4 * seed2 | 1;
-
-    for (int i = 0; i < data_size; i++) {
-
-        if (!(uint16_t)i) { /* every 0x10000, without modulo */
-            mul = (4 * seed2 + seed3 * (mul & 0xFFFC)) & 0xFFFD | 1;
-            add = (2 * seed0 + seed1 * (add & 0xFFFE)) | 1;
-        }
-        xor = xor * mul + add;
-
-        *data ^= (xor >> 8) & 0xFF;
-        ++data;
-    }
-}
-#endif
 
 #endif
