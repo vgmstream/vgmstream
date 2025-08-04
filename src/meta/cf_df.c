@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/layout_utils.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -65,8 +66,8 @@ static int32_t find_segmented_chunk_size(df_chunk_t* chunks, int total_chunks) {
 }
 
 /* Configure a VGMSTREAM object based on a chunk's properties */
-static void build_vgmstream_from_chunk(VGMSTREAM* vgmstream, df_chunk_t* chunk, int32_t sample_rate_override) {
-    vgmstream->sample_rate = sample_rate_override > 0 ? sample_rate_override : chunk->sample_rate;
+static void build_vgmstream_from_chunk(VGMSTREAM* vgmstream, df_chunk_t* chunk) {
+    vgmstream->sample_rate = chunk->sample_rate;
     vgmstream->stream_size = chunk->size;
     vgmstream->meta_type = meta_CF_DF;
 
@@ -216,14 +217,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > subsongs || subsongs == 0) goto fail;
 
-    vgmstream = allocate_vgmstream(1, 0);
-    if (!vgmstream) goto fail;
-
-    vgmstream->num_streams = subsongs;
-    vgmstream->meta_type = meta_CF_DF;
-
     int current_subsong_idx = 0;
-    df_chunk_t* target_chunk = NULL;
 
     /* Find the target subsong data, handling the segmented track first */
     if (segmented_chunks > 0) {
@@ -231,60 +225,53 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
         if (current_subsong_idx == target_subsong) {
             segmented_layout_data *data = init_layout_segmented(segmented_chunks);
             if (!data) goto fail;
-            vgmstream->layout_data = data;
-            vgmstream->layout_type = layout_segmented;
 
-            int32_t segmented_sample_rate = 0;
-            int segmented_codec_flag = -1;
             int segment_index = 0;
-            vgmstream->num_samples = 0;
-
-            for (i = 0; i < total_chunks; i++) {
-                if (chunks[i].is_segmented_chunk) {
-                    if (chunks[i].sample_rate > segmented_sample_rate) segmented_sample_rate = chunks[i].sample_rate;
-                    if (segmented_codec_flag == -1) segmented_codec_flag = chunks[i].codec_flag;
-                }
-            }
 
             for (i = 0; i < total_chunks; i++) {
                 if (chunks[i].is_segmented_chunk) {
                     VGMSTREAM* segment_vgmstream = allocate_vgmstream(1, 0);
-                    if (!segment_vgmstream) goto fail;
-
-                    segment_vgmstream->sample_rate = segmented_sample_rate;
-                    segment_vgmstream->stream_size = chunks[i].size;
-                    segment_vgmstream->meta_type = meta_CF_DF;
-
-                    chunks[i].codec_flag = segmented_codec_flag; /* Ensure consistent codec */
-                    build_vgmstream_from_chunk(segment_vgmstream, &chunks[i], segmented_sample_rate);
-
-                    if (!vgmstream_open_stream(segment_vgmstream, sf, chunks[i].offset)) {
-                        close_vgmstream(segment_vgmstream);
+                    if (!segment_vgmstream) {
+                        free_layout_segmented(data);
                         goto fail;
                     }
 
-                    data->segments[segment_index] = segment_vgmstream;
-                    vgmstream->num_samples += segment_vgmstream->num_samples;
-                    segment_index++;
+                    build_vgmstream_from_chunk(segment_vgmstream, &chunks[i]);
+
+                    if (!vgmstream_open_stream(segment_vgmstream, sf, chunks[i].offset)) {
+                        close_vgmstream(segment_vgmstream);
+                        free_layout_segmented(data);
+                        goto fail;
+                    }
+
+                    data->segments[segment_index++] = segment_vgmstream;
                 }
             }
 
-            if (!setup_layout_segmented(data))
+            if (!setup_layout_segmented(data)) {
+                free_layout_segmented(data);
                 goto fail;
+            }
 
-            vgmstream->sample_rate = segmented_sample_rate;
-            vgmstream->coding_type = (segmented_codec_flag == 1) ? coding_CF_DF_ADPCM_V40 : coding_CF_DF_DPCM_V41;
+            vgmstream = allocate_segmented_vgmstream(data, 0, -1, -1);
+            if (!vgmstream) {
+                free_layout_segmented(data);
+                goto fail;
+            }
 
             char basename[STREAM_NAME_SIZE];
             get_streamfile_filename(sf, basename, sizeof(basename));
-
             int max_len = STREAM_NAME_SIZE - TRACK_SUFFIX_SIZE;
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", max_len, basename, target_subsong);
         }
     }
 
-    /* Find the target individual chunk if a segmented track wasn't built */
-    if (!vgmstream->layout_data) {
+    /* Handle individual tracks if a segmented one wasn't chosen */
+    if (!vgmstream) {
+        vgmstream = allocate_vgmstream(1, 0);
+        if (!vgmstream) goto fail;
+
+        df_chunk_t* target_chunk = NULL;
         for (i = 0; i < total_chunks; i++) {
             if (chunks[i].is_segmented_chunk) continue;
             current_subsong_idx++;
@@ -296,7 +283,7 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
 
         if (!target_chunk) goto fail;
 
-        build_vgmstream_from_chunk(vgmstream, target_chunk, 0);
+        build_vgmstream_from_chunk(vgmstream, target_chunk);
 
         if (target_chunk->is_named) {
             strcpy(vgmstream->stream_name, target_chunk->name);
@@ -327,6 +314,8 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
         if (!vgmstream_open_stream(vgmstream, sf, target_chunk->offset))
             goto fail;
     }
+
+    vgmstream->num_streams = subsongs;
 
     free(chunks);
     return vgmstream;
