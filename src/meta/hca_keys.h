@@ -1575,6 +1575,8 @@ static const hcakey_info hcakey_list[] = {
     // Patapon 1 & 2 Reloaded (PC)
     {3316332033470531258},      // 2E05FA69EC4286BA
 
+    // Aether Gazer (multi)
+    {1578660190369042886},      // 15E887143BFF51C6
 };
 
 #endif
