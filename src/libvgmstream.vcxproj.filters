@@ -254,6 +254,9 @@
     <ClInclude Include="meta\audiopkg_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\awb_aac_encryption_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\awc_decryption_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

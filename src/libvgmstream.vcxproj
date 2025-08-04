@@ -140,6 +140,7 @@
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\apa3_streamfile.h" />
     <ClInclude Include="meta\audiopkg_streamfile.h" />
+    <ClInclude Include="meta\awb_aac_encryption_streamfile.h" />
     <ClInclude Include="meta\awc_decryption_streamfile.h" />
     <ClInclude Include="meta\awc_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
