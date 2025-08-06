@@ -29,16 +29,12 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
         chunk_size = read_u32be(current_offset + 0x04, sf);
         current_offset += 0x08;
 
-        if (chunk_id == get_id32be("Cue#")) {
-            current_offset += chunk_size;
-            continue;
-        }
-        else if (chunk_id == get_id32be("ADPC")) {
-            current_offset += chunk_size;
-            continue;
-        }
-        else if (chunk_id == get_id32be("Data")) {
+        if (chunk_id == get_id32be("Data")) {
             break;
+        }
+        else if (chunk_id == get_id32be("Cue#") || chunk_id == get_id32be("ADPC")) {
+            current_offset += chunk_size;
+            continue;
         }
         else {
             goto fail;
@@ -86,6 +82,17 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
         //Carmen Sandiego: Word Detective
         case 0x0001: /* IMA ADPCM */
             vgmstream->coding_type = coding_IMA;
+            vgmstream->layout_type = layout_none;
+            break;
+        //Riven DVD
+        case 0x0002: /* MPEG Layer II */
+#if defined(VGM_USE_MPEG)
+            vgmstream->coding_type = coding_MPEG_layer2;
+#elif defined(VGM_USE_FFMPEG)
+            vgmstream->coding_type = coding_FFmpeg;
+#else
+            goto fail;
+#endif
             vgmstream->layout_type = layout_none;
             break;
 
