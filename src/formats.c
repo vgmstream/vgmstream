@@ -944,6 +944,8 @@ static const coding_info coding_info_list[] = {
         {coding_KA1A,               "Koei Tecmo KA1A"},
         {coding_UBI_MPEG,           "Ubisoft MPEG"},
         {coding_MIO,                "Entis MIO"},
+        {coding_CF_DF_ADPCM_V40,    "Cyberflix DreamFactory v4.0 ADPCM"},
+        {coding_CF_DF_DPCM_V41,     "Cyberflix DreamFactory v4.1 DPCM"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
@@ -1493,7 +1495,8 @@ static const meta_info meta_info_list[] = {
         {meta_SWAR,                 "Nintendo SWAR header"},
         {meta_IVB,                  "Metro IVB header"},
         {meta_SRCD,                 "Capcom SRCD header"},
-        {meta_MHWK,                 "Broderbund MHWK header"}
+        {meta_MHWK,                 "Broderbund MHWK header"},
+        {meta_CF_DF,                "Cyberflix DreamFactory header"}
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

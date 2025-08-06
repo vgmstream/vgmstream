@@ -150,6 +150,9 @@ typedef enum {
     coding_UBI_MPEG,        /* Ubisoft MPEG codec (transform-based) */
     coding_MIO,             /* Entis MIO codec (transform-based) */
 
+    coding_CF_DF_ADPCM_V40, /* Cyberflix DreamFactory v4.0 ADPCM */
+    coding_CF_DF_DPCM_V41,  /* Cyberflix DreamFactory v4.1 DPCM */
+
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (transform-based) */
     coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (transform-based) */
@@ -721,7 +724,8 @@ typedef enum {
     meta_SWAR,
     meta_IVB,
     meta_SRCD,
-    meta_MHWK
+    meta_MHWK,
+    meta_CF_DF
 } meta_t;
 
 #endif
