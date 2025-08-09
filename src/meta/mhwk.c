@@ -59,6 +59,55 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
     /* The actual audio data starts after the header's 20 bytes not 28 bytes */
     start_offset = current_offset + 0x14;
 
+    /* Discontinuity fix: (8-bit unsigned PCM only) */
+    if (format == 0x0000 && num_samples >= 4) {
+        const int PCM8_U_SILENCE = 0x80;
+        const int SQUELCH = 32; //Threshold of discontinuity before removing. Lower values = increased sensitivity.
+        off_t window_offset = start_offset + num_samples - 4;
+        uint8_t s[4];
+        int is_safe = 0;
+
+        s[0] = read_u8(window_offset + 0, sf);
+        s[1] = read_u8(window_offset + 1, sf);
+        s[2] = read_u8(window_offset + 2, sf);
+        s[3] = read_u8(window_offset + 3, sf);
+
+        /* Path 1: Check for sustained quietness. If all samples in the window
+         * are very close to silence, the sound is considered stable and safe. */
+        int is_stable_and_quiet = 1;
+        for (int i = 0; i < 4; i++) {
+            if (abs(s[i] - PCM8_U_SILENCE) > SQUELCH) {
+                is_stable_and_quiet = 0;
+                break;
+            }
+        }
+        if (is_stable_and_quiet) {
+            is_safe = 1;
+        }
+
+        /* Path 2: If not stable/quiet, check for a consistent fade-out trend. */
+        if (!is_safe) {
+            int dist_last = abs(s[3] - PCM8_U_SILENCE);
+            int dist_prev = abs(s[2] - PCM8_U_SILENCE);
+            int dist_ante = abs(s[1] - PCM8_U_SILENCE);
+
+            if (dist_last < dist_prev && dist_prev < dist_ante) {
+                is_safe = 1;
+            }
+        }
+
+        /* If the file's ending is neither stable nor fading, apply the fix. */
+        if (!is_safe) {
+            VGM_LOG("MHWK: Discontinuity detected at sample %i (offset 0x%08x). Final samples: 0x%02x 0x%02x 0x%02x 0x%02x. Truncating one sample.\n",
+                    num_samples, (uint32_t)window_offset, s[0], s[1], s[2], s[3]);
+
+            num_samples--;
+            if (loop_flag && loop_end > num_samples) {
+                loop_end = num_samples;
+            }
+        }
+    }
+
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream)
         goto fail;
