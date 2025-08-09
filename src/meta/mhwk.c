@@ -80,8 +80,8 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
             break;
 
         //Carmen Sandiego: Word Detective
-        case 0x0001: /* IMA ADPCM */
-            vgmstream->coding_type = coding_IMA;
+        case 0x0001: /* Intel DVI ADPCM */
+            vgmstream->coding_type = coding_DVI_IMA;
             vgmstream->layout_type = layout_none;
             break;
         //Riven DVD
