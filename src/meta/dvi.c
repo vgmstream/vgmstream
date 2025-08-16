@@ -1,23 +1,22 @@
 #include "meta.h"
 
-/* DVI - from Konami KCE Nayoga SAT games (Castlevania Symphony of the Night, Jikkyou Oshaberi Parodius - Forever with Me) */
-VGMSTREAM* init_vgmstream_sat_dvi(STREAMFILE* sf) {
+/* DVI. - from Konami KCE Nayoga games [Castlevania: Symphony of the Night (SAT), Jikkyou Oshaberi Parodius: Forever with Me (SAT)] */
+VGMSTREAM* init_vgmstream_dvi(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels;
 
-    /* checks
-     * .pcm: original
-     * .dvi: header id (to be removed )*/
-    if (!check_extensions(sf,"pcm,dvi"))
-        goto fail;
-
+    /* checks*/
     if (!is_id32be(0x00,sf, "DVI."))
-        goto fail;
+        return NULL;
+    /* .pcm: original
+     * .dvi: header id (to be removed) */
+    if (!check_extensions(sf,"pcm,dvi"))
+        return NULL;
 
     start_offset = read_s32be(0x04,sf);
     loop_flag = (read_s32be(0x0C,sf) != -1);
-    channels = 2; /* no mono files seem to exists */
+    channels = 2; // no mono files seem to exists
 
 
     /* build the VGMSTREAM */
@@ -31,8 +30,8 @@ VGMSTREAM* init_vgmstream_sat_dvi(STREAMFILE* sf) {
 
     vgmstream->coding_type = coding_DVI_IMA_mono;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x4;
-    vgmstream->meta_type = meta_SAT_DVI;
+    vgmstream->interleave_block_size = 0x04;
+    vgmstream->meta_type = meta_DVI;
 
     /* at 0x10 (L) / 0x20 (R): probably ADPCM loop history @+0x00 and step @+0x17 (not init values) */
 

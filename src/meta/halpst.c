@@ -1,122 +1,89 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
-#include "../util.h"
 
-VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
 
-    int channel_count;
-    int loop_flag = 0;
-    int header_length = 0x80;
+/* HALPST - HAL engine(?) format [Kirby Air Ride (GC), Giftpia (GC), Killer7 (GC)] */
+VGMSTREAM* init_vgmstream_halpst(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
 
-    int32_t samples_l,samples_r;
-    int32_t start_sample = 0;
+    /* checks */
+    if (!is_id32be(0x00, sf, " HAL") && !is_id32be(0x04, sf, "PST\0"))
+        return NULL;
+    if (!check_extensions(sf,"hps"))
+        return NULL;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("hps",filename_extension(filename))) goto fail;
+    int channels, sample_rate, loop_flag = false;
 
-    /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x2048414C || /* " HAL" */
-            read_32bitBE(4,streamFile)!=0x50535400)         /* "PST\0" */
-        goto fail;
-    
-    /* details */
-    channel_count = read_32bitBE(0xc,streamFile);
-    /*max_block = read_32bitBE(0x10,streamFile)/channel_count;*/
+    sample_rate = read_s32be(0x08,sf);
+    channels    = read_s32be(0x0c,sf);
 
-    if (channel_count > 2) {
-        /* align the header length needed for the extra channels */
-        header_length = 0x10+0x38*channel_count;
-        header_length = (header_length+0x1f)/0x20*0x20;
+    // per DSP channel:
+    // 00 max block size?
+    // 04 type 2?
+    // 08 nibbles
+    // 0c type 2?
+    // 10: coefs
+    int32_t num_samples = dsp_nibbles_to_samples(read_u32be(0x18,sf)) + 1;
+
+    uint32_t start_offset = 0x80;
+    // TODO: needed? (only 1/2ch files ad both start at the same offset)
+    if (channels > 2) {
+        // align the header length needed for the extra channels
+        start_offset = 0x10 + 0x38* channels;
+        start_offset = (start_offset + 0x1f) / 0x20 * 0x20;
     }
 
-    /* yay for redundancy, gives us something to test */
-    samples_l = dsp_nibbles_to_samples(read_32bitBE(0x18,streamFile))+1;
-    {
-        int i;
-        for (i=1;i<channel_count;i++) {
-            samples_r = dsp_nibbles_to_samples(read_32bitBE(0x18+0x38*i,streamFile))+1;
-            if (samples_l != samples_r) goto fail;
-        }
-    }
 
-    /*
-     * looping info is implicit in the "next block" field of the final
-     * block, so we have to find that
-     */
+    // looping info is implicit in the "next block" field of the final block
+    int32_t loop_start = 0;
     {
-        off_t offset = header_length, last_offset = 0;
-        off_t loop_offset;
+        off_t last_offset = 0;
+        off_t offset = start_offset;
 
         /* determine if there is a loop */
         while (offset > last_offset) {
             last_offset = offset;
-            offset = read_32bitBE(offset+8,streamFile);
+            offset = read_u32be(offset + 0x08,sf);
         }
-        if (offset < 0) loop_flag = 0;
-        else {
+
+        if (offset >= 0) {
+            loop_flag = true;
+
             /* one more pass to determine start sample */
             int32_t start_nibble = 0;
-            loop_flag = 1;
-
-            loop_offset = offset;
-            offset = header_length;
+            off_t loop_offset = offset;
+            offset = start_offset;
             while (offset != loop_offset) {
-                start_nibble += read_32bitBE(offset+4,streamFile)+1;
-                offset = read_32bitBE(offset+8,streamFile);
+                start_nibble += read_s32be(offset + 0x04,sf) + 1;
+                offset = read_u32be(offset + 0x08,sf);
             }
 
-            start_sample = dsp_nibbles_to_samples(start_nibble);
+            loop_start = dsp_nibbles_to_samples(start_nibble);
         }
-
     }
 
     /* build the VGMSTREAM */
-
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = samples_l;
-    vgmstream->sample_rate = read_32bitBE(8,streamFile);
-    /* channels and loop flag are set by allocate_vgmstream */
-    if (loop_flag) {
-        vgmstream->loop_start_sample = start_sample;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
+    vgmstream->num_samples = num_samples;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_blocked_halpst;
     vgmstream->meta_type = meta_HALPST;
 
-    /* load decode coefs */
-    {
-        int i,j;
-        for (i=0;i<channel_count;i++)
-            for (j=0;j<16;j++)
-                vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(0x20+0x38*i+j*2,streamFile);
-    }
+    dsp_read_coefs_be(vgmstream, sf, 0x10 + 0x10, 0x38);
 
-    /* open the file for reading by each channel */
-    {
-        int i;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
 
-            if (!vgmstream->ch[i].streamfile) goto fail;
-        }
-    }
-
-    /* start me up */
-    block_update_halpst(header_length,vgmstream);
-
+    //block_update(header_length, vgmstream);
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

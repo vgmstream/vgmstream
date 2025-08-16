@@ -5,10 +5,9 @@
 
 
 #define CLI_PATH_LIMIT 4096
+#define CLI_MAX_FLAGS 32  //only up to first N args, probably not that many
 
 typedef struct {
-    char** infilenames;
-    int infilenames_count;
     const char* infilename;
 
     const char* outfilename_config;
@@ -57,9 +56,13 @@ typedef struct {
     int stereo_track;
 
 
-    /* not quite config but eh */
+    // not quite config but eh
     int subsong_current_index;
     int subsong_current_end;
+
+    // to detect flags from filenames in argv
+    bool flag_index[CLI_MAX_FLAGS];
+
 } cli_config_t;
 
 

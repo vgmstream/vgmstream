@@ -81,8 +81,8 @@ static void build_vgmstream_from_chunk(VGMSTREAM* vgmstream, df_chunk_t* chunk) 
 }
 
 /* Main function to build the VGMSTREAM object */
-VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     df_chunk_t* chunks = NULL;
     int i, j;
     int total_chunks = 0;
@@ -91,8 +91,6 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
     const int HEADER_SIZE = 0x400;
     const int TRACK_SUFFIX_SIZE = (5 + 1 + 1); // Subsongs up to 5 digits plus # and \0
 
-    if (!check_extensions(sf, "snd,sfx,mov"))
-        goto fail;
 
     /* Header Check:
      *
@@ -100,13 +98,21 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
      * TO-DO: Possibly also start with 0x100, 0 at 0x08/0x0C? Needs confirmation.
      *
      */
-    if (read_32bitBE(0x20, sf) != get_id32be("LPPA") || read_32bitBE(0x24, sf) != get_id32be("LPPA"))
-        goto fail;
+    if (!is_id32be(0x20, sf,"LPPA") || !is_id32be(0x24, sf,"LPPA"))
+        return NULL;
     if (read_u32le(0x04, sf) != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
+
+    if (!check_extensions(sf, "snd,sfx,mov"))
+        return NULL;
+
     int containers = read_u32le(0x14, sf);
     if (containers <= 0 || containers > INT16_MAX) //Practically 2 bytes should be enough.
-        goto fail;
+        return NULL;
+
+    int segmented_chunks;
+    int32_t segmented_chunk_size;
+    int subsongs, current_subsong_idx;
 
     /* Find and catalog all physical audio containers */
     chunks = calloc(containers, sizeof(df_chunk_t));
@@ -189,8 +195,8 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
     }
 
     /* Partition unnamed audio into segmented chunks */
-    int segmented_chunks = 0;
-    int32_t segmented_chunk_size = find_segmented_chunk_size(chunks, total_chunks);
+    segmented_chunks = 0;
+    segmented_chunk_size = find_segmented_chunk_size(chunks, total_chunks);
 
     if (segmented_chunk_size > 0) {
         const int SEGMENT_LIMIT = 16;
@@ -213,20 +219,22 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
     }
 
     /* --- Stage 4: Build the VGMSTREAM object --- */
-    int subsongs = (total_chunks - segmented_chunks) + (segmented_chunks > 0 ? 1 : 0);
+    subsongs = (total_chunks - segmented_chunks) + (segmented_chunks > 0 ? 1 : 0);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > subsongs || subsongs == 0) goto fail;
 
-    int current_subsong_idx = 0;
+    current_subsong_idx = 0;
 
     /* Find the target subsong data, handling the segmented track first */
     if (segmented_chunks > 0) {
         current_subsong_idx++;
         if (current_subsong_idx == target_subsong) {
+            char basename[STREAM_NAME_SIZE];
+            int max_len;
+            int segment_index = 0;
+
             segmented_layout_data *data = init_layout_segmented(segmented_chunks);
             if (!data) goto fail;
-
-            int segment_index = 0;
 
             for (i = 0; i < total_chunks; i++) {
                 if (chunks[i].is_segmented_chunk) {
@@ -259,19 +267,19 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
                 goto fail;
             }
 
-            char basename[STREAM_NAME_SIZE];
             get_streamfile_filename(sf, basename, sizeof(basename));
-            int max_len = STREAM_NAME_SIZE - TRACK_SUFFIX_SIZE;
+            max_len = STREAM_NAME_SIZE - TRACK_SUFFIX_SIZE;
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", max_len, basename, target_subsong);
         }
     }
 
     /* Handle individual tracks if a segmented one wasn't chosen */
     if (!vgmstream) {
+        df_chunk_t* target_chunk = NULL;
+
         vgmstream = allocate_vgmstream(1, 0);
         if (!vgmstream) goto fail;
 
-        df_chunk_t* target_chunk = NULL;
         for (i = 0; i < total_chunks; i++) {
             if (chunks[i].is_segmented_chunk) continue;
             current_subsong_idx++;
@@ -281,7 +289,8 @@ VGMSTREAM * init_vgmstream_cf_df(STREAMFILE *sf) {
             }
         }
 
-        if (!target_chunk) goto fail;
+        if (!target_chunk)
+            goto fail;
 
         build_vgmstream_from_chunk(vgmstream, target_chunk);
 

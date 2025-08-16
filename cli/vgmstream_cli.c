@@ -95,11 +95,14 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     cfg->seek_samples1 = -1;
     cfg->seek_samples2 = -1;
 
-    opterr = 0; /* don't let getopt print errors to stdout automatically */
-    optind = 1; /* reset getopt's ugly globals (needed in wasm that may call same main() multiple times) */
+    opterr = 0; // don't let getopt print errors to stdout automatically
+    optind = 1; // reset getopt's ugly globals (needed in wasm that may call same main() multiple times)
+    optarg = NULL;
 
-    /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
+    int filenames_count = 0;
+
+    // read config (first char "-" allows getopt to handle flags after filenames)
+    while ((opt = getopt(argc, argv, "-o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -221,32 +224,36 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
             case 'I':
                 cfg->print_metajson = true;
                 break;
-            case '?':
+
+            case '?': // unknown -* flag
                 fprintf(stderr, "missing argument or unknown option -%c\n", optopt);
+                print_usage(argv[0], false);
                 goto fail;
+
+            case 1: // 'filename' when setting getopt to RETURN_IN_ORDER (options string starts with "-")
+                filenames_count++;
+                break;
+
             default:
                 print_usage(argv[0], false);
                 goto fail;
         }
-    }
 
-    /* filenames go last in POSIX getopt, not so in glibc getopt */ //TODO unify
-    if (optind != argc - 1) {
-
-        /* check there aren't commands after filename */
-        for (int i = optind; i < argc; i++) {
-            if (argv[i][0] == '-') {
-                fprintf(stderr, "input files must go after options\n");
-                goto fail;
+        // CLI accepts N filenames and flags in any position. Since filename list can be huge (ex. drag-and-drop) it's read from argv as-is.
+        // Instead, mark flags+parameters at their index (potentially a lot less flags), so they can be skipped later without re-parsing.
+        if (optind < CLI_MAX_FLAGS) {
+            bool is_file = opt == 1; // with files, optarg is the filename
+            int argv_index = optind - (!is_file && optarg ? 2 : 1);
+            cfg->flag_index[argv_index] = !is_file;
+            if (!is_file && optarg > 0) { // has parameter
+                cfg->flag_index[argv_index + 1] = true;
             }
         }
     }
 
-    cfg->infilenames = &argv[optind];
-    cfg->infilenames_count = argc - optind;
-    if (cfg->infilenames_count <= 0) {
-        fprintf(stderr, "missing input file\n");
-        print_usage(argv[0], 0);
+    if (filenames_count <= 0) {
+        fprintf(stderr, "missing input file(s)\n");
+        print_usage(argv[0], false);
         goto fail;
     }
 
@@ -630,9 +637,14 @@ int main(int argc, char** argv) {
 #endif
 
     ok = false;
-    for (int i = 0; i < cfg.infilenames_count; i++) {
-        /* current name, to avoid passing params all the time */
-        cfg.infilename = cfg.infilenames[i];
+    for (int i = 1; i < argc; i++) {
+        // ignore flags
+        if (i < CLI_MAX_FLAGS && cfg.flag_index[i]) {
+            continue;
+        }
+
+        // current name, to avoid passing params all the time
+        cfg.infilename = argv[i];
         if (cfg.outfilename_config)
             cfg.outfilename = NULL;
 

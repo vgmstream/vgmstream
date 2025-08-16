@@ -23,7 +23,7 @@ typedef struct {
 } xvag_io_data;
 
 
-static size_t xvag_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, xvag_io_data* data) {
+static size_t xvag_io_read(STREAMFILE* sf, uint8_t* dst, off_t offset, size_t length, xvag_io_data* data) {
     size_t total_read = 0;
 
     /* ignore bad reads */
@@ -53,7 +53,7 @@ static size_t xvag_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             data->data_size = data->interleave_size;
 
             /* some ATRAC9 XVAG have padding+RIFF at start [The Last of Us (PS4), Farpoint (PS4)] */
-            if (data->logical_offset == 0 && read_32bitBE(data->physical_offset+data->skip_size,streamfile) == 0) {
+            if (data->logical_offset == 0 && read_32bitBE(data->physical_offset+data->skip_size,sf) == 0) {
                 data->skip_size += data->frame_size;
                 data->data_size -= data->frame_size;
             }
@@ -76,12 +76,12 @@ static size_t xvag_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             to_read = data->data_size - bytes_consumed;
             if (to_read > length)
                 to_read = length;
-            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
+            bytes_done = read_streamfile(dst, data->physical_offset + data->skip_size + bytes_consumed, to_read, sf);
 
             offset += bytes_done;
             total_read += bytes_done;
             length -= bytes_done;
-            dest += bytes_done;
+            dst += bytes_done;
 
             if (bytes_done != to_read || bytes_done == 0) {
                 break; /* error/EOF */
@@ -93,9 +93,9 @@ static size_t xvag_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
     return total_read;
 }
 
-static size_t xvag_io_size(STREAMFILE *streamfile, xvag_io_data* data) {
+static size_t xvag_io_size(STREAMFILE* sf, xvag_io_data* data) {
     off_t physical_offset = data->stream_offset;
-    off_t  max_physical_offset = get_streamfile_size(streamfile);
+    off_t  max_physical_offset = get_streamfile_size(sf);
     size_t logical_size = 0;
 
     if (data->logical_size)
@@ -107,7 +107,7 @@ static size_t xvag_io_size(STREAMFILE *streamfile, xvag_io_data* data) {
         size_t data_size = data->interleave_size;
 
         /* some ATRAC9 XVAG have padding+RIFF at start [The Last of Us (PS4), Farpoint (PS4)] */
-        if (logical_size == 0 && read_32bitBE(physical_offset+skip_size,streamfile) == 0) {
+        if (logical_size == 0 && read_32bitBE(physical_offset+skip_size,sf) == 0) {
             skip_size += data->frame_size;
             data_size -= data->frame_size;
         }
@@ -124,8 +124,8 @@ static size_t xvag_io_size(STREAMFILE *streamfile, xvag_io_data* data) {
 
 /* Prepares custom IO for XVAG, which interleaves many superframes per subsong/layer.
  * May have start padding, even with only one subsong. All layers share config_data too. */
-static STREAMFILE* setup_xvag_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t interleave_size, size_t frame_size, int stream_number, int stream_count) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_xvag_streamfile(STREAMFILE* sf, off_t stream_offset, size_t interleave_size, size_t frame_size, int stream_number, int stream_count) {
+    STREAMFILE* new_sf = NULL;
     xvag_io_data io_data = {0};
     size_t io_data_size = sizeof(xvag_io_data);
 
@@ -136,28 +136,17 @@ static STREAMFILE* setup_xvag_streamfile(STREAMFILE *streamFile, off_t stream_of
     io_data.interleave_size = interleave_size;
     io_data.frame_size = frame_size;
     io_data.physical_offset = stream_offset;
-    io_data.logical_size = xvag_io_size(streamFile, &io_data); /* force init */
+    io_data.logical_size = xvag_io_size(sf, &io_data); /* force init */
 
     if (io_data.logical_size == 0) {
         VGM_LOG("XVAG: wrong logical size\n");
-        goto fail;
+        return NULL;
     }
 
     /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, xvag_io_read,xvag_io_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_streamfile_f(new_sf, &io_data,io_data_size, xvag_io_read,xvag_io_size);
+    return new_sf;
 }
 
-
-#endif /* _XVAG_STREAMFILE_H_ */
+#endif
