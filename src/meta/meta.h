@@ -226,11 +226,11 @@ VGMSTREAM* init_vgmstream_ikm(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ster(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_sat_dvi(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_dvi(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_bg00(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_bg00(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_dc_kcey(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_kcey(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_rstm_rockstar(STREAMFILE* sf);
 
@@ -349,7 +349,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile);
 
 VGMSTREAM* init_vgmstream_str_sqex(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_sat_baka(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_baka(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_swav(STREAMFILE *streamFile);
 

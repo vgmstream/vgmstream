@@ -391,7 +391,7 @@ typedef enum {
     meta_SMP,
     meta_WII_SNG,           /* Excite Trucks */
     meta_MUL,
-    meta_SAT_BAKA,          /* Crypt Killer */
+    meta_BAKA,
     meta_VSF,
     meta_SMSS,
     meta_ADS_MIDWAY,
@@ -427,8 +427,8 @@ typedef enum {
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* Visual Art's NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* Visual Art's NWA w/ Gameexe.ini for looping */
-    meta_SAT_DVI,           /* Konami KCE Nagoya DVI (SAT games) */
-    meta_DC_KCEY,           /* Konami KCE Yokohama KCEYCOMP (DC games) */
+    meta_DVI,
+    meta_KCEY,
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DEC,               /* Falcom PC games (Xanadu Next, Gurumin) */

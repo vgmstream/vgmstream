@@ -1,26 +1,26 @@
 #include "meta.h"
 #include "../util.h"
 
-/* BAKA - from KCET games [Crypt Killer (Saturn)] */
-VGMSTREAM* init_vgmstream_sat_baka(STREAMFILE *sf) {
+/* BAKA - from KCET games [Crypt Killer (SAT)] */
+VGMSTREAM* init_vgmstream_baka(STREAMFILE *sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels;
 
     /* checks */
     if (!is_id32be(0x00,sf, "BAKA"))
-        goto fail;
+        return NULL;
 
     /* (extensionless): original
      * .baka: header id */
     if (!check_extensions(sf, ",baka"))
-        goto fail;
+        return NULL;
 
     /* RIFF style chunks */
     if (!is_id32be(0x08,sf, " AHO") || 
         !is_id32be(0x0C,sf, "PAPA") ||
         !is_id32be(0x26,sf, "MAMA"))
-        goto fail;
+        return NULL;
 
     //todo begloop markers at EOF
     loop_flag = 0;
@@ -37,13 +37,12 @@ VGMSTREAM* init_vgmstream_sat_baka(STREAMFILE *sf) {
 
     vgmstream->coding_type = coding_PCM16BE;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x2;
-    vgmstream->meta_type = meta_SAT_BAKA;
+    vgmstream->interleave_block_size = 0x02;
+    vgmstream->meta_type = meta_BAKA;
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;
