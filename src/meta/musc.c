@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 
-/* MUSC - from Krome's PS2 games (The Legend of Spyro, Ty the Tasmanian Tiger) */
+/* MUSC - from Krome games [The Legend of Spyro (PS2), Ty the Tasmanian Tiger (PS2)] */
 VGMSTREAM* init_vgmstream_musc(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int loop_flag, channels;
@@ -11,17 +11,18 @@ VGMSTREAM* init_vgmstream_musc(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "MUSC"))
+        return NULL;
     /* .mus: actual extension
      * .musc: header ID */
     if (!check_extensions(sf,"mus,musc"))
-        goto fail;
-    if (!is_id32be(0x00,sf, "MUSC"))
-        goto fail;
+        return NULL;
 
     start_offset = read_u32le(0x10,sf);
     data_size    = read_u32le(0x14,sf);
     if (start_offset + data_size != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
+
     /* always does full loops unless it ends in silence */
     loop_flag = read_u32be(get_streamfile_size(sf) - 0x10,sf) != 0x0C000000;
     channels = 2;

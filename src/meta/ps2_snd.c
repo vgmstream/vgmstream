@@ -1,53 +1,48 @@
 #include "meta.h"
-#include "../util.h"
+#include "../util/meta_utils.h"
 
-/* SND - Might and Magic games [Warriors of M&M (PS2), Heroes of M&M: Quest for the DragonBone Staff (PS2)] */
-VGMSTREAM * init_vgmstream_ps2_snd(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
-    size_t data_size;
-    int loop_flag, channel_count;
+/* SSND - The 3DS Company games [Warriors of Might & Magic (PS2), Portal Runner (PS2), ] */
+VGMSTREAM* init_vgmstream_ssnd(STREAMFILE* sf) {
 
     /* checks */
-    if (!check_extensions(streamFile, "snd"))
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x53534E44) /* "SSND" */
-        goto fail;
+    if (!is_id32be(0x00, sf, "SSND"))
+        return NULL;
+    if (!check_extensions(sf,"snd"))
+        return NULL;
 
-    start_offset = read_32bitLE(0x04,streamFile)+0x08;
-    data_size = get_streamfile_size(streamFile) - start_offset;
+    meta_header_t h = {0};
+    h.stream_offset = read_u32le(0x04,sf) + 0x08;
+    uint16_t codec  = read_u16le(0x08,sf);
+    h.channels      = read_u16le(0x0a,sf);
+    //0c: bps? (always 16)
+    h.sample_rate   = read_u32le(0x0e,sf);
+    h.interleave    = read_u32le(0x12,sf);
+    h.num_samples   = read_s32le(0x16,sf);
+    // rest: padding (may be null with stream_offset = 0x1a)
 
-    loop_flag = 1; /* force full Loop */
-    channel_count = read_16bitLE(0x0a,streamFile);
+    h.loop_flag     = true; // force full loop //TODO: needed?
+    h.loop_start    = 0;
+    h.loop_end      = h.num_samples;
 
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    h.stream_size   = get_streamfile_size(sf) - h.stream_offset;
+    if (h.interleave)
+        h.interleave_last = (h.stream_size % (h.interleave * h.channels)) / h.channels;
 
-    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x0e,streamFile);
-    vgmstream->num_samples = read_32bitLE(0x16,streamFile);
-    vgmstream->loop_start_sample = 0;
-    vgmstream->loop_end_sample = vgmstream->num_samples;
-
-    vgmstream->meta_type = meta_PS2_SND;
-
-    if (read_8bit(0x08,streamFile)==1) {
-        vgmstream->coding_type = coding_DVI_IMA_mono; /* Warriors of M&M DragonBone */
+    h.layout = layout_interleave;
+    switch(codec) {
+        case 0x00: // Heroes of Might and Magic: Quest for the DragonBone Staff (PS2)
+            h.coding = coding_PCM16LE;
+            break;
+        case 0x01: // others
+            h.coding = coding_DVI_IMA_mono;
+            break;
+        default:
+            return NULL;
     }
-    else {
-        vgmstream->coding_type = coding_PCM16LE; /* Heroes of M&M */
-    }
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = (uint16_t)read_16bitLE(0x12,streamFile);
-    if (vgmstream->interleave_block_size)
-        vgmstream->interleave_last_block_size = (data_size % (vgmstream->interleave_block_size*vgmstream->channels)) / vgmstream->channels;
 
+    h.sf = sf;
+    h.open_stream = true;
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
-        goto fail;
-    return vgmstream;
-
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
+    h.meta = meta_SSND;
+    return alloc_metastream(&h);
 }

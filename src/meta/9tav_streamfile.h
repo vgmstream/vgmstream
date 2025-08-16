@@ -141,14 +141,14 @@ static size_t ntav_io_size(STREAMFILE *streamfile, ntav_io_data* data) {
  * KCEJ blocks have a data_size field and rest is padding.  Even after that all blocks start
  * with 0 (skipped) and there are padding blocks that start with LE 0xDEADBEEF.
  * This streamfile handles 9tav extracted like regular sdt and remove padding manually. */
-static STREAMFILE* setup_9tav_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t track_size, int track_number, int track_count) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_9tav_streamfile(STREAMFILE* sf, off_t stream_offset, size_t track_size, int track_number, int track_count) {
+    STREAMFILE* new_sf = NULL;
     ntav_io_data io_data = {0};
     size_t io_data_size = sizeof(ntav_io_data);
     size_t last_size;
 
     io_data.stream_offset = stream_offset;
-    io_data.stream_size = get_streamfile_size(streamFile) - stream_offset;
+    io_data.stream_size = get_streamfile_size(sf) - stream_offset;
     io_data.track_size = track_size;
     io_data.track_number = track_number;
     io_data.track_count = track_count;
@@ -160,23 +160,10 @@ static STREAMFILE* setup_9tav_streamfile(STREAMFILE *streamFile, off_t stream_of
     io_data.logical_offset = -1; /* force state reset */
 
     /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, ntav_io_read,ntav_io_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_buffer_streamfile(new_streamFile,0);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_wrap_streamfile_f(sf);
+    new_sf = open_io_streamfile_f(new_sf, &io_data,io_data_size, ntav_io_read,ntav_io_size);
+    new_sf = open_buffer_streamfile_f(new_sf,0);
+    return new_sf;
 }
 
-#endif /* _9TAV_STREAMFILE_H_ */
+#endif

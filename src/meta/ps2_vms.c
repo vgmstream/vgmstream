@@ -1,66 +1,36 @@
 #include "meta.h"
-#include "../util.h"
+#include "../util/meta_utils.h"
 
-/* VMS (Autobahn Raser: Police Madness [SLES-53536]) */
-VGMSTREAM * init_vgmstream_ps2_vms(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    
-    int loop_flag = 0;
-    int channel_count;
-    int header_size;
+/* VMS - from Davilex games [Autobahn Raser: Police Madness (PS2)] */
+VGMSTREAM* init_vgmstream_vms(STREAMFILE* sf) {
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vms",filename_extension(filename))) goto fail;
+    /* checks */
+    if (!is_id32be(0x00, sf, "VMS "))
+        return NULL;
+    if (!check_extensions(sf,"vms"))
+        return NULL;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x564D5320)
-        goto fail;
+    meta_header_t h = {0};
+    //04: channels? version?
+    h.channels      = read_u8(0x08,sf); //always 1?
+    //0c: total frames
+    h.interleave    = read_u32le(0x10,sf);
+    h.sample_rate   = read_s32le(0x14,sf);
+    // 08: 0x20?
+    h.stream_offset = read_u32le(0x1c,sf);
+    // 20: VAGp header
 
-    loop_flag = 1;
-    channel_count = read_8bit(0x08,streamFile);
-    header_size = read_32bitLE(0x1C, streamFile);
-    
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    h.stream_size   = get_streamfile_size(sf) - h.stream_offset;
+    h.num_samples   = ps_bytes_to_samples(h.stream_size, h.channels);
+    // some tracks have flags and do full loops, but other that don't need to loop set them too
+    //h.loop_flag = ps_find_loop_offsets(sf, h.stream_offset, h.stream_size, h.channels, h.interleave, &h.loop_start, &h.loop_end);
 
-    /* fill in the vital statistics */
-    start_offset = header_size;
+    h.coding = coding_PSX;
+    h.layout = layout_interleave;
 
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x14,streamFile);
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = ((get_streamfile_size(streamFile) - header_size)/16/ channel_count * 28);
+    h.sf = sf;
+    h.open_stream = true;
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
-    vgmstream->meta_type = meta_PS2_VMS;
-    vgmstream->loop_start_sample = 0;
-    vgmstream->loop_end_sample = (get_streamfile_size(streamFile))/16/ channel_count * 28;
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
-    return vgmstream;
-
-    /* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    h.meta = meta_VMS;
+    return alloc_metastream(&h);
 }

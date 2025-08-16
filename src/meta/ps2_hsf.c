@@ -1,102 +1,45 @@
 #include "meta.h"
-#include "../util.h"
+#include "../util/meta_utils.h"
 
-/* HSF - Found in Lowrider (PS2) - STREAM.BIN archive */
-VGMSTREAM * init_vgmstream_ps2_hsf(STREAMFILE *streamFile) 
-{
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag = 0;
-    int channel_count;
-    size_t fileLength;
-    size_t frequencyFlag;
+/* HSF - 'SoundBox' driver games (by CAPS?) [EX Jinsei Game (PS2), Lowrider (PS2), Professional Drift: D1 Grand Prix Series (PS2)] */
+VGMSTREAM* init_vgmstream_hsf(STREAMFILE* sf) {
 
-#if 0
-    off_t readOffset = 0;
-    uint8_t testBuffer[0x10];
-    off_t loopEndOffset;
-#endif
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("hsf",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x48534600) // "HSF"
-        goto fail;
-
-    loop_flag = 0;
-    channel_count = 2;
-    fileLength = get_streamfile_size(streamFile);
-    frequencyFlag = read_32bitLE(0x08, streamFile);
-
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-    /* fill in the vital statistics */
-    start_offset = 0x10;
-    vgmstream->channels = channel_count;
-    
-    if (frequencyFlag == 0x0EB3)
-    {
-        vgmstream->sample_rate = 44100;
+    /* checks */
+    int version;
+    if (is_id32be(0x00, sf, "HSF\0")) {
+        version = 1; // "SBX driver version 1.0.0" [EX Jinsei Game (PS2)] / "2.1.0" [Lowrider (PS2)]
     }
-    else if (frequencyFlag == 0x1000)
-    {
-        vgmstream->sample_rate = 48000;
+    else if (is_id32be(0x00, sf, "HSF ")) {
+        version = 3; // "SBX driver version 3.2.0" 
+    }
+    else {
+        return NULL;
     }
 
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = ((fileLength - 0x10) / 16 * 28) / vgmstream->channels;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x0C, streamFile);
-    vgmstream->meta_type = meta_PS2_HSF;
+    /* .hsf: actual extension in exes */
+    if (!check_extensions(sf,"hsf"))
+        return NULL;
 
-    if (vgmstream->loop_flag)
-    {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
+    meta_header_t h = {0};
+    //04: 0x00 in EX Jinsei Game, 0x03 in others (flags? sfx only in .hsb sound banks)
+    h.sample_rate   = read_s32le(0x08,sf);
+    h.interleave    = read_u32le(0x0c,sf);
 
-#if 0
-        readOffset = fileLength - 0x10;
-
-        do
-        {
-            readOffset -=(off_t)read_streamfile(testBuffer, readOffset, 0x10, streamFile);
-
-            if (testBuffer[1] == 0x07)
-            {
-                loopEndOffset = readOffset + 0x10;
-                vgmstream->loop_end_sample = ((loopEndOffset - 0x10) / 16 * 28) / vgmstream->channels;
-                break;
-            }
-
-        } while (readOffset > 0);
-#endif
+    if (version < 3) { // pitch (48000 or 44100)
+        h.sample_rate = round10((48000 * h.sample_rate) / 4096);
     }
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    h.stream_offset = 0x10;
+    h.stream_size   = get_streamfile_size(sf) - h.stream_offset;
+    h.channels      = 2;
+    h.num_samples   = ps_bytes_to_samples(h.stream_size, h.channels);
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+    h.coding = coding_PSX;
+    h.layout = layout_interleave;
 
-        }
-    }
+    h.sf = sf;
+    h.open_stream = true;
 
-    return vgmstream;
-
-    /* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    h.meta = meta_HSF;
+    return alloc_metastream(&h);
 }
