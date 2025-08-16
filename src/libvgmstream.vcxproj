@@ -486,7 +486,6 @@
     <ClCompile Include="meta\cstr.c" />
     <ClCompile Include="meta\cxs.c" />
     <ClCompile Include="meta\dcs_wav.c" />
-    <ClCompile Include="meta\dc_idvi.c" />
     <ClCompile Include="meta\dc_kcey.c" />
     <ClCompile Include="meta\deblock_streamfile.c" />
     <ClCompile Include="meta\dec.c" />
@@ -549,11 +548,13 @@
     <ClCompile Include="meta\hd_bd.c" />
     <ClCompile Include="meta\hgc1.c" />
     <ClCompile Include="meta\his.c" />
+    <ClCompile Include="meta\hsf.c" />
     <ClCompile Include="meta\hxd.c" />
     <ClCompile Include="meta\i3ds.c" />
     <ClCompile Include="meta\iab.c" />
     <ClCompile Include="meta\idsp_ie.c" />
     <ClCompile Include="meta\idtech.c" />
+    <ClCompile Include="meta\idvi.c" />
     <ClCompile Include="meta\ifs.c" />
     <ClCompile Include="meta\iivb.c" />
     <ClCompile Include="meta\ikm.c" />
@@ -657,12 +658,9 @@
     <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
-    <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_snd.c" />
     <ClCompile Include="meta\ps2_sps.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
-    <ClCompile Include="meta\ps2_vms.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />
@@ -739,6 +737,7 @@
     <ClCompile Include="meta\sre_pcm.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
+    <ClCompile Include="meta\ssnd.c" />
     <ClCompile Include="meta\ssp.c" />
     <ClCompile Include="meta\sspf.c" />
     <ClCompile Include="meta\sspr.c" />
@@ -789,6 +788,7 @@
     <ClCompile Include="meta\vgv.c" />
     <ClCompile Include="meta\vid1.c" />
     <ClCompile Include="meta\vig_kces.c" />
+    <ClCompile Include="meta\vms.c" />
     <ClCompile Include="meta\voi.c" />
     <ClCompile Include="meta\vpk.c" />
     <ClCompile Include="meta\vs.c" />

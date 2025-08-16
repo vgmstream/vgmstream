@@ -1288,9 +1288,6 @@
     <ClCompile Include="meta\dcs_wav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\dc_idvi.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\dc_kcey.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1477,6 +1474,9 @@
     <ClCompile Include="meta\his.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\hsf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\hxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1490,6 +1490,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\idtech.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\idvi.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ifs.c">
@@ -1801,22 +1804,13 @@
     <ClCompile Include="meta\ps2_bmdx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_hsf.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_joe.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_snd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_sps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_vbk.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_vms.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\psb.c">
@@ -2047,6 +2041,9 @@
     <ClCompile Include="meta\sscf_encrypted.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ssnd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ssp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2195,6 +2192,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vig_kces.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\vms.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\voi.c">

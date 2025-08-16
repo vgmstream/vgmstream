@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
+//TODO remove
 /* SPS (from Ape Escape 2) */
 VGMSTREAM * init_vgmstream_ps2_sps(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
