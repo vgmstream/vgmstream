@@ -455,6 +455,7 @@
     <ClCompile Include="meta\awd.c" />
     <ClCompile Include="meta\axhd.c" />
     <ClCompile Include="meta\baf.c" />
+    <ClCompile Include="meta\baka.c" />
     <ClCompile Include="meta\bar.c" />
     <ClCompile Include="meta\bcstm.c" />
     <ClCompile Include="meta\bfstm.c" />
@@ -486,7 +487,6 @@
     <ClCompile Include="meta\cstr.c" />
     <ClCompile Include="meta\cxs.c" />
     <ClCompile Include="meta\dcs_wav.c" />
-    <ClCompile Include="meta\dc_kcey.c" />
     <ClCompile Include="meta\deblock_streamfile.c" />
     <ClCompile Include="meta\dec.c" />
     <ClCompile Include="meta\derf.c" />
@@ -495,6 +495,7 @@
     <ClCompile Include="meta\dsb.c" />
     <ClCompile Include="meta\dsf.c" />
     <ClCompile Include="meta\dsp_kceje.c" />
+    <ClCompile Include="meta\dvi.c" />
     <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_eaac.c" />
     <ClCompile Include="meta\ea_eaac_abk.c" />
@@ -569,6 +570,7 @@
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ka1a.c" />
     <ClCompile Include="meta\kat.c" />
+    <ClCompile Include="meta\kcey.c" />
     <ClCompile Include="meta\kma9.c" />
     <ClCompile Include="meta\knon.c" />
     <ClCompile Include="meta\kraw.c" />
@@ -692,8 +694,6 @@
     <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\sadf.c" />
     <ClCompile Include="meta\sadl.c" />
-    <ClCompile Include="meta\sat_baka.c" />
-    <ClCompile Include="meta\sat_dvi.c" />
     <ClCompile Include="meta\sat_sap.c" />
     <ClCompile Include="meta\sbk.c" />
     <ClCompile Include="meta\scd_pcm.c" />
