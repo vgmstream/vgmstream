@@ -395,7 +395,6 @@ typedef enum {
     meta_VSF,
     meta_SMSS,
     meta_ADS_MIDWAY,
-    meta_PS2_SPS,           /* Ape Escape 2 */
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
     meta_RAW_WAVM,
     meta_WVS,

@@ -140,7 +140,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_redspark,
     init_vgmstream_wii_wsd,
     init_vgmstream_dsp_ndp,
-    init_vgmstream_ps2_sps,
     init_vgmstream_nds_hwas,
     init_vgmstream_lps,
     init_vgmstream_ssnd,

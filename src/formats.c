@@ -1203,7 +1203,6 @@ static const meta_info meta_info_list[] = {
         {meta_RAGE_AUD,             "Rockstar AUD header"},
         {meta_DSP_WII_WSD,          ".WSD header"},
         {meta_WII_NDP,              "Icon Games NDP header"},
-        {meta_PS2_SPS,              "Ape Escape 2 SPS Header"},
         {meta_NDS_HWAS,             "Vicarious Visions HWAS header"},
         {meta_LPS,                  "Konami .LPS Header"},
         {meta_NAOMI_ADPCM,          "NAOMI/NAOMI2 Arcade games ADPCM header"},

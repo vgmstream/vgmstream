@@ -661,7 +661,6 @@
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_sps.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
