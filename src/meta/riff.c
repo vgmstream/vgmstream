@@ -484,9 +484,11 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .se: Rockman X4 (PC)
      * .v: Rozen Maiden: Duellwalzer (PS2)
      * .xst: Animaniacs: The Great Edgar Hunt (Xbox)
-     * .wxv: Dariusburst (PSP)
+     * .wxv: Dariusburst (PSP)[ATRAC3]
+     * .vag: Knight Rider (PS2)
+     * .xbw: Elminage: Yami no Fujo to Kamigami no Yubiwa (PS2)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst,wxv")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst,wxv,vag,xbw")) {
         return NULL;
     }
 
