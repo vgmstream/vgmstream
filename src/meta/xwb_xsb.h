@@ -548,18 +548,19 @@ static int parse_xsb_sound(xsb_header *xsb, off_t offset, off_t name_offset, STR
 }
 
 static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
+    read_u32_t read_u32 = xsb->big_endian ? read_u32be : read_u32le;
     read_s32_t read_s32 = xsb->big_endian ? read_s32be : read_s32le;
-    read_u16_t read_u16 = xsb->big_endian ? read_u16be : read_u16le;
     read_s16_t read_s16 = xsb->big_endian ? read_s16be : read_s16le;
 
+    uint32_t variation_count_and_flags;
     uint16_t flags;
     int stream_index, wavebank_index;
     int i, variation_count;
 
-
-    /* MonoGame reads count first, but this looks correct [LocoCycle (X360)-v46] */
-    flags           = read_u16(offset + 0x00, sf);
-    variation_count = read_s16(offset + 0x02, sf);
+    /* Variation_count and flags are part of a 32-bit header. */
+    variation_count_and_flags = read_u32(offset + 0x00, sf);
+    variation_count           = variation_count_and_flags & 0xFFFF;
+    flags                     = (variation_count_and_flags >> (16 + 3)) & 0x07;
     /* 0x04(1): unknown */
     /* 0x05(2): unknown */
     /* 0x07(1): unknown */
@@ -570,7 +571,7 @@ static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset,
     for (i = 0; i < variation_count; i++) {
         off_t sound_offset;
 
-        switch ((flags >> 3) & 0x7) {
+        switch (flags) {
             case 0: /* wave */
                 stream_index   = read_s16(offset + 0x00, sf);
                 wavebank_index =  read_s8(offset + 0x02, sf);
