@@ -891,12 +891,10 @@ static bool parse_xsb(xsb_header* xsb, STREAMFILE* sf, char* xwb_wavebank_name) 
 static STREAMFILE* open_xsb_filename_pair(STREAMFILE* sf_xwb) {
     STREAMFILE* sf_xsb = NULL;
 
-    //TODO: remove most of these and use .txtm
+    //TODO: check if those are widely used + remove excess and use .txtm
     /* .xwb to .xsb name conversion, since often they don't match */
     static const char* const filename_pairs[][2] = {
-            {"MUSIC.xwb","Everything.xsb"},             /* Unreal Championship (Xbox) */
             {"Music.xwb","Sound Bank.xsb"},             /* Stardew Valley (Vita) */
-            {"Ambiences_intro.xwb","Ambiences.xsb"},    /* Arx Fatalis (Xbox) */
             {"Wave*.xwb","Sound*.xsb"},                 /* XNA/MonoGame games? */
             {"*MusicBank.xwb","*SoundBank.xsb"},        /* NFL Fever 2004 (Xbox) */
             {"*_xwb","*_xsb"},                          /* Ikaruga (PC) */
@@ -906,14 +904,6 @@ static STREAMFILE* open_xsb_filename_pair(STREAMFILE* sf_xwb) {
             {"StreamBank_*.xwb","SoundBank_*.xsb"},     /* Ginga Force (X360) */
             {"WaveBank_*.xwb","SoundBank_*.xsb"},       /* Ginga Force (X360) */
             {"*_WB.xwb","*_SB.xsb"},                    /* Ninja Blade (X360) */
-            {"cache_dvdstr.xwb","cache.xsb"},           /* SpongeBob: Lights Camera Pants (Xbox) */
-            {"cache_hddstr.xwb","cache.xsb"},           /* SpongeBob: Lights Camera Pants (Xbox) */
-            {"cache_mem.xwb","cache.xsb"},              /* SpongeBob: Lights Camera Pants (Xbox) */
-            {"CA_NightMusic.xwb","CAMusic.xsb"},        /* Psychonauts (Xbox) */
-            {"CAJAMusic.xwb","CAMusic.xsb"},            /* "" */
-            {"STFX.xwb","CommonMusic.xsb"},             /* "" */
-            {"CALI_NightFX.xwb","CAFX.xsb"},            /* "" */
-            /* Psychonauts has a bunch more pairs for sfx too, improve */
             {"*.xwb","*.xsb"},                          /* default */
     };
     int pair_count = (sizeof(filename_pairs) / sizeof(filename_pairs[0]));
