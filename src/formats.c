@@ -198,7 +198,6 @@ static const char* extension_list[] = {
     "ezw",
 
     "fag",
-    "fcb", //FFmpeg/not parsed (BINK AUDIO)
     "fda",
     "filp",
     "fish",
@@ -412,6 +411,7 @@ static const char* extension_list[] = {
     "nfx",
     "nub",
     "nub2",
+    "nusnub",
     "nus3audio",
     "nus3bank",
     "nwa",
@@ -529,6 +529,7 @@ static const char* extension_list[] = {
     "sdf",
     "sdt",
     "se",
+    "se3", //txth/reserved (.nub container) [Tales of Vesperia (X360/PS3), Tales of Graces f (PS3)]
     "seb",
     "sed",
     "seg",
@@ -567,6 +568,8 @@ static const char* extension_list[] = {
     "spm",
     "sps",
     "spsd",
+    "spsis14",
+    "spsis22",
     "spw",
     "srcd",
     "sre",
@@ -613,6 +616,8 @@ static const char* extension_list[] = {
     "tra",
     "trk",
     "trs", //txth/semi [Kamiwaza (PS2), Shinobido (PS2)]
+    "tsdse3", //txth/reserved [Tales of Xillia (PS3)-nub container]
+    "tsdse4", //txth/reserved [Tales of Xillia (PS3)-nub container]
     "tun",
     "txth",
     "txtp",

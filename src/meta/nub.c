@@ -25,16 +25,17 @@ VGMSTREAM* init_vgmstream_nub(STREAMFILE* sf) {
     if (version != 0x00020000 &&  /* v2.0 (rare, ex. Ridge Race 6 (X360)) */
         version != 0x00020100 &&  /* v2.1 (common) */
         version != 0x01020100)    /* same but LE (seen in PSP/PC games, except PS4) */
-        goto fail;
-    if (read_u32be(0x04,sf) != 0x00000000) /* null */
-        goto fail;
+        return NULL;
+    if (read_u32be(0x04,sf) != 0)
+        return NULL;
 
     /* .nub: standard
      * .nub2: rare [iDOLM@STER: Gravure For You (PS3), Noby Noby Boy (iOS)] 
      * .nps: Ace Combat Joint Assault (PSP) BGM only
+     * .nusnub: TLFILE archives [Tales of Xillia 1/2 (PS3)] (hashed filenames, but from debug/unhashed strings this seems the intended extension)
      */
-    if (!check_extensions(sf, "nub,nub2,nps"))
-        goto fail;
+    if (!check_extensions(sf, "nub,nub2,nps,nusnub"))
+        return NULL;
 
     /* sometimes LE [Soul Calibur: Broken Destiny (PSP), Tales of Vesperia (PS4) */
     big_endian = guess_endian32(0x18, sf);
@@ -436,22 +437,26 @@ VGMSTREAM* init_vgmstream_nub_xma(STREAMFILE* sf) {
 
     if (is_id32be(0x00,sf, "xma\0")) {
         /* nub v2.1 */
-        nus_codec    = read_32bitBE(0x0C,sf);
-        data_size    = read_32bitBE(0x14,sf);
-        header_size  = read_32bitBE(0x1c,sf);
+        nus_codec    = read_s32be(0x0C,sf);
+        data_size    = read_u32be(0x14,sf);
+        header_size  = read_u32be(0x1c,sf);
         chunk_offset = 0xBC;
 
         /* info header */
         /* 0x20: null */
-        chunk_size   = read_32bitBE(0x24,sf);
+        chunk_size   = read_u32be(0x24,sf);
         /* 0x24: loop flag */
         /* 0x20: null */
+
+        // earlier games? [Tales of Vesperia (X360)]
+        if (chunk_size == 0)
+            chunk_size = header_size;
     }
-    else if (read_32bitBE(0x08,sf) == 0 && read_32bitBE(0x0c,sf) == 0) {
+    else if (read_u32be(0x08,sf) == 0 && read_u32be(0x0c,sf) == 0) {
         /* nub v2.0 from Ridge Racer 6 */
-        nus_codec    = read_32bitBE(0x08,sf);
-        data_size    = read_32bitBE(0x10,sf);
-        header_size  = read_32bitBE(0x18,sf);
+        nus_codec    = read_s32be(0x08,sf);
+        data_size    = read_u32be(0x10,sf);
+        header_size  = read_u32be(0x18,sf);
         chunk_offset = 0xAC;
 
         chunk_size   = header_size;
@@ -492,8 +497,8 @@ VGMSTREAM* init_vgmstream_nub_xma(STREAMFILE* sf) {
         xma2_parse_xma2_chunk(sf, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
     }
     else if (nus_codec == 0x08) { /* XMA2 "fmt " */
-        channel_count = read_16bitBE(chunk_offset+0x02,sf);
-        sample_rate   = read_32bitBE(chunk_offset+0x04,sf);
+        channel_count = read_s16be(chunk_offset+0x02,sf);
+        sample_rate   = read_s32be(chunk_offset+0x04,sf);
         xma2_parse_fmt_chunk_extra(sf, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 1);
     }
     else {
@@ -524,7 +529,7 @@ VGMSTREAM* init_vgmstream_nub_xma(STREAMFILE* sf) {
     goto fail;
 #endif
 
-    if ( !vgmstream_open_stream(vgmstream, sf, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
