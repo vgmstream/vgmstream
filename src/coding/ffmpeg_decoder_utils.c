@@ -609,6 +609,9 @@ fail:
 /* Makes a XMA1/2 RIFF header using a "fmt " chunk (XMAWAVEFORMAT/XMA2WAVEFORMATEX) or "XMA2" chunk (XMA2WAVEFORMAT), as a base:
  * Useful to preserve the stream layout */
 static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, int buf_size, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size, int* p_is_xma1) {
+    if (chunk_size <= 0)
+        return 0;
+
     int buf_max = (0x04 * 2 + 0x04) + (0x04 * 2 + chunk_size) + (0x04 * 2);
     if (buf_max > buf_size)
         return 0;
