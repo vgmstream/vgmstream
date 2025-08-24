@@ -959,6 +959,14 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                 /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4] */
                 h->codec = PCM16;
             }
+            else if ((h->stream_flags & 0x1000) && h->sblk_version == 5) {
+                /* largely the same layout as described in v9 below, but -0x08 to all the offsets [Uncharted (PS3)] */
+                h->encoder_delay  = read_s32(h->start_offset+0x20,sf);
+                h->num_samples    = read_s32(h->start_offset+0x24,sf);
+                h->extradata_size = 0x80;
+
+                h->codec = MPEG;
+            }
             else {
                 h->loop_flag = ps_find_loop_offsets(sf, h->start_offset, h->stream_size, h->channels, h->interleave, &h->loop_start, &h->loop_end);
                 h->loop_flag = (h->stream_flags & 0x40); /* only applies to PS-ADPCM flags */
