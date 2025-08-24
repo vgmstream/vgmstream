@@ -888,6 +888,26 @@ static void process_extradata_0x80_atrac9(STREAMFILE* sf, bnk_header_t* h, uint3
     // rest: padding
 }
 
+static void process_extradata_0x80_mpeg(STREAMFILE* sf, bnk_header_t* h, uint32_t info_offset) {
+    read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
+
+    // 0x00: mpeg version? (1)
+    // 0x04: mpeg layer? (3)
+    // 0x08: ? (related to frame size, 0xC0 > 0x40, 0x120 > 0x60)
+    // 0x0c: sample rate
+    // 0x10: mpeg layer? (3)
+    // 0x14: mpeg version? (1)
+    // 0x18: channels
+    // 0x1c: frame size
+    h->encoder_delay    = read_s32(info_offset + 0x20, sf);
+    h->num_samples      = read_s32(info_offset + 0x24, sf);
+    // 0x28: ?
+    // 0x2c: ?
+    // 0x30: 0?
+    // 0x34: data size
+    // rest: padding
+}
+
 /* data part: parse extradata before the codec */
 static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
@@ -960,9 +980,8 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                 h->codec = PCM16;
             }
             else if ((h->stream_flags & 0x1000) && h->sblk_version == 5) {
-                /* largely the same layout as described in v9 below, but -0x08 to all the offsets [Uncharted (PS3)] */
-                h->encoder_delay  = read_s32(h->start_offset+0x20,sf);
-                h->num_samples    = read_s32(h->start_offset+0x24,sf);
+                /* Uncharted (PS3) */
+                process_extradata_0x80_mpeg(sf, h, h->start_offset + 0x00);
                 h->extradata_size = 0x80;
 
                 h->codec = MPEG;
@@ -1001,21 +1020,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
                     if (h->big_endian) {
                         /* The Last of Us demo (PS3) (size 0x90) */
-                        // 0x08: mpeg version? (1)
-                        // 0x0C: mpeg layer? (3)
-                        // 0x10: ? (related to frame size, 0xC0 > 0x40, 0x120 > 0x60)
-                        // 0x14: sample rate
-                        // 0x18: mpeg layer? (3)
-                        // 0x1c: mpeg version? (1)
-                        // 0x20: channels?
-                        // 0x24: frame size
-                        h->encoder_delay    = read_s32(h->start_offset+0x28,sf);
-                        h->num_samples      = read_s32(h->start_offset+0x2c,sf);
-                        // 0x30: ?
-                        // 0x34: ?
-                        // 0x38: 0?
-                        // 0x3c: data size
-                        // padding up to 0x90
+                        process_extradata_0x80_mpeg(sf, h, h->start_offset + 0x08);
                         h->codec = MPEG;
                     }
                     else {
@@ -1046,13 +1051,9 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                         h->codec = PCM16;
                         break;
 
-                    case 0x00000003: /* MP3 */
-                        /* largely the same layout as described in v9 above, except +0x08 to all the offsets (size 0x80) */
-                        h->channels = read_u32(h->start_offset + 0x28, sf);
-
-                        h->encoder_delay = read_u32(h->start_offset + 0x30, sf);
-                        h->num_samples = read_u32(h->start_offset + 0x34, sf);
-
+                    case 0x00000003: /* MP3 2ch */
+                        process_extradata_0x80_mpeg(sf, h, h->start_offset + 0x10);
+                        h->channels = 2;
                         h->codec = MPEG;
                         break;
 
