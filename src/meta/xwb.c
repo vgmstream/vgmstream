@@ -76,11 +76,15 @@ typedef struct {
     int fix_xma_loop_samples;
 } xwb_header;
 
-static void get_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf);
+static void get_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf_xwb, STREAMFILE* sf_xsb);
 
+
+VGMSTREAM* init_vgmstream_wbnd(STREAMFILE* sf) {
+    return init_vgmstream_wbnd_sdbk(sf, NULL);
+}
 
 /* XWB - XACT Wave Bank (Microsoft SDK format for XBOX/XBOX360/Windows) */
-VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, offset, suboffset;
     xwb_header xwb = {0};
@@ -470,7 +474,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
     vgmstream->stream_size = xwb.stream_size;
     vgmstream->meta_type = meta_XWB;
 
-    get_name(stream_name, STREAM_NAME_SIZE, target_subsong, &xwb, sf);
+    get_name(stream_name, STREAM_NAME_SIZE, target_subsong, &xwb, sf, sf_xsb);
 
     if (stream_name[0]) {
         get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
@@ -639,70 +643,63 @@ fail:
 
 /* ****************************************************************************** */
 
-static int get_xwb_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
+static bool get_xwb_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
     size_t read;
 
     if (!xwb->names_offset || !xwb->names_size || xwb->names_entry_size > buf_size)
-        goto fail;
+        return false;
 
     read = read_string(buf,xwb->names_entry_size, xwb->names_offset + xwb->names_entry_size*(target_subsong-1),sf);
-    if (read == 0) goto fail;
+    if (read == 0) return false;
 
-    return 1;
-
-fail:
-    return 0;
+    return true;
 }
 
-static int get_xsb_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
+static bool get_xsb_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
     xsb_header xsb = {0};
 
     xsb.selected_stream = target_subsong - 1;
     if (!parse_xsb(&xsb, sf, xwb->wavebank_name))
-        goto fail;
+        return false;
 
     if ((xwb->version <= XACT1_1_MAX && xsb.version > XSB_XACT1_2_MAX) ||
         (xwb->version <= XACT2_2_MAX && xsb.version > XSB_XACT2_2_MAX)) {
         VGM_LOG("XSB: mismatched XACT versions: xsb v%i vs xwb v%i\n", xsb.version, xwb->version);
-        goto fail;
+        return false;
     }
 
     //;VGM_LOG("XSB: name found=%i at %lx\n", xsb.parse_found, xsb.name_offset);
     if (!xsb.name_len || xsb.name[0] == '\0')
-        goto fail;
+        return false;
 
     snprintf(buf, buf_size, "%s", xsb.name);
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
-static int get_wbh_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
+static bool get_wbh_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
     int selected_stream = target_subsong - 1;
-    int version, name_count;
-    off_t offset, name_number;
 
-    if (read_u32be(0x00, sf) != 0x57424844) /* "WBHD" */
-        goto fail;
-    version     = read_u32le(0x04, sf);
+    if (!is_id32be(0x00, sf, "WBHD"))
+        return false;
+    int version     = read_u32le(0x04, sf);
     if (version != 1)
-        goto fail;
-    name_count  = read_u32le(0x08, sf);
+        return false;
+    int name_count  = read_u32le(0x08, sf);
 
     if (selected_stream > name_count)
-        goto fail;
+        return false;
 
     /* next table:
      * - 0x00: wave id? (ordered from 0 to N)
      * - 0x04: always 0 */
-    offset = 0x10 + 0x08 * name_count;
+    off_t offset = 0x10 + 0x08 * name_count;
 
-    name_number = 0;
+    int name_number = 0;
     while (offset < get_streamfile_size(sf)) {
         size_t name_len = read_string(buf, maxsize, offset, sf) + 1;
 
         if (name_len == 0)
-            goto fail;
+            return false;
         if (name_number == selected_stream)
             break;
 
@@ -710,41 +707,39 @@ static int get_wbh_name(char* buf, size_t maxsize, int target_subsong, xwb_heade
         offset += name_len;
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
-static void get_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf_xwb) {
+static void get_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf_xwb, STREAMFILE* sf_xsb) {
     STREAMFILE* sf_name = NULL;
-    int name_found;
+
+    buf[0] = '\0';
 
     /* try to get the stream name in the .xwb, though they are very rarely included */
-    name_found = get_xwb_name(buf, buf_size, target_subsong, xwb, sf_xwb);
+    bool name_found = get_xwb_name(buf, buf_size, target_subsong, xwb, sf_xwb);
     if (name_found) return;
 
-    /* try again in a companion files */
+    /* external companion file */
+    if (sf_xsb) {
+        get_xsb_name(buf, buf_size, target_subsong, xwb, sf_xsb);
+        return;
+    }
 
+    /* open companion files */
     if (xwb->version == 1) {
         /* .wbh, a simple name container */
         sf_name = open_streamfile_by_ext(sf_xwb, "wbh");
-        if (!sf_name) goto fail; /* rarely found [Pac-Man World 2 (Xbox)] */
+        if (!sf_name) return; /* rarely found [Pac-Man World 2 (Xbox)] */
 
-        name_found = get_wbh_name(buf, buf_size, target_subsong, xwb, sf_name);
+        get_wbh_name(buf, buf_size, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
     }
     else {
         /* .xsb, a comically complex cue format */
         sf_name = open_xsb_filename_pair(sf_xwb);
-        if (!sf_name) goto fail; /* not all xwb have xsb though */
+        if (!sf_name) return; /* not all xwb have xsb though */
 
-        name_found = get_xsb_name(buf, buf_size, target_subsong, xwb, sf_name);
+        get_xsb_name(buf, buf_size, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
     }
-
-    if (!name_found) goto fail;
-    return;
-
-fail:
-    buf[0] = '\0';
 }

@@ -65,7 +65,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_fsb,
     init_vgmstream_fsb5,
     init_vgmstream_rwax,
-    init_vgmstream_xwb,
+    init_vgmstream_wbnd,
     init_vgmstream_musc,
     init_vgmstream_musx,
     init_vgmstream_filp,
