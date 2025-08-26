@@ -1577,6 +1577,9 @@ static const hcakey_info hcakey_list[] = {
 
     // Aether Gazer (multi)
     {1578660190369042886},      // 15E887143BFF51C6
+
+    // Sonic Racing CrossWorlds (multi)
+    {32105414741057402},        // 00720FB46101DF7A
 };
 
 #endif

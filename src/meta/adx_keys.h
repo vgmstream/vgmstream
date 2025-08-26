@@ -282,6 +282,9 @@ static const adxkey_info adxkey9_list[] = {
         // Bungo Stray Dogs: Mayoi Inu Kaikitan (iOS/Android)
         {0x0000,0x0000,0x0000, NULL,1655728931134731873},   // 16FA54B0C09F7661
 
+        // Sonic Racing CrossWorlds (multi)
+        {0x0000,0x0000,0x0000, NULL,32105414741057402},     // 00720FB46101DF7A
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
