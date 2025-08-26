@@ -29,7 +29,7 @@ typedef struct {
     //off_t name_offset;
 } kwb_header_t;
 
-static bool parse_kwb(kwb_header_t* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b);
+static bool parse_wbh_wbd(kwb_header_t* kwb, STREAMFILE* sf_h, uint32_t wbh_offset, STREAMFILE* sf_b, uint32_t wbd_offset);
 static bool parse_xws(kwb_header_t* kwb, STREAMFILE* sf);
 static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header_t* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b);
 
@@ -81,7 +81,7 @@ VGMSTREAM* init_vgmstream_kwb(STREAMFILE* sf) {
     if (target_subsong == 0) target_subsong = 1;
     kwb.target_subsong = target_subsong;
 
-    if (!parse_kwb(&kwb, sf_h, sf_b))
+    if (!parse_wbh_wbd(&kwb, sf_h, 0x00, sf_b, 0x00))
         goto fail;
 
     vgmstream = init_vgmstream_koei_wavebank(&kwb, sf_h, sf_b);
@@ -104,6 +104,9 @@ VGMSTREAM* init_vgmstream_xws(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!(is_id32be(0x00, sf, "XWSF") || is_id32be(0x00, sf, "tdpa")))
+        return NULL;
+
     if (!check_extensions(sf, "xws"))
         return NULL;
 
@@ -122,7 +125,6 @@ fail:
     return NULL;
 }
 
-#if 0
 /* SND - Sound? from Koei games [Ninja Gaiden Sigma -Master Collection- (PC)] */
 VGMSTREAM* init_vgmstream_snd_koei(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -131,7 +133,10 @@ VGMSTREAM* init_vgmstream_snd_koei(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .snd: header id/assumed by extractors? (doatool) */
+    if (!is_id32be(0x00, sf, "SND\0"))
+        return NULL;
+
+    /* .snd: header id (used by extractors/DoaTool) */
     if (!check_extensions(sf, "snd"))
         return NULL;
 
@@ -149,7 +154,6 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
-#endif
 
 static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header_t* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
     VGMSTREAM* vgmstream = NULL;
@@ -384,11 +388,9 @@ static int parse_type_kwb2(kwb_header_t* kwb, off_t offset, off_t body_offset, S
 
         for (int j = 0; j < subsounds; j++) {
 
-            kwb->total_subsongs++;
-            if (kwb->total_subsongs != kwb->target_subsong)
+            int relative_subsong = kwb_add_entries(kwb, 1);
+            if (relative_subsong <= 0)
                 continue;
-            kwb->found = true;
-
             uint32_t subsound_offset = subsound_start + j * subsound_size;
 
             kwb->sample_rate    = read_u16le(subsound_offset + 0x00, sf_h);
@@ -587,19 +589,20 @@ static bool parse_type_sdwi(kwb_header_t* kwb, off_t offset, off_t body_offset, 
 
 
 /* container of fused .wbh+wbd or separate files*/
-static bool parse_kwb(kwb_header_t* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
+static bool parse_wbh_wbd(kwb_header_t* kwb, STREAMFILE* sf_h, uint32_t wbh_offset, STREAMFILE* sf_b, uint32_t wbd_offset) {
     read_u32_t read_u32 = NULL;
 
     uint32_t head_offset, body_offset, start;
-    if (is_id32be(0x00, sf_h, "WHD1")) {
+    if (is_id32be(wbh_offset + 0x00, sf_h, "WHD1")) {
         /* container of fused .wbh+wbd */
         // 0x04: fixed value?
-        kwb->big_endian = read_u8(0x08, sf_h) == 0xFF;
+        kwb->big_endian = read_u8(wbh_offset + 0x08, sf_h) == 0xFF;
         // 0x0a: version?
 
         read_u32 = kwb->big_endian ? read_u32be : read_u32le;
 
-        start = read_u32(0x0c, sf_h);
+        start = read_u32(wbh_offset + 0x0c, sf_h);
+        start += wbh_offset;
         // 0x10: file size
         // 0x14: subfiles?
         // 0x18: subfiles?
@@ -611,22 +614,24 @@ static bool parse_kwb(kwb_header_t* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
         body_offset = read_u32(start + 0x04, sf_h);
         // 0x10: head size
         // 0x14: body size
+        head_offset += wbh_offset;
+        body_offset += wbh_offset;
     }
     else {
         /* dual file */
-        head_offset = 0x00;
-        body_offset = 0x00;
+        head_offset = wbh_offset;
+        body_offset = wbd_offset;
 
         kwb->big_endian = guess_endian32(head_offset + 0x08, sf_h);
 
         read_u32 = kwb->big_endian ? read_u32be : read_u32le;
     }
 
-    if (read_u32(head_offset + 0x00, sf_h) != 0x5742485F ||   /* "WBH_" */
-        read_u32(head_offset + 0x04, sf_h) != 0x30303030)     /* "0000" */
+    if (read_u32(head_offset + 0x00, sf_h) != get_id32be("WBH_") ||
+        read_u32(head_offset + 0x04, sf_h) != get_id32be("0000"))
         return false;
-    if (read_u32(body_offset + 0x00, sf_b) != 0x5742445F ||   /* "WBD_" */
-        read_u32(body_offset + 0x04, sf_b) != 0x30303030)     /* "0000" */
+    if (read_u32(body_offset + 0x00, sf_b) != get_id32be("WBD_") ||
+        read_u32(body_offset + 0x04, sf_b) != get_id32be("0000"))
         return false;
     // 0x08: head/body size
 
@@ -719,9 +724,8 @@ static bool parse_type_wbnd_sdbk(kwb_header_t* kwb, uint32_t xwb_offset, uint32_
 
 static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAMFILE* sf) {
 
-    if (!( is_id64be(offset + 0x00, sf, "XWSFILE\0") ||
-           is_id64be(offset + 0x00, sf, "tdpack\0\0")))
-         //is_id64be(offset + 0x00, sf, "SND\0\0\0\0\0")
+    uint64_t id = read_u64be(offset + 0x00, sf);
+    if ( !(id == get_id64be("XWSFILE\0") || id == get_id64be("tdpack\0\0") || id == get_id64be("SND\0\0\0\0\0")) )
         return false;
 
     kwb->big_endian = read_u8(offset + 0x08, sf) == 0xFF;
@@ -734,7 +738,11 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
     int chunks2 = read_u32(offset + 0x14, sf);
     int chunks  = read_u32(offset + 0x18, sf);
     // 0x1c: null
-    if (chunks != chunks2) //seen in NGm PC
+
+    bool is_snd = id == get_id64be("SND\0\0\0\0\0");
+    if (is_snd && chunks != 3 && chunks2 != 4) //seen in NGm (PC) SND
+        return false;
+    if (!is_snd && chunks != chunks2)
         return false;
 
     uint32_t table1_offset = read_u32(offset + 0x20, sf); // offsets
@@ -776,13 +784,23 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf))
                 goto fail;
         }
-#if 0
-        else if (entry_type == get_id64be("tdpack\0\0")) {
+        else if (entry_type == get_id32be("tdpa")) { // + "ck\0\0"
             i += 1;
             if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf))
                 goto fail;
+            continue;
         }
-#endif
+        else if (entry_type == get_id32be("_HBW")) {
+            // ..wbh+wbd with KWB2 [Ninja Gaiden Sigma (PC)]
+            i += 1;
+
+            uint32_t body_offset = read_u32(offset + table1_offset + i * 0x04, sf);
+            body_offset += offset;
+            i += 1;
+
+            if (!parse_wbh_wbd(kwb, sf, head_offset, sf, body_offset))
+                goto fail;
+        }
         else if (entry_type == get_id32be("CUEB") || entry_type < 0x100) {
             i += 1;
             /* CUE-like info (may start with 0 or a low number instead) */
@@ -803,7 +821,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
         }
         else if (entry_type == get_id32be("DNBW")) {
             //.xwb+.xsd [Ninja Gaiden 2 (X360)]
-            uint32_t xwb_offste = head_offset;
+            uint32_t xwb_offset = head_offset;
             uint32_t xwb_size = head_size;
             i += 1;
 
@@ -812,10 +830,11 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             if (table2_offset) {
                 kbds_offset = read_u32(offset + table1_offset + i * 0x04, sf);
                 kbds_size   = read_u32(offset + table2_offset + i * 0x04, sf);
+                kbds_offset += offset;
             }
             i += 1;
 
-            if (!parse_type_wbnd_sdbk(kwb, xwb_offste, xwb_size, kbds_offset, kbds_size, sf))
+            if (!parse_type_wbnd_sdbk(kwb, xwb_offset, xwb_size, kbds_offset, kbds_size, sf))
                 goto fail;
         }
         else if (entry_type == get_id32be("0000")) {
@@ -824,6 +843,12 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             i += 1;
         }
         else {
+            // SND has 2 config chunks after first (no header id)
+            if (is_snd && i > 0) {
+                i += 1;
+                continue;
+            }
+
             vgm_logi("XWS: unknown chunk %i (%x) with head=%x at %x\n", i, entry_type, head_offset, offset);
             goto fail;
         }
@@ -845,6 +870,7 @@ static bool parse_xws(kwb_header_t* kwb, STREAMFILE* sf) {
      * - tdpack: same but points to N XWSFILE / DNBW
      *   [Ninja Gaiden 3 Razor's Edge (PS3/X360)]
      * - SND: similar to XWSFILE w/ 2*N chunks, points to tdpack (which point to _HBW0000+KWB2)
+     *   chunks after first seem to be cue/config only
      *   [Ninja Gaiden Sigma -Master Collection- (PC)]
      *
      * Needs to call sub-parts multiple times to fill total subsongs when parsing xwsfile.
