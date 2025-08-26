@@ -42,13 +42,15 @@ void render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         /* decode all layers */
         ch = 0;
         for (int current_layer = 0; current_layer < data->layer_count; current_layer++) {
-            /* layers may have their own number of channels/format (buf is as big as needed) */
-            sfmt_t format = mixing_get_input_sample_type(data->layers[current_layer]);
-            sbuf_init(ssrc, format, data->buffer, samples_to_do, data->layers[current_layer]->channels);
+            VGMSTREAM* vl = data->layers[current_layer];
 
-            render_main(ssrc, data->layers[current_layer]);
+            // layers may have their own number of channels/format (buf is as big as needed)
+            sfmt_t format = mixing_get_input_sample_type(vl);
+            sbuf_init(ssrc, format, data->buffer, samples_to_do, vl->channels);
 
-            /* mix layer samples to main samples */
+            render_main(ssrc, vl);
+
+            // mix layer samples to main samples
             sbuf_copy_layers(sdst, ssrc, ch, samples_to_do);
             ch += ssrc->channels;
         }
@@ -64,6 +66,8 @@ decode_fail:
 }
 
 
+/* seeks inside the streams */
+//TODO: looping doesn't work if seeking after it without setting hit-loop stuff
 void seek_layout_layered(VGMSTREAM* vgmstream, int32_t seek_sample) {
     layered_layout_data* data = vgmstream->layout_data;
 

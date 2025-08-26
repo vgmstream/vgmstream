@@ -376,7 +376,7 @@ class VrtsPrinter:
     def info(self, msg):
         msg = "%s (%s)" % (msg, self._get_date())
         self._print(msg, self.DARK_GRAY)
-        pass
+
 
     def _get_date(self):
         return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -601,7 +601,10 @@ class VrtsApp:
 
     def _compare(self):
         ts_st = time.time()
-        self._p.info("comparing files")
+        msg = 'comparing files'
+        if self._args.flags:
+            msg = "%s [%s]" % (msg, self._args.flags)
+        self._p.info(msg)
 
         total_ok = 0
         total_ko = 0
