@@ -8,7 +8,11 @@
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define MAX_PACKET_SIZES 160 // max 256 in theory, observed max is ~65, rarely ~130 in 
+#define MAX_PACKET_SIZES 160 // max 256 in theory, observed max is ~65, rarely ~130
+
+typedef enum { WWV_HEADER_TRIAD, WWV_FULL_SETUP, WWV_INLINE_CODEBOOKS, WWV_EXTERNAL_CODEBOOKS, WWV_AOTUV603_CODEBOOKS } wwise_setup_t;
+typedef enum { WWV_TYPE_8, WWV_TYPE_6, WWV_TYPE_2 } wwise_header_t;
+typedef enum { WWV_STANDARD, WWV_MODIFIED } wwise_packet_t;
 
 /* custom Vorbis without Ogg layer */
 struct vorbis_custom_codec_data {
@@ -27,6 +31,10 @@ struct vorbis_custom_codec_data {
     vorbis_custom_t type;        /* Vorbis subtype */
     vorbis_custom_config config; /* config depending on the mode */
 
+    /* Wwise Vorbis config */
+    wwise_setup_t setup_type;
+    wwise_header_t header_type;
+    wwise_packet_t packet_type;
 
     /* Wwise Vorbis: saved data to reconstruct modified packets */
     uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */

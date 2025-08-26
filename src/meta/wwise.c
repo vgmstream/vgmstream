@@ -167,144 +167,119 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
 #ifdef VGM_USE_VORBIS
         case VORBIS: { /* common */
             /* Wwise uses custom Vorbis, which changed over time (config must be detected to pass to the decoder). */
-            off_t data_offsets, block_offsets;
-            size_t setup_offset, audio_offset;
+            uint32_t data_offsets, block_offsets, setup_offset, audio_offset;
+            uint32_t extra_offset, extra_size;
             vorbis_custom_config cfg = {0};
+
+            if (ww.block_size != 0 || ww.bits_per_sample != 0)
+                goto fail; /* always 0 for Worbis */
 
             cfg.channels = ww.channels;
             cfg.sample_rate = ww.sample_rate;
             cfg.big_endian = ww.big_endian;
             cfg.stream_end = ww.data_offset + ww.data_size;
 
-            if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
 
-            /* autodetect format (fields are mostly common, see the end of the file) */
-            if (ww.vorb_offset) {
-                /* older Wwise (~<2012) */
+            if (ww.vorb_offset) { 
+                // older Wwise <=v52
+                extra_offset = ww.vorb_offset;
+                extra_size = ww.vorb_size;
+            }
+            else {
+                // newer Wwise >=v56
+                extra_offset = ww.fmt_offset + 0x18; // after flag + channels
+                extra_size = ww.extra_size;
+            }
 
-                switch(ww.vorb_size) {
-                    case 0x2C: /* earliest (~2009) [The Lord of the Rings: Conquest (PC)-v34] */
-                    case 0x28: /* early (~2009) [UFC Undisputed 2009 (PS3)-v35-v36, some EVE Online Apocrypha (PC)] */
-                        data_offsets = 0x18;
-                        block_offsets = 0; /* no need, full headers are present */
-                        cfg.header_type = WWV_TYPE_8;
-                        cfg.packet_type = WWV_STANDARD;
-                        cfg.setup_type = WWV_HEADER_TRIAD;
-                        break;
+            switch(extra_size) {
+                /* vorb versions */    
+                case 0x2C:  // earliest (~2009) [The Lord of the Rings: Conquest (PC)-v34]
+                case 0x28:  // early (~2009) [UFC Undisputed 2009 (PS3)-v35-v36, some EVE Online Apocrypha (PC)]
+                    data_offsets = 0x18;
+                    block_offsets = 0; // full headers are present
+                    cfg.ww_version = WWVORBIS_V34;
+                    break;
 
-                    case 0x34:  /* common (2010~2011) [The King of Fighters XII (PS3)-v38, Assassin's Creed II (X360)-v44, Splatterhouse (PS3)-v48] */
-                    case 0x32:  /* rare (mid 2011) [Chime Super Deluxe (PS3)-v52, Saints Row the 3rd (PC)-v53?] */
-                        data_offsets = 0x18;
-                        block_offsets = 0x30;
-                        cfg.header_type = WWV_TYPE_6;
-                        cfg.packet_type = WWV_STANDARD;
-                        cfg.setup_type = WWV_EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
-                        break;
+                case 0x34:  // common (2010~2011) [The King of Fighters XII (PS3)-v38, Assassin's Creed II (X360)-v44, Splatterhouse (PS3)-v48]
+                    data_offsets = 0x18;
+                    block_offsets = 0x30;
+                    cfg.ww_version = WWVORBIS_V48; // V38/V44 re-detected later
+                    break;
 
-                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3)-v53, Captain America: Super Soldier (X360)-v53] */
-                        data_offsets = 0x10;
-                        block_offsets = 0x28;
-                        cfg.header_type = WWV_TYPE_2;
-                        cfg.packet_type = WWV_MODIFIED;
-                        cfg.setup_type = WWV_EXTERNAL_CODEBOOKS;
-                        break;
+                case 0x32:  // rare (mid 2011) [Chime Super Deluxe (PS3)-v52, Saints Row the 3rd (PC)-v53?]
+                    data_offsets = 0x18;
+                    block_offsets = 0x30;
+                    cfg.ww_version = WWVORBIS_V52;
+                    break;
 
-                    default:
-                        VGM_LOG("WWISE: unknown vorb size 0x%x\n", ww.vorb_size);
-                        goto fail;
-                }
+                case 0x2a:  // uncommon (mid 2011) [inFamous 2 (PS3)-v53, Captain America: Super Soldier (X360)-v53]
+                    data_offsets = 0x10;
+                    block_offsets = 0x28;
+                    cfg.ww_version = WWVORBIS_V53;
+                    break;
 
-                vgmstream->num_samples = read_s32(ww.vorb_offset + 0x00, sf);
-                setup_offset = read_u32(ww.vorb_offset + data_offsets + 0x00, sf); /* within data (0 = no seek table) */
-                audio_offset = read_u32(ww.vorb_offset + data_offsets + 0x04, sf); /* within data */
-                if (block_offsets) {
-                    cfg.blocksize_1_exp = read_u8(ww.vorb_offset + block_offsets + 0x00, sf); /* small */
-                    cfg.blocksize_0_exp = read_u8(ww.vorb_offset + block_offsets + 0x01, sf); /* big */
-                }
-                ww.data_size -= audio_offset;
+                /* fmt extradata versions */
+                case 0x30:
+                    data_offsets = 0x10;
+                    block_offsets = 0x28;
+                    cfg.ww_version = ww.is_wem ? WWVORBIS_V62 : WWVORBIS_V56; // re-detected later
+                    /* version/codebooks used are not detectable, so we'll try both; libvorbis should reject wrong codebooks
+                     * - standard: early (<2012), ex. The King of Fighters XIII (X360)-v56, .ogg (cbs are from aoTuV, too)
+                     * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed (PC)-2012/11-v72, .wem (v62) */
+                    break;
+
+                default:
+                    VGM_LOG("WWISE: unknown extra size 0x%x\n", extra_size);
+                    goto fail;
+            }
+
+            vgmstream->num_samples = read_s32(extra_offset + 0x00, sf);
+            setup_offset = read_u32(extra_offset + data_offsets + 0x00, sf); // within data (0 = no seek table)
+            audio_offset = read_u32(extra_offset + data_offsets + 0x04, sf); // within data
+            if (block_offsets) {
+                cfg.blocksize_1_exp = read_u8(extra_offset + block_offsets + 0x00, sf); /* small */
+                cfg.blocksize_0_exp = read_u8(extra_offset + block_offsets + 0x01, sf); /* big */
+            }
+            ww.data_size -= audio_offset;
 
 
-                /* detect normal packets */
-                if (ww.vorb_size == 0x2a) {
-                    /* almost all blocksizes are 0x08+0x0B except a few with 0x0a+0x0a [Captain America: Super Soldier (X360) voices/sfx] */
-                    if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
-                        cfg.packet_type = WWV_STANDARD;
-                }
-
+            if (cfg.ww_version == WWVORBIS_V48) {
                 /* detect setup type:
                  * - full inline: ~2009, ex. The King of Fighters XII (X360)-v38, The Saboteur (PC)-v44
                  * - trimmed inline: ~2010, ex. Army of Two: 40 days (X360)-v45 some multiplayer files
                  * - external: ~2010, ex. Assassin's Creed Brotherhood (X360)-v48, Dead Nation (X360)-v48 */
-                if (ww.vorb_size == 0x34) {
-                    size_t setup_size = read_u16  (start_offset + setup_offset + 0x00, sf);
-                    uint32_t setup_id = read_u32be(start_offset + setup_offset + 0x06, sf);
+                size_t setup_size = read_u16  (start_offset + setup_offset + 0x00, sf);
+                uint32_t setup_id = read_u32be(start_offset + setup_offset + 0x06, sf);
 
-                    /* if the setup after header starts with "(data)BCV" it's an inline codebook) */
-                    if ((setup_id & 0x00FFFFFF) == get_id32be("\0BCV")) {
-                        cfg.setup_type = WWV_FULL_SETUP;
-                    }
-                    /* if the setup is suspiciously big it's probably trimmed inline codebooks */
-                    else if (setup_size > 0x200) { /* an external setup it's ~0x100 max + some threshold */
-                        cfg.setup_type = WWV_INLINE_CODEBOOKS;
-                    }
+                // if the setup after header starts with "(data)BCV" it's an inline codebook
+                if ((setup_id & 0x00FFFFFF) == get_id32be("\0BCV")) {
+                    cfg.ww_version = WWVORBIS_V38;
                 }
-
-                vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
-                if (!vgmstream->codec_data) goto fail;
+                // if the setup is suspiciously big it's probably trimmed inline codebooks
+                else if (setup_size > 0x200) { /* an external setup it's ~0x100 max + some threshold */
+                    cfg.ww_version = WWVORBIS_V44;
+                }
             }
-            else {
-                /* newer Wwise (>2012) */
-                off_t extra_offset = ww.fmt_offset + 0x18; /* after flag + channels */
 
-                switch(ww.extra_size) {
-                    case 0x30:
-                        data_offsets = 0x10;
-                        block_offsets = 0x28;
-                        cfg.header_type = WWV_TYPE_2;
-                        cfg.packet_type = WWV_MODIFIED;
+            // mutant .wem with metadata (voice strings/etc) between seek table and vorbis setup [Gears of War 4 (PC)]
+            if (cfg.ww_version >= WWVORBIS_V56 && ww.meta_offset) {
+                // 0x00: original setup_offset
+                setup_offset += read_u32(ww.meta_offset + 0x04, sf); // metadata size
+            }
 
-                        /* setup not detectable by header, so we'll try both; libvorbis should reject wrong codebooks
-                         * - standard: early (<2012), ex. The King of Fighters XIII (X360)-v56, .ogg (cbs are from aoTuV, too)
-                         * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed (PC)-2012/11-v72, .wem (v62) */
-                        cfg.setup_type  = ww.is_wem ? WWV_AOTUV603_CODEBOOKS : WWV_EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
-                        break;
-
-                    default:
-                        VGM_LOG("WWISE: unknown extra size 0x%x\n", ww.vorb_size);
-                        goto fail;
-                }
-
-                vgmstream->num_samples = read_s32(extra_offset + 0x00, sf);
-                setup_offset = read_u32(extra_offset + data_offsets + 0x00, sf); /* within data */
-                audio_offset = read_u32(extra_offset + data_offsets + 0x04, sf); /* within data */
-                cfg.blocksize_1_exp = read_u8(extra_offset + block_offsets + 0x00, sf); /* small */
-                cfg.blocksize_0_exp = read_u8(extra_offset + block_offsets + 0x01, sf); /* big */
-                ww.data_size -= audio_offset;
-
-                /* mutant .wem with metadata (voice strings/etc) between seek table and vorbis setup [Gears of War 4 (PC)] */
-                if (ww.meta_offset) {
-                    /* 0x00: original setup_offset */
-                    setup_offset += read_u32(ww.meta_offset + 0x04, sf); /* metadata size */
-                }
-
-                /* detect normal packets */
-                if (ww.extra_size == 0x30) {
-                    /* almost all blocksizes are 0x08+0x0B except some with 0x09+0x09 [Oddworld New 'n' Tasty! (PSV)-v112] */
-                    if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
-                        cfg.packet_type = WWV_STANDARD;
-                }
-
+            if (cfg.ww_version >= WWVORBIS_V56) {
                 read_seek_new(vgmstream, sf, start_offset, setup_offset, start_offset + setup_offset, ww.big_endian);
-
-                /* try with the selected codebooks */
-                vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
-                if (!vgmstream->codec_data) {
-                    /* codebooks failed: try again with the other type */
-                    cfg.setup_type  = ww.is_wem ? WWV_EXTERNAL_CODEBOOKS : WWV_AOTUV603_CODEBOOKS;
-                    vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
-                    if (!vgmstream->codec_data) goto fail;
-                }
             }
+
+
+            vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
+            if (!vgmstream->codec_data && cfg.ww_version >= WWVORBIS_V56) {
+                // wrong version, try again with the other type
+                cfg.ww_version = ww.is_wem ? WWVORBIS_V56 : WWVORBIS_V62;
+                vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
+            }
+            if (!vgmstream->codec_data) goto fail;
+
             vgmstream->layout_type = layout_none;
             vgmstream->coding_type = coding_VORBIS_custom;
             vgmstream->codec_endian = ww.big_endian;
