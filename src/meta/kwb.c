@@ -290,12 +290,12 @@ static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header_t* kwb, STREAMFILE* sf
             atrac9_config cfg = {0};
 
             {
-                size_t extra_size = read_u32le(kwb->stream_offset + 0x00, sf_b);
+                uint32_t extra_size = read_u32le(kwb->stream_offset + 0x00, sf_b);
                 uint32_t config_data = read_u32be(kwb->stream_offset + 0x04, sf_b);
-                /* 0x0c: encoder delay? */
-                /* 0x0e: encoder padding? */
-                /* 0x10: samples per frame */
-                /* 0x12: frame size */
+                // 0x0c: encoder delay?
+                // 0x0e: encoder padding?
+                // 0x10: samples per frame
+                // 0x12: frame size
 
                 cfg.channels = vgmstream->channels;
                 cfg.config_data = config_data;
@@ -486,6 +486,8 @@ static bool parse_type_k4hd_pvhd(kwb_header_t* kwb, off_t offset, off_t body_off
     }
     // 0x14: loop start?
     // 0x18: loop end?
+
+    // TO-DO: in rare cases offsets+sizes are incorrect after some subsongs (possibly a bug on their part? NGS+ Vita's Prologue_2)
 
     kwb->stream_offset += body_offset;
 
@@ -782,16 +784,16 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
         if (entry_type == get_id32be("XWSF")) { //+ "ILE\0"
             i += 1;
             if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf))
-                goto fail;
+                return false;;
         }
         else if (entry_type == get_id32be("tdpa")) { // + "ck\0\0"
             i += 1;
             if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf))
-                goto fail;
+                return false;;
             continue;
         }
         else if (entry_type == get_id32be("_HBW")) {
-            // ..wbh+wbd with KWB2 [Ninja Gaiden Sigma (PC)]
+            // .wbh+wbd with KWB2 [Ninja Gaiden Sigma (PC)]
             i += 1;
 
             uint32_t body_offset = read_u32(offset + table1_offset + i * 0x04, sf);
@@ -799,28 +801,40 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             i += 1;
 
             if (!parse_wbh_wbd(kwb, sf, head_offset, sf, body_offset))
-                goto fail;
+                return false;;
         }
         else if (entry_type == get_id32be("CUEB") || entry_type < 0x100) {
+            // CUE-like info (may start with 0 or a low number instead)
             i += 1;
-            /* CUE-like info (may start with 0 or a low number instead) */
         }
         else if (entry_type == get_id32be("MSFB")) { //+ "ANK\0" 
             i += 1;
             if (!parse_type_msfbank(kwb, head_offset, sf))
-                goto fail;
+                return false;;
         }
         else if (entry_type == get_id32be("KWB2")) {
-            /* NG2/3 PC, DoA LR PC goes head,body,... */
+            // NG2/3 PC, DoA LR PC goes head,body,...
             uint32_t body_offset = read_u32(offset + table1_offset + i * 0x04 + 0x04, sf);
             body_offset += offset;
             i += 2;
 
             if (!parse_type_kwb2(kwb, head_offset, body_offset, sf))
-                goto fail;
+                return false;;
+        }
+        else if (entry_type == get_id32be("PVHD")) {
+            // [Ninja Gaiden 2 Sigma Plus (Vita)]
+            uint32_t body_offset = read_u32(offset + table1_offset + i * 0x04 + 0x04, sf);
+            body_offset += offset;
+            i += 2;
+
+            if (!parse_type_k4hd_pvhd(kwb, head_offset, body_offset, sf))
+                return false;
+
+            if (!parse_type_kwb2(kwb, head_offset, body_offset, sf))
+                return false;;
         }
         else if (entry_type == get_id32be("DNBW")) {
-            //.xwb+.xsd [Ninja Gaiden 2 (X360)]
+            // .xwb+.xsd [Ninja Gaiden 2 (X360)]
             uint32_t xwb_offset = head_offset;
             uint32_t xwb_size = head_size;
             i += 1;
@@ -835,7 +849,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             i += 1;
 
             if (!parse_type_wbnd_sdbk(kwb, xwb_offset, xwb_size, kbds_offset, kbds_size, sf))
-                goto fail;
+                return false;;
         }
         else if (entry_type == get_id32be("0000")) {
             // dummy/padding (all '0') [Ninja Gaiden 2 (X360)]
@@ -850,13 +864,11 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             }
 
             vgm_logi("XWS: unknown chunk %i (%x) with head=%x at %x\n", i, entry_type, head_offset, offset);
-            goto fail;
+            return false;
         }
     }
 
     return true;
-fail:
-    return false;
 }
 
 
