@@ -13,6 +13,7 @@
 #include "base/render.h"
 #include "base/mixing.h"
 #include "base/mixer.h"
+#include "base/seek_table.h"
 #include "util/sf_utils.h"
 
 
@@ -254,6 +255,9 @@ fail:
 void close_vgmstream(VGMSTREAM* vgmstream) {
     if (!vgmstream)
         return;
+
+    seek_table_free(vgmstream);
+    vgmstream->seek_table = NULL;
 
     decode_free(vgmstream);
     vgmstream->codec_data = NULL;

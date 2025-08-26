@@ -240,6 +240,7 @@ typedef struct {
     size_t tmpbuf_size;             /* for all channels (samples = tmpbuf_size / channels / sample_size) */
 
     void* decode_state;             /* for some decoders (TO-DO: to be moved around) */
+    void* seek_table;               /* for some decoders (TO-DO: to be moved around) */
 } VGMSTREAM;
 
 

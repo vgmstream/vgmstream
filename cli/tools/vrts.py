@@ -63,7 +63,7 @@ def parse_args():
     ap.add_argument("-co","--cli-old", help="sets name of old CLI (can be a path)")
     ap.add_argument("-m","--multiprocesses", help="uses N multiprocesses to compare for performance\n(note that pypy w/ single process is faster than multiprocesses)", type=int, default=1)
     ap.add_argument("-d","--diffs", help="compares input files directly (won't decode)", action='store_true')
-    ap.add_argument("-f","--flags", help="sets CLI flags (enclose in double quotes, like \"-l 3.0 -F\")")
+    ap.add_argument("-f","--flags", help="sets CLI flags (enclose in double quotes + space, like \" -l 3.0 -F\")")
 
     args = ap.parse_args()
     

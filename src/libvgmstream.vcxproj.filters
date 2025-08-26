@@ -131,6 +131,9 @@
     <ClInclude Include="base\sbuf.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\seek_table.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -587,6 +590,9 @@
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\seek.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\seek_table.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\streamfile_api.c">

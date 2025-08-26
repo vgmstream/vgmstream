@@ -99,6 +99,7 @@
     <ClInclude Include="base\plugins.h" />
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\sbuf.h" />
+    <ClInclude Include="base\seek_table.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
@@ -253,6 +254,7 @@
     <ClCompile Include="base\render.c" />
     <ClCompile Include="base\sbuf.c" />
     <ClCompile Include="base\seek.c" />
+    <ClCompile Include="base\seek_table.c" />
     <ClCompile Include="base\streamfile_api.c" />
     <ClCompile Include="base\streamfile_buffer.c" />
     <ClCompile Include="base\streamfile_clamp.c" />

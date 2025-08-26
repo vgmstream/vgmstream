@@ -2,6 +2,7 @@
 #include "../base/decode_state.h"
 #include "../base/sbuf.h"
 #include "../base/codec_info.h"
+#include "../base/seek_table.h"
 #include "coding.h"
 #include "vorbis_custom_decoder.h"
 
@@ -219,6 +220,8 @@ static void reset_vorbis_custom(void* priv_data) {
 
     vorbis_synthesis_restart(&data->vd);
     data->current_discard = 0;
+
+    // OOR/OggS state
     data->current_packet = 0;
     data->packet_count = 0;
     data->flags = 0;
@@ -228,12 +231,30 @@ static void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
     vorbis_custom_codec_data* data = v->codec_data;
     if (!data) return;
 
-    /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
-     * To avoid having to parse different formats we'll just discard until the expected sample */
-    reset_vorbis_custom(data);
-    data->current_discard = num_sample;
-    if (v->loop_ch)
-        v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
+    /* Seeking is provided by the Ogg layer, so with custom vorbis we need seek tables instead. 
+     * Check if seek table was added and use it if possible. */
+
+    seek_entry_t seek = {0};
+    int skip_samples = seek_table_get_entry(v, num_sample, &seek);
+    if (skip_samples >= 0) {
+        //;VGM_LOG("VORBIS: seek found\n");
+
+        // maybe should not reset (keeps state from loop end), but probably depends on the format;
+        // affects output a bit
+        reset_vorbis_custom(data); 
+        data->current_discard = skip_samples;
+        if (v->loop_ch)
+            v->loop_ch[0].offset = seek.offset;
+    }
+    else {
+        //;VGM_LOG("VORBIS: no seek found\n");
+
+        reset_vorbis_custom(data);
+        data->current_discard = num_sample;
+        if (v->loop_ch)
+            v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
+    }
+
 }
 
 int32_t vorbis_custom_get_samples(VGMSTREAM* v) {

@@ -1,9 +1,9 @@
 #include "meta.h"
-#include "../util.h"
 #include "../coding/coding.h"
 #include "../util/chunks.h"
 #include "../util/endianness.h"
 #include "../util/channel_mappings.h"
+#include "../base/seek_table.h"
 
 
 /* Wwise uses a custom RIFF/RIFX header, non-standard enough that it's parsed it here.
@@ -14,29 +14,29 @@
  */
 typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, OPUSCPR, OPUSWW, PTADPCM } wwise_codec;
 typedef struct {
-    int big_endian;
-    size_t file_size;
-    int prefetch;
-    int is_wem;
-    int is_bnk;
+    bool big_endian;
+    uint32_t file_size;
+    bool prefetch;
+    bool is_wem;
+    bool is_bnk;
 
     /* chunks references */
-    off_t  fmt_offset;
-    size_t fmt_size;
-    off_t  data_offset;
-    size_t data_size;
-    off_t  xma2_offset;
-    size_t xma2_size;
-    off_t  vorb_offset;
-    size_t vorb_size;
-    off_t  wiih_offset;
-    size_t wiih_size;
-    off_t  smpl_offset;
-    size_t smpl_size;
-    off_t  seek_offset;
-    size_t seek_size;
-    off_t  meta_offset;
-    size_t meta_size;
+    uint32_t fmt_offset;
+    uint32_t fmt_size;
+    uint32_t data_offset;
+    uint32_t data_size;
+    uint32_t xma2_offset;
+    uint32_t xma2_size;
+    uint32_t vorb_offset;
+    uint32_t vorb_size;
+    uint32_t wiih_offset;
+    uint32_t wiih_size;
+    uint32_t smpl_offset;
+    uint32_t smpl_size;
+    uint32_t seek_offset;
+    uint32_t seek_size;
+    uint32_t meta_offset;
+    uint32_t meta_size;
 
     /* standard fmt stuff */
     wwise_codec codec;
@@ -48,7 +48,7 @@ typedef struct {
     int bits_per_sample;
     uint8_t channel_type;
     uint32_t channel_layout;
-    size_t extra_size;
+    uint16_t extra_size;
 
     int32_t num_samples;
     int loop_flag;
@@ -58,6 +58,7 @@ typedef struct {
 
 static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
 static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection);
+static void read_seek_new(VGMSTREAM* v, STREAMFILE* sf, uint32_t seek_offset, uint32_t seek_size,  uint32_t base_offset, bool big_endian);
 
 /* Wwise - Audiokinetic Wwise (WaveWorks Interactive Sound Engine) middleware */
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
@@ -182,8 +183,8 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 /* older Wwise (~<2012) */
 
                 switch(ww.vorb_size) {
-                    case 0x2C: /* earliest (~2009) [The Lord of the Rings: Conquest (PC)] */
-                    case 0x28: /* early (~2009) [UFC Undisputed 2009 (PS3), some EVE Online Apocrypha (PC)] */
+                    case 0x2C: /* earliest (~2009) [The Lord of the Rings: Conquest (PC)-v34] */
+                    case 0x28: /* early (~2009) [UFC Undisputed 2009 (PS3)-v35-v36, some EVE Online Apocrypha (PC)] */
                         data_offsets = 0x18;
                         block_offsets = 0; /* no need, full headers are present */
                         cfg.header_type = WWV_TYPE_8;
@@ -191,8 +192,8 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                         cfg.setup_type = WWV_HEADER_TRIAD;
                         break;
 
-                    case 0x34:  /* common (2010~2011) [The King of Fighters XII (PS3), Assassin's Creed II (X360)] */
-                    case 0x32:  /* rare (mid 2011) [Saints Row the 3rd (PC)] */
+                    case 0x34:  /* common (2010~2011) [The King of Fighters XII (PS3)-v38, Assassin's Creed II (X360)-v44, Splatterhouse (PS3)-v48] */
+                    case 0x32:  /* rare (mid 2011) [Chime Super Deluxe (PS3)-v52, Saints Row the 3rd (PC)-v53?] */
                         data_offsets = 0x18;
                         block_offsets = 0x30;
                         cfg.header_type = WWV_TYPE_6;
@@ -200,7 +201,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                         cfg.setup_type = WWV_EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
                         break;
 
-                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3), Captain America: Super Soldier (X360)] */
+                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3)-v53, Captain America: Super Soldier (X360)-v53] */
                         data_offsets = 0x10;
                         block_offsets = 0x28;
                         cfg.header_type = WWV_TYPE_2;
@@ -231,9 +232,9 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 }
 
                 /* detect setup type:
-                 * - full inline: ~2009, ex. The King of Fighters XII (X360), The Saboteur (PC)
-                 * - trimmed inline: ~2010, ex. Army of Two: 40 days (X360) some multiplayer files
-                 * - external: ~2010, ex. Assassin's Creed Brotherhood (X360), Dead Nation (X360) */
+                 * - full inline: ~2009, ex. The King of Fighters XII (X360)-v38, The Saboteur (PC)-v44
+                 * - trimmed inline: ~2010, ex. Army of Two: 40 days (X360)-v45 some multiplayer files
+                 * - external: ~2010, ex. Assassin's Creed Brotherhood (X360)-v48, Dead Nation (X360)-v48 */
                 if (ww.vorb_size == 0x34) {
                     size_t setup_size = read_u16  (start_offset + setup_offset + 0x00, sf);
                     uint32_t setup_id = read_u32be(start_offset + setup_offset + 0x06, sf);
@@ -263,8 +264,8 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                         cfg.packet_type = WWV_MODIFIED;
 
                         /* setup not detectable by header, so we'll try both; libvorbis should reject wrong codebooks
-                         * - standard: early (<2012), ex. The King of Fighters XIII (X360)-2011/11, .ogg (cbs are from aoTuV, too)
-                         * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed (PC)-2012/11, .wem */
+                         * - standard: early (<2012), ex. The King of Fighters XIII (X360)-v56, .ogg (cbs are from aoTuV, too)
+                         * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed (PC)-2012/11-v72, .wem (v62) */
                         cfg.setup_type  = ww.is_wem ? WWV_AOTUV603_CODEBOOKS : WWV_EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
                         break;
 
@@ -288,10 +289,12 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
 
                 /* detect normal packets */
                 if (ww.extra_size == 0x30) {
-                    /* almost all blocksizes are 0x08+0x0B except some with 0x09+0x09 [Oddworld New 'n' Tasty! (PSV)] */
+                    /* almost all blocksizes are 0x08+0x0B except some with 0x09+0x09 [Oddworld New 'n' Tasty! (PSV)-v112] */
                     if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
                         cfg.packet_type = WWV_STANDARD;
                 }
+
+                read_seek_new(vgmstream, sf, start_offset, setup_offset, start_offset + setup_offset, ww.big_endian);
 
                 /* try with the selected codebooks */
                 vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
@@ -355,7 +358,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
              * several tracks do loop like this, so disable it for short-ish tracks */
             if (ww.loop_flag && vgmstream->loop_start_sample == 0 &&
                     vgmstream->loop_end_sample < 20*ww.sample_rate) { /* in seconds */
-                vgmstream->loop_flag = 0;
+                vgmstream->loop_flag = false;
             }
 
             dsp_read_coefs(vgmstream, sf, ww.wiih_offset + 0x00, 0x2e, ww.big_endian);
@@ -894,7 +897,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         if (ww->smpl_size >= 0x34
                 && read_u32(ww->smpl_offset + 0x1c, sf) == 1           /* loop count */
                 && read_u32(ww->smpl_offset + 0x24 + 0x04, sf) == 0) { /* loop type */
-            ww->loop_flag = 1;
+            ww->loop_flag = true;
             ww->loop_start_sample = read_u32(ww->smpl_offset + 0x24 + 0x8, sf);
             ww->loop_end_sample   = read_u32(ww->smpl_offset + 0x24 + 0xc, sf) + 1; /* +1 like standard RIFF */
         }
@@ -982,6 +985,32 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     return 1;
 fail:
     return 0;
+}
+
+
+// convert Wwise's seek table to vgmstream's seek table.
+// Wwise seeks by finding closest sample before requested sample in the table, returns calc'd offset and skips N remaining samples
+// base_offset must point to 'setup' packet offset (right after seek table but before audio packets)
+static void read_seek_new(VGMSTREAM* v, STREAMFILE* sf, uint32_t seek_offset, uint32_t seek_size,  uint32_t base_offset, bool big_endian) {
+    read_u16_t read_u16 = big_endian ? read_u16be : read_u16le;
+
+    int entries = seek_size / 0x04;
+
+    uint32_t offset = seek_offset;
+    int32_t stream_sample = 0;
+    uint32_t stream_offset = base_offset;
+    for (int i = 0; i < entries; i++) {
+        // values relative from last entry
+        uint16_t packet_sample = read_u16(offset + 0x00, sf); // uPacketFrameOffset
+        uint16_t packet_offset = read_u16(offset + 0x02, sf); // uPacketFileOffset
+
+        stream_sample += packet_sample;
+        stream_offset += packet_offset;
+
+        seek_table_add_entry(v, stream_sample, stream_offset);
+
+        offset += 0x04;
+    }
 }
 
 
