@@ -918,7 +918,6 @@ static void free_ffmpeg_config(ffmpeg_codec_data* data) {
         data->frame = NULL;
     }
     if (data->codecCtx) {
-        avcodec_close(data->codecCtx);
         avcodec_free_context(&data->codecCtx);
         data->codecCtx = NULL;
     }
