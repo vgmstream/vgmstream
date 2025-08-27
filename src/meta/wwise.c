@@ -58,7 +58,8 @@ typedef struct {
 
 static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
 static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection);
-static void read_seek_new(VGMSTREAM* v, STREAMFILE* sf, uint32_t seek_offset, uint32_t seek_size,  uint32_t base_offset, bool big_endian);
+static void read_vorbis_seek_new(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset);
+static void read_vorbis_seek_old(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset);
 
 /* Wwise - Audiokinetic Wwise (WaveWorks Interactive Sound Engine) middleware */
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
@@ -167,7 +168,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
 #ifdef VGM_USE_VORBIS
         case VORBIS: { /* common */
             /* Wwise uses custom Vorbis, which changed over time (config must be detected to pass to the decoder). */
-            uint32_t data_offsets, block_offsets, setup_offset, audio_offset;
+            uint32_t data_offsets, block_offsets, seek_size, setup_offset, audio_offset;
             uint32_t extra_offset, extra_size;
             vorbis_custom_config cfg = {0};
 
@@ -192,7 +193,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             }
 
             switch(extra_size) {
-                /* vorb versions */    
+                /* vorb versions */
                 case 0x2C:  // earliest (~2009) [The Lord of the Rings: Conquest (PC)-v34]
                 case 0x28:  // early (~2009) [UFC Undisputed 2009 (PS3)-v35-v36, some EVE Online Apocrypha (PC)]
                     data_offsets = 0x18;
@@ -206,13 +207,13 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                     cfg.ww_version = WWVORBIS_V48; // V38/V44 re-detected later
                     break;
 
-                case 0x32:  // rare (mid 2011) [Chime Super Deluxe (PS3)-v52, Saints Row the 3rd (PC)-v53?]
+                case 0x32:  // rare (mid 2011) [Chime Super Deluxe (PS3/X360)-v52, Saints Row the 3rd (X360)-v52-few]
                     data_offsets = 0x18;
                     block_offsets = 0x30;
                     cfg.ww_version = WWVORBIS_V52;
                     break;
 
-                case 0x2a:  // uncommon (mid 2011) [inFamous 2 (PS3)-v53, Captain America: Super Soldier (X360)-v53]
+                case 0x2a:  // uncommon (mid 2011) [inFamous 2 (PS3)-v53, Captain America: Super Soldier (X360)-v53, Saints Row the 3rd (X360)-v53-most]
                     data_offsets = 0x10;
                     block_offsets = 0x28;
                     cfg.ww_version = WWVORBIS_V53;
@@ -234,13 +235,12 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             }
 
             vgmstream->num_samples = read_s32(extra_offset + 0x00, sf);
-            setup_offset = read_u32(extra_offset + data_offsets + 0x00, sf); // within data (0 = no seek table)
+            seek_size    = read_u32(extra_offset + data_offsets + 0x00, sf); // within data (0 = no seek table)
             audio_offset = read_u32(extra_offset + data_offsets + 0x04, sf); // within data
             if (block_offsets) {
                 cfg.blocksize_1_exp = read_u8(extra_offset + block_offsets + 0x00, sf); /* small */
                 cfg.blocksize_0_exp = read_u8(extra_offset + block_offsets + 0x01, sf); /* big */
             }
-            ww.data_size -= audio_offset;
 
 
             if (cfg.ww_version == WWVORBIS_V48) {
@@ -248,8 +248,8 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                  * - full inline: ~2009, ex. The King of Fighters XII (X360)-v38, The Saboteur (PC)-v44
                  * - trimmed inline: ~2010, ex. Army of Two: 40 days (X360)-v45 some multiplayer files
                  * - external: ~2010, ex. Assassin's Creed Brotherhood (X360)-v48, Dead Nation (X360)-v48 */
-                size_t setup_size = read_u16  (start_offset + setup_offset + 0x00, sf);
-                uint32_t setup_id = read_u32be(start_offset + setup_offset + 0x06, sf);
+                size_t setup_size = read_u16  (start_offset + seek_size + 0x00, sf);
+                uint32_t setup_id = read_u32be(start_offset + seek_size + 0x06, sf);
 
                 // if the setup after header starts with "(data)BCV" it's an inline codebook
                 if ((setup_id & 0x00FFFFFF) == get_id32be("\0BCV")) {
@@ -261,22 +261,35 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 }
             }
 
+            setup_offset = start_offset + seek_size;
+
             // mutant .wem with metadata (voice strings/etc) between seek table and vorbis setup [Gears of War 4 (PC)]
             if (cfg.ww_version >= WWVORBIS_V56 && ww.meta_offset) {
                 // 0x00: original setup_offset
                 setup_offset += read_u32(ww.meta_offset + 0x04, sf); // metadata size
             }
 
-            if (cfg.ww_version >= WWVORBIS_V56) {
-                read_seek_new(vgmstream, sf, start_offset, setup_offset, start_offset + setup_offset, ww.big_endian);
+            //TODO: add loop entries to seek table (more common than seek tables in earlier versions)
+            // see dwLoopStartPacketOffset + dwLoopEndPacketOffset
+
+            if (!ww.prefetch && cfg.ww_version < WWVORBIS_V48) {
+                // seems optional and only for certain bigger files (seen in v34, v35, v44, v48)
+                // v52 is unknown but probably like this, as v53 (2010.3 SDK) mentions improved seek in the changelog
+                read_vorbis_seek_old(vgmstream, sf, &ww, start_offset, seek_size, setup_offset);
+            }
+            if (!ww.prefetch && cfg.ww_version >= WWVORBIS_V53) {
+                // used even in small files, seems to be included by default in v62+
+                read_vorbis_seek_new(vgmstream, sf, &ww, start_offset, seek_size, setup_offset);
             }
 
+            // after seek tables
+            ww.data_size -= audio_offset;
 
-            vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
+            vgmstream->codec_data = init_vorbis_custom(sf, setup_offset, VORBIS_WWISE, &cfg);
             if (!vgmstream->codec_data && cfg.ww_version >= WWVORBIS_V56) {
                 // wrong version, try again with the other type
                 cfg.ww_version = ww.is_wem ? WWVORBIS_V56 : WWVORBIS_V62;
-                vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
+                vgmstream->codec_data = init_vorbis_custom(sf, setup_offset, VORBIS_WWISE, &cfg);
             }
             if (!vgmstream->codec_data) goto fail;
 
@@ -963,29 +976,77 @@ fail:
 }
 
 
-// convert Wwise's seek table to vgmstream's seek table.
+static void add_seek_entry(VGMSTREAM* v, int32_t sample, int32_t max_samples, uint32_t offset, uint32_t max_offset) {
+
+    if (sample > max_samples) {
+        VGM_LOG("WWISE: bad seek entry, packet=%i vs samples=%i (o=%x)\n", sample, max_samples, offset);
+        return;
+    }
+
+    if (offset > max_offset) {
+        VGM_LOG("WWISE: bad seek entry, offset=%x vs max=%x (s=%i)\n", offset, max_offset, sample);
+        return;
+    }
+
+    seek_table_add_entry(v, sample, offset);
+}
+
+// Convert Wwise's seek table to vgmstream's seek table
 // Wwise seeks by finding closest sample before requested sample in the table, returns calc'd offset and skips N remaining samples
-// base_offset must point to 'setup' packet offset (right after seek table but before audio packets)
-static void read_seek_new(VGMSTREAM* v, STREAMFILE* sf, uint32_t seek_offset, uint32_t seek_size,  uint32_t base_offset, bool big_endian) {
-    read_u16_t read_u16 = big_endian ? read_u16be : read_u16le;
+// base_offset must point to 'setup' packet offset (right after seek table but before audio packets), adjusted by Wwise on seek call.
+static void read_vorbis_seek_old(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset) {
+    read_u32_t read_u32 = ww->big_endian ? read_u32be : read_u32le;
+    uint32_t max_offset = base_offset + ww->data_size;
+    int32_t max_samples = v->num_samples;
 
-    int entries = seek_size / 0x04;
 
+    int entries = seek_size / 0x08;
     uint32_t offset = seek_offset;
+    for (int i = 0; i < entries; i++) {
+        uint32_t stream_sample = read_u32(offset + 0x00, sf); // dwPacketFirstPCMFrame
+        uint32_t stream_offset = read_u32(offset + 0x04, sf); // dwPacketFileOffset
+
+        stream_offset += base_offset;
+
+        add_seek_entry(v, stream_sample, max_samples, stream_offset, max_offset);
+        offset += 0x08;
+    }
+}
+
+// Similar to the 'old' table, using relative samples/offsets. First entry doesn't start with sample 0 at 'setup' offset (like old table).
+static void read_vorbis_seek_new(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset) {
+    read_u16_t read_u16 = ww->big_endian ? read_u16be : read_u16le;
+    uint32_t max_offset = base_offset + ww->data_size;
+    int32_t max_samples = v->num_samples;
+    const int sample_threshold = 4096 * 4; // rough skip samples max
+    max_samples += sample_threshold;
+
     int32_t stream_sample = 0;
     uint32_t stream_offset = base_offset;
+
+    int entries = seek_size / 0x04;
+    uint32_t offset = seek_offset;
     for (int i = 0; i < entries; i++) {
         // values relative from last entry
         uint16_t packet_sample = read_u16(offset + 0x00, sf); // uPacketFrameOffset
         uint16_t packet_offset = read_u16(offset + 0x02, sf); // uPacketFileOffset
 
+        if (packet_sample < 0x80 || packet_sample > 0x8000) {
+            VGM_LOG("WWISE: bad seek entry\n");
+            continue;
+        }
+
         stream_sample += packet_sample;
         stream_offset += packet_offset;
 
-        seek_table_add_entry(v, stream_sample, stream_offset);
-
+        add_seek_entry(v, stream_sample, max_samples, stream_offset, max_offset);
         offset += 0x04;
     }
+
+
+    // Unlike 'old', entries seem to include pre-roll samples (ex. near-EOF entry of sample 4860864 vs max=4860000),
+    // so each seek should reset the Vorbis decoder to match discard-seek.
+    seek_table_set_reset_decoder(v);
 }
 
 

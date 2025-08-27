@@ -108,8 +108,10 @@ static bool read_packet(VGMSTREAM* v) {
 
     // extra EOF check
     // (may need to drain samples? not a thing in vorbis due to packet types?)
-    if (stream->offset >= data->config.stream_end)
+    if (stream->offset >= data->config.stream_end) {
+        VGM_LOG("VORBIS: reached stream end %x\n", data->config.stream_end);
         return false;
+    }
 
     // read/transform data into the ogg_packet buffer and advance offsets
     bool ok;
@@ -136,17 +138,21 @@ static bool decode_frame(VGMSTREAM* v) {
     rc = vorbis_synthesis(&data->vb, &data->op);
     if (rc == OV_ENOTAUDIO) { 
         // rarely happens, seems ok?
-        VGM_LOG("Vorbis: not an audio packet (size=0x%x) @ %x\n", (size_t)data->op.bytes, (uint32_t)v->ch[0].offset);
+        VGM_LOG("VORBIS: not an audio packet (size=0x%x) @ %x\n", (size_t)data->op.bytes, (uint32_t)v->ch[0].offset);
         ds->sbuf.filled = 0;
         return true;
     } 
     else if (rc != 0) {
+        //VGM_LOG("VORBIS: synthesis error rc=%i\n", rc);
         return false;
     }
 
     // finally decode the logical vorbis block into samples
     rc = vorbis_synthesis_blockin(&data->vd,&data->vb);
-    if (rc != 0) return false; /* ? */
+    if (rc != 0)  {
+        //VGM_LOG("VORBIS: block-in error rc=%i\n", rc);
+        return false; //?
+    }
 
     data->op.packetno++;
 
@@ -165,7 +171,7 @@ static int copy_samples(VGMSTREAM* v) {
     }
 
     // get PCM samples from libvorbis buffers
-    float** pcm;
+    float** pcm = NULL;
     int samples = vorbis_synthesis_pcmout(&data->vd, &pcm);
     if (samples > VORBIS_CALL_SAMPLES)
         samples = VORBIS_CALL_SAMPLES;
@@ -202,13 +208,17 @@ static bool decode_frame_vorbis_custom(VGMSTREAM* v) {
 
     // handle new frame
     bool read = read_packet(v);
-    if (!read)
+    if (!read) {
+        VGM_LOG("VORBIS: packet read error\n");
         return false;
+    }
 
     // decode current frame
     bool decoded = decode_frame(v);
-    if (!decoded)
+    if (!decoded) {
+        VGM_LOG("VORBIS: packet decode error\n");
         return false;
+    }
 
     // samples will be copied next call
     return true;
@@ -234,14 +244,21 @@ static void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
     /* Seeking is provided by the Ogg layer, so with custom vorbis we need seek tables instead. 
      * Check if seek table was added and use it if possible. */
 
+    /* In Wwise, table seek vs discard seek seems equivalent, save a few files (v35?) at certain offsets,
+     * self-corrected after some frames */
+
     seek_entry_t seek = {0};
     int skip_samples = seek_table_get_entry(v, num_sample, &seek);
     if (skip_samples >= 0) {
-        //;VGM_LOG("VORBIS: seek found\n");
+        //;VGM_LOG("VORBIS: seek found %i + %i at %x\n", seek.sample, skip_samples, seek.offset);
 
-        // maybe should not reset (keeps state from loop end), but probably depends on the format;
-        // affects output a bit
-        reset_vorbis_custom(data); 
+        // Vorbis removes first packets due to implicit encoder delay; seek table may take it into account
+        bool reset = seek_table_get_reset_decoder(v);
+        if (seek.sample == 0) //for old Worbis seek tables
+            reset = true;
+        if (reset)
+            reset_vorbis_custom(data);
+
         data->current_discard = skip_samples;
         if (v->loop_ch)
             v->loop_ch[0].offset = seek.offset;

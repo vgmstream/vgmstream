@@ -7,18 +7,27 @@
 struct seek_table_t {
     int count;
     int capacity;
+    bool reset_decoder;
     seek_entry_t* entries;
 };
+
+
+static bool init_table(VGMSTREAM* v) {
+    if (!v->seek_table) {
+        v->seek_table = calloc(1, sizeof(seek_table_t));
+        if (!v->seek_table) return false;
+    }
+
+    return true;
+}
 
 bool seek_table_add_entry(VGMSTREAM* v, int32_t sample, uint32_t offset) {
     //;VGM_LOG("SEEK-TABLE: add entry sample=%i, offset=%x\n", sample, offset);
     if (sample < 0 || offset == 0xFFFFFFFF)
         return false;
 
-    if (!v->seek_table) {
-        v->seek_table = calloc(1, sizeof(seek_table_t));
-        if (!v->seek_table) return false;
-    }
+    if (!init_table(v))
+        return false;
 
     seek_table_t* table = v->seek_table;
 
@@ -32,7 +41,7 @@ bool seek_table_add_entry(VGMSTREAM* v, int32_t sample, uint32_t offset) {
         table->entries = new_entries;
         table->capacity = new_capacity;
 
-        //VGM_LOG("SEEK-TABLE: regrow table to %i (sample=%i, offset=%x)\n", new_capacity, sample, offset);
+        //;VGM_LOG("SEEK-TABLE: regrow table to %i (sample=%i, offset=%x)\n", new_capacity, sample, offset);
     }
 
     table->entries[table->count].sample = sample;
@@ -73,7 +82,7 @@ static int32_t seek_table_get_entry_internal(VGMSTREAM* v, int32_t target_sample
     }
 
     *entry = table->entries[best_entry]; //memcpy
-    //;VGM_LOG("SEEK-TABLE: entry found, %i, %x, skip=%i\n", entry->offset, entry->sample, target_sample - entry->sample);
+    //;VGM_LOG("SEEK-TABLE: entry %i found (sample=%i, offset=%x, skip=%i)\n", best_entry, entry->sample, entry->offset, target_sample - entry->sample);
     return target_sample - entry->sample;
 }
 
@@ -86,6 +95,25 @@ int32_t seek_table_get_entry(VGMSTREAM* v, int32_t target_sample, seek_entry_t* 
     return seek_table_get_entry_internal(v, target_sample, entry, false);
 }
 
+
+void seek_table_set_reset_decoder(VGMSTREAM* v) {
+    if (!init_table(v))
+        return;
+
+    seek_table_t* table = v->seek_table;
+    if (!table)
+        return;
+
+    table->reset_decoder = true;
+}
+
+bool seek_table_get_reset_decoder(VGMSTREAM* v) {
+    seek_table_t* table = v->seek_table;
+    if (!table)
+        return false;
+
+    return table->reset_decoder;
+}
 
 
 void seek_table_free(VGMSTREAM* v) {
