@@ -142,7 +142,7 @@ static bool decode_frame_atrac9(VGMSTREAM* v) {
     return true;
 }
 
-void reset_atrac9(void* priv_data) {
+static void reset_atrac9(void* priv_data) {
     atrac9_codec_data* data = priv_data;
     if (!data || !data->handle)
         return;
@@ -165,7 +165,7 @@ void reset_atrac9(void* priv_data) {
 #endif
 }
 
-void seek_atrac9(VGMSTREAM* v, int32_t num_sample) {
+static void seek_atrac9(VGMSTREAM* v, int32_t num_sample) {
     atrac9_codec_data* data = v->codec_data;
     if (!data) return;
 

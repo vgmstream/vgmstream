@@ -911,7 +911,6 @@ static void process_extradata_0x80_mpeg(STREAMFILE* sf, bnk_header_t* h, uint32_
 /* data part: parse extradata before the codec */
 static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
-    read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
     read_u64_t read_u64 = h->big_endian ? read_u64be : read_u64le;
 
     /* is currently working on ZLSD streams */
