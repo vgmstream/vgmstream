@@ -39,7 +39,7 @@ VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = read_s32be(0x14, streamFile);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    vgmstream->coding_type = coding_NGC_AFC;
+    vgmstream->coding_type = coding_AFC;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x09;
 

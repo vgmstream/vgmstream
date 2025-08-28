@@ -95,11 +95,11 @@ static bool parse_jaudio_wsys(meta_header_t* hdr, STREAMFILE* sf, uint32_t wsys_
 
             switch (format) {
                 case 0x00:
-                    hdr->coding = coding_NGC_AFC;
+                    hdr->coding = coding_AFC;
                     break;
-                //case 0x01: // rare (ex. SMS #518, Pikmin #7)
-                //    hdr->coding = coding_AFC_2bit; //TODO
-                //    break;
+                case 0x01: // rare (ex. SMS #518, Pikmin #7)
+                    hdr->coding = coding_AFC_2bit;
+                    break;
                 case 0x02: // uncommon (ex. WW #1402)
                     hdr->coding = coding_PCM8;
                     break;

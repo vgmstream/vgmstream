@@ -847,7 +847,8 @@ static const coding_info coding_info_list[] = {
         {coding_NGC_DSP,            "Nintendo DSP 4-bit ADPCM"},
         {coding_NGC_DSP_subint,     "Nintendo DSP 4-bit ADPCM (subinterleave)"},
         {coding_NGC_DTK,            "Nintendo DTK 4-bit ADPCM"},
-        {coding_NGC_AFC,            "Nintendo AFC 4-bit ADPCM"},
+        {coding_AFC,                "Nintendo AFC 4-bit ADPCM"},
+        {coding_AFC_2bit,           "Nintendo AFC 2-bit ADPCM"},
         {coding_VADPCM,             "Silicon Graphics VADPCM 4-bit ADPCM"},
 
         {coding_G721,               "CCITT G.721 4-bit ADPCM"},

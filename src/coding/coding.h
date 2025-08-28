@@ -71,8 +71,9 @@ void dsp_read_hist(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, off_t spa
 void decode_ngc_dtk(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
 
-/* ngc_afc_decoder */
-void decode_ngc_afc(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+/* afc_decoder */
+void decode_afc(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_afc_2bit(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 
 /* vadpcm_decoder */

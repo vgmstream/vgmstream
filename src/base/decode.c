@@ -222,7 +222,8 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_NGC_DSP:
         case coding_NGC_DSP_subint:
             return 14;
-        case coding_NGC_AFC:
+        case coding_AFC:
+        case coding_AFC_2bit:
         case coding_VADPCM:
             return 16;
         case coding_NGC_DTK:
@@ -419,9 +420,11 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return 0x08;
         case coding_NGC_DSP_subint:
             return 0x08 * vgmstream->channels;
-        case coding_NGC_AFC:
+        case coding_AFC:
         case coding_VADPCM:
             return 0x09;
+        case coding_AFC_2bit:
+            return 0x05;
         case coding_NGC_DTK:
             return 0x20;
         case coding_G721:
@@ -902,9 +905,15 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
-        case coding_NGC_AFC:
+        case coding_AFC:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_ngc_afc(&vgmstream->ch[ch], buffer+ch,
+                decode_afc(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
+            }
+            break;
+        case coding_AFC_2bit:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_afc_2bit(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;

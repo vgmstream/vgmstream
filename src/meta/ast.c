@@ -56,7 +56,7 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_blocked_ast;
     switch (codec) {
         case 0x00: /* , Pikmin 2 (GC) */
-            vgmstream->coding_type = coding_NGC_AFC;
+            vgmstream->coding_type = coding_AFC;
             break;
         case 0x01: /* Mario Kart: Double Dash!! (GC) */
             vgmstream->coding_type = coding_PCM16BE;
