@@ -543,6 +543,9 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_spt_spd,
     init_vgmstream_wsi,
     init_vgmstream_sre_pcm,
+    init_vgmstream_jaudio_aaf,
+    init_vgmstream_jaudio_bx,
+    init_vgmstream_jaudio_baa,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,

@@ -724,7 +724,8 @@ typedef enum {
     meta_IVB,
     meta_SRCD,
     meta_MHWK,
-    meta_CF_DF
+    meta_CF_DF,
+    meta_JAUDIO,
 } meta_t;
 
 #endif

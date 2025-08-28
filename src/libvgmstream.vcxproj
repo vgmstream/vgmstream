@@ -569,6 +569,7 @@
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivag.c" />
     <ClCompile Include="meta\ivb.c" />
+    <ClCompile Include="meta\jaudio.c" />
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ka1a.c" />
     <ClCompile Include="meta\kat.c" />

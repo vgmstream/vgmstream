@@ -7,11 +7,11 @@
 VGMSTREAM* alloc_metastream(meta_header_t* h) {
 
     if (h->sample_rate <= 0 || h->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE) {
-        VGM_LOG("meta: wrong sample rate %i\n", h->sample_rate);
+        VGM_LOG("META: wrong sample rate %i\n", h->sample_rate);
         return NULL;
     }
     if (h->num_samples <= 0 || h->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
-        VGM_LOG("meta: wrong samples %i\n", h->num_samples);
+        VGM_LOG("META: wrong samples %i\n", h->num_samples);
         return NULL;
     }
 
@@ -21,7 +21,7 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
     }
 
     if (h->has_subsongs && (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1)) {
-        VGM_LOG("meta: wrong subsongs %i vs %i\n", h->target_subsong, h->total_subsongs);
+        VGM_LOG("META: wrong subsongs %i vs %i\n", h->target_subsong, h->total_subsongs);
         return NULL;
     }
 
@@ -54,7 +54,7 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
             dsp_read_hist (vgmstream, h->sf ? h->sf : h->sf_head, h->hists_offset, h->hists_spacing, h->big_endian);
     }
 
-    if (h->open_stream) {
+    if (h->open_stream && h->coding != coding_SILENCE) {
         if (!vgmstream_open_stream(vgmstream, h->sf ? h->sf : h->sf_body, h->stream_offset))
             goto fail;
     }
@@ -65,3 +65,16 @@ fail:
     return NULL;
 }
 
+void meta_mark_missing(VGMSTREAM* v) {
+    if (!v)
+        return;
+
+    if (/*v->stream_name && */ v->stream_name[0] != '\0') {
+        char temp_name[STREAM_NAME_SIZE];
+        snprintf(temp_name, sizeof(temp_name), "%s", v->stream_name);
+        snprintf(v->stream_name, sizeof(v->stream_name), "%s[missing]", temp_name);
+    }
+    else {
+        snprintf(v->stream_name, sizeof(v->stream_name), "%s", "[missing]");
+    }
+}
