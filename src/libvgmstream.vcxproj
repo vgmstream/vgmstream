@@ -266,6 +266,7 @@
     <ClCompile Include="base\tags.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
+    <ClCompile Include="coding\afc_decoder.c" />
     <ClCompile Include="coding\asf_decoder.c" />
     <ClCompile Include="coding\atrac9_decoder.c" />
     <ClCompile Include="coding\celt_fsb_decoder.c" />
@@ -307,7 +308,6 @@
     <ClCompile Include="coding\mta2_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
     <ClCompile Include="coding\nds_procyon_decoder.c" />
-    <ClCompile Include="coding\ngc_afc_decoder.c" />
     <ClCompile Include="coding\ngc_dsp_decoder.c" />
     <ClCompile Include="coding\ngc_dtk_decoder.c" />
     <ClCompile Include="coding\nwa_decoder.c" />
