@@ -15,6 +15,7 @@ typedef struct {
  * Entries must be ordered, and first entry doesn't need to be 0.
  */
 bool seek_table_add_entry(VGMSTREAM* v, int32_t sample, uint32_t offset);
+bool seek_table_add_entry_validate(VGMSTREAM* v, int32_t sample, int32_t max_samples, uint32_t offset, uint32_t max_offset);
 
 /* Loads seek entry closest to sample 
  * Returns num samples to skip after seeking, or -1 if not found (no closest entry/empty table).

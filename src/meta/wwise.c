@@ -976,24 +976,10 @@ fail:
 }
 
 
-static void add_seek_entry(VGMSTREAM* v, int32_t sample, int32_t max_samples, uint32_t offset, uint32_t max_offset) {
-
-    if (sample > max_samples) {
-        VGM_LOG("WWISE: bad seek entry, packet=%i vs samples=%i (o=%x)\n", sample, max_samples, offset);
-        return;
-    }
-
-    if (offset > max_offset) {
-        VGM_LOG("WWISE: bad seek entry, offset=%x vs max=%x (s=%i)\n", offset, max_offset, sample);
-        return;
-    }
-
-    seek_table_add_entry(v, sample, offset);
-}
-
-// Convert Wwise's seek table to vgmstream's seek table
-// Wwise seeks by finding closest sample before requested sample in the table, returns calc'd offset and skips N remaining samples
-// base_offset must point to 'setup' packet offset (right after seek table but before audio packets), adjusted by Wwise on seek call.
+/* Convert Wwise's seek table to vgmstream's seek table
+ * Wwise seeks by finding closest sample before requested sample in the table, returns calc'd offset and skips N remaining samples
+ * base_offset must point to 'setup' packet offset (right after seek table but before audio packets), adjusted by Wwise on seek call.
+ */
 static void read_vorbis_seek_old(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset) {
     read_u32_t read_u32 = ww->big_endian ? read_u32be : read_u32le;
     uint32_t max_offset = base_offset + ww->data_size;
@@ -1008,12 +994,13 @@ static void read_vorbis_seek_old(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww,
 
         stream_offset += base_offset;
 
-        add_seek_entry(v, stream_sample, max_samples, stream_offset, max_offset);
+        seek_table_add_entry_validate(v, stream_sample, max_samples, stream_offset, max_offset);
         offset += 0x08;
     }
 }
 
-// Similar to the 'old' table, using relative samples/offsets. First entry doesn't start with sample 0 at 'setup' offset (like old table).
+/* Similar to the 'old' table, using relative samples/offsets. First entry doesn't start with sample 0 at 'setup' offset (like old table).
+ */
 static void read_vorbis_seek_new(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset) {
     read_u16_t read_u16 = ww->big_endian ? read_u16be : read_u16le;
     uint32_t max_offset = base_offset + ww->data_size;
@@ -1039,7 +1026,7 @@ static void read_vorbis_seek_new(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww,
         stream_sample += packet_sample;
         stream_offset += packet_offset;
 
-        add_seek_entry(v, stream_sample, max_samples, stream_offset, max_offset);
+        seek_table_add_entry_validate(v, stream_sample, max_samples, stream_offset, max_offset);
         offset += 0x04;
     }
 

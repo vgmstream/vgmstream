@@ -52,6 +52,22 @@ bool seek_table_add_entry(VGMSTREAM* v, int32_t sample, uint32_t offset) {
     return true;
 }
 
+bool seek_table_add_entry_validate(VGMSTREAM* v, int32_t sample, int32_t max_samples, uint32_t offset, uint32_t max_offset) {
+
+    if (sample > max_samples) {
+        VGM_LOG("SEEK-TABLE: bad seek entry, packet=%i vs samples=%i (o=%x)\n", sample, max_samples, offset);
+        return false;
+    }
+
+    if (offset > max_offset) {
+        VGM_LOG("SEEK-TABLE: bad seek entry, offset=%x vs max=%x (s=%i)\n", offset, max_offset, sample);
+        return false;
+    }
+
+    return seek_table_add_entry(v, sample, offset);
+}
+
+
 static int32_t seek_table_get_entry_internal(VGMSTREAM* v, int32_t target_sample, seek_entry_t* entry, bool prev) {
     //;VGM_LOG("SEEK-TABLE: find entry for sample %i\n", target_sample);
     if (!entry)
