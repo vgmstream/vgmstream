@@ -20,6 +20,9 @@ typedef struct {
 
     bool (*decode_buf)(VGMSTREAM* v, sbuf_t* sdst);         // alternate decoding for codecs that don't provide their own buffer
 
+    bool (*seekable)(VGMSTREAM* v); // if codec may seek to arbitrary samples using ->seek (defaults to slow seek otherwise)
+                                    // ->seek is typically only been tested with loops, returning true here meant it can be used
+
     // info for vgmstream
     //uint32_t flags; 
     // alloc size of effect's private data (don't set to manage manually in init/free)

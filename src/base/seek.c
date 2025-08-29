@@ -5,6 +5,8 @@
 #include "mixing.h"
 #include "plugins.h"
 #include "sbuf.h"
+#include "codec_info.h"
+
 
 /* Seeking in vgmstream can be divided into:
  * - 'render' part (padding, trims, etc)
@@ -26,6 +28,20 @@ static void seek_force_render(VGMSTREAM* vgmstream, int samples) {
     if (!samples)
         return;
     //;VGM_LOG("SEEK: force render %i\n", samples);
+
+#if 0
+    // TODO: issues trim with loops enabled
+    // TODO: detect 'render' vs 'decode'
+    // use fast seek if possible
+    const codec_info_t* codec_info = codec_get_info(vgmstream);
+    if (/*!vgmstream->loop_flag &&*/ codec_info && codec_info->seekable(vgmstream)) {
+        // reset needed?
+        decode_seek(vgmstream, vgmstream->current_sample + samples);
+        vgmstream->current_sample = samples;
+        ;VGM_LOG("RENDER [trim]: codec seek\n");
+        return;
+    }
+#endif
 
     void* tmpbuf = vgmstream->tmpbuf;
     int buf_samples = vgmstream->tmpbuf_size / vgmstream->channels / sizeof(float); /* base decoder channels, no need to apply mixing */
@@ -68,13 +84,13 @@ static void seek_decode_force_loop_end(VGMSTREAM* vgmstream, int loop_count) {
  * //TODO: seek into body_end
  */
 static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
-    ;VGM_LOG("SEEK [decode]: current=%i (target=%i)\n", vgmstream->current_sample, seek_sample);
+    //;VGM_LOG("SEEK [decode]: current=%i (target=%i)\n", vgmstream->current_sample, seek_sample);
 
     bool is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; // loop target may disable loop flag during decode
 
     // ignore seek to current (not likely but...)
     if (seek_sample == vgmstream->current_sample) {
-        ;VGM_LOG("SEEK [decode]: ignore seek to current\n");
+        //;VGM_LOG("SEEK [decode]: ignore seek to current\n");
         return;
     }
 
@@ -85,7 +101,7 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
         reset_vgmstream(vgmstream);
 
         seek_force_render(vgmstream, seek_sample);
-        ;VGM_LOG("SEEK [decode]: non-loop reset / dec=%i\n", seek_sample);
+        //;VGM_LOG("SEEK [decode]: non-loop reset / dec=%i\n", seek_sample);
         return;
     }
 
@@ -94,8 +110,8 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
         // ex. seek=95s, curr=50: decode=95-50=45s
         int32_t decode_samples = seek_sample - vgmstream->current_sample;
 
-        seek_force_render(vgmstream, seek_sample);
-        ;VGM_LOG("SEEK [decode]: non-loop forward / dec=%i\n", decode_samples);
+        seek_force_render(vgmstream, decode_samples);
+        //;VGM_LOG("SEEK [decode]: non-loop forward / dec=%i\n", decode_samples);
         return;
     }
 
@@ -104,7 +120,7 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
         //TODO test if needed and unify with the above if not
         vgmstream->current_sample = vgmstream->num_samples + 1;
 
-        ;VGM_LOG("SEEK [decode]: non-loop after decode\n");
+        //;VGM_LOG("SEEK [decode]: non-loop after decode\n");
         return;
     }
 
@@ -118,13 +134,13 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
             reset_vgmstream(vgmstream);
             decode_samples = seek_sample;
 
-            ;VGM_LOG("SEEK [decode]: loop start reset / dec=%i\n", decode_samples);
+            //;VGM_LOG("SEEK [decode]: loop start reset / dec=%i\n", decode_samples);
         }
         else {
             // seek=9s, current=8s: decode 1s from current
             decode_samples = seek_sample - vgmstream->current_sample;
 
-            ;VGM_LOG("SEEK [decode]: loop start forward / dec=%i\n", decode_samples);
+            //;VGM_LOG("SEEK [decode]: loop start forward / dec=%i\n", decode_samples);
         }
 
         seek_force_render(vgmstream, decode_samples);
@@ -151,14 +167,14 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
             }
 
             int32_t skip_samples = (vgmstream->loop_start_sample - vgmstream->current_sample);
-            ;VGM_LOG("SEEK [decode]: force loop region / skip=%i, curr=%i\n", skip_samples, vgmstream->current_sample);
+            //;VGM_LOG("SEEK [decode]: force loop region / skip=%i, curr=%i\n", skip_samples, vgmstream->current_sample);
 
             seek_force_render(vgmstream, skip_samples);
         }
 
         // current must hit loop end (may happen at start since it's smaller than loop_end)
         if (vgmstream->current_sample < vgmstream->loop_end_sample) {
-            ;VGM_LOG("SEEK [decode]: outside loop region / curr=%i, ls=%i, le=%i\n", vgmstream->current_sample, vgmstream->current_sample, vgmstream->loop_end_sample);
+            //;VGM_LOG("SEEK [decode]: outside loop region / curr=%i, ls=%i, le=%i\n", vgmstream->current_sample, vgmstream->current_sample, vgmstream->loop_end_sample);
             seek_decode_force_loop_end(vgmstream, 0);
         }
 
@@ -170,7 +186,7 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
             loop_seek = loop_body + (seek_sample - vgmstream->loop_start_sample) - vgmstream->loop_target * loop_body;
             loop_count = vgmstream->loop_target - 1;  // so seek_decode_force_loop_end detection kicks in and adds +1
 
-            ;VGM_LOG("SEEK [decode]: outro outside / seek=%i, count=%i\n", loop_seek, loop_count);
+            //;VGM_LOG("SEEK [decode]: outro outside / seek=%i, count=%i\n", loop_seek, loop_count);
         }
 
         // seek is clamped to loop region, decode from loop start or from current position
@@ -180,17 +196,17 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
             decode_samples = loop_seek;
             seek_decode_force_loop_end(vgmstream, loop_count);
 
-            ;VGM_LOG("SEEK[decode]: loop reset / dec=%i, loop=%i\n", decode_samples, loop_count);
+            //;VGM_LOG("SEEK[decode]: loop reset / dec=%i, loop=%i\n", decode_samples, loop_count);
         }
         else {
             decode_samples = (loop_seek - loop_current);
             vgmstream->loop_count = loop_count;
 
-            ;VGM_LOG("SEEK [decode]: loop forward / dec=%i, loop=%i\n", decode_samples, loop_count);
+            //;VGM_LOG("SEEK [decode]: loop forward / dec=%i, loop=%i\n", decode_samples, loop_count);
         }
 
         seek_force_render(vgmstream, decode_samples);
-        ;VGM_LOG("SEEK [decode]: current=%i\n", vgmstream->current_sample);
+        //;VGM_LOG("SEEK [decode]: current=%i\n", vgmstream->current_sample);
         return;
     }
 }
@@ -237,7 +253,7 @@ static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layou
             loop_seek = loop_body + (seek_sample - vgmstream->loop_start_sample) - vgmstream->loop_target * loop_body;
             loop_count = vgmstream->loop_target - 1;  // so seek_decode_force_loop_end detection kicks in and adds +1
 
-            ;VGM_LOG("SEEK [layout]: outro outside / seek=%i, count=%i\n", loop_seek, loop_count);
+            //;VGM_LOG("SEEK [layout]: outro outside / seek=%i, count=%i\n", loop_seek, loop_count);
 
             //TODO: not working correctly (incorrectly set flags stuff), for now give up and use regular (slower) seek
             if (vgmstream->layout_type == layout_segmented) {
@@ -258,7 +274,7 @@ static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layou
 /* Seeks in the 'layout' part
  */
 static void seek_layout(VGMSTREAM* vgmstream, int32_t seek_sample) {
-    ;VGM_LOG("SEEK [layout]: (target=%i)\n", seek_sample);
+    //;VGM_LOG("SEEK [layout]: (target=%i)\n", seek_sample);
 
     // layouts can seek faster internally
     if (vgmstream->layout_type == layout_segmented) {
@@ -313,7 +329,7 @@ static void seek_render_trim_begin(VGMSTREAM* vgmstream, seek_render_t* sc) {
     int32_t trim_samples = ps->trim_begin_duration;
     ps->trim_begin_left = 0; // all 'consumed' during decode
     sc->seek_decode += trim_samples;
-    ;VGM_LOG("SEEK [render]: trim-begin s=%i (decode=%i, target=%i)\n", trim_samples, sc->seek_decode, sc->seek_target);
+    //;VGM_LOG("SEEK [render]: trim-begin s=%i (decode=%i, target=%i)\n", trim_samples, sc->seek_decode, sc->seek_target);
 }
 
 /* Pad-begin adds N samples to output = decreases seek (but also adjusts pad_left).
@@ -336,7 +352,7 @@ static void seek_render_pad_begin(VGMSTREAM* vgmstream, seek_render_t* sc) {
         pad_samples = sc->seek_target;
     ps->pad_begin_left = (ps->pad_begin_duration - pad_samples);
     sc->seek_decode -= pad_samples;
-    ;VGM_LOG("SEEK [render]: pad-begin s=%i left=%i (decode=%i, target=%i)\n", pad_samples, ps->pad_begin_left, sc->seek_decode, sc->seek_target);
+    //;VGM_LOG("SEEK [render]: pad-begin s=%i left=%i (decode=%i, target=%i)\n", pad_samples, ps->pad_begin_left, sc->seek_decode, sc->seek_target);
 }
 
 /* pad-end and beyond: ignored
@@ -358,7 +374,7 @@ static void seek_render_pad_end(VGMSTREAM* vgmstream, seek_render_t* sc) {
         vgmstream->current_sample = vgmstream->num_samples + 1; // TODO: needed???
 
     //ps->pad_end_left = ... // nothing to adjust due to how pad end works
-    ;VGM_LOG("SEEK [render]: pad-end (decode=%i, target=%i)\n", sc->seek_decode, sc->seek_target);
+    //;VGM_LOG("SEEK [render]: pad-end (decode=%i, target=%i)\n", sc->seek_decode, sc->seek_target);
 }
 
 /* adjust fade if seek ends in fade region
@@ -375,7 +391,7 @@ static void seek_render_fade(VGMSTREAM* vgmstream, seek_render_t* sc) {
         return;
 
     ps->fade_left = ps->pad_begin_duration + ps->body_duration + ps->fade_duration - sc->seek_target;
-    ;VGM_LOG("SEEK [render]: fade s=%i (decode=%i, target=%i)\n", ps->fade_left, sc->seek_decode, sc->seek_target);
+    //;VGM_LOG("SEEK [render]: fade s=%i (decode=%i, target=%i)\n", ps->fade_left, sc->seek_decode, sc->seek_target);
 }
 
 /* Seeks in the 'render' part
@@ -384,7 +400,7 @@ static void seek_render(VGMSTREAM* vgmstream, seek_render_t* sc) {
 
     // ignore seek to current (not likely but...)
     if (sc->seek_target == sc->play_sample) {
-        ;VGM_LOG("SEEK [render]: ignore seek to current\n");
+        //;VGM_LOG("SEEK [render]: ignore seek to current\n");
         return;
     }
 
@@ -431,7 +447,7 @@ static int32_t clamp_seek(VGMSTREAM* vgmstream, int32_t seek_sample) {
 //TODO: check that decode doesn't use config
 /* decode and loop until seek sample (slow) */
 static void seek_simple(VGMSTREAM* vgmstream, int32_t seek_sample) {
-    ;VGM_LOG("SEEK [simple]: cur=%i (target=%i)\n", vgmstream->current_sample, seek_sample);
+    //;VGM_LOG("SEEK [simple]: cur=%i (target=%i)\n", vgmstream->current_sample, seek_sample);
 
     int32_t decode_samples;
     if (seek_sample < vgmstream->current_sample) {
@@ -443,12 +459,12 @@ static void seek_simple(VGMSTREAM* vgmstream, int32_t seek_sample) {
     }
 
     seek_force_render(vgmstream, decode_samples);
-    ;VGM_LOG("SEEK [simple]: done, cur=%i\n", vgmstream->current_sample);
+    //;VGM_LOG("SEEK [simple]: done, cur=%i\n", vgmstream->current_sample);
 }
 
 
 void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
-    ;VGM_LOG("SEEK [main]: s=%i\n", seek_sample);
+    //;VGM_LOG("SEEK [main]: s=%i\n", seek_sample);
 
     seek_sample = clamp_seek(vgmstream, seek_sample);
 

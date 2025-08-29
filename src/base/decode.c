@@ -95,7 +95,7 @@ void decode_free(VGMSTREAM* vgmstream) {
 }
 
 
-void decode_seek(VGMSTREAM* vgmstream) {
+void decode_seek(VGMSTREAM* vgmstream, int32_t sample) {
     decode_state_reset(vgmstream);
 
     if (!vgmstream->codec_data)
@@ -103,42 +103,45 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
     const codec_info_t* codec_info = codec_get_info(vgmstream);
     if (codec_info) {
-        codec_info->seek(vgmstream, vgmstream->loop_current_sample);
+        codec_info->seek(vgmstream, sample);
         return;
     }
 
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
-        seek_circus_vq(vgmstream->codec_data, vgmstream->loop_current_sample);
+        seek_circus_vq(vgmstream->codec_data, sample);
     }
 
     if (vgmstream->coding_type == coding_ICE_RANGE ||
         vgmstream->coding_type == coding_ICE_DCT) {
-        seek_ice(vgmstream->codec_data, vgmstream->loop_current_sample);
+        seek_ice(vgmstream->codec_data, sample);
     }
 
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
-        seek_ubi_adpcm(vgmstream->codec_data, vgmstream->loop_current_sample);
+        seek_ubi_adpcm(vgmstream->codec_data, sample);
     }
 
     if (vgmstream->coding_type == coding_ONGAKUKAN_ADPCM) {
-        seek_ongakukan_adp(vgmstream->codec_data, vgmstream->loop_current_sample);
+        seek_ongakukan_adp(vgmstream->codec_data, sample);
     }
 
     if (vgmstream->coding_type == coding_EA_MT) {
-        seek_ea_mt(vgmstream, vgmstream->loop_current_sample);
+        seek_ea_mt(vgmstream, sample);
     }
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
-        seek_mp4_aac(vgmstream, vgmstream->loop_current_sample);
+        seek_mp4_aac(vgmstream, sample);
     }
 #endif
 
     if (vgmstream->coding_type == coding_NWA) {
-        seek_nwa(vgmstream->codec_data, vgmstream->loop_current_sample);
+        seek_nwa(vgmstream->codec_data, sample);
     }
 }
 
+void decode_loop(VGMSTREAM* vgmstream) {
+    decode_seek(vgmstream, vgmstream->loop_current_sample);
+}
 
 void decode_reset(VGMSTREAM* vgmstream) {
     decode_state_reset(vgmstream);
@@ -1462,14 +1465,14 @@ bool decode_do_loop(VGMSTREAM* vgmstream) {
         }
 
         //TODO: improve
-        /* codecs with codec_data that decode_seek need special handling, usually:
+        /* codecs with codec_data that decode_loop need special handling, usually:
          * - during decode, codec uses vgmstream->ch[].offset to handle current offset
          * - on hit_loop, current offset is auto-copied to vgmstream->loop_ch[].offset
          * - decode_seek codecs may overwrite vgmstream->loop_ch[].offset with a custom value (such as start_offset)
          * - vgmstream->loop_ch[] is copied below to vgmstream->ch[] (with the newly assigned custom value)
          * - then codec will use vgmstream->ch[].offset during decode
          * regular codecs will use copied vgmstream->loop_ch[].offset without issue */
-        decode_seek(vgmstream);
+        decode_loop(vgmstream);
 
         /* restore! */
         memcpy(vgmstream->ch, vgmstream->loop_ch, sizeof(VGMSTREAMCHANNEL) * vgmstream->channels);

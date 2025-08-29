@@ -260,6 +260,8 @@ static void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
             reset_vorbis_custom(data);
 
         data->current_discard = skip_samples;
+
+        v->ch[0].offset = seek.offset;
         if (v->loop_ch)
             v->loop_ch[0].offset = seek.offset;
     }
@@ -268,10 +270,23 @@ static void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
 
         reset_vorbis_custom(data);
         data->current_discard = num_sample;
+        v->ch[0].offset = seek.offset;
         if (v->loop_ch)
             v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
     }
 
+}
+
+static bool seekable_vorbis_custom(VGMSTREAM* v) {
+    vorbis_custom_codec_data* data = v->codec_data;
+    if (!data) return false;
+
+    switch(data->type) {
+        case VORBIS_WWISE:
+            return true;
+        default:
+            return false;
+    }
 }
 
 int32_t vorbis_custom_get_samples(VGMSTREAM* v) {
@@ -308,6 +323,7 @@ const codec_info_t vorbis_custom_decoder = {
     .free = free_vorbis_custom,
     .reset = reset_vorbis_custom,
     .seek = seek_vorbis_custom,
+    .seekable = seekable_vorbis_custom
 };
 
 #endif
