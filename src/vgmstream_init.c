@@ -11,7 +11,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bcwav,
     init_vgmstream_rwar,
     init_vgmstream_nds_strm,
-    init_vgmstream_afc,
     init_vgmstream_ast,
     init_vgmstream_halpst,
     init_vgmstream_rs03,
@@ -509,6 +508,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_snd_koei,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
+    init_vgmstream_afc,
     init_vgmstream_agsc,
     init_vgmstream_scd_pcm,
     init_vgmstream_vas_kceo,
