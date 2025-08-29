@@ -99,6 +99,7 @@
     <ClInclude Include="base\plugins.h" />
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\sbuf.h" />
+    <ClInclude Include="base\seek_table.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
@@ -253,6 +254,7 @@
     <ClCompile Include="base\render.c" />
     <ClCompile Include="base\sbuf.c" />
     <ClCompile Include="base\seek.c" />
+    <ClCompile Include="base\seek_table.c" />
     <ClCompile Include="base\streamfile_api.c" />
     <ClCompile Include="base\streamfile_buffer.c" />
     <ClCompile Include="base\streamfile_clamp.c" />
@@ -264,6 +266,7 @@
     <ClCompile Include="base\tags.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
+    <ClCompile Include="coding\afc_decoder.c" />
     <ClCompile Include="coding\asf_decoder.c" />
     <ClCompile Include="coding\atrac9_decoder.c" />
     <ClCompile Include="coding\celt_fsb_decoder.c" />
@@ -305,7 +308,6 @@
     <ClCompile Include="coding\mta2_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
     <ClCompile Include="coding\nds_procyon_decoder.c" />
-    <ClCompile Include="coding\ngc_afc_decoder.c" />
     <ClCompile Include="coding\ngc_dsp_decoder.c" />
     <ClCompile Include="coding\ngc_dtk_decoder.c" />
     <ClCompile Include="coding\nwa_decoder.c" />
@@ -567,6 +569,7 @@
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivag.c" />
     <ClCompile Include="meta\ivb.c" />
+    <ClCompile Include="meta\jaudio.c" />
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ka1a.c" />
     <ClCompile Include="meta\kat.c" />

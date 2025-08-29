@@ -5,7 +5,8 @@
 
 void* decode_init();
 void decode_free(VGMSTREAM* vgmstream);
-void decode_seek(VGMSTREAM* vgmstream);
+void decode_seek(VGMSTREAM* vgmstream, int32_t sample);
+void decode_loop(VGMSTREAM* vgmstream);
 void decode_reset(VGMSTREAM* vgmstream);
 
 /* Decode samples into the buffer. Assume that we have written samples_filled into the

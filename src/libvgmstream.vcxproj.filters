@@ -131,6 +131,9 @@
     <ClInclude Include="base\sbuf.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\seek_table.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -589,6 +592,9 @@
     <ClCompile Include="base\seek.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="base\seek_table.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="base\streamfile_api.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
@@ -620,6 +626,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\adx_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\afc_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\asf_decoder.c">
@@ -743,9 +752,6 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\nds_procyon_decoder.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="coding\ngc_afc_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ngc_dsp_decoder.c">
@@ -1529,6 +1535,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ivb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\jaudio.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\jstm.c">

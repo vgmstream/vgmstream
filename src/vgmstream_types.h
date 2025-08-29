@@ -38,7 +38,8 @@ typedef enum {
     coding_NGC_DSP,         /* Nintendo DSP ADPCM */
     coding_NGC_DSP_subint,  /* Nintendo DSP ADPCM with frame subinterframe */
     coding_NGC_DTK,         /* Nintendo DTK ADPCM (hardware disc), also called TRK or ADP */
-    coding_NGC_AFC,         /* Nintendo AFC ADPCM */
+    coding_AFC,             /* Nintendo AFC ADPCM */
+    coding_AFC_2bit,        /* Nintendo AFC ADPCM (2-bit) */
     coding_VADPCM,          /* Silicon Graphics VADPCM */
 
     coding_G721,            /* CCITT G.721 */
@@ -724,7 +725,8 @@ typedef enum {
     meta_IVB,
     meta_SRCD,
     meta_MHWK,
-    meta_CF_DF
+    meta_CF_DF,
+    meta_JAUDIO,
 } meta_t;
 
 #endif

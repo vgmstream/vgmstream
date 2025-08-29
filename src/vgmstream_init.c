@@ -11,7 +11,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bcwav,
     init_vgmstream_rwar,
     init_vgmstream_nds_strm,
-    init_vgmstream_afc,
     init_vgmstream_ast,
     init_vgmstream_halpst,
     init_vgmstream_rs03,
@@ -65,7 +64,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_fsb,
     init_vgmstream_fsb5,
     init_vgmstream_rwax,
-    init_vgmstream_xwb,
+    init_vgmstream_wbnd,
     init_vgmstream_musc,
     init_vgmstream_musx,
     init_vgmstream_filp,
@@ -506,8 +505,10 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_srcd,
     init_vgmstream_mhwk,
     init_vgmstream_cf_df,
+    init_vgmstream_snd_koei,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
+    init_vgmstream_afc,
     init_vgmstream_agsc,
     init_vgmstream_scd_pcm,
     init_vgmstream_vas_kceo,
@@ -542,6 +543,9 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_spt_spd,
     init_vgmstream_wsi,
     init_vgmstream_sre_pcm,
+    init_vgmstream_jaudio_aaf,
+    init_vgmstream_jaudio_bx,
+    init_vgmstream_jaudio_baa,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,

@@ -3,6 +3,7 @@
 #include "render.h"
 #include "decode.h"
 #include "mixing.h"
+#include "codec_info.h"
 
 
 /* VGMSTREAM RENDERING
@@ -171,6 +172,20 @@ static void play_op_trim(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
         return;
     if (sbuf->samples <= 0)
         return;
+
+#if 0
+    // TODO: issues trim with loops
+    // use fast seek if possible
+    const codec_info_t* codec_info = codec_get_info(vgmstream);
+    if (/*!vgmstream->loop_flag &&*/ codec_info && codec_info->seekable(vgmstream)) {
+        // reset needed? should only trim after reset
+        decode_seek(vgmstream, ps->trim_begin_left);
+        vgmstream->current_sample += ps->trim_begin_left;
+        ps->trim_begin_left = 0;
+        ;VGM_LOG("RENDER [trim]: codec seek %i\n", vgmstream->current_sample);
+        return;
+    }
+#endif
 
     sbuf_t sbuf_tmp = *sbuf;
     int buf_samples = sbuf->samples;

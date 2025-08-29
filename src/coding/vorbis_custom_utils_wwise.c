@@ -19,7 +19,7 @@ typedef struct {
     size_t packet_size;
     int granulepos;
 
-    int has_next;
+    bool has_next;
     uint8_t inxt[0x01];
 } wpacket_t;
 
@@ -37,6 +37,63 @@ static int load_codebooks(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, 
 /* EXTERNAL API                                                                 */
 /* **************************************************************************** */
 
+static void setup_version_config(vorbis_custom_codec_data* data) {
+
+    switch (data->config.ww_version) {
+        case WWVORBIS_V34:
+            data->header_type = WWV_TYPE_8;
+            data->packet_type = WWV_STANDARD;
+            data->setup_type = WWV_HEADER_TRIAD;
+            break;
+
+        case WWVORBIS_V38:
+            data->header_type = WWV_TYPE_6;
+            data->packet_type = WWV_STANDARD;
+            data->setup_type = WWV_FULL_SETUP;
+            break;
+
+        case WWVORBIS_V44:
+            data->header_type = WWV_TYPE_6;
+            data->packet_type = WWV_STANDARD;
+            data->setup_type = WWV_INLINE_CODEBOOKS;
+            break;
+
+        case WWVORBIS_V48:
+        case WWVORBIS_V52:
+            data->header_type = WWV_TYPE_6;
+            data->packet_type = WWV_STANDARD;
+            data->setup_type = WWV_EXTERNAL_CODEBOOKS;
+            break;
+
+        case WWVORBIS_V53:
+        case WWVORBIS_V56:
+            data->header_type = WWV_TYPE_2;
+            data->packet_type = WWV_MODIFIED;
+            data->setup_type = WWV_EXTERNAL_CODEBOOKS;
+            break;
+
+        case WWVORBIS_V62:
+            data->header_type = WWV_TYPE_2;
+            data->packet_type = WWV_MODIFIED;
+            data->setup_type = WWV_AOTUV603_CODEBOOKS;
+            break;
+
+        default:
+            break;
+    }
+
+    /* almost all blocksizes are 0x08+0x0B except:
+     * - 0x0a+0x0a [Captain America: Super Soldier (X360) voices/sfx]-v53
+     * - 0x09+0x09 [Oddworld New 'n' Tasty! (PSV)-v112
+     */
+    if (data->config.ww_version >= WWVORBIS_V53) {
+        if (data->config.blocksize_0_exp == data->config.blocksize_1_exp) {
+            data->packet_type = WWV_STANDARD;
+        }
+    }
+}
+
+
 /**
  * Wwise stores a reduced setup, and packets have mini headers with the size, and data packets
  * may reduced as well. The format evolved over time so there are many variations.
@@ -47,8 +104,9 @@ int vorbis_custom_setup_init_wwise(STREAMFILE* sf, off_t start_offset, vorbis_cu
     wpacket_t wp = {0};
     int ok;
 
+    setup_version_config(data);
 
-    if (data->config.setup_type == WWV_HEADER_TRIAD) {
+    if (data->setup_type == WWV_HEADER_TRIAD) {
         /* read 3 Wwise packets with triad (id/comment/setup), each with a Wwise header */
         off_t offset = start_offset;
 
@@ -124,7 +182,7 @@ static int read_packet(wpacket_t* wp, uint8_t* ibuf, size_t ibufsize, STREAMFILE
     int32_t  (*get_s32)(const uint8_t*) = data->config.big_endian ? get_s32be : get_s32le;
 
     /* read header info (packet size doesn't include header size) */
-    switch(data->config.header_type) {
+    switch(data->header_type) {
         case WWV_TYPE_8:
             wp->header_size = 0x08;
             read_streamfile(ibuf, offset, wp->header_size, sf);
@@ -162,7 +220,7 @@ static int read_packet(wpacket_t* wp, uint8_t* ibuf, size_t ibufsize, STREAMFILE
         size_t read;
 
         /* mod packets need next packet's first byte (6 bits) except at EOF, so read now too */
-        if (!is_setup && data->config.packet_type == WWV_MODIFIED) {
+        if (!is_setup && data->packet_type == WWV_MODIFIED) {
             read_size += wp->header_size + 0x01;
         }
 
@@ -175,12 +233,12 @@ static int read_packet(wpacket_t* wp, uint8_t* ibuf, size_t ibufsize, STREAMFILE
             goto fail;
         }
 
-        if (!is_setup && data->config.packet_type == WWV_MODIFIED && read == read_size) {
-            wp->has_next = 1;
+        if (!is_setup && data->packet_type == WWV_MODIFIED && read == read_size) {
+            wp->has_next = true;
             wp->inxt[0] = ibuf[wp->packet_size + wp->header_size];
         }
         else {
-            wp->has_next = 0;
+            wp->has_next = false;
         }
     }
 
@@ -316,7 +374,7 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
     //VGM_ASSERT(granule < 0, "Wwise Vorbis: negative granule %i @ 0x%lx\n", granule, offset);
 
 
-    if (data->config.packet_type == WWV_MODIFIED) {
+    if (data->packet_type == WWV_MODIFIED) {
         /* rebuild first bits of packet type and window info (for the i-MDCT) */
         uint32_t packet_type = 0, mode_number = 0, remainder = 0;
 
@@ -703,14 +761,14 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
     bl_put(ow,  8, codebook_count_less1);
     codebook_count = codebook_count_less1 + 1;
 
-    if (data->config.setup_type == WWV_FULL_SETUP) {
+    if (data->setup_type == WWV_FULL_SETUP) {
         /* rebuild Wwise codebooks: untouched */
         for (i = 0; i < codebook_count; i++) {
             if (!ww2ogg_codebook_library_copy(ow, iw))
                 goto fail;
         }
     }
-    else if (data->config.setup_type == WWV_INLINE_CODEBOOKS) {
+    else if (data->setup_type == WWV_INLINE_CODEBOOKS) {
         /* rebuild Wwise codebooks: inline in simplified format */
         for (i = 0; i < codebook_count; i++) {
             if (!ww2ogg_codebook_library_rebuild(ow, iw, 0, sf))
@@ -725,7 +783,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
             bl_get(iw, 10,&codebook_id);
 
-            rc = ww2ogg_codebook_library_rebuild_by_id(ow, codebook_id, data->config.setup_type, sf);
+            rc = ww2ogg_codebook_library_rebuild_by_id(ow, codebook_id, data->setup_type, sf);
             if (!rc) goto fail;
         }
     }
@@ -738,7 +796,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
     bl_put(ow, 16, dummy_time_value);
 
 
-    if (data->config.setup_type == WWV_FULL_SETUP) {
+    if (data->setup_type == WWV_FULL_SETUP) {
         /* rest of setup is untouched, copy bits */
         uint32_t bitly = 0;
         uint32_t total_bits_read = iw->b_off;

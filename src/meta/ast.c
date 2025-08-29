@@ -1,62 +1,61 @@
 #include "meta.h"
 #include "../layout/layout.h"
-#include "../util.h"
+#include "../util/endianness.h"
 
-/* .AST - from Nintendo games [Super Mario Galaxy (Wii), Pac-Man Vs (GC)] */
-VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+
+/* .AST - from Nintendo games [Super Mario Galaxy (Wii/Switch), Pac-Man Vs (GC)] */
+VGMSTREAM* init_vgmstream_ast(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, codec;
-    int big_endian;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-
+    int loop_flag, channels;
+    bool big_endian;
 
     /* checks */
-    if (!check_extensions(streamFile, "ast"))
-        goto fail;
-
-    if (((uint32_t)read_32bitBE(0x00, streamFile) == 0x5354524D) && /* "STRM" */
-        ((uint32_t)read_32bitBE(0x40, streamFile) == 0x424C434B)) { /* "BLCK" */
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
-        big_endian = 1;
-    } else if (((uint32_t)read_32bitBE(0x00, streamFile) == 0x4D525453) && /* "MRTS" */ // Super Mario Galaxy (Super Mario 3D All-Stars (Switch))
-               ((uint32_t)read_32bitBE(0x40, streamFile) == 0x4B434C42)) { /* "KCLB" */
-               read_32bit = read_32bitLE;
-               read_16bit = read_16bitLE;
-               big_endian = 0;
-    } else {
-        goto fail;
+    if (is_id32be(0x00, sf, "STRM")) {
+        big_endian = true;
+    }
+    else if (is_id32be(0x00, sf, "MRTS")) {
+        big_endian = false; // Super Mario 3D All-Stars - Super Mario Galaxy (Switch), Pikmin 2 (Switch)
+    }
+    else {
+        return NULL;
     }
 
-    if (read_16bit(0x0a,streamFile) != 0x10) /* ? */
-        goto fail;
+    if (!check_extensions(sf, "ast"))
+        return NULL;
 
-    if (read_32bit(0x04,streamFile)+0x40 != get_streamfile_size(streamFile))
-        goto fail;
+    read_u32_t read_u32 = big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = big_endian ? read_s32be : read_s32le;
+    read_u16_t read_u16 = big_endian ? read_u16be : read_u16le;
+   
+    if (read_u32(0x04,sf) + 0x40 != get_streamfile_size(sf))
+        return NULL;
+    int codec   = read_u16be(0x08,sf); // always big-endian?
+    channels    = read_u16(0x0c,sf);
+    if (read_u16(0x0a,sf) != 16) // spf?
+        return NULL;
+    loop_flag   = read_u16(0x0e,sf);
 
-    codec         = read_16bitBE(0x08,streamFile); // always big-endian?
-    channel_count = read_16bit(0x0c,streamFile);
-    loop_flag     = read_16bit(0x0e,streamFile);
-    //max_block   = read_32bit(0x20,streamFile);
+    //20: max_block?
+    if (read_u32(0x40, sf) != get_id32be("BLCK"))
+        return NULL;
     start_offset  = 0x40;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_AST;
-    vgmstream->sample_rate = read_32bit(0x10,streamFile);
-    vgmstream->num_samples = read_32bit(0x14,streamFile);
-    vgmstream->loop_start_sample = read_32bit(0x18,streamFile);
-    vgmstream->loop_end_sample = read_32bit(0x1c,streamFile);
+    vgmstream->sample_rate = read_s32(0x10,sf);
+    vgmstream->num_samples = read_s32(0x14,sf);
+    vgmstream->loop_start_sample = read_s32(0x18,sf);
+    vgmstream->loop_end_sample = read_s32(0x1c,sf);
     vgmstream->codec_endian = big_endian;
 
     vgmstream->layout_type = layout_blocked_ast;
     switch (codec) {
-        case 0x00: /* , Pikmin 2 (GC) */
-            vgmstream->coding_type = coding_NGC_AFC;
+        case 0x00: // Pikmin 2 (GC/Switch)
+            vgmstream->coding_type = coding_AFC;
             break;
         case 0x01: /* Mario Kart: Double Dash!! (GC) */
             vgmstream->coding_type = coding_PCM16BE;
@@ -65,10 +64,9 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

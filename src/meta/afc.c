@@ -1,53 +1,50 @@
 #include "meta.h"
-#include "../util.h"
+#include "../util/endianness.h"
+#include "../util/meta_utils.h"
 
 
-/* .AFC - from Nintendo games [Super Mario Sunshine (GC), The Legend of Zelda: Wind Waker (GC)] */
-VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
-    int loop_flag, channel_count;
-
+/* .AFC - from Nintendo games [Super Mario Sunshine (GC), The Legend of Zelda: Wind Waker (GC), Pikmin (Switch)] */
+VGMSTREAM* init_vgmstream_afc(STREAMFILE* sf) {
 
     /* checks */
     /* .afc: common
-     * .stx: Pikmin (GC) */
-    if (!check_extensions(streamFile, "afc,stx"))
-        goto fail;
+     * .stx: Pikmin (GC/Switch) */
+    if (!check_extensions(sf, "afc,stx"))
+        return NULL;
 
-    if (read_u32be(0x00, streamFile) > get_streamfile_size(streamFile)) /* size without padding */
-        goto fail;
+    meta_header_t hdr = {0};
+    hdr.big_endian = guess_endian16(0x0a,sf);
 
-    if (read_u16be(0x0a, streamFile) != 4) /* bps? */
-        goto fail;
-    if (read_u16be(0x0c, streamFile) != 16) /* samples per frame? */
-        goto fail;
-    /* 0x0e: always 0x1E? */
+    read_u32_t read_u32 = hdr.big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = hdr.big_endian ? read_s32be : read_s32le;
+    read_u16_t read_u16 = hdr.big_endian ? read_u16be : read_u16le;
 
-    channel_count = 2;
-    loop_flag = read_s32be(0x10, streamFile);
-    start_offset = 0x20;
+    if (read_u32(0x00, sf) > get_streamfile_size(sf)) // size without padding
+        return NULL;
+    hdr.num_samples = read_s32(0x04,sf);
+    hdr.sample_rate = read_u16(0x08,sf);
+    if (read_u16(0x0a, sf) != 4) /* bps? */
+        return NULL;
+    if (read_u16(0x0c, sf) != 16) /* samples per frame? */
+        return NULL;
+    // 0x0e: always 0x1E?
 
+    hdr.loop_flag   = read_s32(0x10, sf); // 1
+    hdr.loop_start  = read_s32(0x14, sf);
+    // 0x18: null
+    // 0x20: null
+    hdr.stream_offset = 0x20;
 
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    hdr.channels = 2;
+    hdr.loop_end = hdr.num_samples;
 
-    vgmstream->meta_type = meta_AFC;
-    vgmstream->num_samples = read_s32be(0x04, streamFile);
-    vgmstream->sample_rate = read_u16be(0x08, streamFile);
-    vgmstream->loop_start_sample = read_s32be(0x14, streamFile);
-    vgmstream->loop_end_sample = vgmstream->num_samples;
+    hdr.coding = coding_AFC;
+    hdr.layout = layout_interleave;
+    hdr.interleave = 0x09;
 
-    vgmstream->coding_type = coding_NGC_AFC;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x09;
+    hdr.sf = sf;
+    hdr.open_stream = true;
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
-        goto fail;
-    return vgmstream;
-
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
+    hdr.meta = meta_AFC;
+    return alloc_metastream(&hdr);
 }

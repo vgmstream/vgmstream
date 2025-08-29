@@ -71,8 +71,9 @@ void dsp_read_hist(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, off_t spa
 void decode_ngc_dtk(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
 
-/* ngc_afc_decoder */
-void decode_ngc_afc(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+/* afc_decoder */
+void decode_afc(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_afc_2bit(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 
 /* vadpcm_decoder */
@@ -410,10 +411,8 @@ typedef enum {
     VORBIS_OOR,         /* Age .OOR: custom bitpacked pages (custom header + setup) */
 } vorbis_custom_t;
 
-/* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
-typedef enum { WWV_HEADER_TRIAD, WWV_FULL_SETUP, WWV_INLINE_CODEBOOKS, WWV_EXTERNAL_CODEBOOKS, WWV_AOTUV603_CODEBOOKS } wwise_setup_t;
-typedef enum { WWV_TYPE_8, WWV_TYPE_6, WWV_TYPE_2 } wwise_header_t;
-typedef enum { WWV_STANDARD, WWV_MODIFIED } wwise_packet_t;
+/* config for Wwise Vorbis */
+typedef enum { WWVORBIS_V34, WWVORBIS_V38, WWVORBIS_V44, WWVORBIS_V48, WWVORBIS_V52, WWVORBIS_V53, WWVORBIS_V56, WWVORBIS_V62, } wwise_version_t;
 
 typedef struct {
     /* to reconstruct init packets */
@@ -421,15 +420,11 @@ typedef struct {
     int sample_rate;
     int blocksize_0_exp;
     int blocksize_1_exp;
+    wwise_version_t ww_version;
 
     uint32_t setup_id; /* external setup */
     int big_endian; /* flag */
     uint32_t stream_end; /* optional, to avoid overreading into next subsong or chunk */
-
-    /* Wwise Vorbis config */
-    wwise_setup_t setup_type;
-    wwise_header_t header_type;
-    wwise_packet_t packet_type;
 
     /* AWC config */
     off_t header_offset;

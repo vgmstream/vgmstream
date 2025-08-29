@@ -65,4 +65,10 @@ VGMSTREAM* alloc_metastream(meta_header_t* h);
 /* checks max subsongs and setups target */
 //bool check_subsongs(int* target_subsong, int total_subsongs);
 
+/* marks a stream name as missing (for missing entries) */
+void meta_mark_missing(VGMSTREAM* v);
+
+//void meta_mark_dummy(VGMSTREAM* v);
+
+
 #endif

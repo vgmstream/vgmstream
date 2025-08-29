@@ -5,6 +5,7 @@
 
 #include <string.h>
 #include <stdio.h>
+
 #include <getopt.h>
 
 #ifdef WIN32
@@ -87,8 +88,6 @@ static void print_usage(const char* progname, bool is_help) {
 }
 
 static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
-    int opt;
-
     /* non-zero defaults */
     cfg->loop_count = 2.0;
     cfg->fade_time = 10.0;
@@ -97,12 +96,15 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
 
     opterr = 0; // don't let getopt print errors to stdout automatically
     optind = 1; // reset getopt's ugly globals (needed in wasm that may call same main() multiple times)
+    optopt = 0; // just in case
     optarg = NULL;
 
     int filenames_count = 0;
 
-    // read config (first char "-" allows getopt to handle flags after filenames)
-    while ((opt = getopt(argc, argv, "-o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
+    int opt;
+getopt_start:
+    // read config (first char "-" allows getopt to order filenames after flags, POSIX's getopt only)
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -226,15 +228,16 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                 break;
 
             case '?': // unknown -* flag
+            case ':': // bad argument on BSD?
                 fprintf(stderr, "missing argument or unknown option -%c\n", optopt);
                 print_usage(argv[0], false);
                 goto fail;
 
-            case 1: // 'filename' when setting getopt to RETURN_IN_ORDER (options string starts with "-")
-                filenames_count++;
-                break;
+            //case 1: // POSIX: 'filename' when setting getopt to RETURN_IN_ORDER (options string starts with "-")
+            //    filenames_count++;
+            //    break;
 
-            default:
+            default: // shouldn't happen
                 print_usage(argv[0], false);
                 goto fail;
         }
@@ -249,6 +252,14 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                 cfg->flag_index[argv_index + 1] = true;
             }
         }
+    }
+
+    // Handle POSIX<>BSD's getopt inconsistencies: BSD can't use "-" to reorder flags, so both stop (return -1) as soon
+    // as a non '-' character is found (like a filename) while optind still points to it. Count it as a file and keep iterating next args
+    if (optind < argc) {
+        filenames_count++;
+        optind++;
+        goto getopt_start; // TO-DO call a parse function
     }
 
     if (filenames_count <= 0) {

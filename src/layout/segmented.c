@@ -26,8 +26,9 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     }
 
     int current_channels = 0;
-    mixing_info(data->segments[data->current_segment], NULL, &current_channels);
-    int samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
+    VGMSTREAM* vs = data->segments[data->current_segment];
+    mixing_info(vs, NULL, &current_channels);
+    int samples_this_block = vgmstream_get_samples(vs);
 
     while (sbuf->filled < sbuf->samples) {
         int samples_to_do;
@@ -36,8 +37,10 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping (loop_layout has been called below, changes segments/state) */
-            samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
-            mixing_info(data->segments[data->current_segment], NULL, &current_channels);
+            samples_this_block = vgmstream_get_samples(vs);
+            mixing_info(vs, NULL, &current_channels);
+
+            vs = data->segments[data->current_segment];
             continue;
         }
 
@@ -50,16 +53,18 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
                 goto decode_fail;
             }
 
-            /* in case of looping spanning multiple segments */
-            reset_vgmstream(data->segments[data->current_segment]);
+            vs = data->segments[data->current_segment];
 
-            samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
-            mixing_info(data->segments[data->current_segment], NULL, &current_channels);
+            /* in case of looping spanning multiple segments */
+            reset_vgmstream(vs);
+
+            samples_this_block = vgmstream_get_samples(vs);
+            mixing_info(vs, NULL, &current_channels);
             vgmstream->samples_into_block = 0;
             continue;
         }
 
-
+        // needed to handle decode_do_loop
         samples_to_do = decode_get_samples_to_do(samples_this_block, sbuf->samples, vgmstream);
         if (samples_to_do > sbuf->samples - sbuf->filled)
             samples_to_do = sbuf->samples - sbuf->filled;
@@ -71,8 +76,10 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
             goto decode_fail;
         }
 
-        segment_format = mixing_get_input_sample_type(data->segments[data->current_segment]);
-        sbuf_init(ssrc, segment_format, data->buffer, samples_to_do, data->segments[data->current_segment]->channels);
+        vs = data->segments[data->current_segment];
+
+        segment_format = mixing_get_input_sample_type(vs);
+        sbuf_init(ssrc, segment_format, data->buffer, samples_to_do, vs->channels);
 
         // try to use part of outbuf directly if not remixed (minioptimization) //TODO improve detection
         if (vgmstream->channels == data->input_channels && sbuf->fmt == segment_format && !data->mixed_channels) {
@@ -80,8 +87,9 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
             ssrc->buf = buf_filled;
         }
 
-        int samples_done = render_main(ssrc, data->segments[data->current_segment]);
-        samples_done = samples_to_do;
+        int samples_done = render_main(ssrc, vs);
+        samples_done = samples_to_do; //TODO: may return more??
+
         // returned buf may have changed
         if (ssrc->buf != buf_filled) {
             sbuf_copy_segments(sbuf, ssrc, samples_done);
@@ -100,8 +108,11 @@ decode_fail:
 }
 
 
+/* seeks inside the streams */
+//TODO: looping doesn't work if seeking after it without setting hit-loop stuff
 void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample) {
     segmented_layout_data* data = vgmstream->layout_data;
+    //;VGM_LOG("SEEK [segmented]: seek_sample=%i\n", seek_sample);
 
     int segment = 0;
     int total_samples = 0;
@@ -111,10 +122,13 @@ void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample) {
         /* find if sample falls within segment's samples */
         if (seek_sample >= total_samples && seek_sample < total_samples + segment_samples) {
             int32_t seek_relative = seek_sample - total_samples;
+            //;VGM_LOG("SEEK [segmented]: found segment=%i, seek_relative=%i (total=%i, target=%i)\n", segment, seek_relative, total_samples, seek_sample);
 
             seek_vgmstream(data->segments[segment], seek_relative);
             data->current_segment = segment;
-            vgmstream->samples_into_block = seek_relative;
+
+            vgmstream->current_sample = seek_sample; 
+            vgmstream->samples_into_block = seek_relative; //relative to current segment
             break;
         }
 

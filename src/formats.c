@@ -35,6 +35,7 @@ static const char* extension_list[] = {
     "a3c", //txth/reserved [Puyo Puyo 20th Anniversary (PSP)]
     //"aac", //common
     "aa3", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
+    "aaf",
     "aax",
     "abc", //txth/reserved [Find My Own Way (PS2) tech demo]
     "abk",
@@ -97,6 +98,7 @@ static const char* extension_list[] = {
     "awx",
 
     "b1s", //txth/reserved [7 Wonders of the Ancient World (PS2)]
+    "baa",
     "baf",
     "baka",
     "bank",
@@ -134,6 +136,7 @@ static const char* extension_list[] = {
     "btsnd",
     "bvg",
     "bwav",
+    "bx",
 
     "cads",
     "caf",
@@ -844,7 +847,8 @@ static const coding_info coding_info_list[] = {
         {coding_NGC_DSP,            "Nintendo DSP 4-bit ADPCM"},
         {coding_NGC_DSP_subint,     "Nintendo DSP 4-bit ADPCM (subinterleave)"},
         {coding_NGC_DTK,            "Nintendo DTK 4-bit ADPCM"},
-        {coding_NGC_AFC,            "Nintendo AFC 4-bit ADPCM"},
+        {coding_AFC,                "Nintendo AFC 4-bit ADPCM"},
+        {coding_AFC_2bit,           "Nintendo AFC 2-bit ADPCM"},
         {coding_VADPCM,             "Silicon Graphics VADPCM 4-bit ADPCM"},
 
         {coding_G721,               "CCITT G.721 4-bit ADPCM"},
@@ -1501,7 +1505,8 @@ static const meta_info meta_info_list[] = {
         {meta_IVB,                  "Metro IVB header"},
         {meta_SRCD,                 "Capcom SRCD header"},
         {meta_MHWK,                 "Broderbund MHWK header"},
-        {meta_CF_DF,                "Cyberflix DreamFactory header"}
+        {meta_CF_DF,                "Cyberflix DreamFactory header"},
+        {meta_JAUDIO,               "Nintendo JAudio header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
