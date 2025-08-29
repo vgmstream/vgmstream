@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../base/seek_table.h"
 #include "fsb5_streamfile.h"
 
 
@@ -34,6 +35,7 @@ typedef struct {
 /* ********************************************************************************** */
 
 static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, fsb5_header* fsb5);
+static void read_vorbis_seek(VGMSTREAM* v, STREAMFILE* sf, fsb5_header* fsb5);
 
 /* FSB5 - Firelight's FMOD Studio SoundBank format */
 VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
@@ -205,13 +207,8 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                         case 0x0a:  /* XWMA config */
                             fsb5.extradata_offset = extraflag_offset + 0x04;
                             break;
-                        case 0x0b:  /* Vorbis setup ID and seek table */
+                        case 0x0b:  /* Vorbis setup ID and seek table (see read_vorbis_seek) */
                             fsb5.extradata_offset = extraflag_offset + 0x04;
-                            /* seek table format:
-                             * 0x08: table_size (total_entries = seek_table_size / (4+4)), not counting this value; can be 0
-                             * 0x0C: sample number (only some samples are saved in the table)
-                             * 0x10: offset within data, pointing to a FSB vorbis block (with the 16b block size header)
-                             * (xN entries) */
                             break;
                         case 0x0d:  /* peak volume float (optional setting when making fsb) */
                             break;
@@ -480,6 +477,8 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_VORBIS_custom;
             vgmstream->layout_type = layout_none;
+
+            read_vorbis_seek(vgmstream, sf, &fsb5);
             break;
         }
 #endif
@@ -639,4 +638,28 @@ fail:
     close_streamfile(temp_sf);
     free_layout_layered(data);
     return NULL;
+}
+
+/* Convert FSB's seek table to vgmstream's seek table */
+static void read_vorbis_seek(VGMSTREAM* v, STREAMFILE* sf, fsb5_header* fsb5) {
+    uint32_t base_offset = fsb5->base_header_size + fsb5->sample_header_size + fsb5->name_table_size;
+    uint32_t max_offset = base_offset + fsb5->sample_data_size;
+    int32_t max_samples = v->num_samples;
+
+    uint32_t table_size = read_u32le(fsb5->extradata_offset + 0x04, sf); //not counting this value; can be 0
+
+    int entries = table_size / 0x08;
+    uint32_t offset = fsb5->extradata_offset + 0x08;
+    for (int i = 0; i < entries; i++) {
+        int32_t  stream_sample = read_s32le(offset + 0x00, sf);
+        uint32_t stream_offset = read_u32le(offset + 0x04, sf);
+
+        stream_offset += base_offset; // within data, pointing to a FSB vorbis block (with the 16b block size header)
+
+        seek_table_add_entry_validate(v, stream_sample, max_samples, stream_offset, max_offset);
+        offset += 0x08;
+    }
+
+    //TODO: same vs discard loop but MPEG FSB doesn't reset decoder on loops, check recordings
+    seek_table_set_reset_decoder(v);
 }
