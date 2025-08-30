@@ -239,17 +239,6 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                 print_usage(argv[0], false);
                 goto fail;
         }
-
-        // CLI accepts N filenames and flags in any position. Since filename list can be huge (ex. drag-and-drop) it's read from argv as-is.
-        // Instead, mark flags+parameters at their index (potentially a lot less flags), so they can be skipped later without re-parsing.
-        if (optind < CLI_MAX_FLAGS) {
-            bool is_file = opt == 1; // with files, optarg is the filename
-            int argv_index = optind - (!is_file && optarg ? 2 : 1);
-            cfg->flag_index[argv_index] = !is_file;
-            if (!is_file && optarg > 0) { // has parameter
-                cfg->flag_index[argv_index + 1] = true;
-            }
-        }
     }
 
 
