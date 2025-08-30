@@ -99,10 +99,8 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     optopt = 0; // just in case
     optarg = NULL;
 
-    int filenames_count = 0;
-
     int opt;
-getopt_start:
+
     // read config (first char "-" allows getopt to order filenames after flags, POSIX's getopt only)
     while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
         switch (opt) {
@@ -254,15 +252,9 @@ getopt_start:
         }
     }
 
-    // Handle POSIX<>BSD's getopt inconsistencies: BSD can't use "-" to reorder flags, so both stop (return -1) as soon
-    // as a non '-' character is found (like a filename) while optind still points to it. Count it as a file and keep iterating next args
-    if (optind < argc) {
-        filenames_count++;
-        optind++;
-        goto getopt_start; // TO-DO call a parse function
-    }
 
-    if (filenames_count <= 0) {
+    // check filenames after getopt.
+    if (optind >= argc) {
         fprintf(stderr, "missing input file(s)\n");
         print_usage(argv[0], false);
         goto fail;
