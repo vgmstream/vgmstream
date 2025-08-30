@@ -629,12 +629,7 @@ int main(int argc, char** argv) {
 #endif
 
     ok = false;
-    for (int i = 1; i < argc; i++) {
-        // ignore flags
-        if (i < CLI_MAX_FLAGS && cfg.flag_index[i]) {
-            continue;
-        }
-
+    for (int i = optind; i < argc; i++) {
         // current name, to avoid passing params all the time
         cfg.infilename = argv[i];
         if (cfg.outfilename_config)
