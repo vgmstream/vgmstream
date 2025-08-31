@@ -657,7 +657,6 @@ int main(int argc, char** argv) {
     ok = false;
     for (int i = 1; i < argc; i++) {
         // ignore flags
-        printf("flag %i: %s (mark: %i\n", i, argv[i], cfg.flag_index[i]);
         if (i < CLI_MAX_FLAGS && cfg.flag_index[i]) {
             continue;
         }
