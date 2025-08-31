@@ -144,6 +144,7 @@ void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_chan
 }
 
 sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {
+    // TODO: on layered/segments, detect biggest value and use that (ex. if one of the layers uses flt > flt)
 
     if (vgmstream->layout_type == layout_layered) {
         layered_layout_data* data = vgmstream->layout_data;
@@ -165,12 +166,8 @@ sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {
             return codec_info->get_sample_type(vgmstream);
     }
 
-    // TODO: on layered/segments, detect biggest value and use that (ex. if one of the layers uses flt > flt)
+    // codecs with FLT should have codec_info so default to standard PCM16
     switch(vgmstream->coding_type) {
-#ifdef VGM_USE_VORBIS
-        case coding_VORBIS_custom:
-#endif
-            return SFMT_FLT;
         default:
             return SFMT_S16;
     }

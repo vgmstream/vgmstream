@@ -103,8 +103,13 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
 
     int opt;
 getopt_start:
-    // read config (first char "-" allows getopt to order filenames after flags, POSIX's getopt only)
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
+    // POSIX's getopt reorders (PERMUTE) argv directly by default (with non-linear optind?).
+    // If POSIXLY_CORRECT is set it should leave them as-is (REQUIRE_ORDER), but in practice seems
+    // erratic between systems, so force REQUIRE_ORDER using first char '+' (returns -1 when filename
+    // is found). BSD's getopt seem to behave like REQUIRE_ORDER and ignores '+'.
+
+    // read config
+    while ((opt = getopt(argc, argv, "+o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -245,7 +250,7 @@ getopt_start:
         // CLI accepts N filenames and flags in any position. Since filename list can be huge (ex. drag-and-drop) it's read from argv as-is.
         // Instead, mark flags+parameters at their index (potentially a lot less flags), so they can be skipped later without re-parsing.
         if (optind < CLI_MAX_FLAGS) {
-            bool is_file = opt == 1; // with files, optarg is the filename
+            bool is_file = false; // varies with getopts but files shouldn't reach this with current config
             int argv_index = optind - (!is_file && optarg ? 2 : 1);
             cfg->flag_index[argv_index] = !is_file;
             if (!is_file && optarg > 0) { // has parameter
@@ -254,12 +259,14 @@ getopt_start:
         }
     }
 
-    // Handle POSIX<>BSD's getopt inconsistencies: BSD can't use "-" to reorder flags, so both stop (return -1) as soon
-    // as a non '-' character is found (like a filename) while optind still points to it. Count it as a file and keep iterating next args
+    // Handle POSIX<>BSD's getopt inconsistencies. BSD can't use extra flags, so both should stop (return -1)
+    // as soon as a non '-' character is found (like a filename) while optind still points to it.
+    // Count it as a file and keep iterating next args
     if (optind < argc) {
         filenames_count++;
         optind++;
-        goto getopt_start; // TO-DO call a parse function
+        if (optind < argc)
+            goto getopt_start; // TO-DO call a parse function
     }
 
     if (filenames_count <= 0) {

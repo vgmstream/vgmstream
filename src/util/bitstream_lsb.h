@@ -6,20 +6,23 @@
 /* Simple bitreader for Vorbis' bit style, in 'least significant byte' (LSB) format.
  * Example: with 0x1234 = 00010010 00110100, reading 5b + 6b = 10010 100000
  *  (first lower 5b, then next upper 3b and next lower 3b = 6b)
- * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). */
+ * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). 
+ * It's designed like that to read 32/64-bit LE ints, though this implementation is endian-agnostic. */
 
 
 typedef struct {
     uint8_t* buf;           /* buffer to read/write */
-    size_t bufsize;         /* max size of the buffer */
+    uint32_t bufsize;       // max size
+    uint32_t b_max;         // max size in bits
     uint32_t b_off;         /* current offset in bits inside the buffer */
 } bitstream_t;
 
 /* convenience util */
-static inline void bl_setup(bitstream_t* b, uint8_t* buf, size_t bufsize) {
-    b->buf = buf;
-    b->bufsize = bufsize;
-    b->b_off = 0;
+static inline void bl_setup(bitstream_t* bs, uint8_t* buf, uint32_t bufsize) {
+    bs->buf = buf;
+    bs->bufsize = bufsize;
+    bs->b_max = bufsize * 8;
+    bs->b_off = 0;
 }
 
 /* same as (1 << bits) - 1, but that seems to trigger some nasty UB when bits = 32
@@ -31,13 +34,30 @@ static const uint32_t MASK_TABLE_LSB[33] = {
         0x07ffffff, 0x0fffffff, 0x1fffffff, 0x3fffffff, 0x7fffffff, 0xffffffff
 };
 
+
+static inline int bl_skip(bitstream_t* bs, uint32_t bits) {
+    if (bs->b_off + bits > bs->b_max)
+        return 0;
+
+    bs->b_off += bits;
+
+    return 1;
+}
+
+static inline int bl_pos(bitstream_t* bs) {
+    return bs->b_off;
+}
+
+
 /* Read bits (max 32) from buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
  * (ex. from 2 bytes 00100111 00000001 we can could read 4b=0111 and 6b=010010, 6b=remainder (second value is split into the 2nd byte) */
 static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint32_t shift, mask, pos, val;
 
-    if (bits > 32 || ib->b_off + bits > ib->bufsize * 8)
-        goto fail;
+    if (bits > 32 || ib->b_off + bits > ib->b_max) {
+        *value = 0;
+        return 0;
+    }
 
     pos = ib->b_off / 8;        /* byte offset */
     shift = ib->b_off % 8;      /* bit sub-offset */
@@ -62,10 +82,14 @@ static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     ib->b_off += bits;
 
     return 1;
-fail:
-    //VGM_LOG_ONCE("BITREADER: read fail\n");
-    *value = 0;
-    return 0;
+}
+
+static inline uint32_t bl_read(bitstream_t* ib, uint32_t bits) {
+    uint32_t value;
+    int res = bl_get(ib, bits, &value);
+    if (!res)
+        return 0;
+    return value;
 }
 
 /* Write bits (max 32) to buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
@@ -73,12 +97,12 @@ fail:
 static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, mask, pos;
 
-    if (bits > 32 || ob->b_off + bits > ob->bufsize*8)
-        goto fail;
+    if (bits > 32 || ob->b_off + bits > ob->b_max)
+        return 0;
 
-    pos = ob->b_off / 8;        /* byte offset */
-    shift = ob->b_off % 8;      /* bit sub-offset */
-    mask = (1 << shift) - 1;    /* to keep lower bits in lowest byte */
+    pos = ob->b_off / 8;        // byte offset
+    shift = ob->b_off % 8;      // bit sub-offset
+    mask = (1 << shift) - 1;    // to keep lower bits in lowest byte
 
     ob->buf[pos+0] =  (value << shift) | (ob->buf[pos+0] & mask);
     if (bits + shift > 8) {
@@ -97,9 +121,6 @@ static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
 
     ob->b_off += bits;
     return 1;
-fail:
-    //VGM_LOG_ONCE("BITREADER: write fail\n");
-    return 0;
 }
 
 #endif

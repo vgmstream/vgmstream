@@ -102,12 +102,14 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             // try encrypted meta (loads key after reguylar cases since it's uncommon)
             uint64_t keycode = load_keycode(sf);
             if (keycode) {
+#ifdef VGM_USE_FFMPEG
                 meta.init_vgmstream = init_vgmstream_mp4_aac_ffmpeg; // Final Fantasy Digital Card Game (Browser)
                 meta.extension = "m4a"; // TODO improve detection (only known to be used for .m4a)
                 meta_ok = true;
 
                 temp_sf = setup_awb_aac_encryption_streamfile(sf, subfile_offset, subfile_size, meta.extension, keycode);
                 if (!temp_sf) goto fail;
+#endif
             }
         }
 
