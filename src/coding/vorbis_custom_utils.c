@@ -40,6 +40,7 @@ int build_header_identification(uint8_t* buf, int bufsize, vorbis_custom_config*
     return bytes;
 }
 
+#if 0
 bool make_header_identification(vorbis_custom_codec_data* data, vorbis_custom_config* cfg) {
 
     data->op.bytes = build_header_comment(data->buffer, data->buffer_size);
@@ -47,6 +48,7 @@ bool make_header_identification(vorbis_custom_codec_data* data, vorbis_custom_co
         return false; 
     return true;
 }
+#endif
 
 // basic log2 for allowed blocksizes (2-exp)
 int vorbis_get_blocksize_exp(int blocksize) {

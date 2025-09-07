@@ -137,7 +137,7 @@ static void vjson_dbl(vjson_t* j, double num) {
 }
 #endif
 
-void vjson_null(vjson_t* j){
+static void vjson_null(vjson_t* j){
     vjson_comma_(j);
     vjson_raw(j, "null");
 }

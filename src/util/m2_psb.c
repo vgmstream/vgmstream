@@ -233,7 +233,7 @@ static void node_error(psb_node_t* p_out) {
  * with a distance-based metric. Notice it's encoded in reverse order, so it's tuned to save
  * common prefixes (like bgmXXX in big archives). Those aren't that common, and to encode N chars
  * often needs x2/x3 bytes (and it's slower) so it's probably more of a form of obfuscation. */
-int decode_key(list_t* kidx1, list_t* kidx2, list_t* kidx3, char* str, int str_len, int index) {
+static int decode_key(list_t* kidx1, list_t* kidx2, list_t* kidx3, char* str, int str_len, int index) {
     int i;
 
     uint32_t entry_point = list_get_entry(kidx3, index);
@@ -264,7 +264,7 @@ int decode_key(list_t* kidx1, list_t* kidx2, list_t* kidx3, char* str, int str_l
 
 /* Keys are packed in a particular format (see get_key_string), and M2 code seems to do some unknown
  * pre-parse, so for now do a simple copy to string buf to simplify handling and returning. */
-int init_keys(psb_context_t* ctx) {
+static int init_keys(psb_context_t* ctx) {
     list_t kidx1, kidx2, kidx3;
     uint8_t* buf = &ctx->buf[ctx->keys_offset];
     int i, j, pos;

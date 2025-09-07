@@ -200,7 +200,6 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
         return false;
     if (!is_new)
         decrypt_chunk(buf + sub_offset, sub_size, curr_key);
-    //VGM_LOGB(buf, data_offset, 0);
 
 
     /* bus/se config */

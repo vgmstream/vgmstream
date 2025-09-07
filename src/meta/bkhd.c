@@ -10,7 +10,6 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
     uint32_t subfile_offset, subfile_size, base_offset = 0;
     uint32_t subfile_id, version;
-    int big_endian, is_dummy = 0, is_wmid = 0;
     read_u32_t read_u32;
     read_f32_t read_f32;
     int total_subsongs, target_subsong = sf->stream_index;
@@ -18,14 +17,14 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf,"bnk"))
-        goto fail;
-
     if (is_id32be(0x00, sf, "AKBK")) /* [Shadowrun (X360)] */
         base_offset = 0x0c;
     if (!is_id32be(base_offset + 0x00, sf, "BKHD"))
-        goto fail;
-    big_endian = guess_endian32(base_offset + 0x04, sf);
+        return NULL;
+
+    if (!check_extensions(sf,"bnk"))
+        return NULL;
+    bool big_endian = guess_endian32(base_offset + 0x04, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
     read_f32 = big_endian ? read_f32be : read_f32le;
 
@@ -45,8 +44,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     if (version <= 26) {
         off_t data_offset_off;
         uint32_t data_offset, data_start, offset;
-        if (!find_chunk(sf, 0x44415441, base_offset, 0, &data_offset_off, NULL, big_endian, 0)) /* "DATA" */
-            goto fail;
+        if (!find_chunk(sf, get_id32be("DATA"), base_offset, 0, &data_offset_off, NULL, big_endian, 0))
+            return NULL;
         data_offset = data_offset_off;
 
         /* index:
@@ -71,7 +70,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
 
         total_subsongs = read_u32(data_offset + 0x00, sf);
         if (target_subsong == 0) target_subsong = 1;
-        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) return NULL;
 
         data_start = read_u32(data_offset + 0x18, sf);
         offset = data_offset + 0x20 + (target_subsong - 1) * 0x18;
@@ -82,8 +81,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     }
     else {
         enum {
-            CHUNK_DIDX = 0x44494458, /* "DIDX" */
-            CHUNK_DATA = 0x44415441, /* "DATA" */
+            CHUNK_DIDX = 0x44494458,
+            CHUNK_DATA = 0x44415441,
         };
         uint32_t didx_offset = 0, data_offset = 0, didx_size = 0, offset;
         chunk_t rc = {0};
@@ -107,15 +106,15 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
             }
         }
         if (!didx_offset || !data_offset)
-            goto fail;
+            return NULL;
 
         total_subsongs = didx_size / 0x0c;
         if (total_subsongs < 1) {
             vgm_logi("BKHD: bank has no subsongs (ignore)\n");
-            goto fail;
+            return NULL;
         }
         if (target_subsong == 0) target_subsong = 1;
-        if (target_subsong > total_subsongs) goto fail;
+        if (target_subsong > total_subsongs) return NULL;
 
         offset = didx_offset + (target_subsong - 1) * 0x0c;
         subfile_id      = read_u32(offset + 0x00, sf);
@@ -125,9 +124,11 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
 
     //;VGM_LOG("BKHD: %x, %x\n", subfile_offset, subfile_size);
 
+    bool is_dummy = false, is_wmid = false;
+
     /* detect format */
     if (subfile_offset <= 0 || subfile_size <= 0) {
-        is_dummy = 1;
+        is_dummy = true;
         /* rarely some indexes don't have data (early bnk)
          * for now leave a dummy song for easier .bnk index-to-subsong mapping */
         vgmstream = init_vgmstream_silence(0, 0, 0);
@@ -150,9 +151,16 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         }
         else if (read_f32(subfile_offset + 0x02, temp_sf) >= 30.0f &&
                  read_f32(subfile_offset + 0x02, temp_sf) <= 250.0f) {
-            is_wmid = 1;
+            is_wmid = true;
             /* ignore Wwise's custom .wmid (similar to a regular midi but with simplified
              *  chunks and custom fields: 0x00=MThd's division, 0x02: bpm (new), etc) */
+            vgmstream = init_vgmstream_silence(0, 0, 0);
+            if (!vgmstream) goto fail;
+        }
+        else if (is_id32be(0x00, temp_sf, "MIDI")) {
+            // Lumines Arise (PC)-v154
+            is_wmid = true;
+            // has RIFF-like chunks ("hash", "junk", "data"), "data" look similar to wmid */
             vgmstream = init_vgmstream_silence(0, 0, 0);
             if (!vgmstream) goto fail;
         }

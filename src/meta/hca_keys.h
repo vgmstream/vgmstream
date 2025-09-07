@@ -1580,6 +1580,9 @@ static const hcakey_info hcakey_list[] = {
 
     // Sonic Racing CrossWorlds (multi)
     {32105414741057402},        // 00720FB46101DF7A
+
+    // Ride Kamens (iOS/Android)
+    {20000608},                 // 0000000001312F60
 };
 
 #endif

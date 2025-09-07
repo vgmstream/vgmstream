@@ -177,7 +177,7 @@ static bool decode_frame_celt_fsb(VGMSTREAM* v) {
 }
 
 
-void reset_celt_fsb(void* priv_data) {
+static void reset_celt_fsb(void* priv_data) {
     celt_codec_data* data = priv_data;
     if (!data) return;
 
@@ -210,7 +210,7 @@ fail:
     return; /* decode calls should fail... */
 }
 
-void seek_celt_fsb(VGMSTREAM* v, int32_t num_sample) {
+static void seek_celt_fsb(VGMSTREAM* v, int32_t num_sample) {
     celt_codec_data* data = v->codec_data;
     if (!data) return;
 

@@ -159,7 +159,7 @@ static bool decode_frame(mio_codec_data* data, sbuf_t* sbuf) {
 }
 
 
-bool decode_frame_mio(VGMSTREAM* v) {
+static bool decode_frame_mio(VGMSTREAM* v) {
     VGMSTREAMCHANNEL* vs = &v->ch[0];
     mio_codec_data* data = v->codec_data;
     decode_state_t* ds = v->decode_state;

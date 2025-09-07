@@ -142,7 +142,7 @@ static int read_frame_ubimpeg(VGMSTREAM* v) {
     return obuf_size;
 }
 
-bool decode_frame_ubimpeg(VGMSTREAM* v) {
+static bool decode_frame_ubimpeg(VGMSTREAM* v) {
     int obuf_size = read_frame_ubimpeg(v);
     if (!obuf_size) {
         return false;

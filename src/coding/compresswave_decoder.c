@@ -82,7 +82,7 @@ static bool decode_frame_compresswave(VGMSTREAM* v) {
     return true;
 }
 
-void seek_compresswave(VGMSTREAM* v, int32_t num_sample) {
+static void seek_compresswave(VGMSTREAM* v, int32_t num_sample) {
     compresswave_codec_data* data = v->codec_data;
     if (!data) return;
 

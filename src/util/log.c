@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "log.h"
 
 /* log context; should probably make a unique instance and pass to metas/decoders/etc, but for the time being use global */
 //extern ...* log;
@@ -48,6 +49,7 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback) {
     }
 }
 
+#if defined(VGM_LOG_OUTPUT) || defined(VGM_DEBUG_OUTPUT)
 static void log_internal(void* ctx_p, int level, const char* fmt, va_list args) {
     char line[256];
     int out;
@@ -65,7 +67,9 @@ static void log_internal(void* ctx_p, int level, const char* fmt, va_list args) 
         strcpy(line, "(ignored log)"); //to-do something better, meh
     ctx->callback(level, line);
 }
+#endif
 
+#ifdef VGM_DEBUG_OUTPUT
 void vgm_logd(const char* fmt, ...) {
     va_list args;
 
@@ -73,7 +77,9 @@ void vgm_logd(const char* fmt, ...) {
     log_internal(NULL, LOG_LEVEL_DEBUG, fmt, args);
     va_end(args);
 }
+#endif
 
+#if defined(VGM_LOG_OUTPUT) || defined(VGM_DEBUG_OUTPUT)
 void vgm_logi(const char* fmt, ...) {
     va_list args;
 
@@ -94,3 +100,4 @@ void vgm_asserti(int condition, const char* fmt, ...) {
         va_end(args);
     }
 }
+#endif

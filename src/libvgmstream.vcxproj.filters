@@ -2407,6 +2407,9 @@
     <ClCompile Include="util\reader.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="util\reader_put.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="util\sf_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>

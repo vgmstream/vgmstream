@@ -859,6 +859,7 @@
     <ClCompile Include="util\miniz.c" />
     <ClCompile Include="util\paths.c" />
     <ClCompile Include="util\reader.c" />
+    <ClCompile Include="util\reader_put.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\text_reader.c" />
     <ClCompile Include="util\vorbis_codebooks.c" />

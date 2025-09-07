@@ -792,7 +792,7 @@ static void copy_samples(ffmpeg_codec_data* data, void* sbuf, int samples_to_do,
 
 }
 
-void remap_audio(ffmpeg_codec_data* data, sbuf_t* sbuf) {
+static void remap_audio(ffmpeg_codec_data* data, sbuf_t* sbuf) {
     if (!data->channel_remap_set)
         return;
 
@@ -820,7 +820,7 @@ static bool prepare_sbuf(ffmpeg_codec_data* data, int samples, int channels) {
     return true;
 }
 
-bool decode_frame_ffmpeg(VGMSTREAM* v) {
+static bool decode_frame_ffmpeg(VGMSTREAM* v) {
     decode_state_t* ds = v->decode_state;
     ffmpeg_codec_data* data = v->codec_data;
 
