@@ -659,6 +659,11 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do)
 
     // old-style decoding
     if (codec_info && codec_info->decode_buf) {
+        //TODO improve: interleaved layout moves offsets while flat doesn't, can't handle properly without samples_into_block
+        // (probably should make a new interleave layout that behaves like a block layout and only moves offsets on a new block, 
+        //  while decoder always moves offsets)
+        ds->samples_into = vgmstream->samples_into_block;
+
         bool ok = codec_info->decode_buf(vgmstream, sdst);
         if (!ok) goto decode_fail;
 

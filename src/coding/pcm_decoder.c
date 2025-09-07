@@ -129,10 +129,10 @@ void decode_pcm4_unsigned(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL* stream, sampl
 
 
 // TODO: remove after public API is used
-static void decode_pcmfloat_i16(VGMSTREAMCHANNEL* stream, int16_t* outbuf, int channels, int samples_to_do, bool big_endian) {
+static void decode_pcmfloat_i16(VGMSTREAMCHANNEL* stream, int16_t* outbuf, int channels, int first_sample, int samples_to_do, bool big_endian) {
     read_f32_t read_f32 = big_endian ? read_f32be : read_f32le;
     int s = 0;
-    off_t offset = stream->offset;
+    off_t offset = stream->offset + first_sample * 0x04;
     while (s < samples_to_do) {
         float sample_float = read_f32(offset, stream->streamfile);
         int sample_pcm = (int)floor(sample_float * 32767.f + .5f);
@@ -142,10 +142,10 @@ static void decode_pcmfloat_i16(VGMSTREAMCHANNEL* stream, int16_t* outbuf, int c
     }
 }
 
-static void decode_pcmfloat(VGMSTREAMCHANNEL* stream, float* buf, int channels, int samples_to_do, bool big_endian) {
+static void decode_pcmfloat(VGMSTREAMCHANNEL* stream, float* buf, int channels, int first_sample, int samples_to_do, bool big_endian) {
     read_f32_t read_f32 = big_endian ? read_f32be : read_f32le;
     int s = 0;
-    off_t offset = stream->offset;
+    off_t offset = stream->offset + first_sample * 0x04;
     while (s < samples_to_do) {
         buf[s] = read_f32(offset, stream->streamfile);
         s += channels;
@@ -153,7 +153,7 @@ static void decode_pcmfloat(VGMSTREAMCHANNEL* stream, float* buf, int channels, 
     }
 }
 
-bool decode_buf_pcmfloat(VGMSTREAM* v, sbuf_t* sdst) {
+static bool decode_buf_pcmfloat(VGMSTREAM* v, sbuf_t* sdst) {
     decode_state_t* ds = v->decode_state;
     bool big_endian = v->codec_endian;
 
@@ -164,14 +164,14 @@ bool decode_buf_pcmfloat(VGMSTREAM* v, sbuf_t* sdst) {
         int16_t* buffer = sdst->buf;
         buffer += sdst->filled * v->channels;
         for (int ch = 0; ch < v->channels; ch++) {
-            decode_pcmfloat_i16(&v->ch[ch], buffer + ch, v->channels, ds->samples_left, big_endian);
+            decode_pcmfloat_i16(&v->ch[ch], buffer + ch, v->channels, ds->samples_into, ds->samples_left, big_endian);
         }
     }
     else {
         float* buffer = sdst->buf;
         buffer += sdst->filled * v->channels;
         for (int ch = 0; ch < v->channels; ch++) {
-            decode_pcmfloat(&v->ch[ch], buffer + ch, v->channels, ds->samples_left, big_endian);
+            decode_pcmfloat(&v->ch[ch], buffer + ch, v->channels, ds->samples_into, ds->samples_left, big_endian);
         }
     }
 
@@ -188,10 +188,10 @@ static inline int32_t read_s24le(off_t offset, STREAMFILE* sf) {
 }
 
 // TODO: remove after public API is used
-static void decode_pcm24_i16(VGMSTREAMCHANNEL* stream, int16_t* buf, int channels, int samples_to_do, bool big_endian) {
+static void decode_pcm24_i16(VGMSTREAMCHANNEL* stream, int16_t* buf, int channels, int first_sample, int samples_to_do, bool big_endian) {
     read_s32_t read_s24 = big_endian ? read_s24be : read_s24le;
     int s = 0;
-    off_t offset = stream->offset;
+    off_t offset = stream->offset + first_sample * 0x03;
     while (s < samples_to_do) {
         buf[s] = read_s24(offset, stream->streamfile) >> 8;
         s += channels;
@@ -199,10 +199,10 @@ static void decode_pcm24_i16(VGMSTREAMCHANNEL* stream, int16_t* buf, int channel
     }
 }
 
-static void decode_pcm24(VGMSTREAMCHANNEL* stream, int32_t* buf, int channels, int samples_to_do, bool big_endian) {
+static void decode_pcm24(VGMSTREAMCHANNEL* stream, int32_t* buf, int channels, int first_sample, int samples_to_do, bool big_endian) {
     read_s32_t read_s24 = big_endian ? read_s24be : read_s24le;
     int s = 0;
-    off_t offset = stream->offset;
+    off_t offset = stream->offset + first_sample * 0x03;
     while (s < samples_to_do) {
         buf[s] = read_s24(offset, stream->streamfile);
         s += channels;
@@ -210,7 +210,7 @@ static void decode_pcm24(VGMSTREAMCHANNEL* stream, int32_t* buf, int channels, i
     }
 }
 
-bool decode_buf_pcm24(VGMSTREAM* v, sbuf_t* sdst) {
+static bool decode_buf_pcm24(VGMSTREAM* v, sbuf_t* sdst) {
     decode_state_t* ds = v->decode_state;
     bool big_endian = v->coding_type == coding_PCM24BE;
 
@@ -221,14 +221,14 @@ bool decode_buf_pcm24(VGMSTREAM* v, sbuf_t* sdst) {
         int16_t* buffer = sdst->buf;
         buffer += sdst->filled * v->channels;
         for (int ch = 0; ch < v->channels; ch++) {
-            decode_pcm24_i16(&v->ch[ch], buffer + ch, v->channels, ds->samples_left, big_endian);
+            decode_pcm24_i16(&v->ch[ch], buffer + ch, v->channels, ds->samples_into, ds->samples_left, big_endian);
         }
     }
     else {
         int32_t* buffer = sdst->buf;
         buffer += sdst->filled * v->channels;
         for (int ch = 0; ch < v->channels; ch++) {
-            decode_pcm24(&v->ch[ch], buffer + ch, v->channels, ds->samples_left, big_endian);
+            decode_pcm24(&v->ch[ch], buffer + ch, v->channels, ds->samples_into, ds->samples_left, big_endian);
         }
     }
 
@@ -236,10 +236,10 @@ bool decode_buf_pcm24(VGMSTREAM* v, sbuf_t* sdst) {
 }
 
 // TODO: remove after public API is used
-static void decode_pcm32_i16(VGMSTREAMCHANNEL* stream, int16_t* buf, int channels, int samples_to_do, bool big_endian) {
+static void decode_pcm32_i16(VGMSTREAMCHANNEL* stream, int16_t* buf, int channels, int first_sample, int samples_to_do, bool big_endian) {
     read_s32_t read_s32 = big_endian ? read_s32be : read_s32le;
     int s = 0;
-    off_t offset = stream->offset;
+    off_t offset = stream->offset + first_sample * 0x04;
     while (s < samples_to_do) {
         buf[s] = read_s32(offset, stream->streamfile) >> 16;
         s += channels;
@@ -247,10 +247,10 @@ static void decode_pcm32_i16(VGMSTREAMCHANNEL* stream, int16_t* buf, int channel
     }
 }
 
-static void decode_pcm32(VGMSTREAMCHANNEL* stream, int32_t* buf, int channels, int samples_to_do, bool big_endian) {
+static void decode_pcm32(VGMSTREAMCHANNEL* stream, int32_t* buf, int channels, int first_sample, int samples_to_do, bool big_endian) {
     read_s32_t read_s32 = big_endian ? read_s32be : read_s32le;
     int s = 0;
-    off_t offset = stream->offset;
+    off_t offset = stream->offset + first_sample * 0x04;
     while (s < samples_to_do) {
         buf[s] = read_s32(offset, stream->streamfile);
         s += channels;
@@ -258,7 +258,7 @@ static void decode_pcm32(VGMSTREAMCHANNEL* stream, int32_t* buf, int channels, i
     }
 }
 
-bool decode_buf_pcm32(VGMSTREAM* v, sbuf_t* sdst) {
+static bool decode_buf_pcm32(VGMSTREAM* v, sbuf_t* sdst) {
     decode_state_t* ds = v->decode_state;
     bool big_endian = false;
 
@@ -269,14 +269,14 @@ bool decode_buf_pcm32(VGMSTREAM* v, sbuf_t* sdst) {
         int16_t* buffer = sdst->buf;
         buffer += sdst->filled * v->channels;
         for (int ch = 0; ch < v->channels; ch++) {
-            decode_pcm32_i16(&v->ch[ch], buffer + ch, v->channels, ds->samples_left, big_endian);
+            decode_pcm32_i16(&v->ch[ch], buffer + ch, v->channels, ds->samples_into, ds->samples_left, big_endian);
         }
     }
     else {
         int32_t* buffer = sdst->buf;
         buffer += sdst->filled * v->channels;
         for (int ch = 0; ch < v->channels; ch++) {
-            decode_pcm32(&v->ch[ch], buffer + ch, v->channels, ds->samples_left, big_endian);
+            decode_pcm32(&v->ch[ch], buffer + ch, v->channels, ds->samples_into, ds->samples_left, big_endian);
         }
     }
 
