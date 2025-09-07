@@ -551,7 +551,7 @@ static void flush_mpeg(mpeg_codec_data* data, int is_loop) {
     data->buffer_used = false;
 }
 
-void reset_mpeg(void* priv_data) {
+static void reset_mpeg(void* priv_data) {
     mpeg_codec_data* data = priv_data;
     if (!data) return;
 

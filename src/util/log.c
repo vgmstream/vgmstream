@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "log.h"
 
 /* log context; should probably make a unique instance and pass to metas/decoders/etc, but for the time being use global */
 //extern ...* log;

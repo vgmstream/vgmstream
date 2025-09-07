@@ -1,6 +1,7 @@
 #include "vgmstream.h"
 #include "coding/coding.h"
 #include "layout/layout.h"
+#include "base/plugins.h"
 
 
 /* Defines the list of accepted extensions. vgmstream doesn't use it internally so it's here

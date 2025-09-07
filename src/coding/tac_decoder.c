@@ -83,7 +83,7 @@ static bool read_frame(tac_codec_data* data, STREAMFILE* sf) {
     return true;
 }
 
-bool decode_frame_tac(VGMSTREAM* v) {
+static bool decode_frame_tac(VGMSTREAM* v) {
     VGMSTREAMCHANNEL* stream = &v->ch[0];
     tac_codec_data* data = v->codec_data;
 

@@ -440,7 +440,7 @@ static void transform_fft(int points, void* unused, float* real, float* imag, co
 
 // Transform unpacked time-domain coefficients (spectrum) to samples using inverse FFT.
 // Seemingly a variation/simplification of the Cooley-Tukey algorithm (radix-4?).
-void transform_frame(void* unused1, float* src, float* dst, void* unused2, float* fft_buf) {
+static void transform_frame(void* unused1, float* src, float* dst, void* unused2, float* fft_buf) {
     float* real = fft_buf;
     float* imag = fft_buf + 256;
 

@@ -196,7 +196,7 @@ static void reset_imuse(void* priv_data) {
     data->current_block = 0;
 }
 
-imuse_codec_data* init_imuse_internal(int channels, int blocks) {
+static imuse_codec_data* init_imuse_internal(int channels, int blocks) {
     if (channels > MAX_CHANNELS)
         return NULL;
 

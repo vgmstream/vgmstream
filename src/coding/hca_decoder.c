@@ -111,7 +111,7 @@ static bool read_packet(VGMSTREAM* v) {
     return true;
 }
 
-bool decode_frame_hca(VGMSTREAM* v) {
+static bool decode_frame_hca(VGMSTREAM* v) {
     bool ok = read_packet(v);
     if (!ok)
         return false;
@@ -142,7 +142,7 @@ bool decode_frame_hca(VGMSTREAM* v) {
     return true;
 }
 
-void seek_hca(VGMSTREAM* v, int32_t num_sample) {
+static void seek_hca(VGMSTREAM* v, int32_t num_sample) {
     hca_codec_data* data = v->codec_data;
     //decode_state_t* ds = v->decode_state;
 

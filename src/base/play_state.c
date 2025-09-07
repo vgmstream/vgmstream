@@ -3,7 +3,7 @@
 //#include "render.h"
 //#include "decode.h"
 //#include "mixing.h"
-//#include "plugins.h"
+#include "plugins.h"
 
 
 
