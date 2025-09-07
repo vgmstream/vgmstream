@@ -307,7 +307,7 @@ static bool parse_jaudio_baa(STREAMFILE* sf, meta_header_t* hdr, uint32_t base_o
 
     uint32_t offset = base_offset;
     if (!is_id32be(offset, sf, "AA_<"))
-        return NULL;
+        return false;
     offset += 0x04;
 
     // parse chunks: N chunk ids each with offset + size
