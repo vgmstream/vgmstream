@@ -1181,7 +1181,7 @@ static const meta_info meta_info_list[] = {
         {meta_IDSP_IE,              "Inevitable Entertainment IDSP Header"},
         {meta_UBI_JADE,             "Ubisoft Jade RIFF header"},
         {meta_SEG,                  "Stormfront SEG header"},
-        {meta_RIFF_IMA,             "Square Enix RIFF IMA eader"},
+        {meta_RIFF_IMA,             "Square Enix RIFF IMA header"},
         {meta_KNON,                 "Paon KNON header"},
         {meta_GCA,                  "GCA DSP Header"},
         {meta_SPT_SPD,              "SPT+SPD DSP Header"},
