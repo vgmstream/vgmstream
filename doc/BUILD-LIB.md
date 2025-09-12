@@ -477,8 +477,6 @@ MSBuild.exe opus.sln /p:Platform=x64 /p:Configuration=Release /p:WindowsTargetPl
 ### FFmpeg
 vgmstream's FFmpeg builds for **Windows** and static builds for **Linux** remove many unnecessary parts of FFmpeg to trim down its gigantic size, and, on Windows, are also built with the "-vgmstream" suffix to prevent clashing with other plugins. Current options can be seen in `ffmpeg_options.txt`. Shared **Linux** builds usually link to system FFmpeg without issues, while standard FFmpeg DLLs may work (renamed to -vgmstream).
 
-FFmpeg can be compiled with *libopus* (external lib) rather than internal *opus*. This is used because FFmpeg decodes incorrectly Opus files used some in games (mostly low bitrate). In older versions this was audibly wrong, but currently the difference shouldn't be that much, but still not that accurate compared with *libopus* (PCM sample diffs of +5000), so *vgmstream* enables it. Getting *libopus* recognized can be unwieldly, so internal *opus* is a decent enough substitute (remove `--enable-libopus` and change `libopus` to `opus` in `--enable-decoder` from options, and remove `--enable-custom-modes` from *configure*).
-
 GCC and MSVC need `yasm.exe` somewhere in `PATH` to properly compile/optimize: https://yasm.tortall.net (add `--disable-yasm` to *configure* options to disable, may decrease performance).
 
 FFmpeg uses separates DLLs, that depend on each other like this:
@@ -487,7 +485,7 @@ FFmpeg uses separates DLLs, that depend on each other like this:
 - avformat: avcodec, avutil
 - avcodec: avutil, swresample
 
-Note that *vgmstream* applies various patches in real time to fix several FFmpeg quirks (including infinite loops). Could be done with *git* patches, but not currently since users on Linux may link to system's libs and/or use different versions. Updating FFmpeg version without testing carefully is not recommended.
+When updating FFmpeg versions careful testing is recommended. *vgmstream* fixes a few of FFmpeg's quirks during playback; some may need to be tweaked depending on version.
 
 #### Source
 ```bat
@@ -495,6 +493,11 @@ Note that *vgmstream* applies various patches in real time to fix several FFmpeg
 git clone https://git.ffmpeg.org/ffmpeg.git --depth 1 --branch n5.1.2
 cd ffmpeg
 ```
+
+#### libopus vs FFmpeg's opus
+FFmpeg can be compiled with *libopus* (external lib) rather than internal *opus*. We use *libopus* because FFmpeg decodes incorrectly certain games (mostly low bitrate). In older versions this was audibly wrong, though currently the differences shouldn't matter that much, but still not that accurate compared to *libopus* (PCM sample diffs of +5000). Getting *libopus* recognized can be unwieldly, so internal *opus* is a decent enough substitute. 
+
+To disable it, go to `ffmpeg_options.txt` and remove `--enable-libopus` plus change `libopus` to `opus` in `--enable-decoder`. Also, when calling *configure* remove `--enable-custom-modes` (a *libopus*-only option).
 
 #### libopus and pkg-config
 FFmpeg uses *pkg-config* (a kind of "installed lib manager") to detect pre-compiled *libopus*. On Linux it should detect *libopus* after `make install` with default `--prefix`, or adding opus's `--prefix` path to `PKG_CONFIG_PATH`. On Windows, MSYS2 *probably* works the same.
@@ -507,7 +510,7 @@ However when compiling with MSVC it's not clear how to mix Windows-style `.lib` 
 
 ```sh
 # read current options (removing comments and line breaks); change file path if needed (or manually copy options below)
-FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/ffmpeg_options.txt`
+FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/extra/ffmpeg_options.txt`
 echo $FFMPEG_OPTIONS
 
 # PKG-CONFIG HACK: disables pkg-config in FFmpeg's configure (use only if *configure* throws a pkg-config error)
@@ -589,7 +592,7 @@ C:\msys64\msys2_shell.cmd -mingw32 -use-full-path
 cd /c/vgmstream-dlls/sources/ffmpeg
 
 # read current options (removing comments and line breaks); change file path if needed (or manually copy options below)
-FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/ffmpeg_options.txt`
+FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/extra/ffmpeg_options.txt`
 echo $FFMPEG_OPTIONS
 
 # PKG-CONFIG HACK: disables pkg-config in FFmpeg's configure (use only if *configure* throws a pkg-config error)
@@ -621,7 +624,7 @@ C:\msys64\msys2_shell.cmd -mingw64 -use-full-path
 cd /c/vgmstream-dlls/sources/ffmpeg
 
 # read current options (removing comments and line breaks); change file path if needed (or manually copy options below)
-FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/ffmpeg_options.txt`
+FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/extra/ffmpeg_options.txt`
 echo $FFMPEG_OPTIONS
 
 # PKG-CONFIG HACK: disables pkg-config in FFmpeg's configure (use only if *configure* throws a pkg-config error)
