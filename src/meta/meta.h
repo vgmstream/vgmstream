@@ -1048,4 +1048,6 @@ VGMSTREAM* init_vgmstream_jaudio_baa(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bcf1(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_ueba(STREAMFILE* sf);
+
 #endif

@@ -628,6 +628,7 @@ static const char* extension_list[] = {
 
     "u0",
     "ue4opus",
+    "ueba",
     "ulw", //txth/raw [Burnout (GC)]
     "um3",
     "utk",
@@ -1510,6 +1511,7 @@ static const meta_info meta_info_list[] = {
         {meta_CF_DF,                "Cyberflix DreamFactory header"},
         {meta_JAUDIO,               "Nintendo JAudio header"},
         {meta_BCF1,                 "RAD BCF1 header"},
+        {meta_UEBA,                 "Epic Games UEBA header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

@@ -102,17 +102,17 @@ static bool read_frame(VGMSTREAM* v, packet_t* pkt) {
         VGM_LOG("BINKA: missing sync at %x\n", (uint32_t)vs->offset);
         return false;
     }
-    if (packet_size > data->pkt.buf_size) {
-        VGM_LOG("BINKA: packet too large %x > %x\n", packet_size, data->pkt.buf_size);
-        return false;
-    }
-
 
     int packet_samples = 0;
     if (packet_size == 0xFFFF) { // last packet marker? (used in UEBA)
         packet_size     = read_u16le(vs->offset + 0x00, vs->streamfile);
         packet_samples  = read_u16le(vs->offset + 0x02, vs->streamfile); // less samples than max
         vs->offset += 0x04;
+    }
+
+    if (packet_size > data->pkt.buf_size) {
+        VGM_LOG("BINKA: packet too large, %x vs %x\n", packet_size, data->pkt.buf_size);
+        return false;
     }
 
     data->pkt.filled = read_streamfile(data->pkt.buf, vs->offset, packet_size, vs->streamfile);

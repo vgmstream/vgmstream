@@ -27,17 +27,19 @@ VGMSTREAM* init_vgmstream_bcf1(STREAMFILE* sf) {
         //return NULL;
     }
 
+    // seek table may be 0 (disabled when encoding)
     int seek_entries;
     if (version == 1) { // Civilization V (PC), rare
         seek_entries = read_s32le(0x14,sf);
     }
     else if (version == 2) {
-        seek_entries = read_s16le(0x14,sf);
-        //16: frames per seek block (to calculate samples)
+        seek_entries = read_u16le(0x14,sf);
+        //16: frames per seek block (to calculate total samples)
         // frames per block is usually 1 but seen 1, 2, 4, 8, ... 64 depending on file size
         // (encoder auto-adjusts so seek table doesn't grow too big)
     } else {
         // decoder checks <= 2, not seen v0 files
+        vgm_logi("BCF1: unknown version (report)\n");
         return NULL;
     }
 
