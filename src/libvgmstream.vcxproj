@@ -104,6 +104,9 @@
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
+    <ClInclude Include="coding\libs\binka_data.h" />
+    <ClInclude Include="coding\libs\binka_dec.h" />
+    <ClInclude Include="coding\libs\binka_transform.h" />
     <ClInclude Include="coding\libs\circus_vq_data.h" />
     <ClInclude Include="coding\libs\circus_vq_lib.h" />
     <ClInclude Include="coding\libs\circus_vq_lzxpcm.h" />
@@ -269,6 +272,7 @@
     <ClCompile Include="coding\afc_decoder.c" />
     <ClCompile Include="coding\asf_decoder.c" />
     <ClCompile Include="coding\atrac9_decoder.c" />
+    <ClCompile Include="coding\binka_decoder.c" />
     <ClCompile Include="coding\celt_fsb_decoder.c" />
     <ClCompile Include="coding\circus_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
@@ -343,6 +347,8 @@
     <ClCompile Include="coding\xa_decoder.c" />
     <ClCompile Include="coding\xmd_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />
+    <ClCompile Include="coding\libs\binka_dec.c" />
+    <ClCompile Include="coding\libs\binka_transform.c" />
     <ClCompile Include="coding\libs\circus_vq_lib.c" />
     <ClCompile Include="coding\libs\clhca.c" />
     <ClCompile Include="coding\libs\compresswave_lib.c" />
@@ -459,6 +465,7 @@
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\baka.c" />
     <ClCompile Include="meta\bar.c" />
+    <ClCompile Include="meta\bcf1.c" />
     <ClCompile Include="meta\bcstm.c" />
     <ClCompile Include="meta\bfstm.c" />
     <ClCompile Include="meta\bfwav.c" />

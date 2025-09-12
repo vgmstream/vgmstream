@@ -6,15 +6,16 @@
 /* Simple bitreader for Vorbis' bit style, in 'least significant byte' (LSB) format.
  * Example: with 0x1234 = 00010010 00110100, reading 5b + 6b = 10010 100000
  *  (first lower 5b, then next upper 3b and next lower 3b = 6b)
- * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). 
- * It's designed like that to read 32/64-bit LE ints, though this implementation is endian-agnostic. */
+ * It's designed like this to read 32-bit LE ints (faster), though this implementation is endian-agnostic.
+ * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). */
 
 
 typedef struct {
-    uint8_t* buf;           /* buffer to read/write */
+    uint8_t* buf;           // buffer to read/write
     uint32_t bufsize;       // max size
     uint32_t b_max;         // max size in bits
-    uint32_t b_off;         /* current offset in bits inside the buffer */
+    uint32_t b_off;         // current offset in bits inside the buffer
+    bool error;             // attempted to read/write past max data
 } bitstream_t;
 
 /* convenience util */
@@ -23,6 +24,7 @@ static inline void bl_setup(bitstream_t* bs, uint8_t* buf, uint32_t bufsize) {
     bs->bufsize = bufsize;
     bs->b_max = bufsize * 8;
     bs->b_off = 0;
+    bs->error = false;
 }
 
 /* same as (1 << bits) - 1, but that seems to trigger some nasty UB when bits = 32
@@ -36,18 +38,30 @@ static const uint32_t MASK_TABLE_LSB[33] = {
 
 
 static inline int bl_skip(bitstream_t* bs, uint32_t bits) {
-    if (bs->b_off + bits > bs->b_max)
+    if (bs->b_off + bits > bs->b_max) {
+        bs->error = true;
         return 0;
+    }
 
     bs->b_off += bits;
 
     return 1;
 }
 
+static inline void bl_align(bitstream_t* bs, uint32_t bits) {
+    if (bits == 0)
+        return;
+
+    int left = bs->b_off % bits;
+    if (left == 0)
+        return;
+
+    bl_skip(bs, bits - left);
+}
+
 static inline int bl_pos(bitstream_t* bs) {
     return bs->b_off;
 }
-
 
 /* Read bits (max 32) from buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
  * (ex. from 2 bytes 00100111 00000001 we can could read 4b=0111 and 6b=010010, 6b=remainder (second value is split into the 2nd byte) */
@@ -56,12 +70,13 @@ static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 
     if (bits > 32 || ib->b_off + bits > ib->b_max) {
         *value = 0;
+        ib->error = true;
         return 0;
     }
 
-    pos = ib->b_off / 8;        /* byte offset */
-    shift = ib->b_off % 8;      /* bit sub-offset */
-    mask = MASK_TABLE_LSB[bits];    /* to remove upper in highest byte */
+    pos = ib->b_off / 8;            // byte offset
+    shift = ib->b_off % 8;          // bit sub-offset
+    mask = MASK_TABLE_LSB[bits];    // to remove upper in highest byte
 
     val = ib->buf[pos+0] >> shift;
     if (bits + shift > 8) {
@@ -71,7 +86,7 @@ static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
             if (bits + shift > 24) {
                 val |= ib->buf[pos+3] << (24u - shift);
                 if (bits + shift > 32) {
-                    val |= ib->buf[pos+4] << (32u - shift); /* upper bits are lost (shifting over 32) */
+                    val |= ib->buf[pos+4] << (32u - shift); // upper bits are lost (shifting over 32)
                 }
             }
         }
@@ -97,8 +112,10 @@ static inline uint32_t bl_read(bitstream_t* ib, uint32_t bits) {
 static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, mask, pos;
 
-    if (bits > 32 || ob->b_off + bits > ob->b_max)
+    if (bits > 32 || ob->b_off + bits > ob->b_max) {
+        ob->error = true;
         return 0;
+    }
 
     pos = ob->b_off / 8;        // byte offset
     shift = ob->b_off % 8;      // bit sub-offset
@@ -112,7 +129,7 @@ static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
             if (bits + shift > 24) {
                 ob->buf[pos+3] = value >> (24 - shift);
                 if (bits + shift > 32) {
-                    /* upper bits are set to 0 (shifting unsigned) but shouldn't matter */
+                    // upper bits are set to 0 (shifting unsigned) but shouldn't matter
                     ob->buf[pos+4] = value >> (32 - shift);
                 }
             }
