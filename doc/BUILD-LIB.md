@@ -494,6 +494,9 @@ git clone https://git.ffmpeg.org/ffmpeg.git --depth 1 --branch n5.1.2
 cd ffmpeg
 ```
 
+#### Headers
+If you are using your own FFmpeg libs (not pre-compiled for vgmstream), make sure you compile with the FFmpeg `.h` headers provided by your lib and not those in `ext_includes`. vgmstream *will* crash if the FFmpeg version has changed (see `LIB*_VERSION_MAJOR` and possibly `LIB*_VERSION_MINOR`), even if it compiles correctly.
+
 #### libopus vs FFmpeg's opus
 FFmpeg can be compiled with *libopus* (external lib) rather than internal *opus*. We use *libopus* because FFmpeg decodes incorrectly certain games (mostly low bitrate). In older versions this was audibly wrong, though currently the differences shouldn't matter that much, but still not that accurate compared to *libopus* (PCM sample diffs of +5000). Getting *libopus* recognized can be unwieldly, so internal *opus* is a decent enough substitute. 
 
