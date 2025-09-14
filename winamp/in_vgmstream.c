@@ -257,7 +257,7 @@ static double get_album_gain_volume(const in_char* fn) {
 /* ***************************************** */
 
 /* about dialog */
-void winamp_About(HWND hwndParent) {
+static void winamp_About(HWND hwndParent) {
     const char* ABOUT_TEXT =
             PLUGIN_INFO "\n"
             "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm, Nicknine, Thealexbarney, CyberBotX, and many others\n"
@@ -277,7 +277,7 @@ void winamp_About(HWND hwndParent) {
 }
 
 /* called at program init */
-void winamp_Init() {
+static void winamp_Init() {
 
     settings.is_xmplay = is_xmplay();
 
@@ -299,12 +299,12 @@ void winamp_Init() {
 }
 
 /* called at program quit */
-void winamp_Quit() {
+static void winamp_Quit() {
     logger_free();
 }
 
 /* called before extension checks, to allow detection of mms://, etc */
-int winamp_IsOurFile(const in_char *fn) {
+static int winamp_IsOurFile(const in_char *fn) {
     libvgmstream_t* infostream;
     libvgmstream_valid_t vcfg = {0};
     char filename_utf8[WINAMP_PATH_LIMIT];
@@ -396,7 +396,7 @@ int winamp_IsOurFile(const in_char *fn) {
 
 
 /* request to start playing a file */
-int winamp_Play(const in_char *fn) {
+static int winamp_Play(const in_char *fn) {
     int max_latency;
     in_char filename[WINAMP_PATH_LIMIT];
     int stream_index = 0;
@@ -464,24 +464,24 @@ int winamp_Play(const in_char *fn) {
 }
 
 /* pause stream */
-void winamp_Pause() {
+static void winamp_Pause() {
     state.paused = 1;
     input_module.outMod->Pause(1);
 }
 
 /* unpause stream */
-void winamp_UnPause() {
+static void winamp_UnPause() {
     state.paused = 0;
     input_module.outMod->Pause(0);
 }
 
 /* return 1 if paused, 0 if not */
-int winamp_IsPaused() {
+static int winamp_IsPaused() {
     return state.paused;
 }
 
 /* stop (unload) stream */
-void winamp_Stop() {
+static void winamp_Stop() {
 
     if (decode_thread_handle != INVALID_HANDLE_VALUE) {
         state.decode_abort = 1;
@@ -504,14 +504,14 @@ void winamp_Stop() {
 }
 
 /* get length in ms */
-int winamp_GetLength() {
+static int winamp_GetLength() {
     if (!vgmstream)
         return 0;
     return vgmstream->format->play_samples * 1000LL / vgmstream->format->sample_rate;
 }
 
 /* current output time in ms */
-int winamp_GetOutputTime() {
+static int winamp_GetOutputTime() {
     int32_t pos_ms = state.decode_pos_ms;
     /* for some reason this gets triggered hundred of times by non-classic skins when using subsongs */
     if (!vgmstream)
@@ -525,22 +525,22 @@ int winamp_GetOutputTime() {
 }
 
 /* seeks to point in stream (in ms) */
-void winamp_SetOutputTime(int time_in_ms) {
+static void winamp_SetOutputTime(int time_in_ms) {
     if (!vgmstream)
         return;
     state.seek_sample = (long long)time_in_ms * vgmstream->format->sample_rate / 1000LL;
 }
 
 /* pass these commands through */
-void winamp_SetVolume(int volume) {
+static void winamp_SetVolume(int volume) {
     input_module.outMod->SetVolume(volume);
 }
-void winamp_SetPan(int pan) {
+static void winamp_SetPan(int pan) {
     input_module.outMod->SetPan(pan);
 }
 
 // TODO: remove
-void wa_concatn(int length, char * dst, const char * src) {
+static void wa_concatn(int length, char * dst, const char * src) {
     int i,j;
     if (length <= 0) return;
     for (i=0;i<length-1 && dst[i];i++);   /* find end of dst */
@@ -551,7 +551,7 @@ void wa_concatn(int length, char * dst, const char * src) {
 
 
 /* display info box (ALT+3) */
-int winamp_InfoBox(const in_char *fn, HWND hwnd) {
+static int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     char description[1024] = {0};
     TCHAR tbuf[1024] = {0};
     double tmpVolume = 1.0;
@@ -592,7 +592,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
 }
 
 /* retrieve title (playlist name) and time on the current or other file in the playlist */
-void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
+static void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
 
     if (!fn || !*fn) {
         /* no filename = current playing file */
@@ -648,7 +648,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
 }
 
 /* eq stuff */
-void winamp_EQSet(int on, char data[10], int preamp) {
+static void winamp_EQSet(int on, char data[10], int preamp) {
 }
 
 /*****************************************************************************/
@@ -765,7 +765,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 }
 
 /* configuration dialog */
-void winamp_Config(HWND hwndParent) {
+static void winamp_Config(HWND hwndParent) {
     /* open dialog defined in resource.rc */
     DialogBox(input_module.hDllInstance, (const TCHAR *)IDD_CONFIG, hwndParent, configDlgProc);
 }
