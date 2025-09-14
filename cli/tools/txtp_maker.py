@@ -49,6 +49,8 @@ class Cli(object):
                                                       "- {filename}|{fn}=filename without extension\n"
                                                       "- {subsong}|{ss}=subsong number)\n"
                                                       "- {internal-name}|{in}=internal stream name\n"
+                                                      "- {prev-path}=file's last directory\n"
+                                                      "- {full-path}=file's full directory (/ separated by ~)\n"
                                                       "- {if}=internal name or filename if not found\n"
                                                       "* may be inside <...> for conditional text\n"))
         p.add_argument('-z',  dest='zero_fill', help="Zero-fill subsong number (default: auto per subsongs)", type=int)
@@ -350,7 +352,7 @@ class TxtpMaker(object):
         log.debug("created: " + outname)
         return
         
-    def include(self, filename_path, filename_clean):
+    def include(self, filename_path, filename_clean, filename_folder):
         cfg = self.cfg
         total_done = 0
 
@@ -394,6 +396,8 @@ class TxtpMaker(object):
                 internal_filename = stream_name
                 if not internal_filename:
                     internal_filename = filename_base
+                full_path = os.path.dirname(filename_folder).replace("\\", "/").replace("/", "~")
+                prev_path = os.path.basename(os.path.dirname(filename_folder))
 
                 replaces = {
                     'fn': filename_base,
@@ -402,6 +406,8 @@ class TxtpMaker(object):
                     'subsong': index,
                     'in': stream_name,
                     'internal-name': stream_name,
+                    'prev-path': prev_path,
+                    'full-path': full_path,
                     'if': internal_filename,
                 }
 
@@ -648,7 +654,7 @@ class App(object):
                     self.crc32.update(filename_out)
 
                 if not self.crc32.is_last_dupe():
-                    created += maker.include(filename_in_base, filename_in_clean)
+                    created += maker.include(filename_in_base, filename_in_clean, filename_in)
                 else:
                     dupes += 1
                     log.debug("dupe subsong %s", target_subsong)
