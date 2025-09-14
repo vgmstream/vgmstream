@@ -13,7 +13,6 @@
  */
 //TODO: test RDFT stereo (uses frame_channels 1)
 //TODO: check Bink Audio 1.0 (~1999 games, supposedly has bitstream diffs but ~2001 libs only handle 1.1+)
-//TODO: output f32
 
 #include <math.h>
 #include <string.h>
@@ -30,7 +29,7 @@
 #define MAX_FRAME_CHANNELS 2
 #define MAX_CHANNELS 8              // OG lib seems like it could handle 2ch * 8 decoders = 16, but encoder only allows up to 7.1
 #define MIN_CHANNELS 1
-#define MAX_SAMPLE_RATE 65535       // OG lib/encoder doesn't check this
+#define MAX_SAMPLE_RATE 96000       // OG lib/encoder doesn't check this (BCF1 uses 16-bit field, UEBA has ~96000hz files)
 #define MIN_SAMPLE_RATE 300
 #define MAX_FRAME_SAMPLES  2048
 #define MAX_FRAME_OVERLAP  128
@@ -161,7 +160,7 @@ static void apply_overlap(float* dst, int overlap_samples, float* overlap, int o
 }
 
 static void apply_scale(float* coefs, float scale, int frame_samples) {
-    scale = scale / 32768.0;
+    //scale = scale / 32767.0; // output is pcm-like
     for (int i = 0; i < frame_samples; i++) {
         coefs[i] *= scale;
     }

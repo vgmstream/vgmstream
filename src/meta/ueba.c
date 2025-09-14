@@ -25,16 +25,11 @@ VGMSTREAM* init_vgmstream_ueba(STREAMFILE* sf) {
     int32_t num_samples = read_s32le(0x0c,sf);
     //10: max frame_size
     uint16_t flags = read_u16le(0x12,sf);
-    uint32_t file_size = read_s32le(0x14,sf);
+    //14: file size (doesn't seem to include SEEK chunks)
 
     // v1 is enforced by exes, flags is always 1 but seems ignored
     if (version != 1 || flags != 1) {
         vgm_logi("UEBA: unknown version (report)\n");
-        return NULL;
-    }
-
-    if (file_size != get_streamfile_size(sf)) {
-        vgm_logi("UEBA: expected size %x (re-rip?)\n", file_size);
         return NULL;
     }
 

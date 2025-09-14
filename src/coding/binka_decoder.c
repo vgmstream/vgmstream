@@ -3,7 +3,9 @@
 #include "../base/codec_info.h"
 #include "libs/binka_dec.h"
 
-#define MAX_FRAME_SIZE_CHANNEL 0x400 // observed max is ~0x1200 in 8ch files at max quality (there is 32 bit field in each format for this)
+// observed max is ~0x1200 in 8ch for BCF1 and ~0x900 in 2ch files for UEBA (higher encoding quality modes?)
+// (there is 32 bit field in each format for this)
+#define MAX_FRAME_SIZE_CHANNEL 0x800
 
 
 typedef struct {
@@ -145,7 +147,7 @@ static bool decode_frame_binka(VGMSTREAM* v) {
     if (data->pkt.samples && samples > data->pkt.samples)
         samples = data->pkt.samples;
 
-    sbuf_init_flt(&ds->sbuf, data->fbuf, samples, v->channels);
+    sbuf_init_f16(&ds->sbuf, data->fbuf, samples, v->channels);
     ds->sbuf.filled = samples;
 
     return true;
@@ -173,7 +175,7 @@ static void seek_binka(VGMSTREAM* v, int32_t num_sample) {
 }
 
 const codec_info_t binka_decoder = {
-    .sample_type = SFMT_FLT,
+    .sample_type = SFMT_F16,
     .decode_frame = decode_frame_binka,
     .free = free_binka,
     .reset = reset_binka,
