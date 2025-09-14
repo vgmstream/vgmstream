@@ -52,14 +52,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Nintendo STRM header [*STRM*]
   - *nds_strm*: `.strm`
   - Codecs: PCM8 PCM16LE NDS_IMA
-- **afc.c**
-  - Nintendo .AFC header [*AFC*]
-  - *afc*: `.afc .stx`
-  - Codecs: NGC_AFC
 - **ast.c**
   - Nintendo .AST header [*AST*]
   - *ast*: `.ast`
-  - Codecs: NGC_AFC PCM16BE
+  - Codecs: AFC PCM16BE
 - **halpst.c**
   - HAL Laboratory HALPST header [*HALPST*]
   - *halpst*: `.hps`
@@ -205,7 +201,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DSP
 - **ea_schl_standard.c**
   - (container)
-  - *ea_schl*: `.asf .lasf .str .chk .eam .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless) .r`
+  - *ea_schl*: `.asf .lasf .str .chk .eam .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless) .r .snd`
   - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast .cat .(extensionless)`
   - *ea_schl_video*: `.uv .dct .mpc .lmpc .vp6 .mad .wve`
   - *ea_pt*: `.pth .dat .ldat + .ptd`
@@ -321,7 +317,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16LE
 - **xwb.c**
   - Microsoft XWB header [*XWB*]
-  - *xwb*: `.xwb .xna .hwb .bd .(extensionless) + .wbh`
+  - *wbnd*
+    - Subfiles: *wbnd_sdbk*
+  - *wbnd_sdbk*: `.xwb .xna .hwb .bd .(extensionless) + .wbh`
     - Subfiles: *riff*
   - Codecs: PCM8_U PCM16LE PCM16BE XBOX_IMA MSADPCM XMA1 XMA2 FFmpeg(various) XWMA ATRAC3 OGG_VORBIS NGC_DSP
 - **musc.c**
@@ -494,7 +492,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *seg*: `.seg`
   - Codecs: PSX XBOX_IMA NGC_DSP IMA MPEG XMA2
 - **riff_ima.c**
-  - Square Enix RIFF IMA eader [*RIFF_IMA*]
+  - Square Enix RIFF IMA header [*RIFF_IMA*]
   - *riff_ima*: `.bin .lbin .strm`
   - Codecs: SQEX_IMA
 - **knon.c**
@@ -698,7 +696,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16LE
 - **bnsf.c**
   - Namco Bandai BNSF header [*BNSF*]
-  - *bnsf*: `.bnsf + .(external)`
+  - *bnsf*: `.bnsf .spsis14 .spsis22 + .(external)`
   - Codecs: G7221C G719
 - **mcg.c**
   - Namco MCG header [*MCG*]
@@ -1440,7 +1438,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX PSX_pivotal NGC_DSP PCM16BE
 - **nub.c**
   - Namco NUB header [*NUB*]
-  - *nub*: `.nub .nub2 .nps + .(external)`
+  - *nub*: `.nub .nub2 .nps .nusnub + .(external)`
     - Subfiles: *nub_xma nub_wav nub_vag nub_at3 nub_dsp nub_idsp nub_is14 nub_caf function*
   - *nub_wav*: `.wav .lwav`
     - Subfiles: *riff*
@@ -1492,7 +1490,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *xws*: `.xws`
   - *snd_koei*: `.snd`
   - *koei_wavebank*
-    - Subfiles: *msf dsp_apex*
+    - Subfiles: *msf dsp_apex wbnd_sdbk*
   - Codecs: PCM16LE MSADPCM NGC_DSP XMA2 ATRAC9
 - **lrmd.c**
   - Sony LRMD header [*LRMD*]
@@ -1807,6 +1805,18 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Cyberflix DreamFactory header [*CF_DF*]
   - *cf_df*: `.snd .sfx .mov`
   - Codecs: CF_DF_ADPCM_V40 CF_DF_DPCM_V41
+- **bcf1.c**
+  - RAD BCF1 header [*BCF1*]
+  - *bcf1*: `.binka`
+  - Codecs: BINKA
+- **ueba.c**
+  - Epic Games UEBA header [*UEBA*]
+  - *ueba*: `.ueba .binka`
+  - Codecs: BINKA
+- **afc.c**
+  - Nintendo .AFC header [*AFC*]
+  - *afc*: `.afc .stx`
+  - Codecs: AFC
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`
@@ -1929,6 +1939,12 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Capcom .SRE+PCM header [*SRE_PCM*]
   - *sre_pcm*: `.sre + .pcm`
   - Codecs: PSX
+- **jaudio.c**
+  - Nintendo JAudio header [*JAUDIO*]
+  - *jaudio_aaf*: `.aaf`
+  - *jaudio_bx*: `.bx`
+  - *jaudio_baa*: `.baa`
+  - Codecs: AFC AFC_2bit PCM8 PCM16BE
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`

@@ -370,6 +370,9 @@ void* init_ubimpeg(uint32_t mode);
 /* mio_decoder */
 void* init_mio(STREAMFILE* sf, int* p_loop_point);
 
+/* binka_decoder */
+void* init_binka_bcf1(int sample_rate, int channels);
+void* init_binka_ueba(int sample_rate, int channels);
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */

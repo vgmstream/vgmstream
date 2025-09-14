@@ -116,7 +116,7 @@ static const char* extension_list[] = {
     "bik",
     "bika", //fake extension for .bik (to be removed)
     "bik2",
-    "binka", //FFmpeg/not parsed (BINK AUDIO)
+    "binka",
     //"bin", //common
     "bk2",
     "bkh",
@@ -628,6 +628,7 @@ static const char* extension_list[] = {
 
     "u0",
     "ue4opus",
+    "ueba",
     "ulw", //txth/raw [Burnout (GC)]
     "um3",
     "utk",
@@ -955,6 +956,7 @@ static const coding_info coding_info_list[] = {
         {coding_KA1A,               "Koei Tecmo KA1A"},
         {coding_UBI_MPEG,           "Ubisoft MPEG"},
         {coding_MIO,                "Entis MIO"},
+        {coding_BINKA,              "RAD Game tools Bink Audio"},
         {coding_CF_DF_ADPCM_V40,    "Cyberflix DreamFactory v4.0 ADPCM"},
         {coding_CF_DF_DPCM_V41,     "Cyberflix DreamFactory v4.1 DPCM"},
 
@@ -1508,6 +1510,8 @@ static const meta_info meta_info_list[] = {
         {meta_MHWK,                 "Broderbund MHWK header"},
         {meta_CF_DF,                "Cyberflix DreamFactory header"},
         {meta_JAUDIO,               "Nintendo JAudio header"},
+        {meta_BCF1,                 "RAD BCF1 header"},
+        {meta_UEBA,                 "Epic Games UEBA header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

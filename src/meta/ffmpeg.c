@@ -36,11 +36,16 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
 
     /* reject some formats handled elsewhere (better fail and check there than let buggy FFmpeg take over) */
     uint32_t id = read_u32be(0x00, sf);
+
     // rejected FSB may play as wonky .mp3
     if ((id & 0xFFFFFF00) == get_id32be("FSB\0"))
         return NULL;
+
     // typically incorrectly extracted files with padding, best handle in riff.c that reads loops points
     if (id == get_id32be("RIFF") && (read_u16le(0x14, sf) == 0x0270 || check_extensions(sf, "at3")))
+        return NULL;
+
+    if (id == get_id32be("1FCB"))
         return NULL;
 
     if (target_subsong == 0) target_subsong = 1;

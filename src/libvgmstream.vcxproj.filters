@@ -146,6 +146,15 @@
     <ClInclude Include="coding\vorbis_custom_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\binka_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\binka_dec.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\binka_transform.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\circus_vq_data.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -637,6 +646,9 @@
     <ClCompile Include="coding\atrac9_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\binka_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\celt_fsb_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -858,6 +870,12 @@
     </ClCompile>
     <ClCompile Include="coding\yamaha_decoder.c">
       <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\binka_dec.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\binka_transform.c">
+      <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\circus_vq_lib.c">
       <Filter>coding\libs\Source Files</Filter>
@@ -1205,6 +1223,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bar.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\bcf1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bcstm.c">
@@ -2156,6 +2177,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ue4opus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ueba.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\undefind.c">
