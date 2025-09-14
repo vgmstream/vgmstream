@@ -53,7 +53,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
         return NULL;
 
     if (awc.is_encrypted) {
-        /* seen in GTA5 PC, music or sfx (not all files) */
+        /* seen in GTA5 PC/PS4, music or sfx (not all files) */
         sf_body = setup_awcd_streamfile(sf, awc.stream_offset, awc.stream_size, awc.block_chunk);
         if (!sf_body) {
             vgm_logi("AWC: encrypted data found, needs .awckey\n");
@@ -639,7 +639,7 @@ static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, awc_header* awc, int ch
 #endif
 #ifdef VGM_USE_MPEG
         case 0x07: { /* MPEG (PS3) */
-            vgmstream->codec_data = init_mpeg_custom(temp_sf, substream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, NULL);
+            vgmstream->codec_data = init_mpeg_custom(temp_sf, substream_offset, &vgmstream->coding_type, block_channels, MPEG_STANDARD, NULL);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
             break;
@@ -722,16 +722,10 @@ fail:
  * may have a "skip samples" value and blocks repeat some data from last block, so output PCM must be
  * discarded to avoid channels desyncing. Channels in a block don't need to have the same number of samples.
  * (mainly seen in MPEG).
+ * 
+ * For most repeated data seems to be exact copies of prev block, so data can be skipped (rather than samples) and still get
+ * proper non-desynced audio. This data is probably needed to reset decoders between seekable blocks.
  */
-//TODO: this method won't fully work, needs feed decoder + block handler that interacts with decoder(s?)
-// (doesn't use multiple decoders since default encoder delay in Vorbis would discard too much per block)
-//
-// When blocks change presumably block handler needs to tell decoder to finish decoding all from prev block
-// then skip samples from next decodes. Also since samples may vary per channel, each would handle blocks
-// independently.
-//
-// This can be simulated by making one decoder per block (segmented, but opens too many SFs and can't skip
-// samples correctly), or with a custom STREAMFILE that skips repeated block (works ok-ish).
 static layered_layout_data* build_layered_awc(STREAMFILE* sf, awc_header* awc) {
     layered_layout_data* data = NULL;
 

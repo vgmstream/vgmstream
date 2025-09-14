@@ -351,7 +351,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
             default:            ok = mpeg_custom_parse_frame_default(stream, data, num_stream); break;
         }
         if (!ok) {
-            VGM_LOG("MPEG: cannot parse frame @ around %x\n",(uint32_t)stream->offset);
+            VGM_LOG_ONCE("MPEG: cannot parse frame @ around %x\n",(uint32_t)stream->offset);
             goto decode_fail; /* mpg123 could resync but custom MPEGs wouldn't need that */
         }
         //;VGM_LOG("MPEG: read results: bytes_in_buffer=0x%x, new offset=%lx\n", ms->bytes_in_buffer, stream->offset);
