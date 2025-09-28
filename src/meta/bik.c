@@ -15,13 +15,12 @@ VGMSTREAM* init_vgmstream_bik(STREAMFILE* sf) {
         return NULL;
 
     /* .bik/bk2: standard
-    *  .bik2: older?
      * .xmv: Reflections games [Driver: Parallel Lines (Wii), Emergency Heroes (Wii)]
      * .bik.ps3: Neversoft games [Guitar Hero: Warriors of Rock (PS3)]
      * .bik.xen: Neversoft games [various Guitar Hero (PC/PS3/X360)]
      * .vid: Etrange Libellules games [Alice in Wonderland (PC)] 
      * .bika: fake extension for demuxed audio */
-    if (!check_extensions(sf,"bik,bk2,bik2,ps3,xmv,xen,vid,bika"))
+    if (!check_extensions(sf,"bik,bk2,ps3,xmv,xen,vid,bika"))
         return NULL;
 
     /* this typically handles regular or demuxed videos, but .bik with a 4x4 video made for audio do exist [Viva Piñata (DS)] */
