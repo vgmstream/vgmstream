@@ -115,7 +115,6 @@ static const char* extension_list[] = {
     "bigrp",
     "bik",
     "bika", //fake extension for .bik (to be removed)
-    "bik2",
     "binka",
     //"bin", //common
     "bk2",

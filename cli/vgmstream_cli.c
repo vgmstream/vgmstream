@@ -564,13 +564,13 @@ static bool convert_file(cli_config_t* cfg) {
 
 
     /* prints */
-    if (!cfg->print_metajson) {
+    if (cfg->print_metajson) {
+        print_json_info(vgmstream, cfg, VGMSTREAM_VERSION);
+    }
+    else {
         print_info(vgmstream, cfg);
         print_tags(cfg);
         print_title(vgmstream, cfg);
-    }
-    else {
-        print_json_info(vgmstream, cfg, VGMSTREAM_VERSION);
     }
 
     /* prints done */
@@ -653,6 +653,11 @@ int main(int argc, char** argv) {
         _setmode(fileno(stdout),_O_BINARY);
     }
 #endif
+
+    // don't mix logs with JSON
+    if (cfg.print_metajson) {
+        libvgmstream_set_log(LIBVGMSTREAM_LOG_LEVEL_NONE, NULL);
+    }
 
     ok = false;
     for (int i = 1; i < argc; i++) {

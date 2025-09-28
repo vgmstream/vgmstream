@@ -284,6 +284,8 @@ void print_json_info(libvgmstream_t* v, cli_config_t* cfg, const char* vgmstream
             vjson_keyint(&j, "total", v->format->subsong_count);
         vjson_obj_close(&j);
 
+        vjson_keyint(&j, "playSamples", v->format->play_samples);
+
     vjson_obj_close(&j);
 
     printf("%s\n", buf);

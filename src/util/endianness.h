@@ -36,4 +36,24 @@ static inline read_u32_t guess_read_u32(off_t offset, STREAMFILE* sf) {
     return guess_endian32(offset,sf) ? read_u32be : read_u32le;
 }
 
+static inline read_u32_t get_read_u32(bool big_endian) {
+    return big_endian ? read_u32be : read_u32le;
+}
+
+static inline read_s32_t get_read_s32(bool big_endian) {
+    return big_endian ? read_s32be : read_s32le;
+}
+
+static inline read_u16_t get_read_u16(bool big_endian) {
+    return big_endian ? read_u16be : read_u16le;
+}
+
+static inline read_s16_t get_read_s16(bool big_endian) {
+    return big_endian ? read_s16be : read_s16le;
+}
+
+static inline read_f32_t get_read_f32(bool big_endian) {
+    return big_endian ? read_f32be : read_f32le;
+}
+
 #endif
