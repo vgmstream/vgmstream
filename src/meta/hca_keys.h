@@ -1583,6 +1583,10 @@ static const hcakey_info hcakey_list[] = {
 
     // Ride Kamens (iOS/Android)
     {20000608},                 // 0000000001312F60
+
+    // The Touhou Empires - Demo (PC)
+    {946783},
+
 };
 
 #endif
