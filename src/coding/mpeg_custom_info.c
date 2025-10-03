@@ -195,6 +195,10 @@ size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
 
         frames++;
         offset += info.frame_size;
+
+        // Rarely the last frame may be truncated and our MPEG decoder may reject it (even if it's just the padding byte).
+        // Other decoders like foobar seem to return partial granules at EOF; could try to salvage it by feeding blank data
+        VGM_ASSERT(offset > max_offset, "MPEG: truncated frame count (last samples will be blank)\n");
         samples += info.frame_samples;
     }
 
