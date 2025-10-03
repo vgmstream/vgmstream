@@ -53,10 +53,10 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
 #ifdef VGM_DEBUG_OUTPUT
 
     #define VGM_LOG_ONCE(...) \
-        do { static int written; if (!written) { printf(__VA_ARGS__); written = 1; } } while (0)
+        do { static int written; if (!written) { vgm_logd(__VA_ARGS__); written = 1; } } while (0)
 
     #define VGM_ASSERT_ONCE(condition, ...) \
-        do { static int written; if (!written) { if (condition) {printf(__VA_ARGS__); written = 1;} }  } while (0)
+        do { static int written; if (!written) { if (condition) {vgm_logd(__VA_ARGS__); written = 1;} }  } while (0)
 
     /* prints to a file */
     #define VGM_LOGT(txt, ...) \
