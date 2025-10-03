@@ -74,6 +74,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5, FSBKEY_ADD(".xW3uXQ8q79yunvMjL6nahLXts9esEXX2VgetuPCxdLrAjUUbZAmB7R*A6KjW24NU_8ifMZ8TC4Qk@_oEsjsK2QLpAaG-Fy!wYKP") }, // UNBEATABLE Demo (PC)
         { MODE_FSB5, FSBKEY_ADD(",H9}:p?`bRlQG5_yJ\"\"/L,X_{:=Gs1") }, // Rennsport (PC)
         { MODE_FSB5, FSBKEY_ADD("K50j8B2H4pVUfzt7yxfTprg9wdr9zIH6") }, // Gunner, HEAT, PC! (PC)
+        { MODE_FSB5, FSBKEY_ADD("Panshen666") }, // Duet Night Abyss (PC)-beta
 
         /* some games use a key per file, generated from the filename
          * (could add all of them but there are a lot of songs, so external .fsbkey are probably better) */
