@@ -4,7 +4,7 @@
 #include "fsb_interleave_streamfile.h"
 
 
-typedef enum { MPEG, XBOX_IMA, FSB_IMA, PSX, XMA1, XMA2, DSP, CELT, PCM8, PCM8U, PCM16LE, PCM16BE, SILENCE } fsb_codec_t;
+typedef enum { NONE, MPEG, XBOX_IMA, FSB_IMA, PSX, XMA1, XMA2, DSP, CELT, PCM8, PCM8U, PCM16LE, PCM16BE, SILENCE } fsb_codec_t;
 typedef struct {
     /* main header */
     uint32_t id;
@@ -213,6 +213,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
             break;
 
         default:
+            VGM_LOG("3\n");
             goto fail;
     }
 
@@ -386,6 +387,10 @@ static void fix_loops(fsb_header_t* fsb) {
 
 /* covert codec info incomprehensibly defined as bitflags into single codec */
 static void load_codec(fsb_header_t* fsb) {
+    // for rare cases were codec is preloaded while reading the header
+    if (fsb->codec)
+        return;
+
     if      (fsb->mode & FSOUND_MPEG)        fsb->codec = MPEG;
     else if (fsb->mode & FSOUND_IMAADPCM)    fsb->codec = XBOX_IMA;
     else if (fsb->mode & FSOUND_VAG)         fsb->codec = PSX;
@@ -523,12 +528,13 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
         /* sample header (N-stream) */
         {
             int i;
-            off_t header_offset = fsb->base_header_size;
-            off_t data_offset = fsb->base_header_size + fsb->sample_headers_size;
+            uint32_t header_offset = fsb->base_header_size;
+            uint32_t data_offset = fsb->base_header_size + fsb->sample_headers_size;
 
             /* find target_stream header (variable sized) */
             for (i = 0; i < fsb->total_subsongs; i++) {
                 uint32_t stream_header_size;
+                bool null_name = false;
 
                 if ((fsb->flags & FMOD_FSB_SOURCE_BASICHEADERS) && i > 0) {
                     /* miniheader, all subsongs reuse first header (rare) [Biker Mice from Mars (PS2)] */
@@ -582,24 +588,36 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
                         if (fsb->first_extradata_offset == 0)
                             fsb->first_extradata_offset = fsb->extradata_offset;
                     }
+
+                    // Inversion (PC) has some null names with garbage offsets from prev streams (not in X360/PS3)
+                    if (fsb->version == FMOD_FSB_VERSION_4_0 && (fsb->mode & FSOUND_MPEG)) {
+                        null_name = read_u32le(fsb->name_offset, sf) == 0x00;
+                    }
                 }
 
-                if (i + 1 == target_subsong) /* final data_offset found */
+                // target found
+                if (i + 1 == target_subsong) {
+                    if (null_name) {
+                        fsb->codec = SILENCE;
+                        fsb->num_samples = fsb->sample_rate;
+                    }
                     break;
+                }
 
-                /* there are no offsets so add manually for next subsong */
+                // must calculate final offsets
                 header_offset += stream_header_size;
-                data_offset += fsb->stream_size;
+                if (!null_name)
+                    data_offset += fsb->stream_size;
 
-                /* some subsongs offsets need padding (most FSOUND_IMAADPCM, few MPEG too [Hard Reset (PC) subsong 5])
-                 * other codecs may set PADDED4 (ex. XMA) but don't seem to need it and work fine */
+                // some subsongs offsets need padding (most FSOUND_IMAADPCM, few MPEG too [Hard Reset (PC) subsong 5])
+                // other codecs may set PADDED4 (ex. XMA) but don't seem to need it and work fine
                 if (fsb->flags & FMOD_FSB_SOURCE_MPEG_PADDED4) {
                     if (data_offset % 0x20)
                         data_offset += 0x20 - (data_offset % 0x20);
                 }
             }
 
-            /* target not found */
+            // target not found
             if (i > fsb->total_subsongs)
                 goto fail;
 
