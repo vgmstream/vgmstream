@@ -954,6 +954,10 @@ void free_ffmpeg(void* priv_data) {
         data->header_block = NULL;
     }
 
+    if (data->sbuf) {
+        free(data->sbuf);
+    }
+
     close_streamfile(data->sf);
     free(data);
 }
