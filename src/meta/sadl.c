@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 
-/* sadl - from DS games with Procyon Studio audio driver [Professor Layton (DS), Soma Bringer (DS)] */
+/* sadl - from DS games with Procyon Studio audio driver [Professor Layton series (DS), Soma Bringer (DS)] */
 VGMSTREAM* init_vgmstream_sadl(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int channels, loop_flag;
@@ -52,7 +52,7 @@ VGMSTREAM* init_vgmstream_sadl(STREAMFILE* sf) {
         case 4:
             vgmstream->sample_rate = 32728;
             break;
-        case 2: /* Layton */
+        case 2: /* Layton 1, some files in Layton 2-4 and Ni no Kuni (DS) */
         case 0: /* Luminous Arc (DS) */
             vgmstream->sample_rate = 16364;
             break;
@@ -65,7 +65,7 @@ VGMSTREAM* init_vgmstream_sadl(STREAMFILE* sf) {
 
     switch(flags & 0xf0) { /* possibly >> 6? (0/1/2) */
         case 0x00: /* Luminous Arc (DS) (non-int IMA? all files are mono though) */
-        case 0x70: /* Ni no Kuni (DS), Professor Layton and the Curious Village (DS), Soma Bringer (DS) */
+        case 0x70: /* Professor Layton and the Curious Village (DS), Soma Bringer (DS) */
             vgmstream->coding_type = coding_IMA_mono;
 
             vgmstream->num_samples = ima_bytes_to_samples(data_size, channels);
@@ -82,7 +82,7 @@ VGMSTREAM* init_vgmstream_sadl(STREAMFILE* sf) {
             break;
 
         //TODO: Luminous Arc 2 uses a variation of this, but value 0x70
-        case 0xb0: /* Soma Bringer (DS), Rekishi Taisen Gettenka (DS) */
+        case 0xb0: /* Soma Bringer (DS), Rekishi Taisen Gettenka (DS), Ni no Kuni (DS), other DS Professor Layton games */
             vgmstream->coding_type = coding_NDS_PROCYON;
 
             vgmstream->num_samples = data_size / channels / 16 * 30;
