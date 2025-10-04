@@ -30,18 +30,18 @@ typedef struct {
     uint32_t header_size;       // normal base size (not counting extra tables)
     uint32_t extra_size;        // extra tables size
 
-    uint32_t stream_id;         // external BAO's id
+    uint32_t stream_id;         // stream or memory BAO's id
     uint32_t stream_size;
     uint32_t stream_offset;
-    uint32_t prefetch_id;       // memory BAO's id
+    uint32_t prefetch_id;       // memory BAO's id (may be the same as stream_id, but in other location)
     uint32_t prefetch_size;
     uint32_t prefetch_offset;
 
     uint32_t memory_skip;
     uint32_t stream_skip;
 
-    bool is_prefetched;
-    bool is_external;
+    bool is_stream;             // streamed data (external file) or memory data otherwise (external or internal)
+    bool is_prefetch;           // memory data is to be used as part of the stream
 
     /* sound info */
     int loop_flag;
@@ -266,7 +266,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             // - atomic v2 + xma1_str: chunk in data (stream BAO)
             // atomic v1 layers seem to only use RAW_XMA1_STR
 
-            if (bao->is_external || bao->type == TYPE_LAYER || (bao->cfg.v1_bao && bao->codec == RAW_XMA1_str) ) {
+            if (bao->is_stream || bao->type == TYPE_LAYER || (bao->cfg.v1_bao && bao->codec == RAW_XMA1_str)) {
                 uint8_t flag, bits_per_frame;
                 uint32_t sec1_num, sec2_num, sec3_num;
                 size_t header_size, frame_size;
@@ -609,7 +609,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header_t* bao, STREAMFIL
     ;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, p_id=%08x\n", 
         bao->header_offset, bao->header_id, bao->stream_id, bao->prefetch_id);
     ;VGM_LOG("UBI BAO: stream=%x, size=%x, res=%s, stream=%i, prefetch=%i\n",
-        bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"), bao->is_external, bao->is_prefetched);
+        bao->stream_offset, bao->stream_size, (bao->is_stream ? bao->resource_name : "internal"), bao->is_stream, bao->is_prefetch);
     ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, pre.of=%x, pre.sz=%x, codec=%i\n",
         bao->header_type, bao->header_size, bao->extra_size, bao->prefetch_offset, bao->prefetch_size, bao->header_type == 0x01 ? bao->stream_type : -1);
 
@@ -744,8 +744,8 @@ static void build_readable_name(char* buf, size_t buf_size, ubi_bao_header_t* ba
         grp_name = "package";
     if (bao->archive == ARCHIVE_SPK)
         grp_name = "spackage";
-    pft_name = bao->is_prefetched ? "p" : "n";
-    typ_name = bao->is_external ? "str" : "mem";
+    pft_name = bao->is_prefetch ? "p" : "n";
+    typ_name = bao->is_stream ? "str" : "mem";
 
     if (bao->type == TYPE_SEQUENCE) {
         if (bao->sequence_single) {
@@ -763,7 +763,7 @@ static void build_readable_name(char* buf, size_t buf_size, ubi_bao_header_t* ba
     }
     else {
         res_name = NULL;
-        //if (!bao->is_atomic && bao->is_external)
+        //if (!bao->is_atomic && bao->is_stream)
         //    res_name = bao->resource_name; /* too big? */
         //else
         //    res_name = NULL;
@@ -793,7 +793,7 @@ static bool parse_type_audio(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
     uint32_t h_offset = offset + bao->cfg.header_skip;
     bao->stream_size = read_u32(h_offset + bao->cfg.audio_stream_size, sf);
     bao->stream_id   = read_u32(h_offset + bao->cfg.audio_stream_id, sf);
-    bao->is_external = read_s32(h_offset + bao->cfg.audio_external_flag, sf) & bao->cfg.audio_external_and;
+    bao->is_stream   = read_s32(h_offset + bao->cfg.audio_stream_flag, sf) & bao->cfg.audio_stream_and;
     bao->loop_flag   = read_s32(h_offset + bao->cfg.audio_loop_flag, sf) & bao->cfg.audio_loop_and;
     bao->channels    = read_s32(h_offset + bao->cfg.audio_channels, sf);
     bao->sample_rate = read_s32(h_offset + bao->cfg.audio_sample_rate, sf);
@@ -811,7 +811,7 @@ static bool parse_type_audio(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
     /* prefetch data is in another internal BAO right after the base header */
     if (bao->cfg.audio_prefetch_size) {
         bao->prefetch_size = read_u32(h_offset + bao->cfg.audio_prefetch_size, sf);
-        bao->is_prefetched = (bao->prefetch_size > 0);
+        bao->is_prefetch = (bao->prefetch_size > 0);
     }
 
     if (bao->loop_flag) {
@@ -873,7 +873,7 @@ static bool parse_type_layer(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
 
     uint32_t h_offset = offset + bao->cfg.header_skip;
     bao->layer_count    = read_s32(h_offset + bao->cfg.layer_layer_count, sf);
-    bao->is_external    = read_s32(h_offset + bao->cfg.layer_external_flag, sf) & bao->cfg.layer_external_and;
+    bao->is_stream      = read_s32(h_offset + bao->cfg.layer_stream_flag, sf) & bao->cfg.layer_stream_and;
     bao->stream_size    = read_u32(h_offset + bao->cfg.layer_stream_size, sf);
     bao->stream_id      = read_u32(h_offset + bao->cfg.layer_stream_id, sf);
     if (bao->layer_count > BAO_MAX_LAYER_COUNT) {
@@ -882,8 +882,8 @@ static bool parse_type_layer(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
     }
 
     if (bao->cfg.layer_prefetch_size) {
-        bao->prefetch_size  = read_u32(h_offset + bao->cfg.layer_prefetch_size, sf);
-        bao->is_prefetched = (bao->prefetch_size > 0);
+        bao->prefetch_size = read_u32(h_offset + bao->cfg.layer_prefetch_size, sf);
+        bao->is_prefetch = (bao->prefetch_size > 0);
     }
 
     /* extra cue table (rare, has N variable-sized labels + cue table pointing to them) */
@@ -987,10 +987,10 @@ static bool parse_values(ubi_bao_header_t* bao) {
 
 
     /* set prefetch id */
-    if (bao->is_prefetched) {
+    if (bao->is_prefetch) {
         if (bao->cfg.v1_bao) {
             // header only defines stream_id, prefetch is implicitly a memory BAO
-            // ex. AC1/Beowulf X360: streams=5NNNNNNN and memory prefetch=3NNNNNNN
+            // ex. AC1/Beowulf X360: stream=5NNNNNNN and memory prefetch=3NNNNNNN
             bao->prefetch_id = (bao->stream_id & 0x0FFFFFFF) | 0x30000000;
         }
         else {
@@ -1001,7 +1001,7 @@ static bool parse_values(ubi_bao_header_t* bao) {
 
     /* normalize base skips, as memory data (prefetch or not, atomic or package) can be
      * in a memory BAO after base header or audio layer BAO after the extra table */
-    if (bao->stream_id == bao->header_id && (!bao->is_external || bao->is_prefetched)) { /* layers with memory data */
+    if (bao->stream_id == bao->header_id && (!bao->is_stream || bao->is_prefetch)) { /* layers with memory data */
         bao->memory_skip = bao->header_size + bao->extra_size;
         bao->stream_skip = bao->cfg.header_skip;
     }
@@ -1021,7 +1021,7 @@ static bool parse_offsets(ubi_bao_header_t* bao, STREAMFILE* sf) {
     if (bao->type == TYPE_SEQUENCE || bao->type == TYPE_SILENCE)
         return true;
 
-    if (!bao->is_external && bao->is_prefetched) {
+    if (!bao->is_stream && bao->is_prefetch) {
         VGM_LOG("UBI BAO: unexpected non-streamed prefetch at %x\n", bao->header_offset);
         return true;
     }
@@ -1036,11 +1036,11 @@ static bool parse_offsets(ubi_bao_header_t* bao, STREAMFILE* sf) {
      */
 
     if (bao->archive == ARCHIVE_ATOMIC) {
-        if (bao->is_prefetched) {
+        if (bao->is_prefetch) {
             bao->prefetch_offset = bao->memory_skip;
         }
 
-        if (bao->is_external) {
+        if (bao->is_stream) {
             bao->stream_offset = bao->stream_skip;
         }
         else {
@@ -1054,7 +1054,7 @@ static bool parse_offsets(ubi_bao_header_t* bao, STREAMFILE* sf) {
         off_t bao_offset;
         size_t bao_size;
 
-        if (bao->is_prefetched) {
+        if (bao->is_prefetch) {
             if (!find_package_bao(bao->prefetch_id, sf, &bao_offset, &bao_size)) {
                 VGM_LOG("UBI BAO: expected prefetch id %08x not found\n", bao->prefetch_id);
                 return false;
@@ -1067,7 +1067,7 @@ static bool parse_offsets(ubi_bao_header_t* bao, STREAMFILE* sf) {
             }
         }
 
-        if (bao->is_external) {
+        if (bao->is_stream) {
             uint32_t resources_offset   = read_u32le(0x08, sf);
             int resources_count         = read_s32le(resources_offset + 0x00, sf);
             uint32_t strings_size       = read_u32le(resources_offset + 0x04, sf);
@@ -1428,7 +1428,7 @@ fail:
 /* Create a usable streamfile by joining memory + streams if needed.
  *
  * Audio comes in "memory" and "streaming" BAOs, and when "prefetched" flag is
- * on we need to join memory and streamed part as they're stored separately
+ * on we need to join memory and streamed parts as they're stored separately
  * (data may be split at any point and not at frame boundaries, too).
  *
  * The physical location of those depends on the format:
@@ -1439,121 +1439,94 @@ fail:
  * can be considered memory BAO with different offset treatment.
  */
 static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
-    STREAMFILE* new_sf = NULL;
-    STREAMFILE* temp_sf = NULL;
-    STREAMFILE* stream_segments[2] = {0};
+    STREAMFILE* sf_pref = NULL;
+    STREAMFILE* sf_main = NULL;
 
+    // for pure memory/streams prefetch size is 0
     uint32_t real_stream_size = bao->stream_size - bao->prefetch_size;
 
     if (bao->archive == ARCHIVE_ATOMIC) {
-        if (bao->is_prefetched) {
-            // prefetch + stream
-            new_sf = open_atomic_bao(bao->cfg.file, bao->prefetch_id, false, sf);
-            if (!new_sf) goto fail;
-            stream_segments[0] = new_sf;
 
-            new_sf = open_clamp_streamfile(stream_segments[0], bao->prefetch_offset, bao->prefetch_size);
-            if (!new_sf) goto fail;
-            stream_segments[0] = new_sf;
+        // prefetch part (memory file)
+        if (bao->is_prefetch) {
+            sf_pref = open_atomic_bao(bao->cfg.file, bao->prefetch_id, false, sf);
+            if (!sf_pref) goto fail;
 
-            if (real_stream_size != 0) {
-                new_sf = open_atomic_bao(bao->cfg.file, bao->stream_id, true, sf);
-                if (!new_sf) goto fail;
-                stream_segments[1] = new_sf;
-
-                new_sf = open_clamp_streamfile(stream_segments[1], bao->stream_offset, real_stream_size);
-                if (!new_sf) goto fail;
-                stream_segments[1] = new_sf;
-
-                new_sf = open_multifile_streamfile(stream_segments, 2);
-                if (!new_sf) goto fail;
-
-                temp_sf = new_sf;
-                stream_segments[0] = NULL;
-                stream_segments[1] = NULL;
-            }
-            else {
-                // weird but happens, streamed chunk is empty in this case
-                temp_sf = new_sf;
-                stream_segments[0] = NULL;
-            }
+            sf_pref = open_clamp_streamfile_f(sf_pref, bao->prefetch_offset, bao->prefetch_size);
+            if (!sf_pref) goto fail;
         }
-        else {
-            // memory or stream
-            new_sf = open_atomic_bao(bao->cfg.file, bao->stream_id, bao->is_external, sf);
-            if (!new_sf) goto fail;
-            temp_sf = new_sf;
 
-            new_sf = open_clamp_streamfile(temp_sf, bao->stream_offset, bao->stream_size);
-            if (!new_sf) goto fail;
-            temp_sf = new_sf;
+        // memory or stream part (external file)
+        if (!bao->is_prefetch || (bao->is_prefetch && real_stream_size != 0)) {
+            bool is_companion_stream = bao->is_prefetch ? true : bao->is_stream;
+
+            sf_main = open_atomic_bao(bao->cfg.file, bao->stream_id, is_companion_stream, sf);
+            if (!sf_main) goto fail;
+
+            sf_main = open_clamp_streamfile_f(sf_main, bao->stream_offset, real_stream_size);
+            if (!sf_main) goto fail;
         }
     }
 
     if (bao->archive == ARCHIVE_PK) {
-        if (bao->is_prefetched) {
-            new_sf = open_wrap_streamfile(sf); // wrap current SF (memory BAO) to avoid it being closed
-            if (!new_sf) goto fail;
-            stream_segments[0] = new_sf;
+        // prefetch part (internal data)
+        if (bao->is_prefetch) {
+            sf_pref = open_wrap_streamfile(sf); // wrap current SF (memory BAO) to avoid it being closed
+            if (!sf_pref) goto fail;
 
-            new_sf = open_clamp_streamfile(stream_segments[0], bao->prefetch_offset, bao->prefetch_size);
-            if (!new_sf) goto fail;
-            stream_segments[0] = new_sf;
-
-            if (real_stream_size != 0) {
-                new_sf = open_streamfile_by_filename(sf, bao->resource_name); // name found in .pk's index
-                if (!new_sf) {
-                    vgm_logi("UBI BAO: external file '%s' not found (put together)\n", bao->resource_name); 
-                    goto fail; 
-                }
-                stream_segments[1] = new_sf;
-
-                new_sf = open_clamp_streamfile(stream_segments[1], bao->stream_offset, real_stream_size);
-                if (!new_sf) goto fail;
-                stream_segments[1] = new_sf;
-
-                new_sf = open_multifile_streamfile(stream_segments, 2);
-                if (!new_sf) goto fail;
-
-                temp_sf = new_sf;
-                stream_segments[0] = NULL;
-                stream_segments[1] = NULL;
-            }
-            else {
-                // weird but happens, streamed chunk is empty in this case
-                temp_sf = new_sf;
-                stream_segments[0] = NULL;
-            }
+            sf_pref = open_clamp_streamfile_f(sf_pref, bao->prefetch_offset, bao->prefetch_size);
+            if (!sf_pref) goto fail;
         }
-        else if (bao->is_external) {
-            new_sf = open_streamfile_by_filename(sf, bao->resource_name);
-            if (!new_sf) {
-                vgm_logi("UBI BAO: external file '%s' not found (put together)\n", bao->resource_name);
-                goto fail;
+
+        // stream part (external file)
+        if ((bao->is_stream && !bao->is_prefetch) || (bao->is_prefetch && real_stream_size != 0)) {
+            sf_main = open_streamfile_by_filename(sf, bao->resource_name); // name found in .pk's index
+            if (!sf_main) {
+                vgm_logi("UBI BAO: external file '%s' not found (put together)\n", bao->resource_name); 
+                goto fail; 
             }
-            temp_sf = new_sf;
 
-            new_sf = open_clamp_streamfile(temp_sf, bao->stream_offset, bao->stream_size);
-            if (!new_sf) goto fail;
-            temp_sf = new_sf;
+            sf_main = open_clamp_streamfile_f(sf_main, bao->stream_offset, real_stream_size);
+            if (!sf_main) goto fail;
         }
-        else {
-            new_sf = open_wrap_streamfile(sf);
-            if (!new_sf) goto fail;
-            temp_sf = new_sf;
 
-            new_sf = open_clamp_streamfile(temp_sf, bao->stream_offset, bao->stream_size);
-            if (!new_sf) goto fail;
-            temp_sf = new_sf;
+        // memory part (internal data)
+        if (!bao->is_stream && !bao->is_prefetch) {
+            sf_main = open_wrap_streamfile(sf); // wrap current SF (memory BAO) to avoid it being closed
+            if (!sf_main) goto fail;
+
+            sf_main = open_clamp_streamfile_f(sf_main, bao->stream_offset, real_stream_size);
+            if (!sf_main) goto fail;
         }
     }
 
-    return temp_sf;
 
+    // memory or stream data with no prefetch, most common
+    if (!sf_pref && sf_main) {
+        return sf_main;
+    }
+
+    // prefetch only is weird but happens, streamed chunk is empty in this case
+    if (sf_pref && !sf_main) {
+        return sf_pref;
+    }
+
+    // join prefetch and memory as one
+    if (sf_pref && sf_main) {
+        STREAMFILE* temp_sf = NULL;
+        STREAMFILE* sf_segments[2] = { sf_pref, sf_main };
+
+        temp_sf = open_multifile_streamfile(sf_segments, 2);
+        if (!temp_sf) goto fail;
+
+        return temp_sf;
+    }
+
+    // shouldn't happen
+    return NULL;
 fail:
-    close_streamfile(stream_segments[0]);
-    close_streamfile(stream_segments[1]);
-    close_streamfile(temp_sf);
+    close_streamfile(sf_pref);
+    close_streamfile(sf_main);
 
     VGM_LOG("UBI BAO: failed streamfile setup\n");
     return NULL;

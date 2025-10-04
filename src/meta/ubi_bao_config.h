@@ -43,7 +43,6 @@ typedef struct {
     bool v1_bao;                    // first versions handle some codecs slightly differently
 
     bool header_less_le_flag; // horrid but not sure what to do
-    bool audio_ignore_resource_size;
 
     // location of various fields in the header, since it's fairly inconsistent
     off_t bao_class;
@@ -55,7 +54,7 @@ typedef struct {
 
     off_t audio_stream_size;
     off_t audio_stream_id;
-    off_t audio_external_flag;
+    off_t audio_stream_flag;
     off_t audio_loop_flag;
     off_t audio_channels;
     off_t audio_sample_rate;
@@ -66,8 +65,9 @@ typedef struct {
     off_t audio_cue_count;      // total points
     off_t audio_cue_labels;     // size of strings
   //off_t audio_cue_size;       // size of labels + points, but sometimes wrong (X360 vs PS3, garbage field?)
-    int audio_external_and;
+    int audio_stream_and;
     int audio_loop_and;
+    bool audio_ignore_resource_size;
 
     // layer config within base BAO
     off_t sequence_sequence_loop;
@@ -78,7 +78,7 @@ typedef struct {
 
     // layer config within base BAO
     off_t layer_layer_count;
-    off_t layer_external_flag;
+    off_t layer_stream_flag;
     off_t layer_stream_id;
     off_t layer_stream_size;
     off_t layer_prefetch_size;
@@ -92,7 +92,7 @@ typedef struct {
     off_t layer_channels;
     off_t layer_stream_type;
     off_t layer_num_samples;
-    int layer_external_and;
+    int layer_stream_and;
     bool layer_ignore_error;
 
     off_t silence_duration_float;

@@ -20,12 +20,12 @@ static void config_bao_entry(ubi_bao_config_t* cfg, size_t header_base_size, siz
 }
 
 /* audio header base */
-static void config_bao_audio_b(ubi_bao_config_t* cfg, off_t stream_size, off_t stream_id, off_t external_flag, off_t loop_flag, int external_and, int loop_and) {
+static void config_bao_audio_b(ubi_bao_config_t* cfg, off_t stream_size, off_t stream_id, off_t stream_flag, off_t loop_flag, int stream_and, int loop_and) {
     cfg->audio_stream_size          = stream_size;
     cfg->audio_stream_id            = stream_id;
-    cfg->audio_external_flag        = external_flag;
+    cfg->audio_stream_flag          = stream_flag;
     cfg->audio_loop_flag            = loop_flag;
-    cfg->audio_external_and         = external_and;
+    cfg->audio_stream_and           = stream_and;
     cfg->audio_loop_and             = loop_and;
 }
 /* audio header main */
@@ -54,17 +54,17 @@ static void config_bao_sequence(ubi_bao_config_t* cfg, off_t sequence_count, off
     cfg->sequence_entry_number      = 0x00;
 }
 
-static void config_bao_layer_m(ubi_bao_config_t* cfg, off_t stream_id, off_t layer_count, off_t external_flag, off_t stream_size, off_t extra_size, off_t prefetch_size, off_t cue_count, off_t cue_labels, int external_and) {
+static void config_bao_layer_m(ubi_bao_config_t* cfg, off_t stream_id, off_t layer_count, off_t stream_flag, off_t stream_size, off_t extra_size, off_t prefetch_size, off_t cue_count, off_t cue_labels, int stream_and) {
     /* layer header in the main part */
     cfg->layer_stream_id            = stream_id;
     cfg->layer_layer_count          = layer_count;
-    cfg->layer_external_flag        = external_flag;
+    cfg->layer_stream_flag          = stream_flag;
     cfg->layer_stream_size          = stream_size;
     cfg->layer_extra_size           = extra_size;
     cfg->layer_prefetch_size        = prefetch_size;
     cfg->layer_cue_count            = cue_count;
     cfg->layer_cue_labels           = cue_labels;
-    cfg->layer_external_and         = external_and;
+    cfg->layer_stream_and           = stream_and;
 }
 static void config_bao_layer_e(ubi_bao_config_t* cfg, off_t entry_size, off_t sample_rate, off_t channels, off_t stream_type, off_t num_samples) {
     /* layer sub-headers in extra table */
@@ -204,7 +204,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             config_bao_sequence(cfg, 0x2c, 0x20, 0x1c, 0x14);
 
-            config_bao_layer_m(cfg, 0x4c, 0x20, 0x2c, 0x44, 0x00, 0x50, 0x00, 0x00, 1); // stream size: 0x48?
+            config_bao_layer_m(cfg, 0x4c, 0x20, 0x2c, 0x44, 0x00, 0x50, 0x58, 0x5c, 1); // stream size: 0x48?
             config_bao_layer_e(cfg, 0x30, 0x00, 0x04, 0x08, 0x10);
 
             config_bao_silence_f(cfg, 0x1c);
@@ -249,7 +249,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             config_bao_silence_f(cfg, 0x1c);
 
             if (cfg->version == 0x0022000D) // We Dare (Wii)
-                config_bao_audio_c(cfg, 0x68, 0x6c, 0x78); //ok for others?
+                config_bao_audio_c(cfg, 0x68, 0x6c, 0x78);
 
           //cfg->codec_map[0x00] = RAW_XMA1_MEM;
             cfg->codec_map[0x01] = RAW_PCM;
