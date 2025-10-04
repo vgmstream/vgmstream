@@ -275,8 +275,9 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data
 
             /* end of stream, fill rest with 0s */
             if (data->bytes_in_buffer <= 0) {
-                VGM_ASSERT(samples_to_do < samples_done, "MPEG: end of stream, filling %i\n", (samples_to_do - samples_done));
-                memset(sbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(float));
+                int samples_left = samples_to_do - samples_done;
+                VGM_ASSERT(samples_left, "MPEG: end of stream, filling %i\n", samples_left);
+                memset(sbuf, 0, samples_left * channels * sizeof(float));
                 break;
             }
 

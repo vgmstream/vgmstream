@@ -101,6 +101,7 @@ static const char* extension_list[] = {
     "b1s", //txth/reserved [7 Wonders of the Ancient World (PS2)]
     "baa",
     "baf",
+    "bao",
     "baka",
     "bank",
     "bar",

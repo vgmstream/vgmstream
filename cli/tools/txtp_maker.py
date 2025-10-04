@@ -558,9 +558,9 @@ class App(object):
 
     def _make_cmd(self, filename_in, filename_out, target_subsong):
         if self.cfg.test_dupes:
-            cmd = "%s -s %s -i -o \"%s\" \"%s\"" % (self.cfg.cli, target_subsong, filename_out, filename_in)
+            cmd = [self.cfg.cli, '-s', str(target_subsong), '-i', '-o', filename_out, filename_in]
         else:
-            cmd = "%s -s %s -m -i -O \"%s\"" % (self.cfg.cli, target_subsong, filename_in)
+            cmd = [self.cfg.cli, '-s', str(target_subsong), '-m', '-i', '-O', filename_in]
         return cmd
 
     def _find_files(self, dir, pattern):

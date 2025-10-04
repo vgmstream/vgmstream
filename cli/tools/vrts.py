@@ -323,7 +323,7 @@ class VrtsPrinter:
         RESULT_DIFFS: LIGHT_RED,
         RESULT_SIZES: LIGHT_MAGENTA,
         RESULT_MISSING_NEW: LIGHT_RED,
-        RESULT_MISSING_OLD: LIGHT_YELLOW,
+        RESULT_MISSING_OLD: WHITE,
     }
     TEXT_RESULT = {
         RESULT_SAME: 'same',

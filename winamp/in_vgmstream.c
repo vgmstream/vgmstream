@@ -2,6 +2,8 @@
  * vgmstream for Winamp
  */
 #include "in_vgmstream.h"
+#include "sdk/in2_extra.h"
+
 
 
 #include "../version.h"
@@ -1156,10 +1158,3 @@ __declspec(dllexport) void winampGetExtendedRead_close(void *handle) {
         libvgmstream_free(xvgmstream);
     }
 }
-
-/* other winamp sekrit exports: */
-#if 0
-winampGetExtendedRead_open_float
-winampGetExtendedRead_openW_float
-void winampAddUnifiedFileInfoPane
-#endif
