@@ -17,7 +17,7 @@ typedef enum {
   RAW_PCM,
   RAW_PSX, RAW_PSX_new,
   RAW_XMA1_mem, RAW_XMA1_str, RAW_XMA2_old, RAW_XMA2_new,
-  RAW_AT3, RAW_AT3_105, FMT_AT3,
+  RAW_AT3_105, RAW_AT3_132, FMT_AT3,
   RAW_DSP,
   FMT_OGG,
   RAW_MP3,
@@ -58,7 +58,7 @@ typedef struct {
   //off_t audio_cue_size;       // size of labels + points, but sometimes wrong (X360 vs PS3, garbage field?)
     int audio_stream_and;
     int audio_loop_and;
-    bool audio_ignore_resource_size;
+    bool audio_ignore_external_size;
 
     // layer config within base BAO
     off_t sequence_sequence_loop;

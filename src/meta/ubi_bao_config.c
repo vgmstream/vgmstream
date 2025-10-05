@@ -212,7 +212,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             config_bao_audio_c(cfg, 0x68, 0x6c, 0x78); // only seen in Beowulf
 
             cfg->codec_map[0x00] = RAW_XMA1_mem;
-          //cfg->codec_map[0x01] = RAW_PCM;
+            cfg->codec_map[0x01] = RAW_PCM; //rare (Beowulf)
             cfg->codec_map[0x02] = RAW_PSX;
             cfg->codec_map[0x03] = UBI_IMA;
             cfg->codec_map[0x04] = FMT_OGG;
@@ -260,7 +260,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
                 cfg->codec_map[0x05] = RAW_XMA2_old;
 
             if (cfg->version == 0x0022000D) // Just Dance (Wii) oddity
-                cfg->audio_ignore_resource_size = true;
+                cfg->audio_ignore_external_size = true;
 
             break;
 
@@ -320,7 +320,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = FMT_OGG;
             cfg->codec_map[0x04] = RAW_XMA2_new;
             cfg->codec_map[0x05] = RAW_PSX;
-            cfg->codec_map[0x06] = RAW_AT3;
+            cfg->codec_map[0x06] = RAW_AT3_132;
             if (cfg->version == 0x0025010A) // no apparent flag
                 cfg->codec_map[0x06] = RAW_AT3_105;
 
@@ -344,7 +344,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = FMT_OGG;
             cfg->codec_map[0x04] = RAW_XMA2_new;
 
-            cfg->audio_ignore_resource_size = true; // leave_me_alone.pk
+            cfg->audio_ignore_external_size = true; // leave_me_alone.pk
 
             break;
 
@@ -377,7 +377,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x01] = RAW_PCM;
             cfg->codec_map[0x02] = UBI_IMA; // v6
             cfg->codec_map[0x04] = FMT_OGG;
-            cfg->codec_map[0x07] = RAW_AT3; //TODO: some layers use AT3_105
+            cfg->codec_map[0x07] = RAW_AT3_132; //TODO: some layers use AT3_105
 
             cfg->layer_ignore_error = true; //TODO: some layer sample rates don't match
             //TODO: some files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
