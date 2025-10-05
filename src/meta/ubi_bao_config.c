@@ -221,12 +221,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             cfg->v1_bao = true;
 
-            if (cfg->version == 0x001B0100)
-                cfg->file = FILE_ANVIL_FORGE;
-            if (cfg->version == 0x001B0200)
-                cfg->file = FILE_YETI_FATBIN;
-            //if (cfg->version == 0x001C0000)
-            //    cfg->file = FILE_YETI_GEAR;
             break;
 
         case 0x001F0008: // Rayman Raving Rabbids: TV Party (Wii)-package
@@ -235,6 +229,8 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
         case 0x0021000C: // Splinter Cell: Conviction (E3 2009 Demo)(X360)-package
         case 0x0022000D: // Just Dance (Wii)-package, We Dare (PS3/Wii)-package
         case 0x0022FF15: // James Cameron's Avatar: The Game (Wii)-package
+        case 0x00220017: // James Cameron's Avatar: The Game (PS3/X360/PC)-spk
+        case 0x00220018: // James Cameron's Avatar: The Game (PS3/X360/PC)-spk
         case 0x0022001B: // Prince of Persia: The Forgotten Sands (Wii)-package
             config_bao_entry(cfg, 0xA4, 0x28); // PC/Wii: 0xA8
 
@@ -260,10 +256,12 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x07] = RAW_AT3_105;
             cfg->codec_map[0x09] = RAW_DSP;
 
+            if (cfg->version >= 0x00220000) // Avatar (X360)
+                cfg->codec_map[0x05] = RAW_XMA2_old;
+
             if (cfg->version == 0x0022000D) // Just Dance (Wii) oddity
                 cfg->audio_ignore_resource_size = true;
 
-            cfg->file = FILE_ANVIL_FORGE;
             break;
 
         case 0x00220015: // James Cameron's Avatar: The Game (PSP)-package
@@ -279,7 +277,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x06] = RAW_PSX_new;
             cfg->codec_map[0x07] = FMT_AT3;
 
-            cfg->file = FILE_NONE;
             break;
 
         case 0x00230008: // Splinter Cell: Conviction (X360/PC)-package
@@ -300,14 +297,13 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             cfg->layer_ignore_error = true; //TODO: last sfx layer (bass) may have smaller sample rate
 
-            cfg->file = FILE_NONE;
             break;
 
         case 0x00250108: // Scott Pilgrim vs the World (PS3/X360)-package
-        case 0x0025010A: // Prince of Persia: The Forgotten Sands (PS3/X360)-atomic
+        case 0x0025010A: // Prince of Persia: The Forgotten Sands (PS3/X360)-atomic-forge
         case 0x00250119: // Shaun White Skateboarding (Wii)-package
-        case 0x0025011D: // Shaun White Skateboarding (PC/PS3)-atomic
-            config_bao_entry(cfg, 0xB4, 0x28); // PC: 0xB0, PS3/X360: 0xB4, Wii: 0xB8
+        case 0x0025011D: // Shaun White Skateboarding (PC/PS3)-atomic-forge
+            config_bao_entry(cfg, 0xB4, 0x28); // PC: 0xB0, PS3/X360: 0xB4, Wii: 0xB8, 0x0025010A: 0x84
 
             config_bao_audio_b(cfg, 0x08, 0x24, 0x2c, 0x38, 1, 1);
             config_bao_audio_m(cfg, 0x48, 0x50, 0x58, 0x60, 0x68, 0x78);
@@ -334,7 +330,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             //TODO: some SPvsTW layers look like should loop (0x30 flag?)
             //TODO: some POP layers have different sample rates (ambience)
 
-            cfg->file = FILE_ANVIL_FORGE;
             break;
 
         case 0x00260000: // Michael Jackson: The Experience (X360)-package
@@ -351,7 +346,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             cfg->audio_ignore_resource_size = true; // leave_me_alone.pk
 
-            cfg->file = FILE_NONE;
             break;
 
         case 0x00270102: // Drawsome (Wii)-package
@@ -364,11 +358,10 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             cfg->codec_map[0x02] = UBI_IMA;
 
-            cfg->file = FILE_NONE;
             break;
 
         case 0x00280303: // Tom Clancy's Ghost Recon Future Soldier (PC/PS3)-package
-      //case 0x00280306: // Far Cry 3: Blood Dragon (X360)-spk
+      //case 0x00280306: // Far Cry 3: Blood Dragon (X360)-spk-
             config_bao_entry(cfg, 0xBC, 0x28); // PC/PS3: 0xBC
 
             config_bao_audio_b(cfg, 0x08, 0x38, 0x3c, 0x48, 1, 1);
@@ -389,13 +382,9 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->layer_ignore_error = true; //TODO: some layer sample rates don't match
             //TODO: some files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
 
-            if (cfg->version == 0x00280306) //TODO use SPK flag
-                cfg->file = FILE_DUNIA_v9;
-            else
-                cfg->file = FILE_ANVIL_FORGE;
             break;
 #if 0
-        case 0x002A0300: // Watch Dogs (Wii U), Far Cry 3: Blood Dragon (PS4)-spk
+        case 0x002A0300: // Watch Dogs (Wii U), Far Cry 3: Blood Dragon (PS4)-spk-
             config_bao_entry(cfg, 0xD8, 0x20); //base BAO size (variable)
 
             //TODO: 64=alt stream size? 84=alt stream id? 30=alt stream flag?
@@ -407,12 +396,9 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             cfg->codec_map[0x09] = RAW_AT9; // PS4
 
-            cfg->file = FILE_DUNIA_CRC64;
             break;
 #endif
-        case 0x001D0A00: // Shaun White Snowboarding (PSP)-atomic-opal
-        case 0x00220017: // Avatar (PS3)-spk
-        case 0x00220018: // Avatar (PS3)-spk
+        case 0x001D0A00: // Shaun White Snowboarding (PSP)-atomic-gear
         case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
             /* similar to 0x00250108 but most values are moved +4
              * - base 0xB8, skip 0x28 */
