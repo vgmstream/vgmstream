@@ -27,7 +27,7 @@ typedef struct {
     uint32_t header_offset;     // base BAO offset 
     uint32_t header_id;         // current BAO's id
     uint32_t header_type;       // type of audio
-    uint32_t header_skip;       // base header size
+  //uint32_t header_skip;       // base header size
     uint32_t header_size;       // normal base size (not counting extra tables)
     uint32_t extra_size;        // extra tables size
 
@@ -362,7 +362,25 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = bao->num_samples; /* same as Ogg samples */
+            // num samples is the same as Ogg samples
+            break;
+        }
+#endif
+#ifdef VGM_USE_ATRAC9
+        case RAW_AT9: {
+            atrac9_config cfg = {0};
+
+            // ATRAC9 info + config + first frames (repeats from stream), part of header
+            uint32_t extradata_offset = bao->header_offset + bao->cfg.header_skip + bao->cfg.audio_extradata_size + 0x04;
+
+            cfg.channels = 0;
+            cfg.config_data = read_u32be(extradata_offset + 0x58, sf_head);
+            cfg.encoder_delay = read_u32le(extradata_offset + 0x64, sf_head);
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_ATRAC9;
+            vgmstream->layout_type = layout_none;
             break;
         }
 #endif
@@ -1004,12 +1022,20 @@ static bool parse_type_audio(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
         bao->is_prefetch = (bao->prefetch_size > 0);
     }
 
+
+    uint32_t s_offset = h_offset;
+    if (bao->cfg.audio_extradata_size) {
+        // later versions have extradata before samples
+        uint32_t extradata_size = read_s32(h_offset + bao->cfg.audio_extradata_size, sf);
+        s_offset += extradata_size;
+    }
+
     if (bao->loop_flag) {
-        bao->loop_start  = read_s32(h_offset + bao->cfg.audio_num_samples, sf);
-        bao->num_samples = read_s32(h_offset + bao->cfg.audio_num_samples2, sf) + bao->loop_start;
+        bao->loop_start  = read_s32(s_offset + bao->cfg.audio_num_samples, sf);
+        bao->num_samples = read_s32(s_offset + bao->cfg.audio_num_samples2, sf) + bao->loop_start;
     }
     else {
-        bao->num_samples = read_s32(h_offset + bao->cfg.audio_num_samples, sf);
+        bao->num_samples = read_s32(s_offset + bao->cfg.audio_num_samples, sf);
     }
 
     bao->stream_type = read_s32(h_offset + bao->cfg.audio_stream_type, sf);
@@ -1219,22 +1245,26 @@ static bool parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
     bao->header_offset  = offset;
 
     /* - base part in early versions:
-     * 0x04: header skip (usually 0x28, rarely 0x24), can be LE unlike other fields (ex. Assassin's Creed PS3)
+     * 0x00: version ID
+     * 0x04: header size (usually 0x28, rarely 0x24), can be LE unlike other fields (ex. Assassin's Creed PS3, but not in all games)
      * 0x08(10): GUID, or id-like fields in early versions
      * 0x18: null
      * 0x1c: null
      * 0x20: class
-     * 0x24: config/version? (0x00/0x01/0x02)
+     * 0x24: config/version? (0x00/0x01/0x02), removed in some versions
+     * (payload starts)
      *
      * - base part in later versions:
+     * 0x00: version ID
      * 0x04(10): GUID
      * 0x14: class
      * 0x18: config/version? (0x02)
-     * 0x1c: fixed value per type?
+     * (payload starts)
      */
 
-    bao->header_id      = read_u32(offset + bao->cfg.header_skip + 0x00, sf);
-    bao->header_type    = read_u32(offset + bao->cfg.header_skip + 0x04, sf);
+    uint32_t h_offset = offset + bao->cfg.header_skip;
+    bao->header_id      = read_u32(h_offset + bao->cfg.header_id, sf);
+    bao->header_type    = read_u32(h_offset + bao->cfg.header_type, sf);
 
     bao->header_size    = bao->cfg.header_base_size;
 
@@ -1305,13 +1335,12 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
     if (bao_class != 0x20000000) // skip non-header classes
         return true;
 
-    header_type = read_u32(offset + bao->cfg.header_skip + 0x04, sf);
+    uint32_t h_offset = offset + bao->cfg.header_skip;
+    header_type = read_u32(h_offset + bao->cfg.header_type, sf);
     if (header_type > 9) {
-        VGM_LOG("UBI BAO: unknown type %x at %x\n", header_type, (uint32_t)offset);
+        VGM_LOG("UBI BAO: unknown type %x at %x\n", header_type, (int)offset);
         return false;
     }
-
-    //;VGM_ASSERT(header_type == 0x05 || header_type == 0x06, "UBI BAO: type %x at %x\n", header_type, (uint32_t)offset);
 
     bao->types[header_type]++;
     if (!bao->cfg.allowed_types[header_type])

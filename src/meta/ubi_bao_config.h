@@ -37,11 +37,10 @@ typedef struct {
 
     // location of various fields in the header, since it's fairly inconsistent
     off_t bao_class;
-    size_t header_base_size;    // location of extradata for some codecs (depends on certain fields in the middle, not always accurate)
-    size_t header_skip;
-
     off_t header_id;
     off_t header_type;
+    off_t header_skip;        // where payload starts (header, memory data, stream data, etc)
+    off_t header_base_size;   // location of extradata for some codecs (depends on certain fields in the middle, not always accurate)
 
     off_t audio_stream_size;
     off_t audio_stream_id;
@@ -57,6 +56,7 @@ typedef struct {
     off_t audio_cue_count;      // total points
     off_t audio_cue_labels;     // size of strings
   //off_t audio_cue_size;       // size of labels + points, but sometimes wrong (X360 vs PS3, garbage field?)
+    off_t audio_extradata_size;
     int audio_stream_and;
     int audio_loop_and;
     bool audio_ignore_external_size;

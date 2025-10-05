@@ -158,21 +158,18 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
      * 0x04(10): GUID
      * 0x14: class
      * 0x18: config/version? (0x02)
-     * 0x1c: fixed hash per type?
      * (payload starts)
      */
 
     cfg->bao_class      = 0x20; // absolute offset, unlike the rest
-    cfg->header_id      = 0x00;
-    cfg->header_type    = 0x04;
+    cfg->header_id      = 0x00; // relative
+    cfg->header_type    = 0x04; // relative
 
-#if 0
-    if (cfg->version & 0xFFFF0000 >= 0x002B0000) {
-        cfg->bao_class      = 0x14; // absolute offset unlike the rest
-        cfg->header_type    = 0x00;
-        cfg->header_type    = 0x14; // from header_skip
+    if ((cfg->version & 0xFFFF0000) >= 0x00290000) {
+        cfg->bao_class   = 0x14; // absolute
+        cfg->header_id   = 0x04; // relative
+        cfg->header_type = 0x2c; // relative
     }
-#endif
 
     /* 2 configs with same ID, autodetect */
     if (cfg->version == 0x00220015) {
@@ -393,21 +390,23 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             //TODO: some GR files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
 
             break;
-#if 0
+
         case 0x002A0300: // Watch Dogs (Wii U), Far Cry 3: Blood Dragon (PS4)-spk-
-            config_bao_entry(cfg, 0xD8, 0x20); //base BAO size (variable)
+            config_bao_entry(cfg, 0xD8, 0x1c);
 
-            //TODO: 64=alt stream size? 84=alt stream id? 30=alt stream flag?
-            config_bao_audio_b(cfg, 0x44, 0x80, 0x3c, 0x00, 1, 1); 
+            //TODO: 68=alt stream size? 88=alt stream id? 34=alt stream flag?
+            // 0x48: sometimes stream_size
+            config_bao_audio_b(cfg, 0x68, 0x84, 0x40, 0x3c, 1, 1); 
+            config_bao_audio_m(cfg, 0x5c, 0x60, 0xAc, 0xB4, 0x58, 0x00);
 
-            config_bao_audio_m(cfg, 0x58, 0x5c, 0xA8, 0xA8, 0x54, 0xA8);
-            //TODO: num samples after extradata
-            //TODO: prefetch is not used (repeats from previous) but is needed from AT9's config
-
+          //cfg->codec_map[0x03] = UBI_IMA_seek; //TODO: header format is a bit different
             cfg->codec_map[0x09] = RAW_AT9; // PS4
 
+            //TODO: some fields are variable sized
+            cfg->audio_extradata_size = 0xA8;
+
             break;
-#endif
+
         case 0x001D0A00: // Shaun White Snowboarding (PSP)-atomic-gear
         case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
             /* similar to 0x00250108 but most values are moved +4
