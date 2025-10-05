@@ -361,26 +361,36 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             break;
 
         case 0x00280303: // Tom Clancy's Ghost Recon Future Soldier (PC/PS3)-package
-      //case 0x00280306: // Far Cry 3: Blood Dragon (X360)-spk-
-            config_bao_entry(cfg, 0xBC, 0x28); // PC/PS3: 0xBC
+        case 0x00280305: // Far Cry 3: Blood Dragon (X360/PS3)-spk
+        case 0x00280306: // Far Cry 3: Blood Dragon (X360/PS3)-spk
+            config_bao_entry(cfg, 0xBC, 0x28);
 
             config_bao_audio_b(cfg, 0x08, 0x38, 0x3c, 0x48, 1, 1);
             config_bao_audio_m(cfg, 0x54, 0x5c, 0x64, 0x6c, 0x74, 0x80);
 
             config_bao_sequence(cfg, 0x48, 0x3c, 0x38, 0x14);
 
-            config_bao_layer_m(cfg, 0x00, 0x3c, 0x44, 0x58, 0x60, 0x64, 0x00, 0x00, 1);
+            config_bao_layer_m(cfg, 0x00, 0x3c, 0x44, 0x58, 0x60, 0x64, 0x68, 0x6c, 1);
             config_bao_layer_e(cfg, 0x2c, 0x00, 0x04, 0x08, 0x1c);
 
             config_bao_silence_f(cfg, 0x38);
 
+            config_bao_audio_c(cfg, 0x78, 0x7c, 0x00);
+
             cfg->codec_map[0x01] = RAW_PCM;
             cfg->codec_map[0x02] = UBI_IMA; // v6
+            cfg->codec_map[0x03] = UBI_IMA_seek; // v6
             cfg->codec_map[0x04] = FMT_OGG;
-            cfg->codec_map[0x07] = RAW_AT3_132; //TODO: some layers use AT3_105
+            cfg->codec_map[0x05] = RAW_XMA2_new;
+            cfg->codec_map[0x06] = RAW_PSX_new;
+            cfg->codec_map[0x07] = RAW_AT3;
 
-            cfg->layer_ignore_error = true; //TODO: some layer sample rates don't match
-            //TODO: some files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
+            cfg->audio_fix_xma_samples = true; // W H Y
+            cfg->layer_ignore_error = true; //TODO: some GR layer sample rates don't match
+            cfg->audio_stream_subtype = 0x90;
+            cfg->layer_stream_subtype = 0x78; //TODO: unknown field, all layers in BD use RAW_AT3_105, check others
+
+            //TODO: some GR files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
 
             break;
 #if 0
@@ -443,7 +453,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
         #endif
 
         default: // others possibly using BAO: Watch_Dogs, Far Cry Primal
-            vgm_logi("UBI BAO: unknown BAO version %08x\n", cfg->version);
+            vgm_logi("UBI BAO: unknown BAO version %08x (report)\n", cfg->version);
             return false;
     }
 

@@ -13,11 +13,11 @@ typedef enum { ARCHIVE_NONE = 0, ARCHIVE_ATOMIC, ARCHIVE_PK, ARCHIVE_SPK } ubi_b
 typedef enum { TYPE_NONE = 0, TYPE_AUDIO, TYPE_LAYER, TYPE_SEQUENCE, TYPE_SILENCE } ubi_bao_type_t;
 typedef enum { 
   CODEC_NONE = 0, 
-  UBI_IMA,
+  UBI_IMA, UBI_IMA_seek,
   RAW_PCM,
   RAW_PSX, RAW_PSX_new,
   RAW_XMA1_mem, RAW_XMA1_str, RAW_XMA2_old, RAW_XMA2_new,
-  RAW_AT3_105, RAW_AT3_132, FMT_AT3,
+  RAW_AT3, RAW_AT3_105, RAW_AT3_132, FMT_AT3,
   RAW_DSP,
   FMT_OGG,
   RAW_MP3,
@@ -37,7 +37,7 @@ typedef struct {
 
     // location of various fields in the header, since it's fairly inconsistent
     off_t bao_class;
-    size_t header_base_size;    // location of extradata for some codecs (depends on certain fields in the middle)
+    size_t header_base_size;    // location of extradata for some codecs (depends on certain fields in the middle, not always accurate)
     size_t header_skip;
 
     off_t header_id;
@@ -52,6 +52,7 @@ typedef struct {
     off_t audio_num_samples;
     off_t audio_num_samples2;
     off_t audio_stream_type;
+    off_t audio_stream_subtype;
     off_t audio_prefetch_size;
     off_t audio_cue_count;      // total points
     off_t audio_cue_labels;     // size of strings
@@ -59,6 +60,7 @@ typedef struct {
     int audio_stream_and;
     int audio_loop_and;
     bool audio_ignore_external_size;
+    bool audio_fix_xma_samples;
 
     // layer config within base BAO
     off_t sequence_sequence_loop;
@@ -82,6 +84,7 @@ typedef struct {
     off_t layer_sample_rate;
     off_t layer_channels;
     off_t layer_stream_type;
+    off_t layer_stream_subtype;
     off_t layer_num_samples;
     int layer_stream_and;
     bool layer_ignore_error;

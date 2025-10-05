@@ -1,3 +1,4 @@
+#include "../util/endianness.h"
 #include "../util.h"
 #include "coding.h"
 
@@ -1094,6 +1095,7 @@ void decode_awc_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
 /* DVI stereo/mono with some mini header and sample output */
 void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count = 0;
+    STREAMFILE* sf = stream->streamfile;
 
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -1102,35 +1104,53 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
 
     //header in the beginning of the stream
     if (stream->channel_start_offset == stream->offset) {
-        int version, big_endian, header_samples, max_samples_to_do;
-        int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
         off_t offset = stream->offset;
 
         /* header fields mostly unknown (vary a lot or look like flags, tool version?, 0x08: stereo flag?) */
-        version = read_8bit(offset + 0x00, stream->streamfile);
-        big_endian = version < 5;
-        read_16bit = big_endian ? read_16bitBE : read_16bitLE;
+        int version = read_u8(offset + 0x00, sf);
+        bool big_endian = version < 5;
 
-        header_samples = read_16bit(offset + 0x0E, stream->streamfile); /* always 10 (per channel) */
-        hist1      = read_16bit(offset + 0x10 + channel*0x04,stream->streamfile);
-        step_index =  read_8bit(offset + 0x12 + channel*0x04,stream->streamfile);
+        read_s16_t read_s16 = get_read_s16(big_endian);
+        read_s32_t read_s32 = get_read_s32(big_endian);
+
+        int header_samples  = read_s16(offset + 0x0E, sf); // always 10 (per channel)
+        hist1      = read_s16(offset + 0x10 + channel * 0x04, sf);
+        step_index =  read_u8(offset + 0x12 + channel * 0x04, sf);
         offset += 0x10 + 0x08;
-        if (version >= 3)
-            offset += 0x04;
-        if (version >= 6) /* later BAOs */
-            offset += 0x08;
 
-        /* write PCM samples, must be written to match header's num_samples (hist mustn't) */
-        max_samples_to_do = ((samples_to_do > header_samples) ? header_samples : samples_to_do);
+        if (version >= 3) {
+            offset += 0x04; //null?
+        }
+
+        if (version >= 6) {
+            //TODO: fix, seekable IMA needs to be read each block's hist+step
+
+            // later BAOs have an optional seek table (signaled with a different codec but field is always present)
+            // 00: 2 (sample size?)
+            uint32_t seek_size = read_s32(offset + 0x04, sf); 
+            // seek table:
+            //   00: entries (-1)
+            //   per entry
+            //   00: sample
+            //   04: absolute offset
+            // last extra entry is total samples and stream end
+            // Each block (save first 10 PCM samples, which are normally written) has hist+step 
+
+            offset += 0x08 + seek_size;
+        }
+
+        // write PCM samples, must be written to match header's num_samples (hist must not)
+        int max_samples_to_do = ((samples_to_do > header_samples) ? header_samples : samples_to_do);
+        int i;
         for (i = first_sample; i < max_samples_to_do; i++, sample_count += channelspacing) {
-            outbuf[sample_count] = read_16bit(offset + channel * sizeof(sample_t) + i*channelspacing * sizeof(sample_t), stream->streamfile);
+            outbuf[sample_count] = read_s16(offset + channel * sizeof(short) + i*channelspacing * sizeof(short), sf);
             first_sample++;
             samples_to_do--;
         }
 
         /* header done */
         if (i == header_samples) {
-            stream->offset = offset + header_samples*channelspacing * sizeof(sample_t);
+            stream->offset = offset + header_samples*channelspacing * sizeof(short);
         }
     }
 
@@ -1147,7 +1167,7 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
                 (!(i%2) ? 4:0) :        /* mono mode (high first) */
                 (channel==0 ? 4:0);     /* stereo mode (high=L,low=R) */
 
-        std_ima_expand_nibble_mul(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        std_ima_expand_nibble_mul(stream, byte_offset, nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1); /* all samples are written */
     }
 

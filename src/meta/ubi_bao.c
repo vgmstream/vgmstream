@@ -49,6 +49,7 @@ typedef struct {
     int sample_rate;
     int channels;
     int stream_type;
+    int stream_subtype;
 
     int layer_count;
     int layer_channels[BAO_MAX_LAYER_COUNT];
@@ -179,7 +180,9 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
     vgmstream->loop_end_sample = bao->num_samples;
 
     switch(bao->codec) {
-        case UBI_IMA: {
+        case UBI_IMA:
+        case UBI_IMA_seek: {
+            // IMA seekable has a seek table in the v6 frame header and blocks are preceded by adpcm hist+step
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
             break;
@@ -304,15 +307,38 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
 
             vgmstream->stream_size = data_size;
 
-            xma_fix_raw_samples(vgmstream, sf_data, start_offset, data_size,0, 0,0);
+            // somehow num_samples may contain garbage (probably DARE just plays XMA data and ignores num_samples)
+            if (bao->cfg.audio_fix_xma_samples && bao->codec == RAW_XMA2_new && vgmstream->num_samples > 0xFFFFFF) {
+                VGM_LOG("UBI BAO: wrong xma samples\n");
+                vgmstream->num_samples = read_s32be(chunk_offset + 0x18, sf_xmah);
+                xma_fix_raw_samples(vgmstream, sf_data, start_offset, data_size,0, true, false);
+            }
+            else {
+                xma_fix_raw_samples(vgmstream, sf_data, start_offset, data_size,0, false, false);
+
+            }
             break;
         }
 
+        case RAW_AT3:
         case RAW_AT3_105:
         case RAW_AT3_132: {
             // ATRAC3 sizes: low 0x60 (66 kbps) / mid 0x98 (105 kbps) / high 0xC0 (132 kbps)
-            int block_align = (bao->codec == RAW_AT3_105 ? 0x98 : 0xC0) * vgmstream->channels;
-            int encoder_delay = 0; // num_samples is full bytes-to-samples (unlike FMT_AT3) and comparing X360 vs PS3 games seems ok
+            static const int block_types[3] = { 0x60, 0x98, 0xC0 };
+            int block_align, encoder_delay;
+
+            // TODO: migrate to stream_subtype in config and remove this
+            if (bao->codec == RAW_AT3_105)
+                bao->stream_subtype = 1;
+            if (bao->codec == RAW_AT3_132)
+                bao->stream_subtype = 1;
+            if (bao->stream_subtype < 1 || bao->stream_subtype > 2) {
+                VGM_LOG("UBI BAO: unknown ATRAC3 mode\n"); // mode 0 doesn't seem used
+                goto fail;
+            }
+
+            block_align = block_types[bao->stream_subtype] * vgmstream->channels;
+            encoder_delay = 0; // num_samples is full bytes-to-samples (unlike FMT_AT3) and comparing X360 vs PS3 games seems ok
 
             vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf_data, start_offset, vgmstream->stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
@@ -603,8 +629,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header_t* bao, STREAMFIL
     ;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, s_size=%x, stream=%i, prefetch=%i\n",
         bao->header_offset, bao->header_id, bao->stream_id,
         bao->stream_size, bao->is_stream, bao->is_prefetch);
-    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, pre.sz=%x, codec=%i\n",
-        bao->header_type, bao->header_size, bao->extra_size, bao->prefetch_size, bao->header_type == 0x01 ? bao->stream_type : -1);
+    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, pre.sz=%x, codec=%i (sub=%i)\n",
+        bao->header_type, bao->header_size, bao->extra_size, bao->prefetch_size, bao->header_type == 0x01 ? bao->stream_type : -1, bao->stream_subtype);
 
 
     switch(bao->type) {
@@ -987,6 +1013,8 @@ static bool parse_type_audio(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
     }
 
     bao->stream_type = read_s32(h_offset + bao->cfg.audio_stream_type, sf);
+    if (bao->cfg.audio_stream_subtype)
+        bao->stream_subtype = read_s32(h_offset + bao->cfg.audio_stream_subtype, sf);
 
     return true;
 }
@@ -1072,6 +1100,11 @@ static bool parse_type_layer(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
     bao->sample_rate    = read_s32(table_offset + bao->cfg.layer_sample_rate, sf);
     bao->stream_type    = read_s32(table_offset + bao->cfg.layer_stream_type, sf);
     bao->num_samples    = read_s32(table_offset + bao->cfg.layer_num_samples, sf);
+
+    //TODO:
+    if (bao->cfg.layer_stream_subtype)
+        bao->stream_subtype = 1;
+    //    bao->stream_subtype = read_s32(h_offset + bao->cfg.layer_stream_subtype, sf);
 
     for (int i = 0; i < bao->layer_count; i++) {
         int channels    = read_s32(table_offset + bao->cfg.layer_channels, sf);
