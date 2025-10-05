@@ -589,8 +589,10 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
                             fsb->first_extradata_offset = fsb->extradata_offset;
                     }
 
-                    // Inversion (PC) has some null names with garbage offsets from prev streams (not in X360/PS3)
-                    if (fsb->version == FMOD_FSB_VERSION_4_0 && (fsb->mode & FSOUND_MPEG)) {
+                    // Inversion (PC)-ru has some null names with garbage offsets from prev streams (not in X360/PS3)
+                    // seen in MPEG and CPM16
+                    if (fsb->version == FMOD_FSB_VERSION_4_0 && 
+                            ((fsb->mode & FSOUND_MPEG) || (fsb->mode & FSOUND_16BITS))) {
                         null_name = read_u32le(fsb->name_offset, sf) == 0x00;
                     }
                 }
