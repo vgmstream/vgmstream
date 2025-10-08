@@ -6,8 +6,17 @@
 
 #include "ubi_bao_config.h"
 
-#define BAO_MAX_LAYER_COUNT 16      // arbitrary max
+#define BAO_MAX_LAYER_COUNT 10      // arbitrary max
 #define BAO_MAX_CHAIN_COUNT 128     // POP:TFS goes up to ~100
+
+typedef struct {
+    int channels;
+    int sample_rate;
+    int stream_type;
+    int num_samples;
+    uint32_t extradata_offset;
+    uint32_t extradata_size;    
+} ubi_bao_layer_t;
 
 typedef struct {
     ubi_bao_archive_t archive;  // source format, which affects how related files are located
@@ -46,13 +55,19 @@ typedef struct {
     int stream_subtype;
 
     int layer_count;
-    int layer_channels[BAO_MAX_LAYER_COUNT];
+    ubi_bao_layer_t layer[BAO_MAX_LAYER_COUNT];
     int sequence_count;
     uint32_t sequence_chain[BAO_MAX_CHAIN_COUNT];
     int sequence_loop;
     int sequence_single;
 
     float silence_duration;
+
+    uint32_t extradata_offset;
+    uint32_t extradata_size;
+
+    uint32_t inline_offset;
+    uint32_t inline_size;
 
     int classes[16];
     int types[16];

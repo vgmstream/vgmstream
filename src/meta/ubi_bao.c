@@ -242,7 +242,16 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
                 // xma header in header BAO after extradata (XMA1_MEM in v1_bao or XMA1_STR / XMA2* otherwise)
                 sf_xmah = sf_head;
                 sf_xmad = sf_data;
-                chunk_offset = bao->header_offset + bao->header_size + bao->extra_size;
+                if (bao->extradata_size) {
+                    // null
+                    // 0x09000000?
+                    // chunk size (always 0x34)
+                    // -1
+                    chunk_offset = bao->extradata_offset + 0x10;
+                }
+                else {
+                    chunk_offset = bao->header_offset + bao->header_size + bao->extra_size;
+                }
                 start_offset = 0x00;
                 data_size = bao->stream_size;
             }
@@ -318,11 +327,9 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             atrac9_config cfg = {0};
 
             // ATRAC9 info + config + first frames (repeats from stream), part of header
-            uint32_t extradata_offset = bao->header_offset + bao->cfg.header_skip + bao->cfg.audio_extradata_size + 0x04;
-
             cfg.channels = 0;
-            cfg.config_data = read_u32be(extradata_offset + 0x58, sf_head);
-            cfg.encoder_delay = read_u32le(extradata_offset + 0x64, sf_head);
+            cfg.config_data = read_u32be(bao->extradata_offset + 0x58, sf_head);
+            cfg.encoder_delay = read_u32le(bao->extradata_offset + 0x64, sf_head);
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -390,8 +397,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_layer(ubi_bao_header_t* bao, STREAMFILE
         if (!temp_sf) goto fail;
 
         bao->stream_size = get_streamfile_size(temp_sf);
-        bao->channels = bao->layer_channels[i];
-        total_channels += bao->layer_channels[i];
+        bao->channels = bao->layer[i].channels;
+        total_channels += bao->layer[i].channels;
 
         /* build the layer VGMSTREAM (standard sb with custom streamfile) */
         data->layers[i] = init_vgmstream_ubi_bao_base(bao, sf, temp_sf);
@@ -767,9 +774,8 @@ fail:
 static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset, uint32_t* p_size) {
     //TODO: unify with parse_spk?
 
-    // 0x01: Avatar/FC2, 0x04: FC3/FC4
     uint8_t type = read_u8(0x00, sf);
-    if (type != 0x01 && type != 0x04)
+    if (type != 0x01 && type != 0x02 && type != 0x04)
         return false;
 
     bool has_related_baos = type == 0x01;
@@ -815,7 +821,7 @@ static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset,
 
 
 /* parse a .spk (package) file: index + BAOs, similar to .pk but simpler. 
- * - 0x00: 0xNN4B5053 ("SPK\N" LE) (N: v1=Avatar/FC2, v4=FC3/FC4)
+ * - 0x00: 0xNN4B5053 ("SPK\N" LE) (N: v1=Avatar/FC2, v2=Watch Dogs, v4=FC3/FC4)
  * - 0x04: BAO count
  * - 0x08: BAO ids inside (0x04 * BAO count)
  * - (v1) per BAO:
@@ -823,7 +829,7 @@ static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset,
  *   - 0x04: ids related to this BAO? (0x04 * table count)
  *   - 0x08/NN: BAO size
  *   - 0x0c/NN+: BAO data up to size + padding to 0x04
- * - (v4) per BAO:
+ * - (v2/v4) per BAO:
  *   - 0x00: BAO size
  *   - 0xNN: BAO data up to size
  *
@@ -831,9 +837,8 @@ static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset,
  */
 static bool parse_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
-    // 0x01: Avatar/FC2, 0x04: FC3/FC4
     uint8_t type = read_u8(0x00, sf);
-    if (type != 0x01 && type != 0x04)
+    if (type != 0x01 && type != 0x02 && type != 0x04)
         return false;
 
     int target_subsong = sf->stream_index;

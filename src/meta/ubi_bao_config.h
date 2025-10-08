@@ -60,7 +60,6 @@ typedef struct {
     off_t audio_cue_count;      // total points
     off_t audio_cue_labels;     // size of strings
   //off_t audio_cue_size;       // size of labels + points, but sometimes wrong (X360 vs PS3, garbage field?)
-    off_t audio_extradata_size;
     int audio_stream_and;
     int audio_loop_and;
     bool audio_ignore_external_size;
@@ -95,6 +94,7 @@ typedef struct {
 
     off_t silence_duration_float;
 
+    bool audio_flag_2b;
 } ubi_bao_config_t;
 
 

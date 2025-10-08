@@ -398,19 +398,24 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             break;
 
-        case 0x00290106: // Splinter Cell: Blacklist (PS3)-atomic-gear
-#if 0
-            cfg->codec_map[0x01] = RAW_PCM;
-            cfg->codec_map[0x02] = UBI_IMA; // v6
-            cfg->codec_map[0x03] = UBI_IMA_seek; // v6
+        case 0x00290106: // Splinter Cell: Blacklist (PS3/X360)-atomic-gear
+        case 0x002A0300: // Watch Dogs (X360/PS3/Wii U)-spk, Far Cry 3: Blood Dragon (PS4)-spk
+          //cfg->codec_map[0x01] = RAW_PCM;
+          //cfg->codec_map[0x02] = UBI_IMA; // v6
+          //cfg->codec_map[0x03] = UBI_IMA_seek; // v6 //TODO: header format is a bit different
             cfg->codec_map[0x04] = FMT_OGG;
             cfg->codec_map[0x05] = RAW_XMA2_new;
-            cfg->codec_map[0x06] = RAW_PSX_new;
-            cfg->codec_map[0x07] = RAW_AT3;
-#endif
+          //cfg->codec_map[0x06] = RAW_PSX_new;
+          //cfg->codec_map[0x07] = RAW_AT3;
+          //cfg->codec_map[0x08] = RAW_AT3;
+            cfg->codec_map[0x09] = RAW_AT9; // PS4
+
             break;
 
-        case 0x002A0300: // Watch Dogs (Wii U), Far Cry 3: Blood Dragon (PS4)-spk-
+      //case 0x002B0000: // Far Cry 4 (multi)-spk-dunia
+        case 0x002B0100: // Far Cry 4 (multi)-spk-dunia
+            cfg->audio_flag_2b = true;
+#if 0
             config_bao_entry(cfg, 0xD8, 0x1c);
 
             //TODO: 68=alt stream size? 88=alt stream id? 34=alt stream flag?
@@ -418,21 +423,18 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             config_bao_audio_b(cfg, 0x68, 0x84, 0x40, 0x3c, 1, 1); 
             config_bao_audio_m(cfg, 0x5c, 0x60, 0xAc, 0xB4, 0x58, 0x00);
 
-          //cfg->codec_map[0x03] = UBI_IMA_seek; //TODO: header format is a bit different
-            cfg->codec_map[0x09] = RAW_AT9; // PS4
+          //cfg->codec_map[0x03] = UBI_IMA_seek; 
 
             //TODO: some fields are variable sized
             cfg->audio_extradata_size = 0xA8;
 
             break;
-
+#endif
         case 0x001D0A00: // Shaun White Snowboarding (PSP)-atomic-gear
         case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
             /* similar to 0x00250108 but most values are moved +4
              * - base 0xB8, skip 0x28 */
 
-      //case 0x002B0000: // Far Cry 4 (multi)-spk-dunia
-        case 0x002B0100: // Far Cry 4 (multi)-spk-dunia
         #if 0
             config_bao_entry(cfg, 0xD8, 0x20);
 
