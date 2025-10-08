@@ -1238,7 +1238,7 @@ static bool parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
     uint32_t header_version = read_u32be(offset + 0x00, sf);
     if ((bao->cfg.version  & 0x00FFFF00) != (header_version & 0x00FFFF00) || header_format > 0x03) {
         // Avatar The Game has small variations, probably fine for the engine
-        VGM_LOG("UBI BAO: mayor version header version at %x\n", (uint32_t)offset);
+        VGM_LOG("UBI BAO: mayor version header mismatch at %x\n", (uint32_t)offset);
         return false;
     }
 
@@ -1363,8 +1363,8 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
 // Each engine+game typically has a generic bigfile that acts like a database/index,
 // but must be extracted to get usable .bao/sbao or similar names.
 //
-// - Anvil .forge: full names found in bigfile (extensionless), but probably unused and engine loads by id
-//   (.bao from debug strings in AC1, .bao/.sbao in Shaun White Snowboarding)
+// - Anvil .forge: full names found in bigfile (extensionless), but seem unused and engine loads by id
+//   (.bao from debug strings in AC1, .bao/.sbao in Shaun White Snowboarding).
 //   Within .forge memory BAOs are compressed (subfiles per 'area') and stream BAOs uncompressed.
 // - Yeti .fat+.bin: ids in bigfile, always %08x.bao (streamed or memory) from loose X360 files and debug strings
 //   Streams can be files or inside stream.bin

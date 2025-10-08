@@ -178,13 +178,13 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
         /* next BAO uses machine endianness, entry should always exist
          * (maybe should use project BAO to detect?) */
         if (guess_endian32(header_size + 0x04, sf)) {
-            cfg->version |= 0xFF00; /* signal Wii=BE, but don't modify original */
+            version |= 0xF000; /* signal Wii=BE, but don't modify original */
         }
     }
 
 
     /* config per version */
-    switch(cfg->version) {
+    switch(version) {
 
         case 0x001B0100: // Assassin's Creed (PS3/X360/PC)-atomic-forge
       //case 0x001B0100: // My Fitness Coach (Wii)-atomic-forge
@@ -225,7 +225,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
         case 0x001F0011: // Naruto: The Broken Bond (X360)-package
         case 0x0021000C: // Splinter Cell: Conviction (E3 2009 Demo)(X360)-package
         case 0x0022000D: // Just Dance (Wii)-package, We Dare (PS3/Wii)-package
-        case 0x0022FF15: // James Cameron's Avatar: The Game (Wii)-package
+        case 0x0022F015: // James Cameron's Avatar: The Game (Wii)-package
         case 0x00220017: // James Cameron's Avatar: The Game (PS3/X360/PC)-spk
         case 0x00220018: // James Cameron's Avatar: The Game (PS3/X360/PC)-spk
         case 0x0022001B: // Prince of Persia: The Forgotten Sands (Wii)-package
@@ -250,7 +250,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = UBI_IMA;
             cfg->codec_map[0x04] = FMT_OGG;
             cfg->codec_map[0x05] = RAW_XMA1_str;
-            cfg->codec_map[0x07] = RAW_AT3_105;
+            cfg->codec_map[0x07] = RAW_AT3;
             cfg->codec_map[0x09] = RAW_DSP;
 
             if (cfg->version >= 0x00220000) // Avatar (X360)
@@ -258,6 +258,9 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             if (cfg->version == 0x0022000D) // Just Dance (Wii) oddity
                 cfg->audio_ignore_external_size = true;
+
+            cfg->audio_stream_subtype = 0x78;
+            cfg->layer_stream_subtype = 0x78; //TODO: unknown
 
             break;
 
@@ -412,10 +415,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             /* similar to 0x00250108 but most values are moved +4
              * - base 0xB8, skip 0x28 */
         case 0x00290106: // Splinter Cell: Blacklist (PS3)-atomic-gear
-            /* quite different, lots of flags and random values
-             * - base varies per type (0xF0=audio), skip 0x20
-             * - 0x74: type, 0x78: channels, 0x7c: sample rate, 0x80: num_samples
-             * - 0x94: stream id? 0x9C: extra size */
+            /* new BAO  similar to 0x002A0300 */
 
       //case 0x002B0000: // Far Cry 4 (multi)-spk-dunia
         case 0x002B0100: // Far Cry 4 (multi)-spk-dunia
