@@ -164,11 +164,15 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
     cfg->bao_class      = 0x20; // absolute offset, unlike the rest
     cfg->header_id      = 0x00; // relative
     cfg->header_type    = 0x04; // relative
+    cfg->parser = PARSER_1B;
 
     if ((cfg->version & 0xFFFF0000) >= 0x00290000) {
         cfg->bao_class   = 0x14; // absolute
         cfg->header_id   = 0x04; // relative
         cfg->header_type = 0x2c; // relative
+        cfg->header_skip = 0x1c; // relative
+
+        cfg->parser = PARSER_29;
     }
 
     /* 2 configs with same ID, autodetect */
@@ -394,6 +398,18 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             break;
 
+        case 0x00290106: // Splinter Cell: Blacklist (PS3)-atomic-gear
+#if 0
+            cfg->codec_map[0x01] = RAW_PCM;
+            cfg->codec_map[0x02] = UBI_IMA; // v6
+            cfg->codec_map[0x03] = UBI_IMA_seek; // v6
+            cfg->codec_map[0x04] = FMT_OGG;
+            cfg->codec_map[0x05] = RAW_XMA2_new;
+            cfg->codec_map[0x06] = RAW_PSX_new;
+            cfg->codec_map[0x07] = RAW_AT3;
+#endif
+            break;
+
         case 0x002A0300: // Watch Dogs (Wii U), Far Cry 3: Blood Dragon (PS4)-spk-
             config_bao_entry(cfg, 0xD8, 0x1c);
 
@@ -414,8 +430,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
         case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
             /* similar to 0x00250108 but most values are moved +4
              * - base 0xB8, skip 0x28 */
-        case 0x00290106: // Splinter Cell: Blacklist (PS3)-atomic-gear
-            /* new BAO  similar to 0x002A0300 */
 
       //case 0x002B0000: // Far Cry 4 (multi)-spk-dunia
         case 0x002B0100: // Far Cry 4 (multi)-spk-dunia

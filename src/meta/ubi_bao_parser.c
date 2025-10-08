@@ -1,15 +1,28 @@
 #include "../util/endianness.h"
 #include "../util/log.h"
+#include "../util/reader_helper.h"
 
 #include "ubi_bao_parser.h"
 
+// header classes, also similar to SB types:
+static const ubi_bao_type_t type_map[] = {
+    TYPE_NONE,      //00: not set
+    TYPE_AUDIO,     //01: single audio (samples, channels, bitrate, samples+size, etc)
+    TYPE_NONE,      //02: play chain with config? (ex. silence + audio, or rarely audio 2ch intro + layer 4ch body)
+    TYPE_NONE,      //03: unknown chain
+    TYPE_NONE,      //04: random (count, etc) + BAO IDs and float probability to play
+    TYPE_SEQUENCE,  //05: sequence (count, etc) + BAO IDs and unknown data
+    TYPE_LAYER,     //06: layer (count, etc) + layer headers
+    TYPE_NONE,      //07: unknown chain
+    TYPE_SILENCE,   //08: silence (duration, etc)
+    TYPE_NONE,      //09: silence with config? (channels, sample rate, etc), extremely rare [Shaun White Skateboarding (Wii)]
+};
 
-static bool parse_type_audio(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
+//*************************************************************************************************
+
+static bool parse_type_audio_cfg(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
     read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
     read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
-
-    /* audio header */
-    bao->type = TYPE_AUDIO;
 
     uint32_t h_offset = offset + bao->cfg.header_skip;
     bao->stream_size = read_u32(h_offset + bao->cfg.audio_stream_size, sf);
@@ -58,12 +71,10 @@ static bool parse_type_audio(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
     return true;
 }
 
-static bool parse_type_sequence(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
+static bool parse_type_sequence_cfg(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
     read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
     read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
 
-    /* sequence chain */
-    bao->type = TYPE_SEQUENCE;
     if (bao->cfg.sequence_entry_size == 0) {
         VGM_LOG("UBI BAO: sequence entry size not configured at %x\n", (uint32_t)offset);
         return false;
@@ -91,12 +102,10 @@ static bool parse_type_sequence(ubi_bao_header_t* bao, off_t offset, STREAMFILE*
     return true;
 }
 
-static bool parse_type_layer(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
+static bool parse_type_layer_cfg(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
     read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
     read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
 
-    /* audio header */
-    bao->type = TYPE_LAYER;
     if (bao->cfg.layer_entry_size == 0) {
         VGM_LOG("UBI BAO: layer entry size not configured at %x\n", (uint32_t)offset);
         return false;
@@ -172,11 +181,9 @@ static bool parse_type_layer(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf
     return true;
 }
 
-static bool parse_type_silence(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
+static bool parse_type_silence_cfg(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
     read_f32_t read_f32 = get_read_f32(bao->cfg.big_endian);
 
-    /* silence header */
-    bao->type = TYPE_SILENCE;
     if (bao->cfg.silence_duration_float == 0) {
         VGM_LOG("UBI BAO: silence duration not configured at %x\n", (uint32_t)offset);
         return false;
@@ -191,6 +198,61 @@ static bool parse_type_silence(ubi_bao_header_t* bao, off_t offset, STREAMFILE* 
 
     return true;
 }
+
+
+/* 0x00: version ID
+ * 0x04: header size (usually 0x28, rarely 0x24), can be LE unlike other fields (ex. Assassin's Creed PS3, but not in all games)
+ * 0x08(10): GUID, or id-like fields in early versions
+ * 0x18: null
+ * 0x1c: null
+ * 0x20: class
+ * 0x24: config/version? (0x00/0x01/0x02), removed in some versions
+ * (payload starts)
+ */
+static bool parse_header_cfg(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
+    read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
+    read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
+
+    uint32_t h_offset = offset + bao->cfg.header_skip;
+    bao->header_id      = read_u32(h_offset + bao->cfg.header_id, sf);
+    bao->header_type    = read_u32(h_offset + bao->cfg.header_type, sf);
+
+    bao->header_size    = bao->cfg.header_base_size;
+
+    /* hack for games with smaller size than standard
+     * (can't use lowest size as other games also have extra unused field) */
+    if (bao->cfg.header_less_le_flag && !bao->cfg.big_endian) {
+        bao->header_size -= 0x04;
+    }
+    /* detect extra unused field in PC/Wii
+     * (could be improved but no apparent flags or anything useful) */
+    else if (get_streamfile_size(sf) > offset + bao->header_size) {
+        // may read next BAO version, layer header, cues, resource table size, etc, always > 1
+        int32_t end_field = read_s32(offset + bao->header_size, sf);
+
+        if (end_field == -1 || end_field == 0 || end_field == 1) { // some count?
+            bao->header_size += 0x04;
+        }
+    }
+    
+    if (bao->header_type < BAO_MAX_TYPES) {
+        bao->type = type_map[bao->header_type];
+    }
+
+    switch(bao->type) {
+        case TYPE_AUDIO: return parse_type_audio_cfg(bao, offset, sf); break;
+        case TYPE_SEQUENCE: return parse_type_sequence_cfg(bao, offset, sf); break;
+        case TYPE_LAYER: return parse_type_layer_cfg(bao, offset, sf); break;
+        case TYPE_SILENCE: return parse_type_silence_cfg(bao, offset, sf); break;
+        default:
+            VGM_LOG("UBI BAO: unknown header type at %x\n", (uint32_t)offset);
+            return false;
+    }
+
+    return false;
+}
+
+//*************************************************************************************************
 
 /* adjust some common values */
 static bool parse_values(ubi_bao_header_t* bao) {
@@ -244,8 +306,6 @@ static bool parse_values(ubi_bao_header_t* bao) {
 
 /* parse a single known header resource at offset (see config_bao for info) */
 static bool parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
-    read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
-    read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
 
     uint8_t header_format   = read_u8   (offset + 0x00, sf); // 0x01: atomic, 0x02: package
     uint32_t header_version = read_u32be(offset + 0x00, sf);
@@ -257,67 +317,17 @@ static bool parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
 
     bao->header_offset  = offset;
 
-    /* - base part in early versions:
-     * 0x00: version ID
-     * 0x04: header size (usually 0x28, rarely 0x24), can be LE unlike other fields (ex. Assassin's Creed PS3, but not in all games)
-     * 0x08(10): GUID, or id-like fields in early versions
-     * 0x18: null
-     * 0x1c: null
-     * 0x20: class
-     * 0x24: config/version? (0x00/0x01/0x02), removed in some versions
-     * (payload starts)
-     *
-     * - base part in later versions:
-     * 0x00: version ID
-     * 0x04(10): GUID
-     * 0x14: class
-     * 0x18: config/version? (0x02)
-     * (payload starts)
-     */
-
-    uint32_t h_offset = offset + bao->cfg.header_skip;
-    bao->header_id      = read_u32(h_offset + bao->cfg.header_id, sf);
-    bao->header_type    = read_u32(h_offset + bao->cfg.header_type, sf);
-
-    bao->header_size    = bao->cfg.header_base_size;
-
-    /* hack for games with smaller size than standard
-     * (can't use lowest size as other games also have extra unused field) */
-    if (bao->cfg.header_less_le_flag && !bao->cfg.big_endian) {
-        bao->header_size -= 0x04;
-    }
-    /* detect extra unused field in PC/Wii
-     * (could be improved but no apparent flags or anything useful) */
-    else if (get_streamfile_size(sf) > offset + bao->header_size) {
-        // may read next BAO version, layer header, cues, resource table size, etc, always > 1
-        int32_t end_field = read_s32(offset + bao->header_size, sf);
-
-        if (end_field == -1 || end_field == 0 || end_field == 1) { // some count?
-            bao->header_size += 0x04;
-        }
-    }
-
-    switch(bao->header_type) {
-        case 0x01:
-            if (!parse_type_audio(bao, offset, sf))
-                return false;
-            break;
-        case 0x05:
-            if (!parse_type_sequence(bao, offset, sf))
-                return false;
-            break;
-        case 0x06:
-            if (!parse_type_layer(bao, offset, sf))
-                return false;
-            break;
-        case 0x08:
-            if (!parse_type_silence(bao, offset, sf))
-                return false;
-            break;
+    bool ok = false;
+    switch(bao->cfg.parser) {
+        case PARSER_1B: ok = parse_header_cfg(bao, sf, offset); break;
+        //case PARSER_29: ok = parse_header_29(bao, sf, offset); break;
         default:
-            VGM_LOG("UBI BAO: unknown header type at %x\n", (uint32_t)offset);
+            VGM_LOG("UBI BAO: unknown parser\n");
             return false;
     }
+
+    if (!ok)
+        return false;
 
     if (!parse_values(bao))
         return false;

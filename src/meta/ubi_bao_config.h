@@ -10,7 +10,7 @@
 // affects how BAOs are referenced
 typedef enum { ARCHIVE_NONE = 0, ARCHIVE_ATOMIC, ARCHIVE_PK, ARCHIVE_SPK } ubi_bao_archive_t;
 // main playable audio (there are others like randoms and chains but aren't that useful)
-typedef enum { TYPE_NONE = 0, TYPE_AUDIO, TYPE_LAYER, TYPE_SEQUENCE, TYPE_SILENCE } ubi_bao_type_t;
+typedef enum { TYPE_NONE = 0, TYPE_AUDIO, TYPE_SEQUENCE, TYPE_LAYER, TYPE_SILENCE } ubi_bao_type_t;
 typedef enum { 
   CODEC_NONE = 0, 
   UBI_IMA, UBI_IMA_seek,
@@ -24,8 +24,12 @@ typedef enum {
   RAW_AT9,
 } ubi_bao_codec_t;
 
+typedef enum { PARSER_1B, PARSER_29 } ubi_bao_parser_t;
+
 // config and offset for each field (since they move around depending on version)
 typedef struct {
+    ubi_bao_parser_t parser;
+
     bool big_endian;
     bool allowed_types[BAO_MAX_TYPES];
     uint32_t version;
