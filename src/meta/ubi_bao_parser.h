@@ -44,6 +44,7 @@ typedef struct {
 
     bool is_stream;             // streamed data (external file) or memory data otherwise (external or internal)
     bool is_prefetch;           // memory data is to be used as part of the stream
+    bool is_inline;             // memory data is in header BAO rather than separate memory BAO
 
     /* sound info */
     int loop_flag;

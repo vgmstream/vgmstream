@@ -396,8 +396,14 @@ static VGMSTREAM* init_vgmstream_ubi_bao_layer(ubi_bao_header_t* bao, STREAMFILE
         temp_sf = setup_ubi_bao_streamfile(sf_data, 0x00, full_stream_size, i, bao->layer_count, bao->cfg.big_endian);
         if (!temp_sf) goto fail;
 
+        //TODO: improve
         bao->stream_size = get_streamfile_size(temp_sf);
+        bao->sample_rate = bao->layer[i].sample_rate;
         bao->channels = bao->layer[i].channels;
+        bao->num_samples = bao->layer[i].num_samples;
+        bao->extradata_offset = bao->layer[i].extradata_offset;
+        bao->extradata_size = bao->layer[i].extradata_size;
+
         total_channels += bao->layer[i].channels;
 
         /* build the layer VGMSTREAM (standard sb with custom streamfile) */
@@ -1062,6 +1068,31 @@ fail:
     return NULL;
 }
 
+static STREAMFILE* open_inline_bao(ubi_bao_header_t* bao, STREAMFILE* sf) {
+    STREAMFILE* temp_sf = NULL;
+    uint32_t clamp_offset = bao->inline_offset;
+    uint32_t clamp_size = bao->inline_size;
+
+    // (same as XMA extradata format)
+    // null
+    // 0x09000000?
+    // chunk size (always 0x34)
+    // -1
+    clamp_offset += 0x10;
+    clamp_size -= 0x10;
+
+    temp_sf = open_wrap_streamfile(sf); // wrap current SF (header) to avoid it being closed later
+    if (!temp_sf) goto fail;
+
+    temp_sf = open_clamp_streamfile_f(temp_sf, clamp_offset, clamp_size);
+    if (!temp_sf) goto fail;
+
+    return temp_sf;
+fail:
+    close_streamfile(temp_sf);
+    return NULL;
+}
+
 
 static STREAMFILE* open_memory_bao_atomic(ubi_bao_header_t* bao, STREAMFILE* sf) {
     uint32_t memory_offset = bao->memory_skip;
@@ -1255,8 +1286,15 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
     // for pure memory/streams prefetch size is 0
     uint32_t real_stream_size = bao->stream_size - bao->prefetch_size;
-    bool load_memory = (bao->is_prefetch) || (!bao->is_prefetch && !bao->is_stream);
+    bool load_memory = ((bao->is_prefetch) || (!bao->is_prefetch && !bao->is_stream)) && (!bao->is_inline);
     bool load_stream = (bao->is_stream && !bao->is_prefetch) || (bao->is_prefetch && real_stream_size != 0);
+    bool load_inline = bao->is_inline;
+
+    // seen in atomic/spk BAOs v29+
+    if (load_inline) {
+        sf_memory = open_inline_bao(bao, sf); // within header BAO
+        if (!sf_memory) goto fail;
+    }
 
     if (bao->archive == ARCHIVE_ATOMIC) {
         if (load_memory) {

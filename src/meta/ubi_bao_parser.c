@@ -263,8 +263,7 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         }
     }
 
-
-    reader_x32(r); // inline flag
+    bao->is_inline = reader_s32(r);
     reader_x32(r); // flag 1
     bao->inline_size = reader_u32(r);
     if (bao->inline_size) {
@@ -604,6 +603,14 @@ static bool parse_values(ubi_bao_header_t* bao) {
     if (!bao->is_stream && bao->is_prefetch) {
         VGM_LOG("UBI BAO: unexpected non-streamed prefetch at %x\n", bao->header_offset);
         //return false; //?
+    }
+
+    // inline prefetch + stream = ok
+    // inline memory = ok
+    // inline stream only or inline prefetch only = ???
+    if (bao->is_inline && ((bao->is_stream && !bao->is_prefetch) || (!bao->is_stream && bao->is_prefetch))) {
+        VGM_LOG("UBI BAO: unexpected inline stream at %x\n", bao->header_offset);
+        return false;
     }
 
     return true;
