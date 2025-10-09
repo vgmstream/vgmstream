@@ -948,7 +948,7 @@ static void build_readable_name(char* buf, size_t buf_size, ubi_bao_header_t* ba
     if (bao->archive == ARCHIVE_SPK)
         grp_name = "spk";
     pft_name = bao->is_prefetch ? "p" : "n";
-    typ_name = bao->is_stream ? "str" : "mem";
+    typ_name = bao->is_stream ? "stream" : (bao->is_inline ? "inline" : "memory");
 
     if (bao->type == TYPE_SEQUENCE) {
         if (bao->sequence_single) {

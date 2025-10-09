@@ -4,7 +4,7 @@
 #include "../streamtypes.h"
 #include "../streamfile.h"
 
-#define BAO_MAX_TYPES  0x10
+#define BAO_MAX_TYPES  10
 #define BAO_MAX_CODECS  0x10
 
 // affects how BAOs are referenced

@@ -438,6 +438,9 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x08] = RAW_MP3;         //'MP3'
           //cfg->codec_map[0x09] = RAW_DSP;         //'Nintendon ADPCM' (sic)
             cfg->codec_map[0x0A] = RAW_AT9;         //'ATRAC9'
+
+            // FC4 PS3 very rarely has wrong .sbao size (001a400f.spk + 001a3fa5.sbao), should clamp atomic BAO
+            //cfg->ignore_atomic_bao_size = true;
             break;
 
         case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear

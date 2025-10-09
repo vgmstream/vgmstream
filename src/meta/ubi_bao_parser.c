@@ -5,7 +5,7 @@
 #include "ubi_bao_parser.h"
 
 // header classes, also similar to SB types:
-static const ubi_bao_type_t type_map[] = {
+static const ubi_bao_type_t type_map[BAO_MAX_TYPES] = {
     TYPE_NONE,      //00: not set
     TYPE_AUDIO,     //01: single audio (samples, channels, bitrate, samples+size, etc)
     TYPE_IGNORED,   //02: play chain with config? (ex. silence + audio, or rarely audio 2ch intro + layer 4ch body)
@@ -20,6 +20,39 @@ static const ubi_bao_type_t type_map[] = {
 };
 
 //*************************************************************************************************
+
+// some kind of points or parameter table, rare and mainly seen in chains (FC4 002358ee.spk, 0021bd69.spk, etc)
+static bool parse_parameters_v2b(ubi_bao_header_t* bao, reader_t* r) {
+    if (bao->cfg.engine_version < 0x2B00)
+        return true;
+
+    int count = reader_s32(r);
+    if (count != 0 && count != 2) {
+        VGM_LOG("UBI BAO: unexpected parameter count %i\n", count);
+        return false;
+    }
+
+    for (int i = 0; i < count; i++) {
+        uint32_t label_size = reader_u32(r);
+        reader_skip(r, label_size); // TempoBPM, TempoTimeSig
+    }
+
+    int count2 = reader_s32(r);
+    if (count != count2) {
+        VGM_LOG("UBI BAO: unexpected parameter count2 %i\n", count2);
+        return false;
+    }
+    
+    reader_x32(r); // flag 1
+
+    uint32_t points_size = reader_u32(r);
+    if (points_size) {
+        reader_skip(r, points_size); // 0x14 x2 (LE fields?)
+    }
+
+    return true;
+}
+
 
 // base 0x1c part for all baos
 static bool parse_base_v29(ubi_bao_header_t* bao, reader_t* r) {
@@ -57,12 +90,7 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
     reader_x32(r); // flag 1/2
     reader_x32(r); // bao id?
 
-    if (bao->cfg.engine_version >= 0x2B00) {
-        reader_x32(r); // null
-        reader_x32(r); // null
-        reader_x32(r); // flag 1
-        reader_x32(r); // null
-    }
+    parse_parameters_v2b(bao, r);
 
     bao->loop_flag = reader_s32(r);
 
@@ -153,7 +181,10 @@ static bool parse_type_sequence_v29(ubi_bao_header_t* bao, reader_t* r) {
 
     reader_x32(r); // fixed? 0x3C2E0733
     reader_x32(r); // null
-    reader_x32(r); // flag 0/1 (loop related?)
+
+    parse_parameters_v2b(bao, r);
+
+    reader_x32(r); // flag 0/1 (loop related) //TODO: sequence single?
     reader_x32(r); // null
 
     reader_x32(r); // null
@@ -173,6 +204,12 @@ static bool parse_type_sequence_v29(ubi_bao_header_t* bao, reader_t* r) {
 
     reader_x32(r); // null
     bao->sequence_count = reader_s32(r);
+
+    if (bao->sequence_count > BAO_MAX_CHAIN_COUNT) {
+        VGM_LOG("UBI BAO: incorrect sequence count\n");
+        return false;
+    }
+
     for (int i = 0; i < bao->sequence_count; i++) {
         bao->sequence_chain[i] = reader_u32(r);
         reader_x32(r); // flag 0/1 (loop related?)
@@ -180,6 +217,10 @@ static bool parse_type_sequence_v29(ubi_bao_header_t* bao, reader_t* r) {
         reader_x32(r); // low value
 
         reader_x32(r); // chain duration f32
+    }
+
+    if (bao->cfg.engine_version >= 0x2B00) {
+        reader_x32(r); // flag 1
     }
 
     return true;
@@ -193,12 +234,7 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         reader_x32(r); // bao id (original/internal?)
     }
 
-    if (bao->cfg.engine_version >= 0x2B00) {
-        reader_x32(r); // null
-        reader_x32(r); // null
-        reader_x32(r); // flag 1
-        reader_x32(r); // null
-    }
+    parse_parameters_v2b(bao, r);
 
     bao->loop_flag = reader_s32(r); // full loops
     reader_x32(r); // null
@@ -244,6 +280,11 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         reader_x32(r); // null
     }
     bao->layer_count = reader_s32(r);
+
+    if (bao->layer_count > BAO_MAX_LAYER_COUNT) {
+        VGM_LOG("UBI BAO: incorrect layer count\n");
+        return false;
+    }
 
     for (int i = 0; i < bao->layer_count; i++) {
         ubi_bao_layer_t* layer = &bao->layer[i];
