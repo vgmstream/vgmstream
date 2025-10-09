@@ -48,6 +48,9 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     if (id == get_id32be("1FCB"))
         return NULL;
 
+    if (check_extensions(sf, "sbao,bao"))
+        return NULL;
+
     if (target_subsong == 0) target_subsong = 1;
 
     /* init ffmpeg */

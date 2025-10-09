@@ -107,17 +107,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
      * filenames (not complete) and current mode, "PACKAGE" (pk, index + BAOs with
      * external BAOs) or "ATOMIC" (file, separate BAOs). For .SPK the project BAO doesn't define type.
      *
-     * We want header classes, also similar to SB types:
-     * - 01: single audio (samples, channels, bitrate, samples+size, etc)
-     * - 02: play chain with config? (ex. silence + audio, or rarely audio 2ch intro + layer 4ch body)
-     * - 03: unknown chain
-     * - 04: random (count, etc) + BAO IDs and float probability to play
-     * - 05: sequence (count, etc) + BAO IDs and unknown data
-     * - 06: layer (count, etc) + layer headers
-     * - 07: unknown chain
-     * - 08: silence (duration, etc)
-     * - 09: silence with config? (channels, sample rate, etc), extremely rare [Shaun White Skateboarding (Wii)]
-     *
      * Right after base BAO size is the extra table for that BAO (what sectionX had, plus
      * extra crap like cue-like labels, even for type 0x01).
      *
@@ -135,6 +124,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
     cfg->version = version;
 
+    // We want usable 'header' types, also similar to SB types (see type_map in ubi_bao_parser.c):
     cfg->allowed_types[0x01] = true; //sfx
     cfg->allowed_types[0x05] = true; //sequence
     cfg->allowed_types[0x06] = true; //layers
@@ -170,19 +160,20 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
         cfg->bao_class   = 0x14; // absolute
         cfg->header_id   = 0x04; // relative
         cfg->header_type = 0x2c; // relative
-        cfg->header_skip = 0x1c; // relative
+        cfg->header_skip = 0x1c;
 
+        cfg->engine_version = (version >> 8) & 0xFFFF00;
         cfg->parser = PARSER_29;
     }
 
     /* 2 configs with same ID, autodetect */
     if (cfg->version == 0x00220015) {
-        off_t header_size = 0x40 + read_u32le(0x04, sf); /* first is always LE */
+        off_t header_size = 0x40 + read_u32le(0x04, sf); // first is always LE
 
         /* next BAO uses machine endianness, entry should always exist
          * (maybe should use project BAO to detect?) */
         if (guess_endian32(header_size + 0x04, sf)) {
-            version |= 0xF000; /* signal Wii=BE, but don't modify original */
+            version |= 0xF000; // signal Wii=BE, but don't modify original
         }
     }
 
@@ -400,21 +391,23 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
         case 0x00290106: // Splinter Cell: Blacklist (PS3/X360)-atomic-gear
         case 0x002A0300: // Watch Dogs (X360/PS3/Wii U)-spk, Far Cry 3: Blood Dragon (PS4)-spk
-          //cfg->codec_map[0x01] = RAW_PCM;
-          //cfg->codec_map[0x02] = UBI_IMA; // v6
-          //cfg->codec_map[0x03] = UBI_IMA_seek; // v6 //TODO: header format is a bit different
+            cfg->codec_map[0x01] = RAW_PCM;
+            cfg->codec_map[0x02] = UBI_IMA; // v6
+            cfg->codec_map[0x03] = UBI_IMA_seek; // v6 //TODO: header format is a bit different
             cfg->codec_map[0x04] = FMT_OGG;
             cfg->codec_map[0x05] = RAW_XMA2_new;
-          //cfg->codec_map[0x06] = RAW_PSX_new;
-          //cfg->codec_map[0x07] = RAW_AT3;
-          //cfg->codec_map[0x08] = RAW_AT3;
-            cfg->codec_map[0x09] = RAW_AT9; // PS4
+          //cfg->codec_map[0x06] = RAW_PSX; //?
+            cfg->codec_map[0x07] = RAW_MP3;
+          //cfg->codec_map[0x08] = RAW_DM; //?
+            cfg->codec_map[0x09] = RAW_AT9;
 
+            // - v29: new BAO format
+            // - v2A: modified layers, inline data with no header
             break;
 
       //case 0x002B0000: // Far Cry 4 (multi)-spk-dunia
         case 0x002B0100: // Far Cry 4 (multi)-spk-dunia
-            cfg->audio_flag_2b = true;
+            cfg->flag_2b = true;
 #if 0
             config_bao_entry(cfg, 0xD8, 0x1c);
 

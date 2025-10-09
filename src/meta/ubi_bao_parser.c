@@ -8,14 +8,15 @@
 static const ubi_bao_type_t type_map[] = {
     TYPE_NONE,      //00: not set
     TYPE_AUDIO,     //01: single audio (samples, channels, bitrate, samples+size, etc)
-    TYPE_NONE,      //02: play chain with config? (ex. silence + audio, or rarely audio 2ch intro + layer 4ch body)
-    TYPE_NONE,      //03: unknown chain
-    TYPE_NONE,      //04: random (count, etc) + BAO IDs and float probability to play
+    TYPE_IGNORED,   //02: play chain with config? (ex. silence + audio, or rarely audio 2ch intro + layer 4ch body)
+    TYPE_IGNORED,   //03: unknown chain
+    TYPE_IGNORED,   //04: random (count, etc) + BAO IDs and float probability to play, may chain to other randoms
     TYPE_SEQUENCE,  //05: sequence (count, etc) + BAO IDs and unknown data
     TYPE_LAYER,     //06: layer (count, etc) + layer headers
-    TYPE_NONE,      //07: unknown chain
+    TYPE_IGNORED,   //07: unknown chain
     TYPE_SILENCE,   //08: silence (duration, etc)
-    TYPE_NONE,      //09: silence with config? (channels, sample rate, etc), extremely rare [Shaun White Skateboarding (Wii)]
+    TYPE_IGNORED,   //09: silence with config? (channels, sample rate, etc), extremely rare [Shaun White Skateboarding (Wii)]
+    //TYPE_NONE     //10+
 };
 
 //*************************************************************************************************
@@ -30,7 +31,7 @@ static bool parse_base_v29(ubi_bao_header_t* bao, reader_t* r) {
     return true;
 }
 
-// common to all "header" class BAOs
+// common 0x30 to all "header" class BAOs
 static bool parse_common_v29(ubi_bao_header_t* bao, reader_t* r) {
     reader_x32(r); // fixed? 0x17CE46D9
     bao->header_id = reader_u32(r);
@@ -57,7 +58,7 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
     reader_x32(r); // bao id?
     bao->loop_flag = reader_s32(r);
 
-    if (bao->cfg.audio_flag_2b) {
+    if (bao->cfg.flag_2b) {
         reader_x32(r); // null
         reader_x32(r); // flag 1
         reader_x32(r); // null
@@ -83,18 +84,13 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
     bao->is_stream = reader_s32(r);
 
     if (bao->is_stream) {
-        int flag = reader_s32(r); // null but possibly prefetch flag (compared to layers)
-        reader_x32(r); // null
+        bao->is_prefetch = reader_s32(r);
+        bao->prefetch_size = reader_u32(r);
 
         reader_x32(r); // stream offset (always 0x1C = header_skip)
         bao->stream_id = reader_u32(r);
         uint32_t repeat_id = reader_u32(r); // prefetch id?
         reader_x32(r); // -1
-
-        if (flag != 0) {
-            VGM_LOG("UBI BAO: prefetch flag found\n");
-            return false;
-        }
 
         if (bao->stream_id != repeat_id) {
             VGM_LOG("UBI BAO: audio stream id mismatch %08x != %08x\n", bao->stream_id, repeat_id);
@@ -125,7 +121,7 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
     bao->extradata_size = reader_u32(r);
     if (bao->extradata_size) {
         bao->extradata_offset = r->offset;
-        reader_skip(r, bao->extradata_size); // atrac9 config, xma header in memory BAOs, etc
+        reader_skip(r, bao->extradata_size); // mp3 info, atrac9 config, xma header in memory BAOs, etc
     }
 
     int samples1 = reader_s32(r);
@@ -134,13 +130,13 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
     int samples2 = reader_s32(r);
     reader_x32(r); // samples2 data size (0 if not set, sometimes negative in xma?)
 
-    if (bao->cfg.audio_flag_2b) {
+    if (bao->cfg.flag_2b) {
         reader_x32(r); // null
     }
 
 
     /* post process */
-    //TODO move
+    //TODO move?
     if (bao->loop_flag) {
         bao->loop_start  = samples1;
         bao->num_samples = samples1 + samples2;
@@ -149,44 +145,43 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
         bao->num_samples = samples1;
     }
 
-    ;VGM_LOG("UBI BAO: header v29 at %x\n", r->offset);
     return true;
 }
 
 static bool parse_type_sequence_v29(ubi_bao_header_t* bao, reader_t* r) {
-#if 0
-    // fixed    
-    // null
-    // flag 1 (sequence loop?)
-    // null
 
-    // null
-    // null
-    // flag 1 (sequence loop?)
-    // null
+    reader_x32(r); // fixed? 0x3C2E0733
+    reader_x32(r); // null
+    reader_x32(r); // flag 0/1 (loop related?)
+    reader_x32(r); // null
 
-    // segments?
-    // null
-    // null
-    // null
+    reader_x32(r); // null
+    reader_x32(r); // null
+    reader_x32(r); // flag 1
+    reader_x32(r); // null
 
-    // duration f32
-    // null
-    // null
-    // null
+    reader_x32(r); // segments?
+    reader_x32(r); // null
+    reader_x32(r); // null
+    reader_x32(r); // null
 
-    // null
-    // segments
+    reader_x32(r); // duration f32
+    reader_x32(r); // null
+    reader_x32(r); // null
+    reader_x32(r); // null
+
+    reader_x32(r); // null
+    bao->sequence_count = reader_s32(r);
     for (int i = 0; i < bao->sequence_count; i++) {
-        // id
-        // null
-        // null
-        // format
+        bao->sequence_chain[i] = reader_u32(r);
+        reader_x32(r); // flag 0/1 (loop related?)
+        reader_x32(r); // flag 0/1 (loop related?)
+        reader_x32(r); // low value
 
-        // duration f32
+        reader_x32(r); // chain duration f32
     }
-#endif
-    return false;
+
+    return true;
 }
 
 static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
@@ -194,7 +189,7 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
     reader_x32(r); // fixed? 0xF2D3BBD4
     int layer_ids = reader_s32(r);
     for (int i = 0; i < layer_ids; i++) {
-        reader_x32(r); // bao id
+        reader_x32(r); // bao id (original/internal?)
     }
 
     bao->loop_flag = reader_s32(r); // full loops
@@ -203,11 +198,11 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
     reader_x32(r); // null
 
     reader_x32(r); // bao id? (shared in multiple BAOs)
-    reader_x32(r); // low value (close to sample rate)
+    reader_x32(r); // bao id? low value?
     bao->stream_size = reader_u32(r); // full size (ex. prefetch + stream)
     reader_x32(r); // null
 
-    reader_x32(r); // flag 1
+    reader_x32(r); // flag 1 / 0 (less common)
     bao->is_stream = reader_s32(r);
 
     if (bao->is_stream) {
@@ -235,7 +230,7 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
     }
 
     reader_x32(r); // -1
-    reader_x32(r); // bao id? (shared in multiple BAOs)
+    reader_x32(r); // bao id? low value? (shared in multiple BAOs)
     bao->layer_count = reader_s32(r);
 
     for (int i = 0; i < bao->layer_count; i++) {
@@ -251,57 +246,73 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         reader_x32(r); // value / null
         layer->num_samples = reader_s32(r);
 
-        reader_x32(r); // layer size?
+        reader_x32(r); // related to layer size?
         reader_x32(r); // null
-        reader_x32(r); // null / 06 (uncommon)
+        reader_x32(r); // null / 01 / 06 (uncommon)
         reader_x32(r); // flag 1
 
         layer->extradata_size = reader_u32(r);
-        if (bao->extradata_size) {
+        if (layer->extradata_size) {
             layer->extradata_offset = r->offset;
-            reader_skip(r, bao->extradata_size); // atrac9 config, xma header in memory BAOs, etc
+            reader_skip(r, layer->extradata_size); // mp3 info, atrac9 config, etc
         }
     }
 
-    bao->is_inline = reader_s32(r);
-    reader_x32(r); // flag 1
-    bao->inline_size = reader_u32(r);
-    if (bao->inline_size) {
-        bao->inline_offset = r->offset;
-        reader_skip(r, bao->inline_size); // typically ubi-ima layers
+    if (bao->cfg.engine_version <= 0x2900) {
+        bao->is_inline = reader_s32(r);
+        reader_x32(r); // flag 1
+        bao->inline_size = reader_u32(r);
+    }
+    else {
+        bao->inline_size = reader_u32(r);
+        bao->is_inline = reader_s32(r);
+        reader_x32(r); // null
+        reader_x32(r); // null
     }
 
-    bao->stream_id = reader_u32(r); // same as header_id, ignored if stream_flag is not set
+    if (bao->inline_size) {
+        bao->inline_offset = r->offset;
+        reader_skip(r, bao->inline_size); // codec data
+    }
 
-    ///TODO: recheck v2a+
-    //if v2a:
-    //  memory_size (null = no memory)
-    //  flag 1 (memory flag?)
-    //  null
-    //  null
-    //
-    //  memory data start (if any)
-    //
-    //  null
-    //  flag 1
-    //  null
-    //  value
-    //  high value
+    // footer (stream_id equals header_id and is ignored if stream_flag is not set)
+    if (bao->cfg.engine_version <= 0x2900) {
+        bao->stream_id = reader_u32(r);
+    }
+    else {
+        reader_x32(r); // null
+        reader_x32(r); // flag 1
+        reader_x32(r); // null
+        bao->stream_id = reader_u32(r);
+        reader_x32(r); // hash?
+    }
 
-    ;VGM_LOG("UBI BAO: header v29 at %x\n", r->offset);
     return true;
 }
 
+// generally only parsed if found in layers (very rare)
 static bool parse_type_silence_v29(ubi_bao_header_t* bao, reader_t* r) {
-    VGM_LOG("UBI BAO: silence_v29 not implemented\n");
-    return false;
+
+    if (bao->cfg.engine_version > 0x2900) {
+        VGM_LOG("UBI BAO: silence_v29 not implemented\n");
+        return false;
+    }
+
+    reader_x32(r); // fixed? 0xFF4F734A
+    reader_x32(r); // flag 1
+    reader_x32(r); // bao id?
+    bao->silence_duration = reader_f32(r);
+
+    reader_x32(r); // bao id?
+
+    return true;
 }
 
 // Parses a 0x00290000+ version BAOs. Unlike previous versions there are many variable sized-fields
 // so instead of offset config we have feature flags.
 static bool parse_header_v29(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
     reader_t r = {0};
-    reader_setup(&r, sf, offset, 0, bao->cfg.big_endian);
+    reader_setup(&r, sf, offset, bao->cfg.big_endian);
 
     if (!parse_base_v29(bao, &r))
         return false;
@@ -312,16 +323,22 @@ static bool parse_header_v29(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset
         bao->type = type_map[bao->header_type];
     }
 
+    bool ok = false;
     switch(bao->type) {
-        case TYPE_AUDIO: return parse_type_audio_v29(bao, &r); break;
-        case TYPE_SEQUENCE: return parse_type_sequence_v29(bao, &r); break;
-        case TYPE_LAYER: return parse_type_layer_v29(bao, &r); break;
-        case TYPE_SILENCE: return parse_type_silence_v29(bao, &r); break;
-        default:
-            return false;
+        case TYPE_AUDIO:    ok = parse_type_audio_v29(bao, &r); break;
+        case TYPE_SEQUENCE: ok = parse_type_sequence_v29(bao, &r); break;
+        case TYPE_LAYER:    ok = parse_type_layer_v29(bao, &r); break;
+        case TYPE_SILENCE:  ok = parse_type_silence_v29(bao, &r); break;
+        default: ok = false;
     }
 
-    return false;
+    if (!ok)
+        return false;
+
+    bao->header_size = (uint32_t)(r.offset - offset);
+
+    //;VGM_LOG("UBI BAO: header v29 at %x\n", r.offset);
+    return true;
 }
 
 //*************************************************************************************************
@@ -558,8 +575,7 @@ static bool parse_values(ubi_bao_header_t* bao) {
         bao->stream_type    = bao->layer[0].stream_type;
         bao->num_samples    = bao->layer[0].num_samples;
 
-        // uncommonly channels may vary per layer [Rayman Raving Rabbids: TV Party (Wii) ex. 0x22000cbc.pk]
-        // samples can be +-1 between layers
+        // check that layers were parsed correctly
         for (int i = 1; i < bao->layer_count; i++) {
             ubi_bao_layer_t* layer_curr = &bao->layer[i];
             ubi_bao_layer_t* layer_prev = &bao->layer[i-1];
@@ -572,6 +588,9 @@ static bool parse_values(ubi_bao_header_t* bao) {
                     return false;
                 }
             }
+
+            // samples can be +-1 between layers
+            // uncommonly channels may vary per layer [Rayman Raving Rabbids: TV Party (Wii) ex. 0x22000cbc.pk]
         }
     }
 
@@ -670,7 +689,9 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
     }
 
     bao->classes[(bao_class >> 28) & 0xF]++;
-    if (bao_class != 0x20000000) // skip non-header classes
+
+    // skip non-header classes but don't error to signal "bank has no subsongs"
+    if (bao_class != 0x20000000)
         return true;
 
     uint32_t h_offset = offset + bao->cfg.header_skip;

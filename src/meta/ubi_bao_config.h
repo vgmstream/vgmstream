@@ -10,16 +10,16 @@
 // affects how BAOs are referenced
 typedef enum { ARCHIVE_NONE = 0, ARCHIVE_ATOMIC, ARCHIVE_PK, ARCHIVE_SPK } ubi_bao_archive_t;
 // main playable audio (there are others like randoms and chains but aren't that useful)
-typedef enum { TYPE_NONE = 0, TYPE_AUDIO, TYPE_SEQUENCE, TYPE_LAYER, TYPE_SILENCE } ubi_bao_type_t;
+typedef enum { TYPE_NONE = 0, TYPE_AUDIO, TYPE_SEQUENCE, TYPE_LAYER, TYPE_SILENCE, TYPE_IGNORED } ubi_bao_type_t;
 typedef enum { 
   CODEC_NONE = 0, 
-  UBI_IMA, UBI_IMA_seek,
   RAW_PCM,
+  UBI_IMA, UBI_IMA_seek,
   RAW_PSX, RAW_PSX_new,
-  RAW_XMA1_mem, RAW_XMA1_str, RAW_XMA2_old, RAW_XMA2_new,
   RAW_AT3, RAW_AT3_105, RAW_AT3_132, FMT_AT3,
-  RAW_DSP,
+  RAW_XMA1_mem, RAW_XMA1_str, RAW_XMA2_old, RAW_XMA2_new,
   FMT_OGG,
+  RAW_DSP,
   RAW_MP3,
   RAW_AT9,
 } ubi_bao_codec_t;
@@ -94,7 +94,10 @@ typedef struct {
 
     off_t silence_duration_float;
 
-    bool audio_flag_2b;
+    //TO-DO: these probably could be removed and use a version checks, but who knows with Ubi
+    int engine_version; // approximate version used
+  //uint8_t minor_version;
+    bool flag_2b;
 } ubi_bao_config_t;
 
 

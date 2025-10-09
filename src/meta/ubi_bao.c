@@ -243,10 +243,11 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
                 sf_xmah = sf_head;
                 sf_xmad = sf_data;
                 if (bao->extradata_size) {
-                    // null
-                    // 0x09000000?
-                    // chunk size (always 0x34)
-                    // -1
+                    // extradata format (v29+):
+                    //  null
+                    //  0x09000000?
+                    //  chunk size (always 0x34)
+                    //  -1
                     chunk_offset = bao->extradata_offset + 0x10;
                 }
                 else {
@@ -322,14 +323,47 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             break;
         }
 #endif
+
+#ifdef VGM_USE_MPEG
+        case RAW_MP3: {
+            mpeg_custom_config cfg = {0};
+            // has extradata in v29 (size 0x2c), seem to be some kind of config per channel?
+
+            cfg.data_size = bao->stream_size;
+
+            vgmstream->codec_data = init_mpeg_custom(sf_data, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+
+            break;
+        }
+#endif
 #ifdef VGM_USE_ATRAC9
         case RAW_AT9: {
             atrac9_config cfg = {0};
 
-            // ATRAC9 info + config + first frames (repeats from stream), part of header
-            cfg.channels = 0;
-            cfg.config_data = read_u32be(bao->extradata_offset + 0x58, sf_head);
-            cfg.encoder_delay = read_u32le(bao->extradata_offset + 0x64, sf_head);
+            uint32_t extradata_suboffset = bao->extradata_offset;
+            if (bao->type == TYPE_LAYER) {
+                extradata_suboffset += 0x0C; //-1 x3 (seen in mono layers)
+            }
+            else {
+                extradata_suboffset += 0x34; //-1 x13 (seen in stereo streams)
+            }
+
+            // extradata format (v2A+)
+            //  00: low numbers and 0x81811C24 (channel related?)
+            //  10: frame size
+            //  14: low numbers and 0x81811C24 (similar to the prev ones)
+            //  24: ATRAC9 config
+            //  28: fixed? 0x0F
+            //  2c: flag 1
+            //  30: data size
+            //  34: -1
+            //  38+: 'preroll' data (repeat of the first 2 stream/memory frames, to setup the decoder?)
+
+            cfg.channels = bao->channels;
+            cfg.config_data = read_u32be(extradata_suboffset + 0x24, sf_head);
+            cfg.encoder_delay = 0; //TOOD: research default, doesn't seem to be 2 frames
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -604,11 +638,9 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header_t* bao, STREAMFIL
 
     build_readable_name(readable_name, sizeof(readable_name), bao);
 
-    ;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, s_size=%x, stream=%i, prefetch=%i\n",
-        bao->header_offset, bao->header_id, bao->stream_id,
-        bao->stream_size, bao->is_stream, bao->is_prefetch);
-    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, pre.sz=%x, codec=%i (sub=%i)\n",
-        bao->header_type, bao->header_size, bao->extra_size, bao->prefetch_size, bao->header_type == 0x01 ? bao->stream_type : -1, bao->stream_subtype);
+    ;VGM_LOG("UBI BAO: target at %x + %x (type=%i, codec=%i), h_id=%08x, s_id=%08x (s=%x), str=%i, pft=%i (s=%x)\n",
+        bao->header_offset, bao->header_size, bao->header_type, bao->type == TYPE_SEQUENCE ? -1 : bao->stream_type,
+        bao->header_id, bao->stream_id, bao->stream_size, bao->is_stream, bao->is_prefetch, bao->prefetch_size);
 
 
     switch(bao->type) {
@@ -1068,18 +1100,21 @@ fail:
     return NULL;
 }
 
+// opens BAO data within header BAO (probably any BAO data, seen ubi-ima, mp3 and atrac9 layers)
 static STREAMFILE* open_inline_bao(ubi_bao_header_t* bao, STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
     uint32_t clamp_offset = bao->inline_offset;
     uint32_t clamp_size = bao->inline_size;
 
-    // (same as XMA extradata format)
-    // null
-    // 0x09000000?
-    // chunk size (always 0x34)
-    // -1
-    clamp_offset += 0x10;
-    clamp_size -= 0x10;
+    if (bao->cfg.engine_version <= 0x2900) {
+        // v29 mini header, same as XMA extradata format
+        //  null
+        //  0x09000000?
+        //  chunk size (always 0x34)
+        //  -1
+        clamp_offset += 0x10;
+        clamp_size -= 0x10;
+    }
 
     temp_sf = open_wrap_streamfile(sf); // wrap current SF (header) to avoid it being closed later
     if (!temp_sf) goto fail;
@@ -1272,13 +1307,12 @@ static STREAMFILE* open_stream_bao_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
 /* Create a usable streamfile by joining memory + streams and setting up offsets as needed.
  *
- * Audio comes in "memory" and "streaming" BAOs, and when "prefetched" flag is
- * on we need to join memory and streamed parts as they're stored separately
- * (data may be split at any point and not at frame boundaries, too).
+ * Audio comes in "memory" and "streaming" BAOs, and when "prefetched" flag is set we need to join
+ *  memory and streamed parts as they're stored separately (data may be split at any point).
  * 
- * The physical location of those depends on the format, basically
- * memory BAOs are within current file (for packages/spk) or a small external file (atomic),
- * and stream BAOs in a separate file. Prefetch + memory data shouldn't happen at once (in theory).
+ * The physical location of those depends on the format. memory BAOs may be within current file (packages/spk)
+ * or external file (atomic/spk). Stream BAOs are always separate file. Later BAOs allow "inline" memory data
+ * within the header BAO itself. Prefetch + memory data shouldn't happen at once (in theory).
  */
 static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
     STREAMFILE* sf_memory = NULL;
@@ -1286,9 +1320,9 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
     // for pure memory/streams prefetch size is 0
     uint32_t real_stream_size = bao->stream_size - bao->prefetch_size;
+    bool load_inline = bao->is_inline;
     bool load_memory = ((bao->is_prefetch) || (!bao->is_prefetch && !bao->is_stream)) && (!bao->is_inline);
     bool load_stream = (bao->is_stream && !bao->is_prefetch) || (bao->is_prefetch && real_stream_size != 0);
-    bool load_inline = bao->is_inline;
 
     // seen in atomic/spk BAOs v29+
     if (load_inline) {
