@@ -71,6 +71,7 @@
     <ClInclude Include="in_vgmstream.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sdk\in2.h" />
+    <ClInclude Include="sdk\in2_extra.h" />
     <ClInclude Include="sdk\ipc_pe.h" />
     <ClInclude Include="sdk\out.h" />
     <ClInclude Include="sdk\wa_ipc.h" />

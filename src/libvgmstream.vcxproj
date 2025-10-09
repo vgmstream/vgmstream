@@ -188,6 +188,7 @@
     <ClInclude Include="meta\txth_streamfile.h" />
     <ClInclude Include="meta\txtp.h" />
     <ClInclude Include="meta\ubi_bao_config.h" />
+    <ClInclude Include="meta\ubi_bao_parser.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_ckd_cwav_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
@@ -221,6 +222,7 @@
     <ClInclude Include="util\paths.h" />
     <ClInclude Include="util\reader_get.h" />
     <ClInclude Include="util\reader_get_nibbles.h" />
+    <ClInclude Include="util\reader_helper.h" />
     <ClInclude Include="util\reader_put.h" />
     <ClInclude Include="util\reader_sf.h" />
     <ClInclude Include="util\reader_text.h" />
@@ -777,6 +779,7 @@
     <ClCompile Include="meta\ubi_apm.c" />
     <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_bao_config.c" />
+    <ClCompile Include="meta\ubi_bao_parser.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
     <ClCompile Include="meta\ubi_ckd_cwav.c" />
     <ClCompile Include="meta\ubi_hx.c" />

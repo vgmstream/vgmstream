@@ -128,8 +128,10 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
 
     switch(bao->codec) {
         case UBI_IMA:
-        case UBI_IMA_seek: {
-            // IMA seekable has a seek table in the v6 frame header and blocks are preceded by adpcm hist+step
+        case UBI_IMA_seek: 
+        case UBI_IMA_mark: {
+            //TODO: IMA seekable has a seek table in the v6 frame header and blocks are preceded by adpcm hist+step
+            //TODO: IMA with markers doesn't have the v6 header but has seek table (in machine endianness)
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
             break;
@@ -345,15 +347,18 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             uint32_t extradata_suboffset = bao->extradata_offset;
             if (bao->type == TYPE_LAYER) {
                 extradata_suboffset += 0x0C; //-1 x3 (seen in mono layers)
+                // no diffs in v2B
             }
             else {
-                extradata_suboffset += 0x34; //-1 x13 (seen in stereo streams)
+                extradata_suboffset += 0x34; //-1 x13 (mono or stereo layers)
+                if (bao->cfg.engine_version >= 0x2B00)
+                    extradata_suboffset += 0x04; // -1
             }
 
             // extradata format (v2A+)
-            //  00: low numbers and 0x81811C24 (channel related?)
+            //  00: low numbers and 0x81811C24 (v2A) or 0x96B58C11 (v2B)
             //  10: frame size
-            //  14: low numbers and 0x81811C24 (similar to the prev ones)
+            //  14: low numbers and 0x81811C24 (v2A) or 0x96B58C11 (v2B) (similar to the prev ones)
             //  24: ATRAC9 config
             //  28: fixed? 0x0F
             //  2c: flag 1
@@ -430,7 +435,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_layer(ubi_bao_header_t* bao, STREAMFILE
         temp_sf = setup_ubi_bao_streamfile(sf_data, 0x00, full_stream_size, i, bao->layer_count, bao->cfg.big_endian);
         if (!temp_sf) goto fail;
 
-        //TODO: improve
+        //TODO: improve (overwrites standar values with current layer)
         bao->stream_size = get_streamfile_size(temp_sf);
         bao->sample_rate = bao->layer[i].sample_rate;
         bao->channels = bao->layer[i].channels;
@@ -440,7 +445,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_layer(ubi_bao_header_t* bao, STREAMFILE
 
         total_channels += bao->layer[i].channels;
 
-        /* build the layer VGMSTREAM (standard sb with custom streamfile) */
+        /* build the layer VGMSTREAM (standard with custom streamfile) */
         data->layers[i] = init_vgmstream_ubi_bao_base(bao, sf, temp_sf);
         if (!data->layers[i]) goto fail;
 
@@ -1004,7 +1009,8 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
 // - Dunia .pak: %08x.sbao (streams, memory files are in .spk)
 // - Dunia .fat+dat: %08x.sbao (streams, memory files are in .spk)
 //   Hashed custom CRC32 (v5 .fat) or CRC64 (v9 .fat) from "soundbinary\%08x.sbao" (see Gibbed.Dunia for the algorithm)
-// - GEAR bigfile: same CRC32 hash but unknown string, possibly varies per game
+// - GEAR bigfile: same CRC32 hash, varies per game (sometimes just %08x.bao/sbao)
+// - Opal lin+fat: ids in bigfile, internal names are similar to 'DARE_FFFFFFFF_20004118.BAO'
 // Could try to limit names per type to avoid extra fopens but config is getting rather complex.
 
 static const char* atomic_memory_baos[] = {
@@ -1019,7 +1025,7 @@ static const int atomic_memory_baos_count = sizeof(atomic_memory_baos) / sizeof(
 static const char* atomic_stream_baos[] = {
     "%08x.sbao", // common
     "%08x.bao", // .fat+bin
-    // .forge names
+    // .forge names (unused)
     "Common_BAO_0x%08x",
     "Common_BAO_0x%08x.sbao", // used?
     // .forge language names, found in Assassin's Creed 1's exes and Shaun White Snowboarding (X360) exe in listed order
@@ -1388,6 +1394,7 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
         return temp_sf;
     }
 
+    VGM_LOG("UBI BAO: memory nor stream found: inline=%i, memory=%i, stream=%i\n", load_inline, load_memory, load_stream);
     goto fail; // shouldn't happen
 fail:
     close_streamfile(sf_memory);

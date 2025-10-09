@@ -14,7 +14,7 @@ typedef enum { TYPE_NONE = 0, TYPE_AUDIO, TYPE_SEQUENCE, TYPE_LAYER, TYPE_SILENC
 typedef enum { 
   CODEC_NONE = 0, 
   RAW_PCM,
-  UBI_IMA, UBI_IMA_seek,
+  UBI_IMA, UBI_IMA_seek, UBI_IMA_mark,
   RAW_PSX, RAW_PSX_new,
   RAW_AT3, RAW_AT3_105, RAW_AT3_132, FMT_AT3,
   RAW_XMA1_mem, RAW_XMA1_str, RAW_XMA2_old, RAW_XMA2_new,
@@ -33,6 +33,7 @@ typedef struct {
     bool big_endian;
     bool allowed_types[BAO_MAX_TYPES];
     uint32_t version;
+    int engine_version; // approximate version used, for some feature checks
 
     ubi_bao_codec_t codec_map[BAO_MAX_CODECS];  // BAO ID > codec
     bool v1_bao;                    // first versions handle some codecs slightly differently
@@ -94,10 +95,6 @@ typedef struct {
 
     off_t silence_duration_float;
 
-    //TO-DO: these probably could be removed and use a version checks, but who knows with Ubi
-    int engine_version; // approximate version used
-  //uint8_t minor_version;
-    bool flag_2b;
 } ubi_bao_config_t;
 
 

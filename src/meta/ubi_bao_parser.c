@@ -56,21 +56,22 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
     reader_x32(r); // fixed? 0x93B1ECE5
     reader_x32(r); // flag 1/2
     reader_x32(r); // bao id?
-    bao->loop_flag = reader_s32(r);
 
-    if (bao->cfg.flag_2b) {
+    if (bao->cfg.engine_version >= 0x2B00) {
+        reader_x32(r); // null
         reader_x32(r); // null
         reader_x32(r); // flag 1
         reader_x32(r); // null
-        reader_x32(r); // null
     }
 
-    reader_x32(r); // flag 1 / 0 (v0029)
+    bao->loop_flag = reader_s32(r);
+
+    reader_x32(r); // flag 1 / 0 (v0029?)
     reader_x32(r); // null
     reader_x32(r); // full stream size (ex. header xma chunk + stream size), null if loop_flag not set
     reader_x32(r); // null
 
-    reader_x32(r); // null
+    reader_x32(r); // null / original rate? (rare)
     reader_x32(r); // null
     bao->stream_type = reader_s32(r);
     bao->channels = reader_s32(r);
@@ -130,7 +131,7 @@ static bool parse_type_audio_v29(ubi_bao_header_t* bao, reader_t* r) {
     int samples2 = reader_s32(r);
     reader_x32(r); // samples2 data size (0 if not set, sometimes negative in xma?)
 
-    if (bao->cfg.flag_2b) {
+    if (bao->cfg.engine_version >= 0x2B00) {
         reader_x32(r); // null
     }
 
@@ -192,6 +193,13 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         reader_x32(r); // bao id (original/internal?)
     }
 
+    if (bao->cfg.engine_version >= 0x2B00) {
+        reader_x32(r); // null
+        reader_x32(r); // null
+        reader_x32(r); // flag 1
+        reader_x32(r); // null
+    }
+
     bao->loop_flag = reader_s32(r); // full loops
     reader_x32(r); // null
     reader_x32(r); // layers?
@@ -214,8 +222,9 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         reader_x32(r); // -1 or rarely bao id?
         reader_x32(r); // -1
     }
-
-    reader_x32(r); // -1
+    else {
+        reader_x32(r); // -1
+    }
 
     int strings_size = reader_u32(r);
     if (strings_size) {
@@ -231,6 +240,9 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
 
     reader_x32(r); // -1
     reader_x32(r); // bao id? low value? (shared in multiple BAOs)
+    if (bao->cfg.engine_version >= 0x2B00) {
+        reader_x32(r); // null
+    }
     bao->layer_count = reader_s32(r);
 
     for (int i = 0; i < bao->layer_count; i++) {
@@ -247,8 +259,8 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         layer->num_samples = reader_s32(r);
 
         reader_x32(r); // related to layer size?
-        reader_x32(r); // null
-        reader_x32(r); // null / 01 / 06 (uncommon)
+        reader_x32(r); // null or some config (64000)
+        reader_x32(r); // flags? (00, 01, 02, 06)
         reader_x32(r); // flag 1
 
         layer->extradata_size = reader_u32(r);
@@ -258,13 +270,20 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         }
     }
 
-    if (bao->cfg.engine_version <= 0x2900) {
+    if (bao->cfg.engine_version < 0x2A00) {
         bao->is_inline = reader_s32(r);
         reader_x32(r); // flag 1
         bao->inline_size = reader_u32(r);
     }
+    else if (bao->cfg.engine_version < 0x2B00) {
+        bao->inline_size = reader_u32(r);
+        bao->is_inline = reader_s32(r);
+        reader_x32(r); // null
+        reader_x32(r); // null
+    }
     else {
         bao->inline_size = reader_u32(r);
+        reader_x32(r); // inline_id? (-1 if not set, same as stream_id below)
         bao->is_inline = reader_s32(r);
         reader_x32(r); // null
         reader_x32(r); // null
@@ -285,6 +304,10 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
         reader_x32(r); // null
         bao->stream_id = reader_u32(r);
         reader_x32(r); // hash?
+    }
+
+    if (bao->cfg.engine_version >= 0x2B00) {
+        reader_x32(r); // null
     }
 
     return true;
