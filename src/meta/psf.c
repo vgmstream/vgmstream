@@ -342,7 +342,7 @@ fail:
 
 /* ***************************************************** */
 
-static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf,uint32_t* rid, int32_t* lid) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count, sample_rate = 0,  rate_value = 0, interleave, big_endian;
@@ -352,8 +352,8 @@ static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf) {
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
     /* standard:
-     * 0x00: -1/number (lang?)
-     * 0x04: config/size?
+     * 0x00: language ID
+     * 0x04: resource ID, maybe game computed this from a resource name.
      * 0x08: channel size? only ok for PSX-pivotal
      * 0x0c: sample rate or rate_value
      * 0x0e: 0x4=PSX-pivotal or 0xFF=PSX
@@ -382,6 +382,10 @@ static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf) {
 
     loop_flag = 0;
 
+    // language id
+    *lid = read_32bit(0x8, sf);
+    // resource id
+    *rid = read_32bit(0x0C,sf);
 
     if (big_endian && read_32bit(0x50, sf) != 0) { /* GC */
         codec = coding_NGC_DSP;
@@ -602,14 +606,14 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
             uint8_t name_size;
             char name[256];
 
-            /* 0x00: config/size?
+            /* 0x00: resource ID, maybe game computed this from a resource name.
              * 0x04: name size
              * 0x05: segments
              * 0x06: ?
              * 0x08: relative path to .psf
              * 0xNN: segment table (same as .psf)
              */
-
+            uint32_t rid = read_32bit(header_offset, sf);
             name_size = read_u8(header_offset + 0x04, sf);
             read_string(name, name_size, header_offset + 0x08, sf);
 
@@ -646,25 +650,28 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 if (!vgmstream) goto fail;
             }
 
-            snprintf(stream_name,sizeof(stream_name), "%s-%s" , "IMUS", name);
+            snprintf(stream_name, sizeof(stream_name), "R%u_%s-%s", rid, "IMUS", name);
             break;
         }
 
         case PFST: { /* external track */
-            STREAMFILE *psf_sf;
-            uint8_t name_size;
+            STREAMFILE *psf_sf = 0;
+            uint8_t name_size = 0;
             char name[256];
 
+            int32_t lid = read_32bit(header_offset, sf);
+            uint32_t rid = read_32bit(header_offset + 0x4, sf);
             if (chunk_padding == 0 && target_size > 0x08 + 0x0c) { /* TGE PC/Xbox version */
-                /* 0x00: -1/0
-                 * 0x04: config/size?
+                /* 0x00: language ID
+                 * 0x04: resource ID, maybe game computed this from a resource name.
                  * 0x08: channel size
                  * 0x0c: sample rate? (differs vs PSF)
-                 * 0x0e: 4?
-                 * 0x0f: name size
-                 * 0x10: name
+                 * 0x0e: ????
+                 * 0x12: channel flag, value 4 means double channel
+                 * 0x13: name size
+                 * 0x14: ????
                  */
-
+                
                 /* later games have name but actually use bigfile [Conflict: Global Storm (Xbox)] */
                 if ((read_32bitBE(header_offset + 0x14, sf) & 0x0000FFFF) == 0xCCCC) {
                     name_size = read_8bit(header_offset + 0x13, sf);
@@ -673,35 +680,37 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                     external_sf = open_streamfile_by_filename(sf, SCH_STREAM);
                     if (!external_sf) {
                         vgm_logi("SCH: external file '%s' not found (put together)\n", SCH_STREAM);
-                        goto fail;
                     }
+                    else
+                    {
+                        subfile_offset = read_32bit(header_offset + 0x0c, sf);
+                        subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
 
-                    subfile_offset = read_32bit(header_offset + 0x0c, sf);
-                    subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
-
-                    temp_sf = setup_subfile_streamfile(external_sf, subfile_offset,subfile_size, "psf");
-                    if (!temp_sf) goto fail;
+                        temp_sf = setup_subfile_streamfile(external_sf, subfile_offset, subfile_size, "psf");
+                        if (!temp_sf) goto fail;
+                    }
 
                     psf_sf = temp_sf;
                 }
-                else {
-                    name_size = read_8bit(header_offset + 0x0f, sf);
-                    read_string(name,name_size, header_offset + 0x10, sf);
 
+                /* PC games still use name + 0xCC at header, no diffs vs Xbox? [Conflict: Vietnam (PC)] */
+                if (!psf_sf) {
                     external_sf = open_streamfile_by_filename(sf, name);
-                    if (!external_sf) {
-                        vgm_logi("SCH: external file '%s' not found (put together)\n", name);
-                        goto fail;
+                    if (external_sf) {
+                        psf_sf = external_sf;
                     }
+                }
 
-                    psf_sf = external_sf;
+                if (!psf_sf) {
+                    vgm_logi("SCH: external file '%s' or '%s' not found (put together)\n", SCH_STREAM, name);
+                    goto fail;
                 }
             }
             else if (chunk_padding) {
                 strcpy(name, SCH_STREAM_PS2); /* fixed */
 
                 /* 0x00: -1
-                 * 0x04: config/size?
+                 * 0x04: resource ID, maybe game computed this from a resource name.
                  * 0x08: .swd offset
                  */
                 external_sf = open_streamfile_by_filename(sf, name);
@@ -719,7 +728,7 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 strcpy(name, SCH_STREAM_PS2); /* fixed */
 
                 /* 0x00: -1
-                 * 0x04: config/size?
+                 * 0x04: resource ID, maybe game computed this from a resource name.
                  * 0x08: .swd offset
                  */
                 external_sf = open_streamfile_by_filename(sf, name);
@@ -740,7 +749,10 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 if (!vgmstream) goto fail;
             }
 
-            snprintf(stream_name,sizeof(stream_name), "%s-%s" , "PFST", name);
+            if (lid >= 0)
+                snprintf(stream_name,sizeof(stream_name), "R%u_L%d_%s-%s" , rid, lid, "PFST", name);
+            else
+                snprintf(stream_name, sizeof(stream_name), "R%u_%s-%s", rid, "PFST", name);
             break;
         }
 
@@ -750,10 +762,15 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
             temp_sf = setup_subfile_streamfile(sf, target_offset,target_size, NULL);
             if (!temp_sf) goto fail;
 
-            vgmstream = init_vgmstream_psf_pfsm(temp_sf);
+            uint32_t rid = 0;
+            int32_t lid = 0;
+            vgmstream = init_vgmstream_psf_pfsm(temp_sf, &rid, &lid);
             if (!vgmstream) goto fail;
 
-            snprintf(stream_name,sizeof(stream_name), "%s" , "PFSM");
+            if(lid >= 0)
+                snprintf(stream_name, sizeof(stream_name), "R%u_L%d_%s", rid, lid, "PFSM");
+            else
+                snprintf(stream_name, sizeof(stream_name), "R%u_%s", rid, "PFSM");
             break;
 
         default: /* target not found */
