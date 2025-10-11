@@ -404,6 +404,9 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->layer_stream_subtype = 0x78; //TODO: unknown field, all layers in BD use RAW_AT3_105, check others
 
             //TODO: some GR files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
+
+            // FC3 has a few files that are truncated a few bytes (extraction issue?)
+            // FC3 also has file with garbage in the upper bytes of type (00448bc8.spk)
             break;
 
         case 0x00290106: // Splinter Cell: Blacklist (PS3/X360)-atomic-gear

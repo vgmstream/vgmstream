@@ -267,7 +267,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             vgmstream->stream_size = data_size;
 
             // somehow num_samples may contain garbage (probably DARE just plays XMA data and ignores num_samples)
-            if (bao->cfg.audio_fix_xma_samples && bao->codec == RAW_XMA2_new && vgmstream->num_samples > 0xFFFFFF) {
+            if (bao->cfg.audio_fix_xma_samples && bao->codec == RAW_XMA2_new && 
+                    (vgmstream->num_samples > 0x00FFFFFF || vgmstream->num_samples < -0x00FFFFFF)) {
                 VGM_LOG("UBI BAO: wrong xma samples\n");
                 vgmstream->num_samples = read_s32be(chunk_offset + 0x18, sf_xmah);
                 xma_fix_raw_samples(vgmstream, sf_data, start_offset, data_size,0, true, false);
