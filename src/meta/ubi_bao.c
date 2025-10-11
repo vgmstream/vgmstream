@@ -1,68 +1,15 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "../util/endianness.h"
-#include "../util.h"
 #include "ubi_bao_streamfile.h"
 
 // BAO's massive confg and variations are handled here
 #include "ubi_bao_config.h"
+#include "ubi_bao_parser.h"
 
 #define BAO_MIN_VERSION 0x1B
 #define BAO_MAX_VERSION 0x2B
 
-#define BAO_MAX_LAYER_COUNT 16      // arbitrary max
-#define BAO_MAX_CHAIN_COUNT 128     // POP:TFS goes up to ~100
-
-
-typedef struct {
-    ubi_bao_archive_t archive;  // source format, which affects how related files are located
-    ubi_bao_type_t type;
-    ubi_bao_codec_t codec;
-    int total_subsongs;
-
-    ubi_bao_config_t cfg;
-
-    /* header info */
-    uint32_t header_offset;     // base BAO offset 
-    uint32_t header_id;         // current BAO's id
-    uint32_t header_type;       // type of audio
-  //uint32_t header_skip;       // base header size
-    uint32_t header_size;       // normal base size (not counting extra tables)
-    uint32_t extra_size;        // extra tables size
-
-    //TODO rename (resource_id/size)
-    uint32_t stream_id;         // stream or memory BAO's id
-    uint32_t stream_size;       // stream or memory BAO's playable data
-    uint32_t prefetch_size;
-
-    uint32_t memory_skip;       // must skip a bit after base memory BAO offset (class 0x30000000), calculated
-    uint32_t stream_skip;       // same for stream BAO offset (class 0x50000000)
-
-    bool is_stream;             // streamed data (external file) or memory data otherwise (external or internal)
-    bool is_prefetch;           // memory data is to be used as part of the stream
-
-    /* sound info */
-    int loop_flag;
-    int num_samples;
-    int loop_start;
-    int sample_rate;
-    int channels;
-    int stream_type;
-    int stream_subtype;
-
-    int layer_count;
-    int layer_channels[BAO_MAX_LAYER_COUNT];
-    int sequence_count;
-    uint32_t sequence_chain[BAO_MAX_CHAIN_COUNT];
-    int sequence_loop;
-    int sequence_single;
-
-    float silence_duration;
-
-    int classes[16];
-    int types[16];
-} ubi_bao_header_t;
 
 static bool parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset);
 static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int target_subsong);
@@ -181,8 +128,10 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
 
     switch(bao->codec) {
         case UBI_IMA:
-        case UBI_IMA_seek: {
-            // IMA seekable has a seek table in the v6 frame header and blocks are preceded by adpcm hist+step
+        case UBI_IMA_seek: 
+        case UBI_IMA_mark: {
+            //TODO: IMA seekable has a seek table in the v6 frame header and blocks are preceded by adpcm hist+step
+            //TODO: IMA with markers doesn't have the v6 header but has seek table (in machine endianness)
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
             break;
@@ -295,7 +244,17 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
                 // xma header in header BAO after extradata (XMA1_MEM in v1_bao or XMA1_STR / XMA2* otherwise)
                 sf_xmah = sf_head;
                 sf_xmad = sf_data;
-                chunk_offset = bao->header_offset + bao->header_size + bao->extra_size;
+                if (bao->extradata_size) {
+                    // extradata format (v29+):
+                    //  null
+                    //  0x09000000?
+                    //  chunk size (always 0x34)
+                    //  -1
+                    chunk_offset = bao->extradata_offset + 0x10;
+                }
+                else {
+                    chunk_offset = bao->header_offset + bao->header_size + bao->extra_size;
+                }
                 start_offset = 0x00;
                 data_size = bao->stream_size;
             }
@@ -308,7 +267,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             vgmstream->stream_size = data_size;
 
             // somehow num_samples may contain garbage (probably DARE just plays XMA data and ignores num_samples)
-            if (bao->cfg.audio_fix_xma_samples && bao->codec == RAW_XMA2_new && vgmstream->num_samples > 0xFFFFFF) {
+            if (bao->cfg.audio_fix_xma_samples && bao->codec == RAW_XMA2_new && 
+                    (vgmstream->num_samples > 0x00FFFFFF || vgmstream->num_samples < -0x00FFFFFF)) {
                 VGM_LOG("UBI BAO: wrong xma samples\n");
                 vgmstream->num_samples = read_s32be(chunk_offset + 0x18, sf_xmah);
                 xma_fix_raw_samples(vgmstream, sf_data, start_offset, data_size,0, true, false);
@@ -366,16 +326,50 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             break;
         }
 #endif
+
+#ifdef VGM_USE_MPEG
+        case RAW_MP3: {
+            mpeg_custom_config cfg = {0};
+            // has extradata in v29 (size 0x2c), seem to be some kind of config per channel?
+
+            cfg.data_size = bao->stream_size;
+
+            vgmstream->codec_data = init_mpeg_custom(sf_data, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+
+            break;
+        }
+#endif
 #ifdef VGM_USE_ATRAC9
         case RAW_AT9: {
             atrac9_config cfg = {0};
 
-            // ATRAC9 info + config + first frames (repeats from stream), part of header
-            uint32_t extradata_offset = bao->header_offset + bao->cfg.header_skip + bao->cfg.audio_extradata_size + 0x04;
+            uint32_t extradata_suboffset = bao->extradata_offset;
+            if (bao->type == TYPE_LAYER) {
+                extradata_suboffset += 0x0C; //-1 x3 (seen in mono layers)
+                // no diffs in v2B
+            }
+            else {
+                extradata_suboffset += 0x34; //-1 x13 (mono or stereo layers)
+                if (bao->cfg.engine_version >= 0x2B00)
+                    extradata_suboffset += 0x04; // -1
+            }
 
-            cfg.channels = 0;
-            cfg.config_data = read_u32be(extradata_offset + 0x58, sf_head);
-            cfg.encoder_delay = read_u32le(extradata_offset + 0x64, sf_head);
+            // extradata format (v2A+)
+            //  00: low numbers and 0x81811C24 (v2A) or 0x96B58C11 (v2B)
+            //  10: frame size
+            //  14: low numbers and 0x81811C24 (v2A) or 0x96B58C11 (v2B) (similar to the prev ones)
+            //  24: ATRAC9 config
+            //  28: fixed? 0x0F
+            //  2c: flag 1
+            //  30: data size
+            //  34: -1
+            //  38+: 'preroll' data (repeat of the first 2 stream/memory frames, to setup the decoder?)
+
+            cfg.channels = bao->channels;
+            cfg.config_data = read_u32be(extradata_suboffset + 0x24, sf_head);
+            cfg.encoder_delay = 0; //TOOD: research default, doesn't seem to be 2 frames
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -442,11 +436,17 @@ static VGMSTREAM* init_vgmstream_ubi_bao_layer(ubi_bao_header_t* bao, STREAMFILE
         temp_sf = setup_ubi_bao_streamfile(sf_data, 0x00, full_stream_size, i, bao->layer_count, bao->cfg.big_endian);
         if (!temp_sf) goto fail;
 
+        //TODO: improve (overwrites standar values with current layer)
         bao->stream_size = get_streamfile_size(temp_sf);
-        bao->channels = bao->layer_channels[i];
-        total_channels += bao->layer_channels[i];
+        bao->sample_rate = bao->layer[i].sample_rate;
+        bao->channels = bao->layer[i].channels;
+        bao->num_samples = bao->layer[i].num_samples;
+        bao->extradata_offset = bao->layer[i].extradata_offset;
+        bao->extradata_size = bao->layer[i].extradata_size;
 
-        /* build the layer VGMSTREAM (standard sb with custom streamfile) */
+        total_channels += bao->layer[i].channels;
+
+        /* build the layer VGMSTREAM (standard with custom streamfile) */
         data->layers[i] = init_vgmstream_ubi_bao_base(bao, sf, temp_sf);
         if (!data->layers[i]) goto fail;
 
@@ -504,7 +504,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_sequence(ubi_bao_header_t* bao, STREAMF
 
     /* open all segments and mix */
     for (int i = 0; i < bao->sequence_count; i++) {
-        ubi_bao_header_t temp_bao = *bao; /* memcpy'ed */
+        // TODO: improve, this also copies the big layer/sequence arrays (though not that common)
+        ubi_bao_header_t temp_bao = *bao; // memcpy'ed
         int entry_id = bao->sequence_chain[i];
 
         if (bao->archive == ARCHIVE_ATOMIC) {
@@ -564,7 +565,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_sequence(ubi_bao_header_t* bao, STREAMF
             bao->loop_start = bao->num_samples;
         bao->num_samples += data->segments[i]->num_samples;
 
-        /* save current (silences don't have values, so this unsures they know when memcpy'ed) */
+        /* save current (silences don't have values, so this ensures they know when memcpy'ed) */
         bao->channels = temp_bao.channels;
         bao->sample_rate = temp_bao.sample_rate;
     }
@@ -635,21 +636,16 @@ fail:
 
 static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header_t* bao, STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    char readable_name[STREAM_NAME_SIZE];
 
     if (bao->total_subsongs <= 0) {
         vgm_logi("UBI BAO: bank has no subsongs (ignore)\n");
         return NULL; // not uncommon
     }
 
-    build_readable_name(readable_name, sizeof(readable_name), bao);
 
-    ;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, s_size=%x, stream=%i, prefetch=%i\n",
-        bao->header_offset, bao->header_id, bao->stream_id,
-        bao->stream_size, bao->is_stream, bao->is_prefetch);
-    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, pre.sz=%x, codec=%i (sub=%i)\n",
-        bao->header_type, bao->header_size, bao->extra_size, bao->prefetch_size, bao->header_type == 0x01 ? bao->stream_type : -1, bao->stream_subtype);
-
+    ;VGM_LOG("UBI BAO: target at %x + %x (type=%i, codec=%i), h_id=%08x, s_id=%08x (s=%x), str=%i, pft=%i (s=%x)\n",
+        bao->header_offset, bao->header_size, bao->header_type, bao->type == TYPE_SEQUENCE ? -1 : bao->stream_type,
+        bao->header_id, bao->stream_id, bao->stream_size, bao->is_stream, bao->is_prefetch, bao->prefetch_size);
 
     switch(bao->type) {
 
@@ -674,9 +670,16 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header_t* bao, STREAMFIL
             goto fail;
     }
 
-    if (!vgmstream) goto fail;
+    if (!vgmstream)
+        goto fail;
 
-    strcpy(vgmstream->stream_name, readable_name);
+    // create usable name, except if it's a sequence parsing its individual entries
+    if (!(bao->sequence_count && bao->type != TYPE_SEQUENCE)) {
+        char readable_name[STREAM_NAME_SIZE];
+        build_readable_name(readable_name, sizeof(readable_name), bao);
+        strcpy(vgmstream->stream_name, readable_name);
+    }
+
     return vgmstream;
 
 fail:
@@ -802,9 +805,6 @@ static bool parse_pk(ubi_bao_header_t* bao, STREAMFILE* sf) {
         bao_offset += bao_size; // files simply concat BAOs
     }
 
-    //;VGM_LOG("UBI BAO: class "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->classes[i],"%02x=%i ",i,bao->classes[i]); }} VGM_LOG("\n");
-    //;VGM_LOG("UBI BAO: types "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->types[i],"%02x=%i ",i,bao->types[i]); }} VGM_LOG("\n");
-
     close_streamfile(sf_index);
     close_streamfile(sf_test);
     return true;
@@ -820,9 +820,8 @@ fail:
 static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset, uint32_t* p_size) {
     //TODO: unify with parse_spk?
 
-    // 0x01: Avatar/FC2, 0x04: FC3/FC4
     uint8_t type = read_u8(0x00, sf);
-    if (type != 0x01 && type != 0x04)
+    if (type != 0x01 && type != 0x02 && type != 0x04)
         return false;
 
     bool has_related_baos = type == 0x01;
@@ -868,7 +867,7 @@ static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset,
 
 
 /* parse a .spk (package) file: index + BAOs, similar to .pk but simpler. 
- * - 0x00: 0xNN4B5053 ("SPK\N" LE) (N: v1=Avatar/FC2, v4=FC3/FC4)
+ * - 0x00: 0xNN4B5053 ("SPK\N" LE) (N: v1=Avatar/FC2, v2=Watch Dogs, v4=FC3/FC4)
  * - 0x04: BAO count
  * - 0x08: BAO ids inside (0x04 * BAO count)
  * - (v1) per BAO:
@@ -876,7 +875,7 @@ static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset,
  *   - 0x04: ids related to this BAO? (0x04 * table count)
  *   - 0x08/NN: BAO size
  *   - 0x0c/NN+: BAO data up to size + padding to 0x04
- * - (v4) per BAO:
+ * - (v2/v4) per BAO:
  *   - 0x00: BAO size
  *   - 0xNN: BAO data up to size
  *
@@ -884,9 +883,8 @@ static bool find_spk_bao(uint32_t target_id, STREAMFILE* sf, uint32_t* p_offset,
  */
 static bool parse_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
-    // 0x01: Avatar/FC2, 0x04: FC3/FC4
     uint8_t type = read_u8(0x00, sf);
-    if (type != 0x01 && type != 0x04)
+    if (type != 0x01 && type != 0x02 && type != 0x04)
         return false;
 
     int target_subsong = sf->stream_index;
@@ -935,25 +933,33 @@ static bool parse_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
 /* ************************************************************************* */
 
+// .pk/spk can contain many subsongs, we need something helpful that shows stream file used.
 static void build_readable_name(char* buf, size_t buf_size, ubi_bao_header_t* bao) {
-    const char* grp_name;
-    const char* pft_name;
-    const char* typ_name;
-    const char* res_name;
+    const char* fmt_name = NULL;
+    const char* loc_name = NULL;
+    const char* res_name = NULL;
 
-    if (bao->type == TYPE_NONE)
+    if (bao->type == TYPE_NONE || bao->type == TYPE_IGNORED || bao->total_subsongs <= 0)
         return;
 
     /* config */
-    grp_name = "?";
     if (bao->archive == ARCHIVE_ATOMIC)
-        grp_name = "atomic";
-    if (bao->archive == ARCHIVE_PK)
-        grp_name = "package";
-    if (bao->archive == ARCHIVE_SPK)
-        grp_name = "spk";
-    pft_name = bao->is_prefetch ? "p" : "n";
-    typ_name = bao->is_stream ? "str" : "mem";
+        fmt_name = "atomic";
+    else if (bao->archive == ARCHIVE_PK)
+        fmt_name = "package";
+    else if (bao->archive == ARCHIVE_SPK)
+        fmt_name = "spk";
+    else
+        fmt_name = "?";
+
+    if (bao->is_inline)
+        loc_name = "inline";
+    else if (bao->is_prefetch)
+        loc_name = "p-strm";
+    else if (bao->is_stream)
+        loc_name = "stream";
+    else
+        loc_name = "memory";
 
     if (bao->type == TYPE_SEQUENCE) {
         if (bao->sequence_single) {
@@ -978,384 +984,25 @@ static void build_readable_name(char* buf, size_t buf_size, ubi_bao_header_t* ba
     }
 
     uint32_t h_id = bao->header_id;
-    uint32_t s_id = bao->stream_id;
+    uint32_t s_id = bao->is_inline ? 0 : bao->stream_id;
     uint32_t type = bao->header_type;
 
-    /* .pk can contain many subsongs, we need something helpful
-     * (best done right after subsong detection, since some sequence re-parse types) */
     if (res_name && res_name[0]) {
-        snprintf(buf,buf_size, "%s/%s-%s/%02x-%08x/%08x/%s", grp_name, pft_name, typ_name, type, h_id, s_id, res_name);
+        snprintf(buf,buf_size, "%s/%s/%02x-%08x/%08x/%s", fmt_name, loc_name, type, h_id, s_id, res_name);
     }
     else {
-        snprintf(buf,buf_size, "%s/%s-%s/%02x-%08x/%08x", grp_name, pft_name, typ_name, type, h_id, s_id);
+        snprintf(buf,buf_size, "%s/%s/%02x-%08x/%08x", fmt_name, loc_name, type, h_id, s_id);
     }
 }
 
-static bool parse_type_audio(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
-    read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
-    read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
-
-    /* audio header */
-    bao->type = TYPE_AUDIO;
-
-    uint32_t h_offset = offset + bao->cfg.header_skip;
-    bao->stream_size = read_u32(h_offset + bao->cfg.audio_stream_size, sf);
-    bao->stream_id   = read_u32(h_offset + bao->cfg.audio_stream_id, sf);
-    bao->is_stream   = read_s32(h_offset + bao->cfg.audio_stream_flag, sf) & bao->cfg.audio_stream_and;
-    bao->loop_flag   = read_s32(h_offset + bao->cfg.audio_loop_flag, sf) & bao->cfg.audio_loop_and;
-    bao->channels    = read_s32(h_offset + bao->cfg.audio_channels, sf);
-    bao->sample_rate = read_s32(h_offset + bao->cfg.audio_sample_rate, sf);
-
-    /* extra cue table, rare (found with XMA1/DSP) [Beowulf (X360), We Dare (Wii)] */
-    uint32_t cues_size = 0;
-    if (bao->cfg.audio_cue_count) {
-        cues_size += read_u32(h_offset + bao->cfg.audio_cue_count, sf) * 0x08;
-    }
-    if (bao->cfg.audio_cue_labels) {
-        cues_size += read_u32(h_offset + bao->cfg.audio_cue_labels, sf);
-    }
-    bao->extra_size = cues_size;
-
-    /* prefetch data is in another internal BAO right after the base header */
-    if (bao->cfg.audio_prefetch_size) {
-        bao->prefetch_size = read_u32(h_offset + bao->cfg.audio_prefetch_size, sf);
-        bao->is_prefetch = (bao->prefetch_size > 0);
-    }
-
-
-    uint32_t s_offset = h_offset;
-    if (bao->cfg.audio_extradata_size) {
-        // later versions have extradata before samples
-        uint32_t extradata_size = read_s32(h_offset + bao->cfg.audio_extradata_size, sf);
-        s_offset += extradata_size;
-    }
-
-    if (bao->loop_flag) {
-        bao->loop_start  = read_s32(s_offset + bao->cfg.audio_num_samples, sf);
-        bao->num_samples = read_s32(s_offset + bao->cfg.audio_num_samples2, sf) + bao->loop_start;
-    }
-    else {
-        bao->num_samples = read_s32(s_offset + bao->cfg.audio_num_samples, sf);
-    }
-
-    bao->stream_type = read_s32(h_offset + bao->cfg.audio_stream_type, sf);
-    if (bao->cfg.audio_stream_subtype)
-        bao->stream_subtype = read_s32(h_offset + bao->cfg.audio_stream_subtype, sf);
-
-    return true;
-}
-
-static bool parse_type_sequence(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
-    read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
-    read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
-
-    /* sequence chain */
-    bao->type = TYPE_SEQUENCE;
-    if (bao->cfg.sequence_entry_size == 0) {
-        VGM_LOG("UBI BAO: sequence entry size not configured at %x\n", (uint32_t)offset);
-        return false;
-    }
-
-    uint32_t h_offset = offset + bao->cfg.header_skip;
-    bao->sequence_loop   = read_s32(h_offset + bao->cfg.sequence_sequence_loop, sf);
-    bao->sequence_single = read_s32(h_offset + bao->cfg.sequence_sequence_single, sf);
-    bao->sequence_count  = read_s32(h_offset + bao->cfg.sequence_sequence_count, sf);
-    if (bao->sequence_count > BAO_MAX_CHAIN_COUNT) {
-        VGM_LOG("UBI BAO: incorrect sequence count\n");
-        return false;
-    }
-
-    /* get chain in extra table */
-    uint32_t table_offset = offset + bao->header_size;
-    for (int i = 0; i < bao->sequence_count; i++) {
-        uint32_t entry_id = read_u32(table_offset + bao->cfg.sequence_entry_number, sf);
-
-        bao->sequence_chain[i] = entry_id;
-
-        table_offset += bao->cfg.sequence_entry_size;
-    }
-
-    return true;
-}
-
-static bool parse_type_layer(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
-    read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
-    read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
-
-    /* audio header */
-    bao->type = TYPE_LAYER;
-    if (bao->cfg.layer_entry_size == 0) {
-        VGM_LOG("UBI BAO: layer entry size not configured at %x\n", (uint32_t)offset);
-        return false;
-    }
-
-    uint32_t h_offset = offset + bao->cfg.header_skip;
-    bao->layer_count    = read_s32(h_offset + bao->cfg.layer_layer_count, sf);
-    bao->is_stream      = read_s32(h_offset + bao->cfg.layer_stream_flag, sf) & bao->cfg.layer_stream_and;
-    bao->stream_size    = read_u32(h_offset + bao->cfg.layer_stream_size, sf);
-    bao->stream_id      = read_u32(h_offset + bao->cfg.layer_stream_id, sf);
-    if (bao->layer_count > BAO_MAX_LAYER_COUNT) {
-        VGM_LOG("UBI BAO: incorrect layer count\n");
-        return false;
-    }
-
-    if (bao->cfg.layer_prefetch_size) {
-        bao->prefetch_size = read_u32(h_offset + bao->cfg.layer_prefetch_size, sf);
-        bao->is_prefetch = (bao->prefetch_size > 0);
-    }
-
-    /* extra cue table (rare, has N variable-sized labels + cue table pointing to them) */
-    uint32_t cues_size = 0;
-    if (bao->cfg.layer_cue_labels) {
-        cues_size += read_u32(h_offset + bao->cfg.layer_cue_labels, sf);
-    }
-    if (bao->cfg.layer_cue_count) {
-        cues_size += read_u32(h_offset + bao->cfg.layer_cue_count, sf) * 0x08;
-    }
-
-    if (bao->cfg.layer_extra_size) {
-        bao->extra_size = read_u32(h_offset + bao->cfg.layer_extra_size, sf);
-    }
-    else {
-        bao->extra_size = cues_size + bao->layer_count * bao->cfg.layer_entry_size + cues_size;
-    }
-
-    /* get 1st layer header in extra table and validate all headers match */
-    uint32_t table_offset = offset + bao->header_size + cues_size;
-  //bao->channels       = read_s32(table_offset + bao->cfg.layer_channels, sf);
-    bao->sample_rate    = read_s32(table_offset + bao->cfg.layer_sample_rate, sf);
-    bao->stream_type    = read_s32(table_offset + bao->cfg.layer_stream_type, sf);
-    bao->num_samples    = read_s32(table_offset + bao->cfg.layer_num_samples, sf);
-
-    //TODO:
-    if (bao->cfg.layer_stream_subtype)
-        bao->stream_subtype = 1;
-    //    bao->stream_subtype = read_s32(h_offset + bao->cfg.layer_stream_subtype, sf);
-
-    for (int i = 0; i < bao->layer_count; i++) {
-        int channels    = read_s32(table_offset + bao->cfg.layer_channels, sf);
-        int sample_rate = read_s32(table_offset + bao->cfg.layer_sample_rate, sf);
-        int stream_type = read_s32(table_offset + bao->cfg.layer_stream_type, sf);
-        int num_samples = read_s32(table_offset + bao->cfg.layer_num_samples, sf);
-        if (bao->sample_rate != sample_rate || bao->stream_type != stream_type) {
-            VGM_LOG("UBI BAO: layer headers don't match at %x\n", table_offset);
-
-            if (!bao->cfg.layer_ignore_error) {
-                return false;
-            }
-        }
-
-        // uncommonly channels may vary per layer [Rayman Raving Rabbids: TV Party (Wii) ex. 0x22000cbc.pk]
-        bao->layer_channels[i] = channels;
-
-        // can be +-1
-        if (bao->num_samples != num_samples && bao->num_samples + 1 == num_samples) {
-            bao->num_samples -= 1;
-        }
-
-        table_offset += bao->cfg.layer_entry_size;
-    }
-
-    return true;
-}
-
-static bool parse_type_silence(ubi_bao_header_t* bao, off_t offset, STREAMFILE* sf) {
-    read_f32_t read_f32 = get_read_f32(bao->cfg.big_endian);
-
-    /* silence header */
-    bao->type = TYPE_SILENCE;
-    if (bao->cfg.silence_duration_float == 0) {
-        VGM_LOG("UBI BAO: silence duration not configured at %x\n", (uint32_t)offset);
-        return false;
-    }
-
-    uint32_t h_offset = offset + bao->cfg.header_skip;
-    bao->silence_duration = read_f32(h_offset + bao->cfg.silence_duration_float, sf);
-    if (bao->silence_duration <= 0.0f) {
-        VGM_LOG("UBI BAO: bad duration %f at %x\n", bao->silence_duration, (uint32_t)offset);
-        return false;
-    }
-
-    return true;
-}
-
-/* adjust some common values */
-static bool parse_values(ubi_bao_header_t* bao) {
-
-    if (bao->type == TYPE_SEQUENCE || bao->type == TYPE_SILENCE)
-        return true;
-
-    /* common validations */
-    if (bao->stream_size == 0) {
-        VGM_LOG("UBI BAO: unknown stream_size at %x\n", bao->header_offset);
-        return false;
-    }
-
-    if (bao->stream_type >= BAO_MAX_CODECS) {
-        VGM_LOG("UBI BAO: unknown stream_type at %x\n", bao->header_offset);
-        return false;
-    }
-
-    /* set codec */
-    bao->codec = bao->cfg.codec_map[bao->stream_type];
-    if (bao->codec == CODEC_NONE) {
-        VGM_LOG("UBI BAO: unknown codec %x at %x\n", bao->stream_type, bao->header_offset);
-        return false;
-    }
-
-    //TODO: loop flag only?
-    //TODO: put in PSX code?
-    if (bao->type == TYPE_AUDIO && bao->codec == RAW_PSX && bao->cfg.v1_bao && bao->loop_flag) {
-        bao->num_samples = bao->num_samples / bao->channels;
-    }
-
-    /* normalize base skips, as memory data (prefetch or not, atomic or package) can be
-     * in a memory BAO after base header or audio layer BAO after the extra table */
-    if (bao->stream_id == bao->header_id && (!bao->is_stream || bao->is_prefetch)) { // layers with memory data
-        bao->memory_skip = bao->header_size + bao->extra_size;
-        bao->stream_skip = bao->cfg.header_skip;
-    }
-    else {
-        bao->memory_skip = bao->cfg.header_skip;
-        bao->stream_skip = bao->cfg.header_skip;
-    }
-
-    if (!bao->is_stream && bao->is_prefetch) {
-        VGM_LOG("UBI BAO: unexpected non-streamed prefetch at %x\n", bao->header_offset);
-        //return false; //?
-    }
-
-    return true;
-}
-
-
-/* parse a single known header resource at offset (see config_bao for info) */
 static bool parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
-    read_s32_t read_s32 = get_read_s32(bao->cfg.big_endian);
-    read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
-
-    uint8_t header_format   = read_u8   (offset + 0x00, sf); // 0x01: atomic, 0x02: package
-    uint32_t header_version = read_u32be(offset + 0x00, sf);
-    if ((bao->cfg.version  & 0x00FFFF00) != (header_version & 0x00FFFF00) || header_format > 0x03) {
-        // Avatar The Game has small variations, probably fine for the engine
-        VGM_LOG("UBI BAO: mayor version header version at %x\n", (uint32_t)offset);
-        return false;
-    }
-
-    bao->header_offset  = offset;
-
-    /* - base part in early versions:
-     * 0x00: version ID
-     * 0x04: header size (usually 0x28, rarely 0x24), can be LE unlike other fields (ex. Assassin's Creed PS3, but not in all games)
-     * 0x08(10): GUID, or id-like fields in early versions
-     * 0x18: null
-     * 0x1c: null
-     * 0x20: class
-     * 0x24: config/version? (0x00/0x01/0x02), removed in some versions
-     * (payload starts)
-     *
-     * - base part in later versions:
-     * 0x00: version ID
-     * 0x04(10): GUID
-     * 0x14: class
-     * 0x18: config/version? (0x02)
-     * (payload starts)
-     */
-
-    uint32_t h_offset = offset + bao->cfg.header_skip;
-    bao->header_id      = read_u32(h_offset + bao->cfg.header_id, sf);
-    bao->header_type    = read_u32(h_offset + bao->cfg.header_type, sf);
-
-    bao->header_size    = bao->cfg.header_base_size;
-
-    /* hack for games with smaller size than standard
-     * (can't use lowest size as other games also have extra unused field) */
-    if (bao->cfg.header_less_le_flag && !bao->cfg.big_endian) {
-        bao->header_size -= 0x04;
-    }
-    /* detect extra unused field in PC/Wii
-     * (could be improved but no apparent flags or anything useful) */
-    else if (get_streamfile_size(sf) > offset + bao->header_size) {
-        // may read next BAO version, layer header, cues, resource table size, etc, always > 1
-        int32_t end_field = read_s32(offset + bao->header_size, sf);
-
-        if (end_field == -1 || end_field == 0 || end_field == 1) { // some count?
-            bao->header_size += 0x04;
-        }
-    }
-
-    switch(bao->header_type) {
-        case 0x01:
-            if (!parse_type_audio(bao, offset, sf))
-                return false;
-            break;
-        case 0x05:
-            if (!parse_type_sequence(bao, offset, sf))
-                return false;
-            break;
-        case 0x06:
-            if (!parse_type_layer(bao, offset, sf))
-                return false;
-            break;
-        case 0x08:
-            if (!parse_type_silence(bao, offset, sf))
-                return false;
-            break;
-        default:
-            VGM_LOG("UBI BAO: unknown header type at %x\n", (uint32_t)offset);
-            return false;
-    }
-
-    if (!parse_values(bao))
-        return false;
-
-    return true;
+    return ubi_bao_parse_header(bao, sf, offset);
 }
+
 
 /* parse a full BAO, DARE's main audio format which can be inside other formats */
 static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int target_subsong) {
-    uint32_t bao_class, header_type;
-
-    uint32_t bao_version = read_u32be(offset+0x00, sf); // force buffer read (check just in case it's optimized out)
-    if (((bao_version >> 24) & 0xFF) > 0x02) {
-        VGM_LOG("UBI BAO: wrong header type %x at %x\n", bao_version, (uint32_t)offset);
-        return false;
-    }
-
-    ubi_bao_config_endian(&bao->cfg, sf, offset);
-    read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
-
-    bao_class = read_u32(offset + bao->cfg.bao_class, sf);
-    if (bao_class & 0x0FFFFFFF) {
-        VGM_LOG("UBI BAO: unknown class %x at %x\n", bao_class, (uint32_t)offset);
-        return false;
-    }
-
-    bao->classes[(bao_class >> 28) & 0xF]++;
-    if (bao_class != 0x20000000) // skip non-header classes
-        return true;
-
-    uint32_t h_offset = offset + bao->cfg.header_skip;
-    header_type = read_u32(h_offset + bao->cfg.header_type, sf);
-    if (header_type > 9) {
-        VGM_LOG("UBI BAO: unknown type %x at %x\n", header_type, (int)offset);
-        return false;
-    }
-
-    bao->types[header_type]++;
-    if (!bao->cfg.allowed_types[header_type])
-        return true;
-
-    bao->total_subsongs++;
-    if (target_subsong != bao->total_subsongs)
-        return true;
-
-    if (!parse_header(bao, sf, offset)) {
-        VGM_LOG("UBI BAO: wrong header at %x\n", (uint32_t)offset);
-        return false;
-    }
-
-    return true;
+    return ubi_bao_parse_bao(bao, sf, offset, target_subsong);
 }
 
 /* ************************************************************************* */
@@ -1363,15 +1010,16 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
 // Each engine+game typically has a generic bigfile that acts like a database/index,
 // but must be extracted to get usable .bao/sbao or similar names.
 //
-// - Anvil .forge: full names found in bigfile (extensionless), but probably unused and engine loads by id
-//   (.bao from debug strings in AC1, .bao/.sbao in Shaun White Snowboarding)
+// - Anvil .forge: full names found in bigfile (extensionless), but seem unused and engine loads by id
+//   (.bao from debug strings in AC1, .bao/.sbao in Shaun White Snowboarding).
 //   Within .forge memory BAOs are compressed (subfiles per 'area') and stream BAOs uncompressed.
 // - Yeti .fat+.bin: ids in bigfile, always %08x.bao (streamed or memory) from loose X360 files and debug strings
 //   Streams can be files or inside stream.bin
 // - Dunia .pak: %08x.sbao (streams, memory files are in .spk)
 // - Dunia .fat+dat: %08x.sbao (streams, memory files are in .spk)
 //   Hashed custom CRC32 (v5 .fat) or CRC64 (v9 .fat) from "soundbinary\%08x.sbao" (see Gibbed.Dunia for the algorithm)
-// - GEAR bigfile: same CRC32 hash but unknown string, possibly varies per game
+// - GEAR bigfile: same CRC32 hash, varies per game (sometimes just %08x.bao/sbao)
+// - Opal lin+fat: ids in bigfile, internal names are similar to 'DARE_FFFFFFFF_20004118.BAO'
 // Could try to limit names per type to avoid extra fopens but config is getting rather complex.
 
 static const char* atomic_memory_baos[] = {
@@ -1386,7 +1034,7 @@ static const int atomic_memory_baos_count = sizeof(atomic_memory_baos) / sizeof(
 static const char* atomic_stream_baos[] = {
     "%08x.sbao", // common
     "%08x.bao", // .fat+bin
-    // .forge names
+    // .forge names (unused)
     "Common_BAO_0x%08x",
     "Common_BAO_0x%08x.sbao", // used?
     // .forge language names, found in Assassin's Creed 1's exes and Shaun White Snowboarding (X360) exe in listed order
@@ -1456,6 +1104,34 @@ static STREAMFILE* setup_atomic_bao_common(uint32_t resource_id, bool is_stream,
     STREAMFILE* temp_sf = NULL;
 
     temp_sf = open_atomic_bao(resource_id, is_stream, sf);
+    if (!temp_sf) goto fail;
+
+    temp_sf = open_clamp_streamfile_f(temp_sf, clamp_offset, clamp_size);
+    if (!temp_sf) goto fail;
+
+    return temp_sf;
+fail:
+    close_streamfile(temp_sf);
+    return NULL;
+}
+
+// opens BAO data within header BAO (probably any BAO data, seen ubi-ima, mp3 and atrac9 layers)
+static STREAMFILE* open_inline_bao(ubi_bao_header_t* bao, STREAMFILE* sf) {
+    STREAMFILE* temp_sf = NULL;
+    uint32_t clamp_offset = bao->inline_offset;
+    uint32_t clamp_size = bao->inline_size;
+
+    if (bao->cfg.engine_version <= 0x2900) {
+        // v29 mini header, same as XMA extradata format
+        //  null
+        //  0x09000000?
+        //  chunk size (always 0x34)
+        //  -1
+        clamp_offset += 0x10;
+        clamp_size -= 0x10;
+    }
+
+    temp_sf = open_wrap_streamfile(sf); // wrap current SF (header) to avoid it being closed later
     if (!temp_sf) goto fail;
 
     temp_sf = open_clamp_streamfile_f(temp_sf, clamp_offset, clamp_size);
@@ -1646,13 +1322,12 @@ static STREAMFILE* open_stream_bao_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
 /* Create a usable streamfile by joining memory + streams and setting up offsets as needed.
  *
- * Audio comes in "memory" and "streaming" BAOs, and when "prefetched" flag is
- * on we need to join memory and streamed parts as they're stored separately
- * (data may be split at any point and not at frame boundaries, too).
+ * Audio comes in "memory" and "streaming" BAOs, and when "prefetched" flag is set we need to join
+ *  memory and streamed parts as they're stored separately (data may be split at any point).
  * 
- * The physical location of those depends on the format, basically
- * memory BAOs are within current file (for packages/spk) or a small external file (atomic),
- * and stream BAOs in a separate file. Prefetch + memory data shouldn't happen at once (in theory).
+ * The physical location of those depends on the format. memory BAOs may be within current file (packages/spk)
+ * or external file (atomic/spk). Stream BAOs are always separate file. Later BAOs allow "inline" memory data
+ * within the header BAO itself. Prefetch + memory data shouldn't happen at once (in theory).
  */
 static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
     STREAMFILE* sf_memory = NULL;
@@ -1660,8 +1335,15 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
     // for pure memory/streams prefetch size is 0
     uint32_t real_stream_size = bao->stream_size - bao->prefetch_size;
-    bool load_memory = (bao->is_prefetch) || (!bao->is_prefetch && !bao->is_stream);
+    bool load_inline = bao->is_inline;
+    bool load_memory = ((bao->is_prefetch) || (!bao->is_prefetch && !bao->is_stream)) && (!bao->is_inline);
     bool load_stream = (bao->is_stream && !bao->is_prefetch) || (bao->is_prefetch && real_stream_size != 0);
+
+    // seen in atomic/spk BAOs v29+
+    if (load_inline) {
+        sf_memory = open_inline_bao(bao, sf); // within header BAO
+        if (!sf_memory) goto fail;
+    }
 
     if (bao->archive == ARCHIVE_ATOMIC) {
         if (load_memory) {
@@ -1721,6 +1403,7 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header_t* bao, STREAMFILE* sf) {
         return temp_sf;
     }
 
+    VGM_LOG("UBI BAO: memory nor stream found: inline=%i, memory=%i, stream=%i\n", load_inline, load_memory, load_stream);
     goto fail; // shouldn't happen
 fail:
     close_streamfile(sf_memory);

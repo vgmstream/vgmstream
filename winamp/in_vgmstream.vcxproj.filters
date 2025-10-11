@@ -24,6 +24,9 @@
     <ClInclude Include="sdk\in2.h">
       <Filter>sdk\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sdk\in2_extra.h">
+      <Filter>sdk\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="sdk\ipc_pe.h">
       <Filter>sdk\Header Files</Filter>
     </ClInclude>
