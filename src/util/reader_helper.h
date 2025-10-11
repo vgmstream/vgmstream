@@ -37,25 +37,25 @@ static void reader_setup(reader_t* r, STREAMFILE* sf, uint32_t offset, int big_e
 }
 
 static inline uint64_t reader_u64(reader_t* r) {
-    uint64_t v = r->s32(r->offset, r->sf);
+    uint64_t v = r->u64(r->offset, r->sf);
     r->offset += 0x08;
     return v;
 }
 
 static inline int64_t reader_s64(reader_t* r) {
-    int64_t v = r->u32(r->offset, r->sf);
+    int64_t v = r->s64(r->offset, r->sf);
     r->offset += 0x08;
     return v;
 }
 
 static inline uint32_t reader_u32(reader_t* r) {
-    uint32_t v = r->s32(r->offset, r->sf);
+    uint32_t v = r->u32(r->offset, r->sf);
     r->offset += 0x04;
     return v;
 }
 
 static inline int32_t reader_s32(reader_t* r) {
-    int32_t v = r->u32(r->offset, r->sf);
+    int32_t v = r->s32(r->offset, r->sf);
     r->offset += 0x04;
     return v;
 }
@@ -93,7 +93,6 @@ static inline float reader_f32(reader_t* r) {
 static inline void reader_x32(reader_t* r) {
     r->offset += 0x04;
 }
-
 
 static inline void reader_skip(reader_t* r, uint32_t skip) {
     r->offset += skip;

@@ -503,7 +503,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_sequence(ubi_bao_header_t* bao, STREAMF
 
     /* open all segments and mix */
     for (int i = 0; i < bao->sequence_count; i++) {
-        ubi_bao_header_t temp_bao = *bao; /* memcpy'ed */
+        // TODO: improve, this also copies the big layer/sequence arrays (though not that common)
+        ubi_bao_header_t temp_bao = *bao; // memcpy'ed
         int entry_id = bao->sequence_chain[i];
 
         if (bao->archive == ARCHIVE_ATOMIC) {
@@ -563,7 +564,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_sequence(ubi_bao_header_t* bao, STREAMF
             bao->loop_start = bao->num_samples;
         bao->num_samples += data->segments[i]->num_samples;
 
-        /* save current (silences don't have values, so this unsures they know when memcpy'ed) */
+        /* save current (silences don't have values, so this ensures they know when memcpy'ed) */
         bao->channels = temp_bao.channels;
         bao->sample_rate = temp_bao.sample_rate;
     }
@@ -634,19 +635,16 @@ fail:
 
 static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header_t* bao, STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    char readable_name[STREAM_NAME_SIZE];
 
     if (bao->total_subsongs <= 0) {
         vgm_logi("UBI BAO: bank has no subsongs (ignore)\n");
         return NULL; // not uncommon
     }
 
-    build_readable_name(readable_name, sizeof(readable_name), bao);
 
     ;VGM_LOG("UBI BAO: target at %x + %x (type=%i, codec=%i), h_id=%08x, s_id=%08x (s=%x), str=%i, pft=%i (s=%x)\n",
         bao->header_offset, bao->header_size, bao->header_type, bao->type == TYPE_SEQUENCE ? -1 : bao->stream_type,
         bao->header_id, bao->stream_id, bao->stream_size, bao->is_stream, bao->is_prefetch, bao->prefetch_size);
-
 
     switch(bao->type) {
 
@@ -671,9 +669,16 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header_t* bao, STREAMFIL
             goto fail;
     }
 
-    if (!vgmstream) goto fail;
+    if (!vgmstream)
+        goto fail;
 
-    strcpy(vgmstream->stream_name, readable_name);
+    // create usable name, except if it's a sequence parsing its individual entries
+    if (!(bao->sequence_count && bao->type != TYPE_SEQUENCE)) {
+        char readable_name[STREAM_NAME_SIZE];
+        build_readable_name(readable_name, sizeof(readable_name), bao);
+        strcpy(vgmstream->stream_name, readable_name);
+    }
+
     return vgmstream;
 
 fail:
@@ -798,9 +803,6 @@ static bool parse_pk(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
         bao_offset += bao_size; // files simply concat BAOs
     }
-
-    //;VGM_LOG("UBI BAO: class "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->classes[i],"%02x=%i ",i,bao->classes[i]); }} VGM_LOG("\n");
-    //;VGM_LOG("UBI BAO: types "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->types[i],"%02x=%i ",i,bao->types[i]); }} VGM_LOG("\n");
 
     close_streamfile(sf_index);
     close_streamfile(sf_test);
@@ -930,25 +932,33 @@ static bool parse_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
 
 /* ************************************************************************* */
 
+// .pk/spk can contain many subsongs, we need something helpful that shows stream file used.
 static void build_readable_name(char* buf, size_t buf_size, ubi_bao_header_t* bao) {
-    const char* grp_name;
-    const char* pft_name;
-    const char* typ_name;
-    const char* res_name;
+    const char* fmt_name = NULL;
+    const char* loc_name = NULL;
+    const char* res_name = NULL;
 
-    if (bao->type == TYPE_NONE)
+    if (bao->type == TYPE_NONE || bao->type == TYPE_IGNORED || bao->total_subsongs <= 0)
         return;
 
     /* config */
-    grp_name = "?";
     if (bao->archive == ARCHIVE_ATOMIC)
-        grp_name = "atomic";
-    if (bao->archive == ARCHIVE_PK)
-        grp_name = "package";
-    if (bao->archive == ARCHIVE_SPK)
-        grp_name = "spk";
-    pft_name = bao->is_prefetch ? "p" : "n";
-    typ_name = bao->is_stream ? "stream" : (bao->is_inline ? "inline" : "memory");
+        fmt_name = "atomic";
+    else if (bao->archive == ARCHIVE_PK)
+        fmt_name = "package";
+    else if (bao->archive == ARCHIVE_SPK)
+        fmt_name = "spk";
+    else
+        fmt_name = "?";
+
+    if (bao->is_inline)
+        loc_name = "inline";
+    else if (bao->is_prefetch)
+        loc_name = "p-strm";
+    else if (bao->is_stream)
+        loc_name = "stream";
+    else
+        loc_name = "memory";
 
     if (bao->type == TYPE_SEQUENCE) {
         if (bao->sequence_single) {
@@ -973,16 +983,14 @@ static void build_readable_name(char* buf, size_t buf_size, ubi_bao_header_t* ba
     }
 
     uint32_t h_id = bao->header_id;
-    uint32_t s_id = bao->stream_id;
+    uint32_t s_id = bao->is_inline ? 0 : bao->stream_id;
     uint32_t type = bao->header_type;
 
-    /* .pk can contain many subsongs, we need something helpful
-     * (best done right after subsong detection, since some sequence re-parse types) */
     if (res_name && res_name[0]) {
-        snprintf(buf,buf_size, "%s/%s-%s/%02x-%08x/%08x/%s", grp_name, pft_name, typ_name, type, h_id, s_id, res_name);
+        snprintf(buf,buf_size, "%s/%s/%02x-%08x/%08x/%s", fmt_name, loc_name, type, h_id, s_id, res_name);
     }
     else {
-        snprintf(buf,buf_size, "%s/%s-%s/%02x-%08x/%08x", grp_name, pft_name, typ_name, type, h_id, s_id);
+        snprintf(buf,buf_size, "%s/%s/%02x-%08x/%08x", fmt_name, loc_name, type, h_id, s_id);
     }
 }
 

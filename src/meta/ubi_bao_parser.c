@@ -206,7 +206,7 @@ static bool parse_type_sequence_v29(ubi_bao_header_t* bao, reader_t* r) {
     bao->sequence_count = reader_s32(r);
 
     if (bao->sequence_count > BAO_MAX_CHAIN_COUNT) {
-        VGM_LOG("UBI BAO: incorrect sequence count\n");
+        VGM_LOG("UBI BAO: incorrect sequence count of %i\n", bao->sequence_count);
         return false;
     }
 
@@ -282,7 +282,7 @@ static bool parse_type_layer_v29(ubi_bao_header_t* bao, reader_t* r) {
     bao->layer_count = reader_s32(r);
 
     if (bao->layer_count > BAO_MAX_LAYER_COUNT) {
-        VGM_LOG("UBI BAO: incorrect layer count\n");
+        VGM_LOG("UBI BAO: incorrect layer count of %i\n", bao->layer_count);
         return false;
     }
 
@@ -465,7 +465,7 @@ static bool parse_type_sequence_cfg(ubi_bao_header_t* bao, off_t offset, STREAMF
     bao->sequence_single = read_s32(h_offset + bao->cfg.sequence_sequence_single, sf);
     bao->sequence_count  = read_s32(h_offset + bao->cfg.sequence_sequence_count, sf);
     if (bao->sequence_count > BAO_MAX_CHAIN_COUNT) {
-        VGM_LOG("UBI BAO: incorrect sequence count\n");
+        VGM_LOG("UBI BAO: incorrect sequence count of %i\n", bao->sequence_count);
         return false;
     }
 
@@ -497,7 +497,7 @@ static bool parse_type_layer_cfg(ubi_bao_header_t* bao, off_t offset, STREAMFILE
     bao->stream_size    = read_u32(h_offset + bao->cfg.layer_stream_size, sf);
     bao->stream_id      = read_u32(h_offset + bao->cfg.layer_stream_id, sf);
     if (bao->layer_count > BAO_MAX_LAYER_COUNT) {
-        VGM_LOG("UBI BAO: incorrect layer count\n");
+        VGM_LOG("UBI BAO: incorrect layer count of %i\n", bao->layer_count);
         return false;
     }
 
@@ -752,8 +752,6 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
         return false;
     }
 
-    bao->classes[(bao_class >> 28) & 0xF]++;
-
     // skip non-header classes but don't error to signal "bank has no subsongs"
     if (bao_class != 0x20000000)
         return true;
@@ -765,7 +763,6 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
         return false;
     }
 
-    bao->types[header_type]++;
     if (!bao->cfg.allowed_types[header_type])
         return true;
 

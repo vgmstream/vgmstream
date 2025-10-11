@@ -6,7 +6,7 @@
 
 #include "ubi_bao_config.h"
 
-#define BAO_MAX_LAYER_COUNT 10      // arbitrary max
+#define BAO_MAX_LAYER_COUNT 16      // arbitrary max (seen 12 in SC:C)
 #define BAO_MAX_CHAIN_COUNT 128     // POP:TFS goes up to ~100
 
 typedef struct {
@@ -30,7 +30,6 @@ typedef struct {
     uint32_t header_offset;     // base BAO offset 
     uint32_t header_id;         // current BAO's id
     uint32_t header_type;       // type of audio
-  //uint32_t header_skip;       // base header size
     uint32_t header_size;       // normal base size (not counting extra tables)
     uint32_t extra_size;        // extra tables size
 
@@ -42,9 +41,9 @@ typedef struct {
     uint32_t memory_skip;       // must skip a bit after base memory BAO offset (class 0x30000000), calculated
     uint32_t stream_skip;       // same for stream BAO offset (class 0x50000000)
 
-    bool is_stream;             // streamed data (external file) or memory data otherwise (external or internal)
-    bool is_prefetch;           // memory data is to be used as part of the stream
-    bool is_inline;             // memory data is in header BAO rather than separate memory BAO
+    bool is_stream;             // stream data (external file) is used for audio, memory data (external or internal) otherwise
+    bool is_prefetch;           // memory data is to be joined as part of the stream
+    bool is_inline;             // memory data is in the header BAO rather than a separate memory BAO
 
     /* sound info */
     int loop_flag;
@@ -64,14 +63,13 @@ typedef struct {
 
     float silence_duration;
 
-    uint32_t extradata_offset;
-    uint32_t extradata_size;
-
     uint32_t inline_offset;
     uint32_t inline_size;
 
-    int classes[16];
-    int types[16];
+    uint32_t extradata_offset;
+    uint32_t extradata_size;
+
+
 } ubi_bao_header_t;
 
 bool ubi_bao_parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset);
