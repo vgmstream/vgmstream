@@ -917,7 +917,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: FFmpeg(various)
 - **bik.c**
   - RAD Game Tools Bink header [*BINK*]
-  - *bik*: `.bik .bk2 .bik2 .ps3 .xmv .xen .vid .bika`
+  - *bik*: `.bik .bk2 .ps3 .xmv .xen .vid .bika`
   - Codecs: FFmpeg(various)
 - **astb.c**
   - Capcom ASTB header [*ASTB*]
@@ -1189,7 +1189,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ubi_bao_atomic*: `.bao .(extensionless)`
   - *ubi_bao_spk*: `.spk`
   - *ubi_bao_header*: `(base) + .(external)`
-  - Codecs: UBI_IMA PCM16LE PSX NGC_DSP XMA ATRAC3 OGG_VORBIS
+  - Codecs: UBI_IMA PCM16LE PSX NGC_DSP XMA ATRAC3 OGG_VORBIS MPEG ATRAC9
 - **sadf.c**
   - Procyon Studio SADF header [*SADF*]
   - *sadf*: `.sad .nop .(extensionless)`
@@ -2022,7 +2022,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ffmpeg.c**
   - FFmpeg supported format (check log) [*FFMPEG_faulty*]
   - FFmpeg supported format [*FFMPEG*]
-  - *ffmpeg*: `.(any)`
+  - *ffmpeg*: `.(any) .sbao .bao`
   - Codecs: FFmpeg(various)
 - **ea_eaac.c**
   - Electronic Arts SPS header [*EA_SPS*]
@@ -2032,6 +2032,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Electronic Arts BNK header (variable) [*EA_BNK*]
   - Electronic Arts SCHl header (variable) [*EA_SCHL*]
   - Codecs: EA_XA EA_XA_int EA_XA_V2 DVI_IMA PCM8_int PCM16_int PCM8 PCM16LE PCM16BE PSX XBOX_IMA_mono NGC_DSP VADPCM MPEG EA_MT ATRAC3
+- **ubi_bao_config.c**
+  - (container)
+- **ubi_bao_parser.c**
+  - (container)
 
 ## Supported extras
 Reminder of some extra formats and helper files vgmstream supports. They are described

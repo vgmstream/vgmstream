@@ -33,7 +33,7 @@ VGMSTREAM* init_vgmstream_skex(STREAMFILE* sf) {
 
     // micro optimization (empty banks do exist)
     if (get_streamfile_size(sf) <= 0x100) {
-        vgm_logi("SKEX: bank has no subsongs\n");
+        vgm_logi("SKEX: bank has no subsongs (ignore)\n");
         return NULL;
     }
 
@@ -227,7 +227,7 @@ VGMSTREAM* init_vgmstream_skex(STREAMFILE* sf) {
     }
 
     if (total_subsongs == 0) {
-        vgm_logi("SKEX: bank has no subsongs\n"); //sometimes
+        vgm_logi("SKEX: bank has no subsongs (ignore)\n"); //sometimes
         goto fail;
     }
 

@@ -199,7 +199,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, ktsr_meta_t* info
         return NULL;
 
     if (ktsr.total_subsongs == 0) {
-        vgm_logi("KTSR: file has no subsongs\n");
+        vgm_logi("KTSR: file has no subsongs (ignore)\n");
         return NULL;
     }
 
