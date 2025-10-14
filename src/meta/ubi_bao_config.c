@@ -182,10 +182,9 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
     switch(version) {
 
         case 0x001B0100: // Assassin's Creed (PS3/X360/PC)-atomic-forge
-      //case 0x001B0100: // My Fitness Coach (Wii)-atomic-forge
-      //case 0x001B0100: // Your Shape featuring Jenny McCarthy (Wii)-atomic-forge
+                         // My Fitness Coach (Wii)-atomic-forge, Your Shape featuring Jenny McCarthy (Wii)-atomic-forge
         case 0x001B0200: // Beowulf (PS3/X360)-atomic-fat+bin
-      //case 0x001C0000: // Lost: Via Domus (PS3)-atomic-gear
+        case 0x001C0000: // Lost: Via Domus (PS3)-atomic-gear
             if (cfg->version == 0x001B0100)
                 config_bao_entry(cfg, 0xA4, 0x28); // PC: 0xA8, PS3/X360: 0xA4
             else
@@ -346,18 +345,31 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             break;
 
         case 0x00260000: // Michael Jackson: The Experience (X360)-package
+        case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
             config_bao_entry(cfg, 0xB8, 0x28);
 
             config_bao_audio_b(cfg, 0x08, 0x28, 0x30, 0x3c, 1, 1); //loop?
             config_bao_audio_m(cfg, 0x4c, 0x54, 0x5c, 0x64, 0x6c, 0x7c);
 
+            config_bao_sequence(cfg, 0x38, 0x2c, 0x28, 0x14);
+
             config_bao_layer_m(cfg, 0x00, 0x2c, 0x34,  0x4c, 0x54, 0x58,  0x00, 0x00, 1);
             config_bao_layer_e(cfg, 0x34, 0x00, 0x04, 0x08, 0x1c);
 
+          //cfg->codec_map[0x01] = RAW_PCM;
+            cfg->codec_map[0x02] = UBI_IMA;
             cfg->codec_map[0x03] = FMT_OGG;
             cfg->codec_map[0x04] = RAW_XMA2_new;
+          //cfg->codec_map[0x05] = RAW_PSX;
+            cfg->codec_map[0x06] = RAW_AT3;
 
             cfg->audio_ignore_external_size = true; // leave_me_alone.pk
+
+            cfg->audio_stream_subtype = 0x8c;
+            cfg->layer_stream_subtype = 0x78; //TODO: unknown
+
+            //TODO: some POP SOT IMA sound off, but seem correctly parsed
+            // (rip error? ex. 2a86c5ca.pk + d0a4ef615adf1c5a4e17f3ac.spk)
 
             break;
 
@@ -431,7 +443,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             // - v2B: extra audio/layer flags, modified audio ATRAC9 extradata
 
             cfg->codec_map[0x00] = CODEC_NONE;      //SAMPLE_INVALID
-          //cfg->codec_map[0x01] = RAW_PCM;         //'PCM'
+            cfg->codec_map[0x01] = RAW_PCM;         //'PCM'
             cfg->codec_map[0x02] = UBI_IMA;         //'IMAADPCM' (v6)
             cfg->codec_map[0x03] = UBI_IMA_seek;    //'IMADPCM Seekable Everywhere' (v6)
             cfg->codec_map[0x04] = UBI_IMA_mark;    //'IMADPCM Seekable on Wave Markers'
@@ -446,10 +458,8 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             //cfg->ignore_atomic_bao_size = true;
             break;
 
-        case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
-            /* similar to 0x00250108 but most values are moved +4 (base 0xB8, skip 0x28) */
         default: 
-            // others possibly using BAO: Tom Clancy's series (Far Cry 5+ uses Wwise)
+            // others possibly using BAO: Tom Clancy's series (Far Cry 5+, Watch_Dogs 2+ uses Wwise)
             vgm_logi("UBI BAO: unknown BAO version %08x (report)\n", cfg->version);
             return false;
     }
