@@ -1018,7 +1018,8 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
 // - Dunia .pak: %08x.sbao (streams, memory files are in .spk)
 // - Dunia .fat+dat: %08x.sbao (streams, memory files are in .spk)
 //   Hashed custom CRC32 (v5 .fat) or CRC64 (v9 .fat) from "soundbinary\%08x.sbao" (see Gibbed.Dunia for the algorithm)
-// - GEAR bigfile: same CRC32 hash, varies per game (sometimes just %08x.bao/sbao)
+// - GEAR bigfile: same CRC32 hash, varies per game (sometimes just %08x.bao/sbao, packages\(name).spk, 
+//   packages\(lang)\(name).lspk, etc)
 // - Opal lin+fat: ids in bigfile, internal names are similar to 'DARE_FFFFFFFF_20004118.BAO'
 // Could try to limit names per type to avoid extra fopens but config is getting rather complex.
 
