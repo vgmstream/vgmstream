@@ -1012,6 +1012,13 @@ and may need to program one yourself.
 ## Stream names
 Sometimes vgmstream reads and shows some *stream name*, some internal text that identifies the *stream* (song). Typically this is some identifier text that developers used for the song, but not always meaningful.
 
-*Stream names* don't necessarily work like *filenames*. For example the name may just be generic unused text that doesn't really apply to the sound. Or multiple subsongs may share the same *stream name*, such as `shot_sfx` may apply to 3 *streams*/subsongs, which often means game may use either of those randomly). Or even a single *stream*/subsong may have multiple associated names like `bgm_boss1; bgm_boss1_alt`.
+*Stream names* don't necessarily work like *filenames*. For example the name may just be generic unused text that doesn't really apply to the sound. Or multiple subsongs may share the same *stream name*, such as `shot_sfx` may apply to 3 *streams*/subsongs, which often means game may use either of those randomly. Or even a single *stream*/subsong may have multiple associated names like `bgm_boss1; bgm_boss1_alt`.
 
-In some cases *vgmstream* may make a *stream name* based on parts or IDs for easier handling, like marking songs with `dummy` or `[pre]`. The letter are "prefetch" files that are just a tiny part of another file (to cache and hide loading times), and can be ignored.
+In some cases *vgmstream* may make a *stream name* based on parts or IDs for easier handling, or marking songs with `dummy` or `[pre]`.
+
+## Prefetch (truncated) files
+Some formats, like Wwise's `.bnk` or CRI's `.awb` have "*prefetch*" audio. These are tiny versions of a full file found elsewhere, only lasting a second or two. *vgmstream* marks these by adding `[pre]` to the stream name.
+
+They are used by games to mask loading times: the *prefetch* file resides in memory and starts playing immediately when the game needs some sound. Meanwhile, the main file is loaded/streamed in the background.
+
+As such, they are completely normal (not a bug in *vgmstream*) but not useful for listening or converting. Just find and play the full file instead.
