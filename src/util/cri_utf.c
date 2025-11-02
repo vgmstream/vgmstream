@@ -70,18 +70,19 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
     uint8_t buf[0x20];
     int bytes;
 
+    bytes = read_streamfile(buf, table_offset, sizeof(buf), sf);
+    if (bytes != sizeof(buf)) return NULL;
+
+    /* load table header */
+    if (get_u32be(buf + 0x00) != get_id32be("@UTF"))
+        return NULL;
+
     utf = calloc(1, sizeof(utf_context));
-    if (!utf) goto fail;
+    if (!utf) return NULL;
 
     utf->sf = sf;
     utf->table_offset = table_offset;
 
-    bytes = read_streamfile(buf, table_offset, sizeof(buf), sf);
-    if (bytes != sizeof(buf)) goto fail;
-
-    /* load table header */
-    if (get_u32be(buf + 0x00) != get_id32be("@UTF"))
-        goto fail;
     utf->table_size     = get_u32be(buf + 0x04) + 0x08;
     utf->version        = get_u16be(buf + 0x08);
     utf->rows_offset    = get_u16be(buf + 0x0a) + 0x08;
@@ -161,15 +162,21 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
             utf->schema[i].name = NULL;
             utf->schema[i].offset = 0;
 
-            /* known flags are name+default or name+row, but name+default+row is mentioned in VGMToolbox
-             * even though isn't possible in CRI's craft utils (meaningless), and no name is apparently possible */
+            // known flags are name+default or name+row or name+default+row, though no name is apparently possible
             if ( (utf->schema[i].flag == 0) ||
                 !(utf->schema[i].flag & COLUMN_FLAG_NAME) ||
-                ((utf->schema[i].flag & COLUMN_FLAG_DEFAULT) && (utf->schema[i].flag & COLUMN_FLAG_ROW)) ||
                  (utf->schema[i].flag & COLUMN_FLAG_UNDEFINED) ) {
-                vgm_logi("@UTF: unknown column flag combo found\n");
+                vgm_logi("@UTF: unknown column flag combo %x found\n", utf->schema[i].flag);
                 goto fail;
             }
+
+#if 0
+            // name+default+row isn't possible in CRI's craft tools but rarely found, DEFAULT has priority over ROW [Muramasa Rebirth (Vita)]
+            if ((utf->schema[i].flag & COLUMN_FLAG_NAME) && (utf->schema[i].flag & COLUMN_FLAG_DEFAULT) && (utf->schema[i].flag & COLUMN_FLAG_ROW)) {
+                VGM_LOG("odd=@UTF: name + default + row column found\n", utf->table_offset + utf->schema_offset, schema_pos);
+                //utf->schema[i].flag &= ~COLUMN_FLAG_ROW;
+            }
+#endif
 
             switch (utf->schema[i].type) {
                 case COLUMN_TYPE_UINT8:
@@ -207,8 +214,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
                 utf->schema[i].offset = schema_pos;
                 schema_pos += value_size;
             }
-
-            if (utf->schema[i].flag & COLUMN_FLAG_ROW) {
+            else if (utf->schema[i].flag & COLUMN_FLAG_ROW) {
                 utf->schema[i].offset = column_offset;
                 column_offset += value_size;
             }
@@ -217,7 +223,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
 
 #if 0
     VGM_LOG("- %s\n", utf->table_name);
-    VGM_LOG("utf_o=%08x (%x)\n", utf->table_offset, utf->table_size);
+    VGM_LOG(" utf_o=%08x (%x)\n", utf->table_offset, utf->table_size);
     VGM_LOG(" sch_o=%08x (%x), c=%i\n", utf->table_offset + utf->schema_offset, utf->schema_size, utf->columns);
     VGM_LOG(" row_o=%08x (%x), r=%i\n", utf->table_offset + utf->rows_offset, utf->rows_size, utf->rows);
     VGM_LOG(" str_o=%08x (%x)\n", utf->table_offset + utf->strings_offset, utf->strings_size);
