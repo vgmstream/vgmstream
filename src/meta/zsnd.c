@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/spu_utils.h"
 #include "zsnd_streamfile.h"
 
 
@@ -203,7 +204,7 @@ VGMSTREAM* init_vgmstream_zsnd(STREAMFILE* sf) {
                 name_size    = 0;
 
                 /* pitch value, with 0x1000=44100 (voices vary quite a bit, ex. X-Men Legends 2) */
-                sample_rate = round10(sample_rate * 44100.0 / 4096.0);
+                sample_rate = spu1_pitch_to_sample_rate_rounded(sample_rate);
                 /* there may be some rounding for lower values, ex 0x45A = 11993.99 ~= 12000, though not all: 
                  * 0x1000 = 44100, 0x0800 = 22050, 0x0687 ~= 18000, 0x05ce ~= 16000, 0x045a ~= 12000, 0x0400 = 11025 */
                 break;

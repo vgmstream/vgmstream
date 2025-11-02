@@ -24,13 +24,7 @@ VGMSTREAM* init_vgmstream_awb(STREAMFILE* sf) {
 VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    uint32_t offset, subfile_offset, subfile_next, subfile_size;
-    int total_subsongs, target_subsong = sf->stream_index;
-    uint8_t offset_size;
-    uint16_t waveid_alignment, offset_alignment, subkey;
-    int waveid;
-    bool load_loops = 0;
-
+    int target_subsong = sf->stream_index;
 
     /* checks */
     if (!is_id32be(0x00,sf, "AFS2"))
@@ -41,17 +35,20 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     if (!check_extensions(sf, "awb,afs2,awx"))
         return NULL;
 
+    uint32_t subfile_offset, subfile_next, subfile_size;
+    int waveid;
+
     // 0x04(1): version? 0x01=common, 0x02=2018+ (no apparent differences)
-    offset_size         = read_u8   (0x05,sf);
-    waveid_alignment    = read_u16le(0x06,sf); // usually 0x02, rarely 0x04 [Voice of Cards: The Beasts of Burden (Switch)]
-    total_subsongs      = read_s32le(0x08,sf);
-    offset_alignment    = read_u16le(0x0c,sf);
-    subkey              = read_u16le(0x0e,sf);
+    uint8_t offset_size         = read_u8   (0x05,sf);
+    uint16_t waveid_alignment   = read_u16le(0x06,sf); // usually 0x02, rarely 0x04 [Voice of Cards: The Beasts of Burden (Switch)]
+    int total_subsongs          = read_s32le(0x08,sf);
+    uint16_t offset_alignment   = read_u16le(0x0c,sf);
+    uint16_t subkey             = read_u16le(0x0e,sf);
 
     if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong > total_subsongs || total_subsongs <= 0) goto fail;
+    if (target_subsong > total_subsongs || total_subsongs <= 0) return NULL;
 
-    offset = 0x10;
+    uint32_t offset = 0x10;
 
     /* id table: read target */
     {
@@ -67,7 +64,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         uint32_t file_size = get_streamfile_size(sf);
 
         /* last sub-offset is always file end, so table entries = total_subsongs+1 */
-        offset += (target_subsong-1) * offset_size;
+        offset += (target_subsong - 1) * offset_size;
 
         switch(offset_size) {
             case 0x04: /* common */
@@ -134,10 +131,10 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         if (!vgmstream) goto fail;
 
         vgmstream->num_streams = total_subsongs;
-    }
 
-    /* try to load cue names+etc */
-    load_acb_info(sf, sf_acb, vgmstream, waveid, load_loops);
+        /* try to load cue names+etc */
+        load_acb_info(sf, sf_acb, vgmstream, waveid, meta.load_loops);
+    }
 
     close_streamfile(temp_sf);
     return vgmstream;

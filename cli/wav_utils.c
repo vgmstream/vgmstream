@@ -12,12 +12,16 @@ static int make_riff_chunk(uint8_t* buf, wav_header_t* wav, uint32_t header_size
 }
 
 static int make_fmt_chunk(uint8_t* buf, wav_header_t* wav) {
+    //TO-DO: improve chunk generation
+    // Per spec, any non-PCM (0x0001) codec must add 'fact' and use WAVEFORMATEX (cbSize = 0 if needed).
+    // In practice all tools will handle IEEE_FLOAT regardless (ex. Audacity just creates WAVEFORMAT for FLOAT anyway).
 
-    int codec = wav->is_float ? 0x0003 : 0x0001; /* PCM */
+    int codec = wav->is_float ? 0x0003 : 0x0001; // WAVE_FORMAT_IEEE_FLOAT or WAVE_FORMAT_PCM
     int bytes_per_second = wav->sample_rate * wav->channels * wav->sample_size;
     int16_t block_align = wav->channels * wav->sample_size;
     int bits_per_sample = wav->sample_size * 8;
 
+    // make WAVEFORMAT chunk (see mmreg.h)
     put_data (buf + 0x00, "fmt ", 0x04);
     put_u32le(buf + 0x04, 0x10);
 

@@ -65,6 +65,7 @@ typedef struct {
     int audio_loop_and;
     bool audio_ignore_external_size;
     bool audio_fix_xma_samples;
+    bool audio_fix_xma_memory_baos;
 
     // layer config within base BAO
     off_t sequence_sequence_loop;

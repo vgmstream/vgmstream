@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../util/meta_utils.h"
+#include "../util/spu_utils.h"
 
 /* HSF - 'SoundBox' driver games (by CAPS?) [EX Jinsei Game (PS2), Lowrider (PS2), Professional Drift: D1 Grand Prix Series (PS2)] */
 VGMSTREAM* init_vgmstream_hsf(STREAMFILE* sf) {
@@ -26,7 +27,7 @@ VGMSTREAM* init_vgmstream_hsf(STREAMFILE* sf) {
     h.interleave    = read_u32le(0x0c,sf);
 
     if (version < 3) { // pitch (48000 or 44100)
-        h.sample_rate = round10((48000 * h.sample_rate) / 4096);
+        h.sample_rate = spu2_pitch_to_sample_rate_rounded(h.sample_rate);
     }
 
     h.stream_offset = 0x10;

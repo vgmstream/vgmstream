@@ -267,27 +267,55 @@ fail:
 
 /* Procyon Studio variation [Xenoblade Chronicles 2 (Switch)] */
 VGMSTREAM* init_vgmstream_opus_nop(STREAMFILE* sf) {
-    off_t offset;
-    int num_samples, loop_start = 0, loop_end = 0, loop_flag;
-
     /* checks */
-    if (!is_id32be(0x00, sf, "sadf") ||
-        !is_id32be(0x08, sf, "opus"))
-        goto fail;
+    if (!is_id32be(0x00, sf, "sadf"))
+        return NULL;
     if (!check_extensions(sf,"nop"))
-        goto fail;
+        return NULL;
 
-    offset = read_32bitLE(0x1c, sf);
-    num_samples = read_32bitLE(0x28, sf);
-    loop_flag = read_8bit(0x19, sf);
-    if (loop_flag) {
-        loop_start = read_32bitLE(0x2c, sf);
-        loop_end = read_32bitLE(0x30, sf);
+    // 04: file size
+    if (!is_id32be(0x08, sf, "opus"))
+        return NULL;
+    // 0c: 1 (version?)
+
+    // 10: "head"
+    // 14: head end (0x80)
+    // 18: channels?
+    // 19: flags? (02=loops)
+    // 1c: NXOpus start
+
+    // 20: NXOpus size (without padding)
+    // 24: sample rate
+    // 28: num samples
+    // 2c: loop start
+    // 30: loop end
+    // 34: NXOpus size again?
+    // 38: null
+    // 3c: null
+
+    // 40: null
+    // 44: 20000 (volume?)
+    // 48: null
+    // 4c: seek entries minus 1
+    // 50: seek entries again
+    // 54: seek table start
+    // 58: seek table size
+    // 5c+: null
+
+    // each seek table entry points to a NXOpus frame from the NXOpus offset (starting with 0x28 = after header)
+    // last entry (not counted in seek entries) points to NXOpus's end (= size)
+
+    int loop_flag       = read_u8   (0x19, sf);
+    uint32_t offset     = read_u32le(0x1c, sf);
+    int32_t num_samples = read_s32le(0x28, sf);
+    int32_t loop_start  = read_s32le(0x2c, sf); //0 if no loop
+    int32_t loop_end    = read_s32le(0x30, sf); //num_samples if no loop
+    if (!loop_flag) {
+        loop_start = 0;
+        loop_end = 0;
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples,loop_start,loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
 }
 
 /* Shin'en variation [Fast RMX (Switch)] */

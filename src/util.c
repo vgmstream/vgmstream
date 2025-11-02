@@ -31,14 +31,6 @@ uint32_t clamp_u32(uint32_t v, uint32_t min, uint32_t max) {
     return v;
 }
 
-int round10(int val) {
-    int round_val = val % 10;
-    if (round_val < 5) /* half-down rounding */
-        return val - round_val;
-    else
-        return val + (10 - round_val);
-}
-
 size_t align_size_to_block(size_t value, size_t block_align) {
     if (!block_align)
         return 0;

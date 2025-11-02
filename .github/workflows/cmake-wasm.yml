@@ -22,12 +22,13 @@ jobs:
       run: |
         git fetch --prune --unshallow --tags
 
+    # 'official' mymindstorm/setup-emsdk@v11 cache is broken: https://github.com/mymindstorm/setup-emsdk/issues/47
+    #  using pyodide/setup-emsdk@v15 friendly fork until the fix is merged
     - name: Setup emsdk
-      uses: mymindstorm/setup-emsdk@v11
+      uses: pyodide/setup-emsdk@v15
       with:
           version: ${{env.EM_VERSION}}
-          # currently broken: https://github.com/mymindstorm/setup-emsdk/issues/47
-          #actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+          actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
     - name: Create build environment
       run: cmake -E make_directory ${{runner.workspace}}/embuild

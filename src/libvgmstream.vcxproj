@@ -227,6 +227,7 @@
     <ClInclude Include="util\reader_sf.h" />
     <ClInclude Include="util\reader_text.h" />
     <ClInclude Include="util\sf_utils.h" />
+    <ClInclude Include="util\spu_utils.h" />
     <ClInclude Include="util\text_reader.h" />
     <ClInclude Include="util\vgmstream_limits.h" />
     <ClInclude Include="util\vorbis_codebooks.h" />
@@ -820,6 +821,7 @@
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wb.c" />
     <ClCompile Include="meta\wbk.c" />
+    <ClCompile Include="meta\wd.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\ws_aud.c" />
@@ -874,6 +876,7 @@
     <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\reader_put.c" />
     <ClCompile Include="util\sf_utils.c" />
+    <ClCompile Include="util\spu_utils.c" />
     <ClCompile Include="util\text_reader.c" />
     <ClCompile Include="util\vorbis_codebooks.c" />
   </ItemGroup>
