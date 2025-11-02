@@ -175,6 +175,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             off_t chunk_offset;
             STREAMFILE* sf_xmah = NULL;
             STREAMFILE* sf_xmad = NULL;
+            bool is_xma_stream;
 
             // TODO: fix, this varies when multistreams are used (ok 99% of the time)
             switch(bao->codec) {
@@ -199,13 +200,26 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             // - atomic v2 + xma1_str: chunk in data (stream BAO)
             // atomic v1 layers seem to only use RAW_XMA1_STR
 
-            if (bao->is_stream || bao->type == TYPE_LAYER || (bao->cfg.v1_bao && bao->codec == RAW_XMA1_str)) {
+            is_xma_stream = bao->is_stream || bao->type == TYPE_LAYER || (bao->cfg.v1_bao && bao->codec == RAW_XMA1_str);
+
+            if (bao->cfg.audio_fix_xma_memory_baos && !is_xma_stream) {
+                // for unfathomable reasons, certain XMA2 memory BAOs behave like streams (but also include XMA header in BAO).
+                // No apparent diffs/flags in header BAOs, memory BAOs only seem to differ in value at 0x24
+                // (0x02=has header, but doesn't seem true for other versions).
+                uint16_t xma_id = read_u16be(start_offset, sf_data);
+                if (xma_id == 0x166)
+                    is_xma_stream = true;
+            }
+
+            if (is_xma_stream) {
                 uint8_t flag, bits_per_frame;
                 uint32_t sec1_num, sec2_num, sec3_num;
                 size_t header_size, frame_size;
 
-                /* skip custom XMA seek? table after standard XMA/fmt header chunk */
+                // skip XMA/fmt header chunk
                 off_t header_offset = start_offset + chunk_size;
+
+                // skip custom XMA seek(?) table
                 if (bao->codec == RAW_XMA1_mem || bao->codec == RAW_XMA1_str) {
                     flag        = read_u8   (header_offset + 0x00, sf_data);
                     sec2_num    = read_u32be(header_offset + 0x04, sf_data); // number of XMA frames

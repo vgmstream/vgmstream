@@ -1106,37 +1106,54 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
     if (stream->channel_start_offset == stream->offset) {
         off_t offset = stream->offset;
 
+        bool big_endian = false;
+        int version = 0;
         /* header fields mostly unknown (vary a lot or look like flags, tool version?, 0x08: stereo flag?) */
-        int version = read_u8(offset + 0x00, sf);
-        bool big_endian = version < 5;
+
+        version = read_u8(offset + 0x00, sf);
+        if (version == 0) {
+            version = 7; // latest BAOs don't have version
+            big_endian = guess_endian16(offset + 0x0c, sf);
+        }
+        else {
+            offset += 0x02;
+            big_endian = version < 5;
+        }
+
 
         read_s16_t read_s16 = get_read_s16(big_endian);
         read_s32_t read_s32 = get_read_s32(big_endian);
 
-        int header_samples  = read_s16(offset + 0x0E, sf); // always 10 (per channel)
-        hist1      = read_s16(offset + 0x10 + channel * 0x04, sf);
-        step_index =  read_u8(offset + 0x12 + channel * 0x04, sf);
-        offset += 0x10 + 0x08;
+        int header_samples  = read_s16(offset + 0x0c, sf); // always 10 (per channel)
+        hist1      = read_s16(offset + 0x0E + channel * 0x04, sf);
+        step_index =  read_u8(offset + 0x10 + channel * 0x04, sf);
+        offset += 0x0E + 0x08;
 
         if (version >= 3) {
             offset += 0x04; //null?
         }
+        //TODO: fix, each block has hist+step1 (hay still use blocks even if not marked as IMA-seekable)
+        // Later BAOs have an optional seek table:
+        //   00: entries (-1)
+        //   per entry
+        //   00: sample
+        //   04: absolute offset
+        // last extra entry is total samples and stream end
+        // Each block (save first 10 PCM samples, which are normally written) has hist+step 
 
-        if (version >= 6) {
-            //TODO: fix, seekable IMA needs to be read each block's hist+step
-
-            // later BAOs have an optional seek table (signaled with a different codec but field is always present)
-            // 00: 2 (sample size?)
-            uint32_t seek_size = read_s32(offset + 0x04, sf); 
-            // seek table:
-            //   00: entries (-1)
-            //   per entry
-            //   00: sample
-            //   04: absolute offset
-            // last extra entry is total samples and stream end
-            // Each block (save first 10 PCM samples, which are normally written) has hist+step 
-
+        if (version == 6) {
+            // 00: 0/2 (flags?)
+            uint32_t seek_size = read_s32(offset + 0x04, sf); // may be 0
             offset += 0x08 + seek_size;
+        }
+        else if (version >= 7) {
+            // always present regarless of IMA-type?
+            // 00: 6 (flags?)
+            // 04: null?
+            offset += 0x06;
+            int seek_entries = read_s32(offset, sf);
+            if (seek_entries)
+                offset += 0x04 + (seek_entries + 1) * 0x08;
         }
 
         // write PCM samples, must be written to match header's num_samples (hist must not)

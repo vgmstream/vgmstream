@@ -374,6 +374,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             break;
 
         case 0x00270102: // Drawsome (Wii)-package
+        case 0x00280102: // Tom Clancy's Ghost Recon Future Soldier Beta (X360)-package
             config_bao_entry(cfg, 0xAC, 0x28);
 
             config_bao_audio_b(cfg, 0x08, 0x28, 0x2c, 0x38, 1, 1);
@@ -381,7 +382,18 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             config_bao_sequence(cfg, 0x38, 0x2c, 0x28, 0x14);
 
+            config_bao_layer_m(cfg, 0x00, 0x2c, 0x34, 0x48, 0x50, 0x54, 0x58, 0x5c, 1);
+            config_bao_layer_e(cfg, 0x2c, 0x00, 0x04, 0x08, 0x1c);
+
+            config_bao_audio_c(cfg, 0x68, 0x6c, 0x80);
+
             cfg->codec_map[0x02] = UBI_IMA;
+            cfg->codec_map[0x04] = FMT_OGG;
+            cfg->codec_map[0x05] = RAW_XMA2_new;
+
+            // ex. Mus_Proto_BodyDetection.pk (standard) vs MP_Proto_Dynamic_Insertion.pk (odd)
+            cfg->audio_fix_xma_memory_baos = true; 
+            cfg->layer_ignore_error = true; // some layers have different sample rates
 
             break;
 
