@@ -3,9 +3,9 @@
 TXTH is simply a text file with text commands that tells *vgmstream* how to play an unknown format.
 
 When you open an unsupported file (for instance `bgm01.adp`), vgmstream tries to find a TXTH in the same dir, in this order:
-- `(filename.extension).txth`
-- `.(extension).txth`
-- `.txth`
+- `(filename.extension).txth` (for a single file)
+- `.(extension).txth` (for all files in the folder with the same extension)
+- `.txth` (for all files in the folder)
 
 If found and parsed correctly, vgmstream will play the file as described in the `.txth`.
 
