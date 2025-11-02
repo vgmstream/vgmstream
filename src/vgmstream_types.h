@@ -730,6 +730,7 @@ typedef enum {
     meta_JAUDIO,
     meta_BCF1,
     meta_UEBA,
+    meta_WD,
 } meta_t;
 
 #endif

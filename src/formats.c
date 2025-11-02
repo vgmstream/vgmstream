@@ -1513,6 +1513,7 @@ static const meta_info meta_info_list[] = {
         {meta_JAUDIO,               "Nintendo JAudio header"},
         {meta_BCF1,                 "RAD BCF1 header"},
         {meta_UEBA,                 "Epic Games UEBA header"},
+        {meta_WD,                   "Square WD header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
