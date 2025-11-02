@@ -2,14 +2,15 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/spu_utils.h"
 
 typedef enum { NONE, DUMMY, EXTERNAL, PSX, PCM16, MPEG, ATRAC9, HEVAG, RIFF_ATRAC9, XVAG_ATRAC9 } bnk_codec;
 
 typedef struct {
     bnk_codec codec;
-    int big_endian;
+    bool big_endian;
 
-    /* bank related (internal)*/
+    // bank related (internal)
     int sblk_version;
     uint32_t sblk_offset;
     uint32_t data_offset;
@@ -17,10 +18,10 @@ typedef struct {
     uint32_t zlsd_offset;
     uint32_t zlsd_size;
 
-    uint32_t table1_offset; /* usually sounds/cues (point to grains) */
-    uint32_t table2_offset; /* usually grains/materials (point to waves) */
-    uint32_t table3_offset; /* usually waves (point to streams) */
-    uint32_t table4_offset; /* usually names */
+    uint32_t table1_offset; // usually sounds/cues (point to grains)
+    uint32_t table2_offset; // usually grains/materials (point to waves)
+    uint32_t table3_offset; // usually waves (point to streams)
+    uint32_t table4_offset; // usually names
     uint32_t sounds_entries;
     uint32_t grains_entries;
     uint32_t stream_entries;
@@ -292,94 +293,6 @@ fail:
 }
 #endif
 
-static const uint16_t note_pitch_table[12] = {
-    0x8000, 0x879C, 0x8FAC, 0x9837, 0xA145, 0xAADC,
-    0xB504, 0xBFC8, 0xCB2F, 0xD744, 0xE411, 0xF1A1
-};
-
-static const uint16_t fine_pitch_table[128] = {
-    0x8000, 0x800E, 0x801D, 0x802C, 0x803B, 0x804A, 0x8058, 0x8067,
-    0x8076, 0x8085, 0x8094, 0x80A3, 0x80B1, 0x80C0, 0x80CF, 0x80DE,
-    0x80ED, 0x80FC, 0x810B, 0x811A, 0x8129, 0x8138, 0x8146, 0x8155,
-    0x8164, 0x8173, 0x8182, 0x8191, 0x81A0, 0x81AF, 0x81BE, 0x81CD,
-    0x81DC, 0x81EB, 0x81FA, 0x8209, 0x8218, 0x8227, 0x8236, 0x8245,
-    0x8254, 0x8263, 0x8272, 0x8282, 0x8291, 0x82A0, 0x82AF, 0x82BE,
-    0x82CD, 0x82DC, 0x82EB, 0x82FA, 0x830A, 0x8319, 0x8328, 0x8337,
-    0x8346, 0x8355, 0x8364, 0x8374, 0x8383, 0x8392, 0x83A1, 0x83B0,
-    0x83C0, 0x83CF, 0x83DE, 0x83ED, 0x83FD, 0x840C, 0x841B, 0x842A,
-    0x843A, 0x8449, 0x8458, 0x8468, 0x8477, 0x8486, 0x8495, 0x84A5,
-    0x84B4, 0x84C3, 0x84D3, 0x84E2, 0x84F1, 0x8501, 0x8510, 0x8520,
-    0x852F, 0x853E, 0x854E, 0x855D, 0x856D, 0x857C, 0x858B, 0x859B,
-    0x85AA, 0x85BA, 0x85C9, 0x85D9, 0x85E8, 0x85F8, 0x8607, 0x8617,
-    0x8626, 0x8636, 0x8645, 0x8655, 0x8664, 0x8674, 0x8683, 0x8693,
-    0x86A2, 0x86B2, 0x86C1, 0x86D1, 0x86E0, 0x86F0, 0x8700, 0x870F,
-    0x871F, 0x872E, 0x873E, 0x874E, 0x875D, 0x876D, 0x877D, 0x878C
-};
-
-static uint16_t ps_note_to_pitch(uint16_t center_note, uint16_t center_fine, uint16_t note, int16_t fine) {
-    /* Derived from OpenGOAL, Copyright (c) 2020-2022 OpenGOAL Team, ISC License
-     *
-     * Permission to use, copy, modify, and/or distribute this software for any
-     * purpose with or without fee is hereby granted, provided that the above
-     * copyright notice and this permission notice appear in all copies.
-     *
-     * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-     * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-     * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-     * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-     * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-     * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-     * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-     */
-
-    int fine_adjust, fine_idx, note_adjust, note_idx;
-    int unk1, unk2, unk3; /* TODO: better variable names */
-    uint16_t pitch;
-
-    fine_idx = fine + center_fine;
-
-    fine_adjust = fine_idx;
-    if (fine_idx < 0)
-        fine_adjust = fine_idx + 0x7F;
-
-    fine_adjust /= 128;
-    note_adjust = note + fine_adjust - center_note;
-    unk3 = note_adjust / 6;
-
-    if (note_adjust < 0)
-        unk3--;
-
-    fine_idx -= fine_adjust * 128;
-
-    if (note_adjust < 0)
-        unk2 = -1;
-    else
-        unk2 = 0;
-    if (unk3 < 0)
-        unk3--;
-
-    unk2 = (unk3 / 2) - unk2;
-    unk1 = unk2 - 2;
-    note_idx = note_adjust - (unk2 * 12);
-
-    if ((note_idx < 0) || ((note_idx == 0) && (fine_idx < 0))) {
-        note_idx += 12;
-        unk1 = unk2 - 3;
-    }
-
-    if (fine_idx < 0) {
-        note_idx = (note_idx - 1) + fine_adjust;
-        fine_idx += (fine_adjust + 1) * 128;
-    }
-
-    pitch = (note_pitch_table[note_idx] * fine_pitch_table[fine_idx]) >> 16;
-
-    if (unk1 < 0)
-        pitch = (pitch + (1 << (-unk1 - 1))) >> -unk1;
-
-    return pitch;
-}
-
 
 /* base part: read section info */
 static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
@@ -492,8 +405,6 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
     read_u16_t read_u16 = h->big_endian ? read_u16be : read_u16le;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
     read_f32_t read_f32 = h->big_endian ? read_f32be : read_f32le;
-    int i;
-    uint32_t sndh_offset;
 
     /* parse materials */
     h->total_subsongs = 0;
@@ -510,7 +421,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
              * there is no stream size like in v0x03
              */
 
-            for (i = 0; i < h->grains_entries; i++) {
+            for (int i = 0; i < h->grains_entries; i++) {
                 uint32_t table2_type = read_u32(h->table2_offset + (i*0x28) + 0x00, sf);
 
                 if (table2_type != 0x01)
@@ -519,7 +430,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
                 h->total_subsongs++;
                 if (h->total_subsongs == h->target_subsong) {
                     h->table2_entry_offset = 0;
-                    h->table3_entry_offset = (i*0x28) + 0x08;
+                    h->table3_entry_offset = (i * 0x28) + 0x08;
                     /* continue to count all subsongs */
                 }
 
@@ -535,10 +446,10 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             break;
 
         default:
-            for (i = 0; i < h->grains_entries; i++) {
+            for (int i = 0; i < h->grains_entries; i++) {
                 uint32_t table2_value, table2_subinfo, table2_subtype;
 
-                table2_value = read_u32(h->table2_offset+(i*0x08) + h->table2_suboffset + 0x00,sf);
+                table2_value = read_u32(h->table2_offset + (i * 0x08) + h->table2_suboffset + 0x00, sf);
                 table2_subinfo = (table2_value >>  0) & 0xFFFF;
                 table2_subtype = (table2_value >> 16) & 0xFFFF;
                 if (table2_subtype != 0x0100)
@@ -546,7 +457,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
                 h->total_subsongs++;
                 if (h->total_subsongs == h->target_subsong) {
-                    h->table2_entry_offset = (i*0x08);
+                    h->table2_entry_offset = (i * 0x08);
                     h->table3_entry_offset = table2_subinfo;
                     /* continue to count all subsongs */
                 }
@@ -558,7 +469,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
     //;VGM_LOG("BNK: subsongs %i, table2_entry=%x, table3_entry=%x\n", h->total_subsongs, h->table2_entry_offset, h->table3_entry_offset);
     if (!h->zlsd_offset && (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1))
-        goto fail;
+        return false;
     /* this means some subsongs repeat streams, that can happen in some sfx banks, whatevs */
     if (h->total_subsongs != h->stream_entries) {
         VGM_LOG("BNK: subsongs %i vs table3 %i don't match (repeated streams?)\n", h->total_subsongs, h->stream_entries);
@@ -571,7 +482,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
     if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
         return true;
 
-    sndh_offset = h->table3_offset + h->table3_entry_offset;
+    uint32_t sndh_offset = h->table3_offset + h->table3_entry_offset;
 
     /* parse sounds */
     switch(h->sblk_version) {
@@ -581,43 +492,29 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
         case 0x05:
         case 0x08:
         case 0x09: {
-            uint16_t center_note, center_fine, pitch;
-            bool is_negative;
-
             /* "tone" */
-            /* 0x00: priority */
-            /* 0x01: volume */
-            center_note     = read_u8 (sndh_offset + 0x02,sf);
-            center_fine     = read_u8 (sndh_offset + 0x03,sf);
-            /* 0x04: pan */
-            /* 0x06: map low */
-            /* 0x07: map high */
-            /* 0x08: pitch bend low */
-            /* 0x09: pitch bend high */
-            /* 0x0a: ADSR1 */
-            /* 0x0c: ADSR2 */
+            // 0x00: priority
+            // 0x01: volume
+            uint8_t center_note = read_u8 (sndh_offset + 0x02,sf);
+            uint8_t center_fine = read_u8 (sndh_offset + 0x03,sf);
+            // 0x04: pan
+            // 0x06: map low
+            // 0x07: map high
+            // 0x08: pitch bend low
+            // 0x09: pitch bend high
+            // 0x0a: ADSR1
+            // 0x0c: ADSR2
             h->stream_flags     = read_u16(sndh_offset + 0x0e,sf);
             h->stream_offset    = read_u32(sndh_offset + 0x10,sf);
             h->stream_size      = read_u32(sndh_offset + 0x14,sf);
 
-            /* if it isn't, then it's treated as 44100 base? (PS1?) */
-            is_negative = center_note >> 7; /* center_note & 0x80; */
+            int16_t note = 60; // always defaults to middle C?
+            int16_t fine = 0;
+            int pitch = spu2_note_to_pitch(note, fine, center_note, center_fine);
+            h->sample_rate = spu2_pitch_to_sample_rate(pitch);
 
-            if (is_negative)
-                center_note = 0x100 - center_note;
-
-            /* note/fine seems to always be set to 0x3C/0x00 */
-            pitch = ps_note_to_pitch(center_note, center_fine, 0x3C, 0x00);
-
-            if (pitch > 0x4000)
-                pitch = 0x4000; /* 192000 Hz max */
-
-            if (!is_negative) /* PS1 mode? */
-                pitch = (pitch * 44100) / 48000;
-
-            h->sample_rate = (pitch * 48000) / 0x1000;
-
-            /* waves can set base sample rate (48/44/22/11/8khz) + pitch in semitones, then converted to center+fine
+            /* From SCREAM tool tests, waves can set base sample rate (48/44/22/11/8khz) + pitch in semitones,
+             * then converted to center + fine shift:
              * 48000 + pitch   0.00 > center=0xc4, fine=0x00
              * 48000 + pitch   0.10 > center=0xc4, fine=0x0c
              * 48000 + pitch   0.50 > center=0xc4, fine=0x3f
@@ -659,14 +556,11 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
         default:
             VGM_LOG("BNK: missing version\n");
-            goto fail;
+            return false;
     }
 
-    ;VGM_LOG("BNK: header %x, stream at %x + %x\n", sndh_offset, h->data_offset + h->stream_offset, h->stream_size);
-
+    //;VGM_LOG("BNK: header %x, stream at %x + %x\n", sndh_offset, h->data_offset + h->stream_offset, h->stream_size);
     return true;
-fail:
-    return false;
 }
 
 /* name part: read names  */

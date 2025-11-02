@@ -1,20 +1,20 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/spu_utils.h"
 
-static uint16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift);
 
 #define VAB_MIN(x,y) ((x)<(y)?(x):(y))
 #define VAB_MAX(x,y) ((x)>(y)?(x):(y))
 #define VAB_CLAMP(x,min,max) VAB_MIN(VAB_MAX(x,min),max)
 
-static int read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, int* fine, int* uselimits) {
+static bool read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, int* fine, int* uselimits) {
     char filename[PATH_LIMIT];
     off_t txt_offset, file_size;
     STREAMFILE* sf_cfg = NULL;
     size_t file_len, key_len;
 
     sf_cfg = open_streamfile_by_filename(sf, ".vab_config");
-    if (!sf_cfg) goto fail;
+    if (!sf_cfg) return false;
 
     get_streamfile_filename(sf, filename, sizeof(filename));
 
@@ -66,12 +66,12 @@ static int read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, in
         *uselimits = cfg_limits;
 
         close_streamfile(sf_cfg);
-        return 1;
+        return true;
     }
 
 fail:
     close_streamfile(sf_cfg);
-    return 0;
+    return false;
 }
 
 /* .VAB - standard PS1 bank format */
@@ -80,10 +80,10 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     uint8_t center, shift, min_note, max_note;
     off_t programs_off, tones_off, waves_off, entry_off, data_offset;
     size_t data_size;
-    int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num, total_subsongs,
+    bool is_vh = false;
+    int target_subsong = sf->stream_index, program_num, tone_num, total_subsongs,
         note, fine, uselimits,
         channels, loop_flag, loop_start = 0, loop_end = 0;
-    int i;
     STREAMFILE* sf_data = NULL;
     VGMSTREAM* vgmstream = NULL;
 
@@ -92,17 +92,17 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32le(0x00, sf, "VABp"))
-        goto fail;
+        return NULL;
 
     if (check_extensions(sf, "vh")) {
-        is_vh = 1;
+        is_vh = true;
         sf_data = open_streamfile_by_ext(sf, "vb");
-        if (!sf_data) goto fail;
+        if (!sf_data) return NULL;
     } else if (check_extensions(sf, "vab")) {
-        is_vh = 0;
+        is_vh = false;
         sf_data = sf;
     } else {
-        goto fail;
+        return NULL;
     }
 
     programs = read_u16le(0x12, sf);
@@ -120,7 +120,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     total_subsongs = 0;
     program_num = -1;
     tone_num = -1;
-    for (i = 0; i < programs; i++) {
+    for (int i = 0; i < programs; i++) {
         uint8_t program_tones;
         int local_target;
 
@@ -158,15 +158,14 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
         fine = 0;
     }
 
-    pitch = SsPitchFromNote(note, fine, center, shift);
-    if (pitch > 0x4000) pitch = 0x4000; /* SPU clamp */
+    pitch = spu1_note_to_pitch(note, fine, center, shift);
 
     data_offset = is_vh ? 0x00 : (waves_off + 256 * 0x02);
-    for (i = 0; i < wave_num; i++) {
+    for (int i = 0; i < wave_num; i++) {
         data_offset += read_u16le(waves_off + i * 0x02, sf) << 3;
     }
 
-    data_size = read_u16le(waves_off + i * 0x02, sf) << 3;
+    data_size = read_u16le(waves_off + wave_num * 0x02, sf) << 3;
 
     if (data_size == 0 /*&& center == 0 && shift == 0*/) {
         // hack for empty sounds in rare cases (may set center/shift to 0 as well) [Critical Depth]
@@ -191,7 +190,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     vgmstream->meta_type = meta_VAB;
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
-    vgmstream->sample_rate = (pitch * 44100) / 4096; // FIXME: Maybe use actual pitching if implemented.
+    vgmstream->sample_rate = spu1_pitch_to_sample_rate(pitch); // FIXME: Maybe use actual pitching if implemented.
     vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
@@ -209,63 +208,4 @@ fail:
     if (is_vh) close_streamfile(sf_data);
     close_vgmstream(vgmstream);
     return NULL;
-}
-
-/* Converts VAB note to PS1 pitch value (0-4096 where 4096 is 44100 Hz).
- * Function reversed from PS1 SDK. */
-static uint16_t _svm_ptable[] =
-{
-    4096, 4110, 4125, 4140, 4155, 4170, 4185, 4200,
-    4216, 4231, 4246, 4261, 4277, 4292, 4308, 4323,
-    4339, 4355, 4371, 4386, 4402, 4418, 4434, 4450,
-    4466, 4482, 4499, 4515, 4531, 4548, 4564, 4581,
-    4597, 4614, 4630, 4647, 4664, 4681, 4698, 4715,
-    4732, 4749, 4766, 4783, 4801, 4818, 4835, 4853,
-    4870, 4888, 4906, 4924, 4941, 4959, 4977, 4995,
-    5013, 5031, 5050, 5068, 5086, 5105, 5123, 5142,
-    5160, 5179, 5198, 5216, 5235, 5254, 5273, 5292,
-    5311, 5331, 5350, 5369, 5389, 5408, 5428, 5447,
-    5467, 5487, 5507, 5527, 5547, 5567, 5587, 5607,
-    5627, 5648, 5668, 5688, 5709, 5730, 5750, 5771,
-    5792, 5813, 5834, 5855, 5876, 5898, 5919, 5940,
-    5962, 5983, 6005, 6027, 6049, 6070, 6092, 6114,
-    6137, 6159, 6181, 6203, 6226, 6248, 6271, 6294,
-    6316, 6339, 6362, 6385, 6408, 6431, 6455, 6478,
-    6501, 6525, 6549, 6572, 6596, 6620, 6644, 6668,
-    6692, 6716, 6741, 6765, 6789, 6814, 6839, 6863,
-    6888, 6913, 6938, 6963, 6988, 7014, 7039, 7064,
-    7090, 7116, 7141, 7167, 7193, 7219, 7245, 7271,
-    7298, 7324, 7351, 7377, 7404, 7431, 7458, 7485,
-    7512, 7539, 7566, 7593, 7621, 7648, 7676, 7704,
-    7732, 7760, 7788, 7816, 7844, 7873, 7901, 7930,
-    7958, 7987, 8016, 8045, 8074, 8103, 8133, 8162,
-    8192
-};
-
-static uint16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift) {
-
-    uint32_t pitch;
-    int16_t calc, type;
-    int32_t add, sfine;//, ret;
-
-    sfine = fine + shift;
-    if (sfine < 0) sfine += 7;
-    sfine >>= 3;
-
-    add = 0;
-    if (sfine > 15) {
-        add = 1;
-        sfine -= 16;
-    }
-
-    calc = add + (note - (center - 60));//((center + 60) - note) + add;
-    pitch = _svm_ptable[16 * (calc % 12) + (int16_t)sfine];
-    type = calc / 12 - 5;
-
-    // regular shift
-    if (type > 0) return pitch << type;
-    // negative shift
-    if (type < 0) return pitch >> -type;
-
-    return pitch;
 }
