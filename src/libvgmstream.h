@@ -20,7 +20,7 @@
  * Notes:
  * - now there is an API, internals (vgmstream.h) will change in the future so avoid accesing them
  * - some details described in the API may not happen at the moment (defined for future changes)
- * - uses long-winded libvgmstream_* names since internals alredy use the vgmstream_* 'namespace', #define if needed
+ * - uses long-winded libvgmstream_* names since internals already use the vgmstream_* 'namespace', #define if needed
  * - c-strings should be in UTF-8
  */
 
