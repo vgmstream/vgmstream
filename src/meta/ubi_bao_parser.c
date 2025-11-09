@@ -525,11 +525,6 @@ static bool parse_type_layer_cfg(ubi_bao_header_t* bao, off_t offset, STREAMFILE
     /* get 1st layer header in extra table and validate all headers match */
     uint32_t table_offset = offset + bao->header_size + cues_size;
 
-    //TODO:
-    if (bao->cfg.layer_stream_subtype)
-        bao->stream_subtype = 1;
-    //    bao->stream_subtype = read_s32(h_offset + bao->cfg.layer_stream_subtype, sf);
-
     for (int i = 0; i < bao->layer_count; i++) {
         ubi_bao_layer_t* layer = &bao->layer[i];
         layer->channels    = read_s32(table_offset + bao->cfg.layer_channels, sf);
@@ -666,8 +661,15 @@ static bool parse_values(ubi_bao_header_t* bao) {
         return false;
     }
 
+    // no apparent flag
+    if (bao->type == TYPE_LAYER && bao->codec == RAW_AT3) {
+        if (bao->cfg.layer_default_subtype)
+            bao->stream_subtype = bao->cfg.layer_default_subtype;
+        else
+            bao->stream_subtype = 1;
+    }
+
     //TODO: loop flag only?
-    //TODO: put in PSX code?
     if (bao->type == TYPE_AUDIO && bao->codec == RAW_PSX && bao->cfg.v1_bao && bao->loop_flag) {
         bao->num_samples = bao->num_samples / bao->channels;
     }
