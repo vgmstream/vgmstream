@@ -79,6 +79,10 @@
     #define ftell_v ftello
 #endif
 
+#if defined(VGM_STDIO_UNICODE) && defined(WIN32)
+    #undef fopen_v
+    #define fopen_v fopen_win
+#endif
 
 /* a STREAMFILE that operates via standard IO using a buffer */
 typedef struct {
@@ -321,6 +325,41 @@ fail:
     free(this_sf);
     return NULL;
 }
+
+
+#if defined(VGM_STDIO_UNICODE) && defined(WIN32)
+static bool is_ascii(const char* str) {
+    while (str[0] != 0x00) {
+        uint8_t elem = (uint8_t)str[0];
+        if (elem >= 0x80)
+            return false;
+        str++;
+    }
+    return true;
+}
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+static FILE* fopen_win(const char* path, const char* mode) {
+    // Micro-optimization since converting small-ish ascii strings is the common case.
+    // Possibly irrelevant given that MultiByteToWideChar would do a full scan (but also extra stuff).
+    if (is_ascii(path)) {
+        return fopen(path, mode);
+    }
+
+    int done;
+    wchar_t wpath[PATH_LIMIT];
+    done = MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, sizeof(wpath));
+    if (done <= 0) return NULL;
+
+    wchar_t wmode[3+1];
+    done = MultiByteToWideChar(CP_UTF8, 0, mode, -1, wmode, sizeof(mode));
+    if (done <= 0) return NULL;
+
+    return _wfopen(wpath, wmode);
+}
+#endif
 
 static STREAMFILE* open_stdio_streamfile_buffer(const char* const filename, size_t bufsize) {
     FILE* infile = NULL;

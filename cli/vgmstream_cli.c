@@ -23,6 +23,13 @@
 #include "vgmstream_cli.h"
 #include "wav_utils.h"
 
+#if defined(VGM_STDIO_UNICODE) && defined(WIN32)
+    #include "windows_utils.h"
+    #define fopen_v fopen_win
+#else
+    #define fopen_v fopen
+#endif
+
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION
 #define VGMSTREAM_VERSION "unknown version " __DATE__
@@ -373,7 +380,7 @@ static bool write_file(libvgmstream_t* vgmstream, cli_config_t* cfg) {
         outfile = stdout;
     }
     else if (!cfg->decode_only) {
-        outfile = fopen(cfg->outfilename, "wb");
+        outfile = fopen_v(cfg->outfilename, "wb");
         if (!outfile) {
             fprintf(stderr, "failed to open %s for output\n", cfg->outfilename);
             goto fail;
@@ -693,3 +700,60 @@ int main(int argc, char** argv) {
 fail:
     return EXIT_FAILURE;
 }
+
+#if defined(VGM_STDIO_UNICODE) && defined(WIN32)
+
+#define WMAIN_STACK_ARGC 16
+#define WMAIN_STACK_SIZE 0x800
+
+// TO-DO: alternatives for some Windows versions:
+// - Windows 10 1803 (April 2018): setlocale(LC_ALL, ".utf8")
+// - Windows 10 1903 (May 2019): activeCodePage=UTF8 in appxmanifest
+
+// Handle Windows' uglycode stuff for non-ascii extended filenames, which needs 3 separate steps:
+// - Make a 'wmain' for "unicode" (actually UCS-2) args. There are alt entry points but was the cleanest.
+// - Modify stdio, using _wfopen instead of fopen if needed
+// - allow console/redirected output (printf), via codepages (or modified fprintf). Terminal needs a utf font too.
+// Converts back and forth to UTF-8 for portability, since vgmstream code expects that.
+int wmain(int argc, wchar_t** argv_w) {
+    uint32_t codepage = windows_setup_codepage_utf8();
+
+    int main_result = -1; // only 0/1 are returned
+
+    // try to use small stack first as it's the most common case (single file with few params)
+    {
+        char* argv_stack[WMAIN_STACK_ARGC];
+        char block_stack[WMAIN_STACK_SIZE];
+
+        bool ok = windows_wargs_to_args_stack(argc, argv_w, argv_stack, WMAIN_STACK_ARGC, block_stack, WMAIN_STACK_SIZE);
+        if (ok) {
+            main_result = main(argc, argv_stack);
+        }
+    }
+
+    // if not stack wasn't big enough call again alloc'ing as needed
+    if (main_result < 0) {
+        char** argv_alloc = NULL;
+        char* block_alloc = NULL;
+
+        bool ok = windows_wargs_to_args_alloc(argc, argv_w, &argv_alloc, &block_alloc);
+        if (ok) {
+            main_result = main(argc, argv_alloc);
+        }
+
+        if (argv_alloc || block_alloc) {
+            free(argv_alloc);
+            free(block_alloc);
+        }
+    }
+
+    if (main_result < 0) {
+        fprintf(stderr, "failed to convert args\n");
+        return EXIT_FAILURE;
+    }
+
+    windows_restore_codepage(codepage);
+    return main_result;
+}
+
+#endif

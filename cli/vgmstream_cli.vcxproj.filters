@@ -28,6 +28,9 @@
     <ClCompile Include="wav_utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="windows_utils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vgmstream_cli.h">
@@ -37,6 +40,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="wav_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="windows_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
