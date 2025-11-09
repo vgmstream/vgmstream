@@ -2,6 +2,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/spu_utils.h"
 
 
 /* SWVR - from EA games, demuxed from .av/trk/mis/etc [Future Cop L.A.P.D. (PS/PC), Freekstyle (PS2/GC), EA Sports Supercross (PS)] */
@@ -21,97 +22,97 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
     /* Files have no actual audio headers, so we inspect the first block for known values.
      * Freekstyle uses multiblocks/subsongs (though some subsongs may be clones?) */
 
-    /* blocks ids are in machine endianness */
-    if (read_u32be(0x00,sf) == get_id32be("RVWS")) { /* PS1/PS2/PC */
+    // blocks ids are in machine endianness
+    if (read_u32be(0x00,sf) == get_id32be("RVWS")) { // PS1/PS2/PC
         big_endian = 0;
         read_u32 = read_u32le;
         read_u16 = read_u16le;
         start_offset = read_u32(0x04, sf);
         /* 0x08: null */
-        loop_block = read_u32(0x0c, sf); /* uncommon [NASCAR Racing (PS1), Rumble Racing (PS2)] */
+        loop_block = read_u32(0x0c, sf); // uncommon [NASCAR Racing (PS1), Rumble Racing (PS2)]
     }
-    else if (read_u32be(0x00,sf) == get_id32be("SWVR")) { /* GC */
+    else if (read_u32be(0x00,sf) == get_id32be("SWVR")) { // GC
         big_endian = 1;
         read_u32 = read_u32be;
         read_u16 = read_u16be;
         start_offset = read_u32(0x04, sf);
     }
-    else if (read_u32be(0x00,sf) == get_id32be("MGAV")) { /* Freekstyle (PS2) raw movies */
+    else if (read_u32be(0x00,sf) == get_id32be("MGAV")) { // Freekstyle (PS2) raw movies
         big_endian = 0;
         read_u32 = read_u32le;
         read_u16 = read_u16le;
         start_offset = 0x00;
     }
-    else if (read_u32be(0x00,sf) == get_id32be("DSPM")) { /* Freekstyle (GC) raw movies */
+    else if (read_u32be(0x00,sf) == get_id32be("DSPM")) { // Freekstyle (GC) raw movies
         big_endian = 1;
         read_u32 = read_u32be;
         read_u16 = read_u16be;
         start_offset = 0x00;
     }
     else {
-        goto fail;
+        return NULL;
     }
 
     /* .stream: common (found inside files)
      * .str: shortened, probably unnecessary */
     if (!check_extensions(sf,"stream,str"))
-        goto fail;
+        return NULL;
 
 
-    if (read_u32(start_offset+0x00, sf) == get_id32be("PADD")) /* Freekstyle */
+    if (read_u32(start_offset+0x00, sf) == get_id32be("PADD")) // Freekstyle
         start_offset += read_u32(start_offset+0x04, sf);
 
-    if (read_u32(start_offset+0x00, sf) == get_id32be("FILL")) /* Freekstyle */
+    if (read_u32(start_offset+0x00, sf) == get_id32be("FILL")) // Freekstyle
         start_offset += read_u32(start_offset+0x04, sf);
 
     total_subsongs = 1;
     block_id = read_u32(start_offset, sf);
     /* value after block id (usually at 0x38) is number of blocks of 0x6000 (results in file size, including FILLs) */
 
-    /* intended sample rate for PSX music (verified in emus) should be 14260, but is found in ELF as pitch value
-     * (ex. Nascar Rumble 0x052C in SLUS_010.68 at 0x000143BC): 0x052C * 44100 / 4096 ~= 14254.98046875hz
-     * Future Cop PSX pitch looks similar (comparing vs recordings). */
+    // The intended sample rate for PSX music (verified in emus) should be 14260, found in ELF as a pitch value
+    // (Nascar Rumble 0x052C in SLUS_010.68 at 0x000143BC, Future Cop PSX vs recordings)
+    enum { VAGM = 0x5641474D, VAGB = 0x56414742, DSPM = 0x4453504D, DSPB = 0x44535042, MSIC = 0x4D534943, SHOC = 0x53484F43, };
     switch(block_id) {
-        case 0x5641474D: /* "VAGM" (stereo music) */
+        case VAGM:
             coding = coding_PSX;
             if (read_u16(start_offset+0x1a, sf) == 0x0024) {
-                total_subsongs = read_u32(start_offset+0x0c, sf)+1;
-                sample_rate = 22050; /* Freekstyle (PS2) */
+                total_subsongs = read_u32(start_offset+0x0c, sf) + 1;
+                sample_rate = 22050; // Freekstyle (PS2)
             }
             else {
-                sample_rate = 1324 * 44100 / 4096; /* ~14254 [Future Cop (PS1), Nascar Rumble (PS1), EA Sports Motocross (PS1)] */
+                sample_rate = spu1_pitch_to_sample_rate(1324); // ~14254 [Future Cop (PS1), Nascar Rumble (PS1), EA Sports Motocross (PS1)]
             }
             channels = 2;
             break;
-        case 0x56414742: /* "VAGB" (mono sfx/voices)*/
+        case VAGB:
             coding = coding_PSX;
             if (read_u16(start_offset+0x1a, sf) == 0x6400) {
-                sample_rate = 22050; /* Freekstyle (PS2) */
+                sample_rate = 22050; // Freekstyle (PS2)
             }
             else {
-                /* approximate as pitches vary per file (ex. Nascar Rumble: engine=3779, heli=22050, commentary=11050) */
-                sample_rate = 1080 * 44100 / 4096; /* ~11627 [EA Sports Motocross (PS1)] */
+                // approximate as pitches vary per file (ex. Nascar Rumble: engine=3779, heli=22050, commentary=11050)
+                sample_rate = spu1_pitch_to_sample_rate(1080); // ~11627 [EA Sports Motocross (PS1)]
             }
             channels = 1;
             break;
-        case 0x4453504D: /* "DSPM" (stereo music) */
+        case DSPM:
             coding = coding_NGC_DSP;
             total_subsongs = read_u32(start_offset+0x0c, sf)+1;
-            sample_rate = 22050; /* Freekstyle (GC) */
+            sample_rate = 22050; // Freekstyle (GC)
             channels = 2;
             break;
-        case 0x44535042: /* "DSPB" (mono voices/sfx) */
+        case DSPB:
             coding = coding_NGC_DSP;
             channels = 1;
-            sample_rate = 22050; /* Freekstyle (GC) */
+            sample_rate = 22050; // Freekstyle (GC)
             break;
-        case 0x4D534943: /* "MSIC" (stereo music) */
+        case MSIC:
             coding = coding_PCM8_U_int;
             channels = 2;
-            sample_rate = 14291; /* assumed, by comparing vs PSX output [Future Cop (PC)] */
+            sample_rate = 14291; // assumed, by comparing vs PSX output [Future Cop (PC)]
             break;
-        case 0x53484F43: /* "SHOC" (a generic block but hopefully has PC sounds) */
-            if (read_u32(start_offset+0x10, sf) == get_id32be("SHDR")) { /* Future Cop (PC) */
+        case SHOC: // a generic block but hopefully has PC sounds
+            if (read_u32(start_offset+0x10, sf) == get_id32be("SHDR")) { // Future Cop (PC)
                 /* there is a mini header? after SHDR
                  * 0x00: 5
                  * 0x04: "snds"
