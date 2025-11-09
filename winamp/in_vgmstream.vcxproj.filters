@@ -46,6 +46,9 @@
     <ClCompile Include="in_config.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="in_log.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="in_streamfile.c">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -490,7 +490,7 @@ static void winamp_Stop() {
 
         /* arbitrary wait milliseconds (error can trigger if the system is *really* busy) */
         if (WaitForSingleObject(decode_thread_handle, 5000) == WAIT_TIMEOUT) {
-            MessageBox(input_module.hMainWindow, TEXT("Error stopping decode thread\n"), ("Error"),MB_OK|MB_ICONERROR);
+            MessageBox(input_module.hMainWindow, TEXT("Error stopping decode thread\n"), TEXT("Error"), MB_OK|MB_ICONERROR);
             TerminateThread(decode_thread_handle, 0);
         }
         CloseHandle(decode_thread_handle);
