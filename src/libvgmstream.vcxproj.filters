@@ -74,9 +74,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="api.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="libvgmstream.h">
       <Filter>Header Files</Filter>
     </ClInclude>

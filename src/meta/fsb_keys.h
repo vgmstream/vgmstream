@@ -2,20 +2,19 @@
 #define _FSB_KEYS_H_
 #include <stdint.h>
 
-/*
- * List of known keys, some found in aluigi's site (http://aluigi.altervista.org), forums, guessfsb.exe or manually.
+/* List of known keys, some found in aluigi's site (http://aluigi.altervista.org), forums, guessfsb.exe or manually.
  */
 
 typedef struct {
     uint8_t flags;
     const char* key;
-    size_t key_size; /* precalc'd for speed */
+    size_t key_size;
 } fsbkey_info;
 
-#define FLAG_FSB4   (1 << 0)    /* key is valid for FSB3/4 */
-#define FLAG_FSB5   (1 << 1)    /* key is valid for FSB5 */
-#define FLAG_STD    (1 << 2)    /* regular XOR mode */
-#define FLAG_ALT    (1 << 3)    /* alt XOR mode (seemingly older files or possibly FSB3 only) */
+#define FLAG_FSB4   (1 << 0)    // key is valid for FSB3/4
+#define FLAG_FSB5   (1 << 1)    // key is valid for FSB5
+#define FLAG_STD    (1 << 2)    // regular XOR mode
+#define FLAG_ALT    (1 << 3)    // alt XOR mode (seemingly older files or possibly FSB3 only)
 
 #define MODE_FSB3   (FLAG_FSB4 | FLAG_ALT)
 #define MODE_FSB4   (FLAG_FSB4 | FLAG_STD)
@@ -76,6 +75,8 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5, FSBKEY_ADD("K50j8B2H4pVUfzt7yxfTprg9wdr9zIH6") }, // Gunner, HEAT, PC! (PC)
         { MODE_FSB5, FSBKEY_ADD("Panshen666") }, // Duet Night Abyss (PC)-beta
         { MODE_FSB5, FSBKEY_ADD("M2QEEj6au7Nx0pgYpl8Uhqe9R3CWEjPGbPK6KENwG9eypOkpYq") }, // Undisputed (PC) 
+        { MODE_FSB5, FSBKEY_ADD("+1@+#{n`<h0(r|:1") }, // Wreckreation (PC)
+        { MODE_FSB5, FSBKEY_ADD("MyPjgFmodKey2020^.^") }, // The Tale of Food / Shi Wu Yu (Android)
 
         /* some games use a key per file, generated from the filename
          * (could add all of them but there are a lot of songs, so external .fsbkey are probably better) */
@@ -85,5 +86,4 @@ static const fsbkey_info fsbkey_list[] = {
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
 
-
-#endif /* _FSB_KEYS_H_ */
+#endif

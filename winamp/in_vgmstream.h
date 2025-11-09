@@ -71,13 +71,15 @@ typedef struct {
 extern winamp_settings_t defaults;
 extern winamp_settings_t settings;
 
-/* in_config.c */
 void load_defaults(winamp_settings_t* defaults);
 void load_config(In_Module* input_module, winamp_settings_t* settings, winamp_settings_t* defaults);
 INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
-/* logger */
+/* ************************************* */
+/* IN_LOG                                */
+/* ************************************* */
+
 typedef struct winamp_log_t winamp_log_t;
 void logger_init();
 void logger_free();

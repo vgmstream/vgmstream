@@ -294,18 +294,11 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             break;
         }
 
-        case RAW_AT3:
-        case RAW_AT3_105:
-        case RAW_AT3_132: {
-            // ATRAC3 sizes: low 0x60 (66 kbps) / mid 0x98 (105 kbps) / high 0xC0 (132 kbps)
+        case RAW_AT3: {
+            // ATRAC3 sizes: low (66 kbps) / mid (105 kbps) / high (132 kbps)
             static const int block_types[3] = { 0x60, 0x98, 0xC0 };
             int block_align, encoder_delay;
 
-            // TODO: migrate to stream_subtype in config and remove this
-            if (bao->codec == RAW_AT3_105)
-                bao->stream_subtype = 1;
-            if (bao->codec == RAW_AT3_132)
-                bao->stream_subtype = 1;
             if (bao->stream_subtype < 1 || bao->stream_subtype > 2) {
                 VGM_LOG("UBI BAO: unknown ATRAC3 mode\n"); // mode 0 doesn't seem used
                 goto fail;
@@ -383,7 +376,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
 
             cfg.channels = bao->channels;
             cfg.config_data = read_u32be(extradata_suboffset + 0x24, sf_head);
-            cfg.encoder_delay = 0; //TOOD: research default, doesn't seem to be 2 frames
+            cfg.encoder_delay = 0; //TODO: research default, doesn't seem to be 2 frames
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;

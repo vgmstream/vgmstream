@@ -39,12 +39,12 @@
     <VFooAdditionalIncludeDirectories>..;$(VCmnDependenciesDir)/wtl/include;$(VCmnDependenciesDir)/foobar;$(VCmnDependenciesDir)/foobar/foobar2000</VFooAdditionalIncludeDirectories>
     <VCmdAdditionalIncludeDirectories>..</VCmdAdditionalIncludeDirectories>
     <!-- compile flags -->
-    <VLibPreprocessorDefinitions>VGMSTREAM_VERSION_AUTO;VGM_LOG_OUTPUT;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX</VLibPreprocessorDefinitions>
+    <VLibPreprocessorDefinitions>VGMSTREAM_VERSION_AUTO;VGM_LOG_OUTPUT;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX;VGM_STDIO_UNICODE</VLibPreprocessorDefinitions>
     <VCmnPreprocessorDefinitions>VGMSTREAM_VERSION_AUTO</VCmnPreprocessorDefinitions>
-    <VCliPreprocessorDefinitions>$(VCmnPreprocessorDefinitions)</VCliPreprocessorDefinitions>
+    <VCliPreprocessorDefinitions>$(VCmnPreprocessorDefinitions);UNICODE;_UNICODE;VGM_STDIO_UNICODE</VCliPreprocessorDefinitions>
     <VFooPreprocessorDefinitions>$(VCmnPreprocessorDefinitions)</VFooPreprocessorDefinitions>
     <VXmpPreprocessorDefinitions>$(VCmnPreprocessorDefinitions)</VXmpPreprocessorDefinitions>
-    <VWmpPreprocessorDefinitions>$(VCmnPreprocessorDefinitions);IN_VGMSTREAM_EXPORTS;VGM_WINAMP_UNICODE</VWmpPreprocessorDefinitions>
+    <VWmpPreprocessorDefinitions>$(VCmnPreprocessorDefinitions);UNICODE;_UNICODE;VGM_WINAMP_UNICODE;IN_VGMSTREAM_EXPORTS</VWmpPreprocessorDefinitions>
     <!-- link .lib -->
     <VCmnAdditionalDependencies32>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg719_decode.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;../ext_libs/swresample.lib;../ext_libs/libatrac9.lib;../ext_libs/libcelt-0061.lib;../ext_libs/libcelt-0110.lib;../ext_libs/libspeex-1.lib</VCmnAdditionalDependencies32>
     <VCliAdditionalDependencies32>$(VCmnAdditionalDependencies32);</VCliAdditionalDependencies32>

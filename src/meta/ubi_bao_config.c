@@ -208,7 +208,9 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = UBI_IMA;
             cfg->codec_map[0x04] = FMT_OGG;
             cfg->codec_map[0x05] = RAW_XMA1_str;
-            cfg->codec_map[0x07] = RAW_AT3_105;
+            cfg->codec_map[0x07] = RAW_AT3;
+
+            cfg->audio_stream_subtype = 0x78;
 
             cfg->v1_bao = true; // 0x20xxxxxx 0x30xxxxxx 0x50xxxxxx names
 
@@ -272,7 +274,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
                 cfg->audio_ignore_external_size = true;
 
             cfg->audio_stream_subtype = 0x78;
-            cfg->layer_stream_subtype = 0x78; //TODO: unknown
 
             break;
 
@@ -332,12 +333,16 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = FMT_OGG;
             cfg->codec_map[0x04] = RAW_XMA2_new;
             cfg->codec_map[0x05] = RAW_PSX;
-            cfg->codec_map[0x06] = RAW_AT3_132;
-            if (cfg->version == 0x0025010A) // no apparent flag
-                cfg->codec_map[0x06] = RAW_AT3_105;
+            cfg->codec_map[0x06] = RAW_AT3;
 
             if (cfg->version == 0x0025011D)
                 cfg->header_less_le_flag = true;
+
+            cfg->audio_stream_subtype = 0x88;
+
+            cfg->layer_default_subtype = 2; //Scott Pilgrim, Shaun White
+            if (cfg->version == 0x0025010A) // no apparent flag
+                cfg->layer_default_subtype = 1; // not used?
 
             //TODO: some SPvsTW layers look like should loop (0x30 flag?)
             //TODO: some POP layers have different sample rates (ambience)
@@ -366,7 +371,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->audio_ignore_external_size = true; // leave_me_alone.pk
 
             cfg->audio_stream_subtype = 0x8c;
-            cfg->layer_stream_subtype = 0x78; //TODO: unknown
 
             //TODO: some POP SOT IMA sound off, but seem correctly parsed
             // (rip error? ex. 2a86c5ca.pk + d0a4ef615adf1c5a4e17f3ac.spk)
@@ -425,7 +429,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->audio_fix_xma_samples = true; // W H Y
             cfg->layer_ignore_error = true; //TODO: some GR layer sample rates don't match
             cfg->audio_stream_subtype = 0x90;
-            cfg->layer_stream_subtype = 0x78; //TODO: unknown field, all layers in BD use RAW_AT3_105, check others
 
             //TODO: some GR files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
 

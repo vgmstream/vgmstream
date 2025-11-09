@@ -80,7 +80,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="api.h" />
     <ClInclude Include="libvgmstream.h" />
     <ClInclude Include="libvgmstream_streamfile.h" />
     <ClInclude Include="streamfile.h" />

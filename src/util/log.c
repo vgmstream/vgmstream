@@ -4,7 +4,7 @@
 #include <string.h>
 #include "log.h"
 
-/* log context; should probably make a unique instance and pass to metas/decoders/etc, but for the time being use global */
+/* log context; should probably make a unique instance and pass to metas/decoders/etc, but for the time being use a global */
 //extern ...* log;
 
 typedef struct {
@@ -51,8 +51,6 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback) {
 
 #if defined(VGM_LOG_OUTPUT) || defined(VGM_DEBUG_OUTPUT)
 static void log_internal(void* ctx_p, int level, const char* fmt, va_list args) {
-    char line[256];
-    int out;
     logger_t* ctx = ctx_p;
     if (!ctx) ctx = &log_impl;
 
@@ -62,8 +60,9 @@ static void log_internal(void* ctx_p, int level, const char* fmt, va_list args) 
     if (level > ctx->level)
         return;
 
-    out = vsnprintf(line, sizeof(line), fmt, args);
-    if (out < 0 || out > sizeof(line))
+    char line[256];
+    int done = vsnprintf(line, sizeof(line), fmt, args);
+    if (done < 0 || done > sizeof(line))
         strcpy(line, "(ignored log)"); //to-do something better, meh
     ctx->callback(level, line);
 }

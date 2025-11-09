@@ -1813,6 +1813,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Epic Games UEBA header [*UEBA*]
   - *ueba*: `.ueba .binka`
   - Codecs: BINKA
+- **wd.c**
+  - Square WD header [*WD*]
+  - *wd*: `.wd`
+  - Codecs: NGC_DSP PSX
 - **afc.c**
   - Nintendo .AFC header [*AFC*]
   - *afc*: `.afc .stx`

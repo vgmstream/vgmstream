@@ -173,7 +173,7 @@ class TxtpInfo(object):
 
         # in case vgmstream returns error, but output code wasn't EXIT_FAILURE
         if self.channels <= 0 or self.sample_rate <= 0:
-            raise ValueError('Incorrect vgmstream command')
+            raise ValueError('Incorrect vgmstream command with ' + self.output)
 
         self.stream_seconds = self.num_samples / self.sample_rate
 

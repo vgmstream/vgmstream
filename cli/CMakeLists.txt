@@ -1,7 +1,7 @@
 # CLI
 
 add_executable(vgmstream_cli
-	vgmstream_cli.c vgmstream_cli_utils.c wav_utils.c)
+	vgmstream_cli.c vgmstream_cli_utils.c wav_utils.c windows_utils.c)
 
 set_target_properties(vgmstream_cli PROPERTIES
 	PREFIX ""
@@ -15,7 +15,7 @@ setup_target(vgmstream_cli TRUE)
 
 if(WIN32)
 	# Add the preprocessor definitions
-	target_compile_definitions(vgmstream_cli PRIVATE _CONSOLE)
+	target_compile_definitions(vgmstream_cli PRIVATE _CONSOLE UNICODE _UNICODE VGM_STDIO_UNICODE)
 
 	# Link to the getopt library
 	target_link_libraries(vgmstream_cli PUBLIC getopt)
