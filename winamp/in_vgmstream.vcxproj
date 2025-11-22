@@ -55,7 +55,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(VCmdAdditionalIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;VGM_WINAMP_UNICODE;$(VWmpPreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;$(VWmpPreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -71,12 +71,14 @@
     <ClInclude Include="in_vgmstream.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sdk\in2.h" />
+    <ClInclude Include="sdk\in2_extra.h" />
     <ClInclude Include="sdk\ipc_pe.h" />
     <ClInclude Include="sdk\out.h" />
     <ClInclude Include="sdk\wa_ipc.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="in_config.c" />
+    <ClCompile Include="in_log.c" />
     <ClCompile Include="in_streamfile.c" />
     <ClCompile Include="in_utils.c" />
     <ClCompile Include="in_vgmstream.c" />

@@ -103,6 +103,14 @@ ifneq ($(VGM_X64),0)
   DEF_CFLAGS += -m64
 endif
 
+ifeq ($(TARGET_OS),Windows_NT)
+  VGM_UNICODE = 1
+  ifneq ($(VGM_UNICODE),0)
+    # -DUNICODE/_UNICODE forces certain APIs to use UTF-16
+    DEF_CFLAGS  += -DUNICODE -D_UNICODE -DVGM_STDIO_UNICODE -municode
+  endif
+endif
+
 # config libs
 VGM_G7221 = 1
 ifneq ($(VGM_G7221),0)

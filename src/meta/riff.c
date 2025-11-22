@@ -185,6 +185,7 @@ typedef struct {
     bool is_at9;
 } riff_fmt_chunk;
 
+// see mmeapi.h (WAVEFORMAT) and mmreg.h (WAVEFORMATEX) for a more detailed codec list, also riffmci / RIFFNEW docs
 static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk* fmt) {
     uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
     uint16_t (*read_u16)(off_t,STREAMFILE*) = big_endian ? read_u16be : read_u16le;
@@ -225,7 +226,7 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
         goto fail;
 
     switch (fmt->codec) {
-        case 0x0000:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial) */
+        case 0x0000:  // Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial, WAVE_FORMAT_UNKNOWN)
             if (fmt->bps != 4) goto fail;
             if (fmt->block_size != 0x02*fmt->channels &&
                 fmt->block_size != 0x01*fmt->channels) goto fail;
@@ -233,21 +234,21 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
             fmt->interleave = 0x01;
             break;
 
-        case 0x0001: /* PCM */
+        case 0x0001: // WAVE_FORMAT_PCM
             switch (fmt->bps) {
-                case 32: /* Get Off My Lawn! (PC) */
+                case 32: // Get Off My Lawn! (PC)
                     fmt->coding_type = coding_PCM32LE;
                     break;
-                case 24: /* Tinertia (PC), Beatbuddy (WiiU) */
+                case 24: // Tinertia (PC), Beatbuddy (WiiU)
                     fmt->coding_type = coding_PCM24LE;
                     break;
-                case 16: /* common */
+                case 16: // common
                     fmt->coding_type = big_endian ? coding_PCM16BE : coding_PCM16LE;
-                    /* broken block size [Rayman 2 (DC)] */
+                    // broken block size [Rayman 2 (DC)]
                     if (fmt->block_size == 0x02 && fmt->channels > 1)
                         fmt->block_size = 0x02 * fmt->channels;
                     break;
-                case 8: /* The Lost Vikings 2 (PC), Phoenix Wright: Ace Attorney (iOS) */
+                case 8: // The Lost Vikings 2 (PC), Phoenix Wright: Ace Attorney (iOS)
                     fmt->coding_type = coding_PCM8_U;
                     break;
                 default:
@@ -256,25 +257,25 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
             fmt->interleave = fmt->block_size / fmt->channels;
             break;
 
-        case 0x0002: /* MSADPCM [Descent: Freespace (PC)] */
+        case 0x0002: // WAVE_FORMAT_ADPCM [Descent: Freespace (PC)]
             if (fmt->bps == 4) {
                 /* ADPCMWAVEFORMAT extra data:
                  * - samples per frame (16b)
                  * - num coefs (16b), always 7
-                 * - N x2 coefs (configurable but in practice fixed) */
+                 * - N x2 coefs (configurable but in practice fixed, first 7 coeffs must be the same) */
                 fmt->coding_type = coding_MSADPCM;
                 if (!msadpcm_check_coefs(sf, fmt->offset + 0x08 + 0x14))
                     goto fail;
             }
             else if (fmt->bps == 16 && fmt->block_size == 0x02 * fmt->channels && fmt->size == 0x14) {
-                fmt->coding_type = coding_IMA; /* MX vs ATV Unleashed (PC) codec hijack */
+                fmt->coding_type = coding_IMA; // MX vs ATV Unleashed (PC) codec hijack */
             }
             else {
                 goto fail;
             }
             break;
 
-        case 0x0003: /* floating point PCM [Cube World (PC), SphereZor (WiiU)] */
+        case 0x0003: // WAVE_FORMAT_IEEE_FLOAT [Cube World (PC), SphereZor (WiiU)]
             if (fmt->bps == 32) {
               fmt->coding_type = coding_PCMFLOAT;
             }
@@ -284,14 +285,14 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
             fmt->interleave = fmt->block_size / fmt->channels;
             break;
 
-        case 0x0011:  /* MS-IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
+        case 0x0011: // WAVE_FORMAT_IMA_ADPCM / WAVE_FORMAT_DVI_ADPCM (actually MS-IMA ADPCM) [Layton Brothers: Mystery Room (iOS/Android)]
             /* IMAADPCMWAVEFORMAT extra data:
              * - samples per frame (16b) */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MS_IMA;
             break;
 
-        case 0x0020:  /* Yamaha AICA ADPCM [Takuyo/Dynamix/etc DC games] (official-ish) */
+        case 0x0020: /* WAVE_FORMAT_YAMAHA_ADPCM [Takuyo/Dynamix/etc DC games] (official-ish) */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_AICA;
             /* official RIFF spec has 0x20 as 'Yamaha ADPCM', but data is probably not pure AICA
@@ -299,7 +300,7 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
             break;
 
 #ifdef VGM_USE_MPEG
-        case 0x0055: /* MP3 [Bear in the Big Blue House: Bear's Imagine That! (PC), Eclipse (PC)] (official) */
+        case 0x0055: // WAVE_FORMAT_MPEGLAYER3 [Bear in the Big Blue House: Bear's Imagine That! (PC), Eclipse (PC)] (official)
             fmt->coding_type = coding_MPEG_custom;
             /* some oddities, unsure if part of standard:
              * - block size is 1 (in mono)
@@ -308,25 +309,24 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
             break;
 #endif
 
-        case 0x0069:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox)] */
+        case 0x0069: // XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox)] (unofficial, WAVE_FORMAT_VOXWARE_BYTE_ALIGNED)
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_XBOX_IMA;
             break;
 
-        case 0x007A:  /* MS IMA ADPCM [LA Rush (PC), Psi Ops (PC)] (unofficial) */
-            /* 0x007A is apparently "Voxware SC3" but in .MED it's just MS-IMA (0x11) */
+        case 0x007A: // MS IMA ADPCM [LA Rush (PC), Psi Ops (PC)] (unofficial, WAVE_FORMAT_VOXWARE_SC3)
             if (!check_extensions(sf,"med"))
                 goto fail;
 
-            if (fmt->bps == 4) /* normal MS IMA */
+            if (fmt->bps == 4) // normal MS IMA */
                 fmt->coding_type = coding_MS_IMA;
-            else if (fmt->bps == 3) /* 3-bit MS IMA, used in a very few files */
+            else if (fmt->bps == 3) // 3-bit MS IMA, used in a very few files
                 goto fail; //fmt->coding_type = coding_MS_IMA_3BIT;
             else
                 goto fail;
             break;
 
-        case 0x0300:  /* IMA ADPCM [Chrono Ma:gia (Android)] (unofficial) */
+        case 0x0300:  /* IMA ADPCM [Chrono Ma:gia (Android)] (unofficial, WAVE_FORMAT_FM_TOWNS_SND) */
             if (fmt->bps != 4) goto fail;
             if (fmt->block_size != 0x0400*fmt->channels) goto fail;
             if (fmt->size != 0x14) goto fail;
@@ -341,25 +341,25 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
             break;
 
 #ifdef VGM_USE_VORBIS
-      //case 0x674f: /* Ogg Vorbis (mode 1) */
-      //case 0x6750: /* Ogg Vorbis (mode 2) */
-      //case 0x6751: /* Ogg Vorbis (mode 3) */
-        case 0x676f: /* Ogg Vorbis (mode 1+) [Only One 2 (PC)] */
-        case 0x6770: /* Ogg Vorbis (mode 2+) [Only One (PC)]*/
-        case 0x6771: /* Ogg Vorbis (mode 3+) [Liar-soft games] */
+      //case 0x674f: // WAVE_FORMAT_OGG_VORBIS_MODE_1
+      //case 0x6750: // WAVE_FORMAT_OGG_VORBIS_MODE_2
+      //case 0x6751: // WAVE_FORMAT_OGG_VORBIS_MODE_3
+        case 0x676f: // WAVE_FORMAT_OGG_VORBIS_MODE_1_PLUS [Only One 2 (PC)]
+        case 0x6770: // WAVE_FORMAT_OGG_VORBIS_MODE_2_PLUS [Only One (PC)]
+        case 0x6771: // WAVE_FORMAT_OGG_VORBIS_MODE_3_PLUS [Liar-soft games]
             /* vorbis.acm codecs (official-ish, "+" = CBR-style modes?) */
             fmt->coding_type = coding_OGG_VORBIS;
             break;
 #endif
 
 #ifdef VGM_USE_FFMPEG
-        case 0x0270: /* ATRAC3 */
+        case 0x0270: // ATRAC3 (officially WAVE_FORMAT_SONY_SCX, WAVE_FORMAT_SONY_ATRAC3 = 0x0272)
             fmt->coding_type = coding_FFmpeg;
             fmt->is_at3 = true;
             break;
 #endif
 
-        case 0xFFFE: { /* WAVEFORMATEXTENSIBLE (see ksmedia.h for known GUIDs) */
+        case 0xFFFE: { // WAVEFORMATEXTENSIBLE (see ksmedia.h for known GUIDs)
             uint32_t guid1 = read_u32  (offset+0x20,sf);
             uint32_t guid2 = (read_u16 (offset+0x24,sf) << 16u) |
                              (read_u16 (offset+0x26,sf));
@@ -380,7 +380,7 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
                 break;
             }
 
-            /* ATRAC3plus GUID (0xE923AABF,CB58,4471,A1,19,FF,FA,01,E4,CE,62) */
+            // ATRAC3plus GUID (0xE923AABF,CB58,4471,A1,19,FF,FA,01,E4,CE,62)
             if (guid1 == 0xE923AABF && guid2 == 0xCB584471 && guid3 == 0xA119FFFA && guid4 == 0x01E4CE62) {
 #ifdef VGM_USE_FFMPEG
                 fmt->coding_type = coding_FFmpeg;
@@ -392,7 +392,7 @@ static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chu
             }
 
 #ifdef VGM_USE_ATRAC9
-            /* ATRAC9 GUID (0x47E142D2,36BA,4D8D,88,FC,61,65,4F,8C,83,6C) */
+            // ATRAC9 GUID (0x47E142D2,36BA,4D8D,88,FC,61,65,4F,8C,83,6C)
             if (guid1 == 0x47E142D2 && guid2 == 0x36BA4D8D && guid3 == 0x88FC6165 && guid4 == 0x4F8C836C) {
                 fmt->coding_type = coding_ATRAC9;
                 fmt->is_at9 = true;

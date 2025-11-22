@@ -1966,7 +1966,7 @@ static int parse_multi_txth(txth_header* txth, char* names) {
             goto fail;
 
         //;VGM_LOG("TXTH: multi name %s\n", name);
-        sf_test = open_streamfile_by_filename(txth->sf, name);
+        sf_test = open_streamfile_by_pathname(txth->sf, name);
         if (!sf_test)
             goto fail;
 

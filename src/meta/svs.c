@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/meta_utils.h"
+#include "../util/spu_utils.h"
 
 
 /* SVS - SeqVagStream from Square games [Unlimited Saga (PS2) music] */
@@ -28,7 +29,7 @@ VGMSTREAM* init_vgmstream_svs(STREAMFILE* sf) {
     h.stream_size = get_streamfile_size(sf) - h.stream_offset;
 
     h.channels = 2;
-    h.sample_rate = round10((48000 * pitch) / 4096); /* music = ~44100, ambience = 48000 (rounding makes more sense but not sure) */
+    h.sample_rate = spu2_pitch_to_sample_rate_rounded(pitch); // music = ~44100, ambience = 48000 (rounding makes more sense but not sure)
     h.num_samples = ps_bytes_to_samples(h.stream_size, h.channels);
     /* loop start/end on the same frame rarely happens too (ex. file_id 63 SVS), perhaps loop should be +1 */
     h.loop_flag = (h.loop_start  > 0); /* min is 1 */

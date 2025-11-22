@@ -3,10 +3,11 @@
  */
 #include "in_vgmstream.h"
 
-
-/* ************************************* */
-/* IN_CONFIG                             */
-/* ************************************* */
+#define CFG_DBL_BUF_SIZE 128
+#define CFG_INT_BUF_SIZE 32
+#define CFG_LOG_LINES 32
+#define CFG_LOG_LINE_SIZE 256
+#define CFG_LOG_BUF_SIZE ((CFG_LOG_LINE_SIZE + 1) * CFG_LOG_LINES)
 
 /* config */
 #define CONFIG_APP_NAME         TEXT("vgmstream plugin")
@@ -27,7 +28,7 @@
 #define INI_GAIN_TYPE           TEXT("gain_type")
 #define INI_CLIP_TYPE           TEXT("clip_type")
 
-TCHAR *dlg_priority_strings[7] = {
+TCHAR* dlg_priority_strings[7] = {
     TEXT("Idle"),
     TEXT("Lowest"),
     TEXT("Below Normal"),
@@ -36,7 +37,8 @@ TCHAR *dlg_priority_strings[7] = {
     TEXT("Highest (not recommended)"),
     TEXT("Time Critical (not recommended)")
 };
-TCHAR *dlg_replaygain_strings[] = {
+
+TCHAR* dlg_replaygain_strings[] = {
     TEXT("None"),
     TEXT("Album"),
     TEXT("Peak")
@@ -52,37 +54,51 @@ const int priority_values[7] = {
     THREAD_PRIORITY_TIME_CRITICAL
 };
 
+// hidden messages added in later SDKs
+#define WA_IPC_GETINIFILEW 1334
+#define WA_IPC_GETINIDIRECTORYW 1335
+#define WA_IPC_GETPLUGINDIRECTORYW 1336
 
-// todo finish UNICODE (requires IPC_GETINIDIRECTORYW from later SDKs to read the ini path properly)
 /* Winamp INI reader */
-static void ini_get_filename(In_Module* input_module, TCHAR *inifile) {
+static void ini_get_filename(In_Module* input_module, TCHAR* inifile, int inifile_len) {
 
     if (IsWindow(input_module->hMainWindow) && SendMessage(input_module->hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
-        /* newer Winamp with per-user settings */
-        TCHAR *ini_dir = (TCHAR *)SendMessage(input_module->hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        cfg_strncpy(inifile, ini_dir, WINAMP_PATH_LIMIT);
+        // newer Winamp with per-user settings
 
-        cfg_strncat(inifile, TEXT("\\Plugins\\"), WINAMP_PATH_LIMIT);
+        TCHAR* ini_dir = (TCHAR*)SendMessage(input_module->hMainWindow, WM_WA_IPC, 0, WA_IPC_GETINIDIRECTORYW);
+        if (ini_dir) {
+            // only "newer" winamp versions, probably helps for unicode paths/usernames
+            cfg_strncpy(inifile, ini_dir, WINAMP_PATH_LIMIT);
+        } else {
+            // works with standard cases (should be compatible with the above)
+            char* ini_dir = (char*)SendMessage(input_module->hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
+            cfg_char_to_wchar(inifile, inifile_len, ini_dir);
+        }
 
-        /* can't be certain that \Plugins already exists in the user dir */
-        CreateDirectory(inifile,NULL);
+        cfg_strncat(inifile, TEXT("\\Plugins\\"), inifile_len);
 
-        cfg_strncat(inifile, CONFIG_INI_NAME, WINAMP_PATH_LIMIT);
+        // can't be certain that \Plugins already exists in the user dir
+        CreateDirectory(inifile, NULL);
+
+        cfg_strncat(inifile, CONFIG_INI_NAME, inifile_len);
     }
     else {
-        /* older winamp with single settings */
-        TCHAR *lastSlash;
+        // older winamp with single settings
+        TCHAR* lastSlash;
 
-        GetModuleFileName(NULL, inifile, WINAMP_PATH_LIMIT);
+        GetModuleFileName(NULL, inifile, inifile_len);
         lastSlash = cfg_strrchr(inifile, TEXT('\\'));
 
         *(lastSlash + 1) = 0;
 
         /* XMPlay doesn't have a "plugins" subfolder */
-        if (settings.is_xmplay)
-            cfg_strncat(inifile, CONFIG_INI_NAME, WINAMP_PATH_LIMIT);
-        else
-            cfg_strncat(inifile, TEXT("Plugins\\") CONFIG_INI_NAME, WINAMP_PATH_LIMIT);
+        if (settings.is_xmplay) {
+            cfg_strncat(inifile, CONFIG_INI_NAME, inifile_len);
+        }
+        else {
+            cfg_strncat(inifile, TEXT("Plugins\\") CONFIG_INI_NAME, inifile_len);
+        }
+
         /* Maybe should query IPC_GETINIDIRECTORY and use that, not sure what ancient Winamps need.
          * There must be some proper way to handle dirs since other Winamp plugins save config in 
          * XMPlay correctly (this feels like archaeology, try later) */
@@ -90,43 +106,47 @@ static void ini_get_filename(In_Module* input_module, TCHAR *inifile) {
 }
 
 
-static void ini_get_d(const char *inifile, const char *entry, double defval, double *p_val) {
-    TCHAR buf[256];
-    TCHAR defbuf[256];
+static void ini_get_d(TCHAR* inifile, TCHAR* entry, double defval, double* p_val) {
+    TCHAR buf[CFG_DBL_BUF_SIZE];
+    TCHAR defbuf[CFG_DBL_BUF_SIZE];
     int consumed, res;
 
     cfg_sprintf(defbuf, TEXT("%.2lf"), defval);
-    GetPrivateProfileString(CONFIG_APP_NAME, entry, defbuf, buf, 256, inifile);
+    GetPrivateProfileString(CONFIG_APP_NAME, entry, defbuf, buf, CFG_DBL_BUF_SIZE, inifile);
     res = cfg_sscanf(buf, TEXT("%lf%n"), p_val, &consumed);
     if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
         *p_val = defval;
     }
 }
-static void ini_get_i(const char *inifile, const char *entry, int defval, int *p_val, int min, int max) {
+
+static void ini_get_i(TCHAR* inifile, TCHAR* entry, int defval, int* p_val, int min, int max) {
     *p_val = GetPrivateProfileInt(CONFIG_APP_NAME, entry, defval, inifile);
     if (*p_val < min || *p_val > max) {
         *p_val = defval;
     }
 }
-static void ini_get_b(const char *inifile, const char *entry, int defval, int *p_val) {
+
+static void ini_get_b(TCHAR* inifile, TCHAR* entry, int defval, int* p_val) {
     ini_get_i(inifile, entry, defval, p_val, 0, 1);
 }
 
-static void ini_set_d(const char *inifile, const char *entry, double val) {
-    TCHAR buf[256];
+static void ini_set_d(TCHAR* inifile, TCHAR* entry, double val) {
+    TCHAR buf[CFG_DBL_BUF_SIZE];
     cfg_sprintf(buf, TEXT("%.2lf"), val);
     WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
 }
-static void ini_set_i(const char *inifile, const char *entry, int val) {
-    TCHAR buf[32];
+
+static void ini_set_i(TCHAR* inifile, TCHAR* entry, int val) {
+    TCHAR buf[CFG_INT_BUF_SIZE];
     cfg_sprintf(buf, TEXT("%d"), val);
     WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
 }
-static void ini_set_b(const char *inifile, const char *entry, int val) {
+
+static void ini_set_b(TCHAR* inifile, TCHAR* entry, int val) {
     ini_set_i(inifile, entry, val);
 }
 
-/*static*/ void load_defaults(winamp_settings_t* defaults) {
+void load_defaults(winamp_settings_t* defaults) {
     defaults->thread_priority = 3;
     defaults->fade_time = 10.0;
     defaults->fade_delay = 0.0;
@@ -143,10 +163,10 @@ static void ini_set_b(const char *inifile, const char *entry, int val) {
     defaults->clip_type = 2;
 }
 
-/*static*/ void load_config(In_Module* input_module, winamp_settings_t* settings, winamp_settings_t* defaults) {
+void load_config(In_Module* input_module, winamp_settings_t* settings, winamp_settings_t* defaults) {
     TCHAR inifile[WINAMP_PATH_LIMIT];
 
-    ini_get_filename(input_module, inifile);
+    ini_get_filename(input_module, inifile, WINAMP_PATH_LIMIT);
 
     ini_get_i(inifile, INI_THREAD_PRIORITY, defaults->thread_priority, &settings->thread_priority, 0, 6);
 
@@ -178,7 +198,7 @@ static void ini_set_b(const char *inifile, const char *entry, int val) {
 static void save_config(In_Module* input_module, winamp_settings_t* settings) {
     TCHAR inifile[WINAMP_PATH_LIMIT];
 
-    ini_get_filename(input_module, inifile);
+    ini_get_filename(input_module, inifile, WINAMP_PATH_LIMIT);
 
     ini_set_i(inifile, INI_THREAD_PRIORITY, settings->thread_priority);
 
@@ -202,19 +222,22 @@ static void save_config(In_Module* input_module, winamp_settings_t* settings) {
 
 
 static void dlg_input_set_d(HWND hDlg, int idc, double val) {
-    TCHAR buf[256];
+    TCHAR buf[CFG_DBL_BUF_SIZE];
     cfg_sprintf(buf, TEXT("%.2lf"), val);
     SetDlgItemText(hDlg, idc, buf);
 }
+
 static void dlg_input_set_i(HWND hDlg, int idc, int val) {
-    TCHAR buf[32];
+    TCHAR buf[CFG_INT_BUF_SIZE];
     cfg_sprintf(buf, TEXT("%d"), val);
     SetDlgItemText(hDlg, idc, buf);
 }
+
 static void dlg_check_set(HWND hDlg, int idc, int val) {
     CheckDlgButton(hDlg, idc, val ? BST_CHECKED : BST_UNCHECKED);
 }
-static void cfg_combo_set(HWND hDlg, int idc, int val, TCHAR **list, int list_size) {
+
+static void cfg_combo_set(HWND hDlg, int idc, int val, TCHAR** list, int list_size) {
     int i;
     HANDLE hCombo = GetDlgItem(hDlg, idc);
     for (i = 0; i < list_size; i++) {
@@ -222,19 +245,19 @@ static void cfg_combo_set(HWND hDlg, int idc, int val, TCHAR **list, int list_si
     }
     SendMessage(hCombo, CB_SETCURSEL, val, 0);
 }
-static void cfg_slider_set(HWND hDlg, int idc1, int idc2, int val, int min, int max, TCHAR **list) {
+static void cfg_slider_set(HWND hDlg, int idc1, int idc2, int val, int min, int max, TCHAR** list) {
     HANDLE hSlider = GetDlgItem(hDlg, idc1);
     SendMessage(hSlider, TBM_SETRANGE, (WPARAM)TRUE, (LPARAM)MAKELONG(min, max));
     SendMessage(hSlider, TBM_SETPOS,   (WPARAM)TRUE, (LPARAM)val+1);
     SetDlgItemText(hDlg, idc2, list[val]);
 }
 
-static void dlg_input_get_d(HWND hDlg, int idc, double *p_val, LPCTSTR error, int *p_err) {
-    TCHAR buf[256];
+static void dlg_input_get_d(HWND hDlg, int idc, double* p_val, LPCTSTR error, int* p_err) {
+    TCHAR buf[CFG_DBL_BUF_SIZE];
     int res, consumed;
     double defval = *p_val;
 
-    GetDlgItemText(hDlg, idc, buf, 256);
+    GetDlgItemText(hDlg, idc, buf, CFG_DBL_BUF_SIZE);
     res = cfg_sscanf(buf, TEXT("%lf%n"), p_val, &consumed);
     if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
         MessageBox(hDlg, error, NULL, MB_OK|MB_ICONERROR);
@@ -242,12 +265,13 @@ static void dlg_input_get_d(HWND hDlg, int idc, double *p_val, LPCTSTR error, in
         *p_err = 1;
     }
 }
-static void dlg_input_get_i(HWND hDlg, int idc, int *p_val, LPCTSTR error, int *p_err) {
-    TCHAR buf[32];
+
+static void dlg_input_get_i(HWND hDlg, int idc, int* p_val, LPCTSTR error, int* p_err) {
+    TCHAR buf[CFG_INT_BUF_SIZE];
     int res, consumed;
     int defval = *p_val;
 
-    GetDlgItemText(hDlg, idc, buf, 32);
+    GetDlgItemText(hDlg, idc, buf, CFG_INT_BUF_SIZE);
     res = cfg_sscanf(buf, TEXT("%d%n"), p_val, &consumed);
     if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
         MessageBox(hDlg, error, NULL, MB_OK|MB_ICONERROR);
@@ -255,10 +279,12 @@ static void dlg_input_get_i(HWND hDlg, int idc, int *p_val, LPCTSTR error, int *
         *p_err = 1;
     }
 }
-static void dlg_check_get(HWND hDlg, int idc, int *p_val) {
+
+static void dlg_check_get(HWND hDlg, int idc, int* p_val) {
     *p_val = (IsDlgButtonChecked(hDlg, idc) == BST_CHECKED);
 }
-static void dlg_combo_get(HWND hDlg, int idc, int *p_val) {
+
+static void dlg_combo_get(HWND hDlg, int idc, int* p_val) {
     *p_val = SendMessage(GetDlgItem(hDlg, idc), CB_GETCURSEL, 0, 0);
 }
 
@@ -308,7 +334,6 @@ static void dlg_save_form(HWND hDlg, winamp_settings_t* settings, int reset) {
 
     cfg_combo_set(hDlg, IDC_GAIN_TYPE, settings->gain_type, dlg_replaygain_strings, (reset ? 0 : 3));
     cfg_combo_set(hDlg, IDC_CLIP_TYPE, settings->clip_type, dlg_replaygain_strings, (reset ? 0 : 3));
-
 }
 
 /* config dialog handler */
@@ -356,31 +381,31 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                 }
 
                 case IDC_LOG_BUTTON: { /* shows log */
-                    TCHAR wbuf[257*32];
-                    char buf[257*32];
-                    size_t buf_size = 257*32;
-                    int i, max = 0;
+                    char buf_tmp[CFG_LOG_BUF_SIZE];
+                    TCHAR buf[CFG_LOG_BUF_SIZE];
+                    size_t buf_size = CFG_LOG_BUF_SIZE;
+                    int max = 0;
                     const char** lines = logger_get_lines(&max);
 
                     /* could use some nice scrollable text but I don't know arcane Windows crap */
                     if (lines == NULL) {
-                        snprintf(buf, 257, "%s\n", "couldn't read log");
+                        snprintf(buf_tmp, CFG_LOG_LINE_SIZE, "%s\n", "couldn't read log");
                     }
                     else if (max == 0) {
-                        snprintf(buf, 257, "%s\n", "(empty)");
+                        snprintf(buf_tmp, CFG_LOG_LINE_SIZE, "%s\n", "(empty)");
                     }
                     else {
-                        //todo improve
-                        char* tmp = buf;
-                        for (i = 0; i < max; i++) {
-                            int done = snprintf(tmp, 256, "%s", lines[i]);
-                            if (done < 0 || done >= 256)
+                        //TODO: improve
+                        char* tmp = buf_tmp;
+                        for (int i = 0; i < max; i++) {
+                            int done = snprintf(tmp, CFG_LOG_LINE_SIZE, "%s", lines[i]);
+                            if (done < 0 || done >= CFG_LOG_LINE_SIZE)
                                 break;
                             tmp += (done); // + 1
                         }
                     }
 
-                    cfg_char_to_wchar(wbuf, buf_size, buf);
+                    cfg_char_to_wchar(buf, buf_size, buf_tmp);
                     MessageBox(hDlg, buf, TEXT("vgmstream log"), MB_OK);
                     break;
                 }
@@ -407,83 +432,4 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
     }
 
     return TRUE;
-}
-
-
-/* ************************************* */
-/* IN_LOG                                */
-/* ************************************* */
-
-/* could just write to file but to avoid leaving temp crap just log to memory and print what when requested */
-
-winamp_log_t* walog;
-#define WALOG_MAX_LINES 32
-#define WALOG_MAX_CHARS 256
-
-struct winamp_log_t {
-    char data[WALOG_MAX_LINES * WALOG_MAX_CHARS];
-    int logged;
-    const char* lines[WALOG_MAX_LINES];
-} ;
-
-void logger_init() {
-    walog = malloc(sizeof(winamp_log_t));
-    if (!walog) return;
-
-    walog->logged = 0;
-}
-
-void logger_free() {
-    free(walog);
-    walog = NULL;
-}
-
-/* logs to data as a sort of circular buffer. example if max_lines is 6:
- * - log 0 = "msg1"
- * ...
- * - log 5 = "msg5" > limit reached, next will overwrite 0
- * - log 0 = "msg6" (max 6 logs, but can only write las 6)
- * - when requested lines should go from current to: 1,2,3,4,5,0
-*/
-void logger_callback(int level, const char* str) {
-    char* buf;
-    int pos;
-    if (!walog)
-        return;
-
-    pos = (walog->logged % WALOG_MAX_LINES) * WALOG_MAX_CHARS;
-    buf = &walog->data[pos];
-    snprintf(buf, WALOG_MAX_CHARS, "%s", str);
-
-    walog->logged++;
-
-    /* ??? */
-    if (walog->logged >= 0x7FFFFFFF)
-        walog->logged = 0;
-}
-
-const char** logger_get_lines(int* p_max) {
-    int i, from, max;
-
-    if (!walog) {
-        *p_max = 0;
-        return NULL;
-    }
-
-    if (walog->logged > WALOG_MAX_LINES) {
-        from = (walog->logged % WALOG_MAX_LINES);
-        max = WALOG_MAX_LINES;
-    }
-    else {
-        from = 0;
-        max = walog->logged;
-    }
-
-    for (i = 0; i < max; i++) {
-        int pos = ((from + i) % WALOG_MAX_LINES) * WALOG_MAX_CHARS;
-        walog->lines[i] = &walog->data[pos];
-    }
-
-    *p_max = max;
-    return walog->lines;
 }

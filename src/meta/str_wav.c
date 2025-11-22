@@ -802,6 +802,8 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         strwav->codec = DSP;
         strwav->coefs_table = 0x7c;
         strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
+        strwav->flags &= ~1; //apparently HOTD files don't loop in-game 
+
         ;VGM_LOG("STR+WAV: header TKGG/HOTDO/ASK/KR (Wii)\n");
         return 1;
     }
@@ -840,6 +842,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         else { /* HOTD */
             strwav->channels    = read_s32be(0x70,sf_h); /* tracks of 1ch */
             strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
+            strwav->flags &= ~1; //apparently HOTD files don't loop in-game 
 
             strwav->codec = PSX;
         }

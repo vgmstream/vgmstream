@@ -74,9 +74,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="api.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="libvgmstream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -398,6 +395,9 @@
     <ClInclude Include="meta\ubi_bao_config.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\ubi_bao_parser.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\ubi_bao_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -497,6 +497,9 @@
     <ClInclude Include="util\reader_get_nibbles.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\reader_helper.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\reader_put.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -507,6 +510,9 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\sf_utils.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\spu_utils.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\text_reader.h">
@@ -2161,6 +2167,9 @@
     <ClCompile Include="meta\ubi_bao_config.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ubi_bao_parser.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ubi_ckd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2279,6 +2288,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wbk.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\wd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wpd.c">
@@ -2441,6 +2453,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\sf_utils.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\spu_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\text_reader.c">

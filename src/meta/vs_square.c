@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/spu_utils.h"
 
 
 /* VS - VagStream from Square Sounds Co. games [Final Fantasy X (PS2) voices, Unlimited Saga (PS2) voices, All Star Pro-Wrestling 2/3 (PS2) music] */
@@ -11,11 +12,11 @@ VGMSTREAM* init_vgmstream_vs_square(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf,"VS\0\0"))
+        return NULL;
     /* .vs: extension from debug strings (probably like The Bouncer's .vs, very similar) */
     if (!check_extensions(sf, "vs"))
-        goto fail;
-    if (!is_id32be(0x00,sf,"VS\0\0"))
-        goto fail;
+        return NULL;
 
     flags = read_u32le(0x04,sf);
     /* 0x08: block number */
@@ -40,7 +41,7 @@ VGMSTREAM* init_vgmstream_vs_square(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_VS_SQUARE;
-    vgmstream->sample_rate = round10((48000 * pitch) / 4096); /* needed for rare files */
+    vgmstream->sample_rate = spu2_pitch_to_sample_rate_rounded(pitch); // needed for rare files
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_vs_square;
 

@@ -13,6 +13,7 @@
  * and seems used to serialize classes/objects too.
  *
  * (adapted from hcs's code to do multiple querys in the same table)
+ * https://github.com/hcs64/vgm_ripping/tree/master/multi/utf_tab
  */
 
 /* opaque struct */
@@ -47,4 +48,4 @@ int utf_query_u64(utf_context* utf, int row, const char* column_name, uint64_t* 
 int utf_query_string(utf_context* utf, int row, const char* column_name, const char** value);
 int utf_query_data(utf_context* utf, int row, const char* column_name, uint32_t* offset, uint32_t* size);
 
-#endif /* _CRI_UTF_H_ */
+#endif

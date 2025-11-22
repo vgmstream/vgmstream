@@ -89,7 +89,7 @@ static inline int clamp_pcm24(int32_t val) {
 
 static inline int clamp_pcm32(int64_t val) {
     if (val > 2147483647) return 2147483647;
-    else if (val < -2147483648) return -2147483648;
+    else if (val < (-2147483647 - 1)) return (-2147483647 - 1);
     else return val;
 }
 

@@ -107,17 +107,6 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
      * filenames (not complete) and current mode, "PACKAGE" (pk, index + BAOs with
      * external BAOs) or "ATOMIC" (file, separate BAOs). For .SPK the project BAO doesn't define type.
      *
-     * We want header classes, also similar to SB types:
-     * - 01: single audio (samples, channels, bitrate, samples+size, etc)
-     * - 02: play chain with config? (ex. silence + audio, or rarely audio 2ch intro + layer 4ch body)
-     * - 03: unknown chain
-     * - 04: random (count, etc) + BAO IDs and float probability to play
-     * - 05: sequence (count, etc) + BAO IDs and unknown data
-     * - 06: layer (count, etc) + layer headers
-     * - 07: unknown chain
-     * - 08: silence (duration, etc)
-     * - 09: silence with config? (channels, sample rate, etc), extremely rare [Shaun White Skateboarding (Wii)]
-     *
      * Right after base BAO size is the extra table for that BAO (what sectionX had, plus
      * extra crap like cue-like labels, even for type 0x01).
      *
@@ -135,6 +124,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
     cfg->version = version;
 
+    // We want usable 'header' types, also similar to SB types (see type_map in ubi_bao_parser.c):
     cfg->allowed_types[0x01] = true; //sfx
     cfg->allowed_types[0x05] = true; //sequence
     cfg->allowed_types[0x06] = true; //layers
@@ -164,33 +154,37 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
     cfg->bao_class      = 0x20; // absolute offset, unlike the rest
     cfg->header_id      = 0x00; // relative
     cfg->header_type    = 0x04; // relative
+    cfg->parser = PARSER_1B;
 
     if ((cfg->version & 0xFFFF0000) >= 0x00290000) {
         cfg->bao_class   = 0x14; // absolute
         cfg->header_id   = 0x04; // relative
         cfg->header_type = 0x2c; // relative
+        cfg->header_skip = 0x1c;
+
+        cfg->engine_version = (version >> 8) & 0xFFFF00;
+        cfg->parser = PARSER_29;
     }
 
     /* 2 configs with same ID, autodetect */
     if (cfg->version == 0x00220015) {
-        off_t header_size = 0x40 + read_u32le(0x04, sf); /* first is always LE */
+        off_t header_size = 0x40 + read_u32le(0x04, sf); // first is always LE
 
         /* next BAO uses machine endianness, entry should always exist
          * (maybe should use project BAO to detect?) */
         if (guess_endian32(header_size + 0x04, sf)) {
-            cfg->version |= 0xFF00; /* signal Wii=BE, but don't modify original */
+            version |= 0xF000; // signal Wii=BE, but don't modify original
         }
     }
 
 
     /* config per version */
-    switch(cfg->version) {
+    switch(version) {
 
         case 0x001B0100: // Assassin's Creed (PS3/X360/PC)-atomic-forge
-      //case 0x001B0100: // My Fitness Coach (Wii)-atomic-forge
-      //case 0x001B0100: // Your Shape featuring Jenny McCarthy (Wii)-atomic-forge
+                         // My Fitness Coach (Wii)-atomic-forge, Your Shape featuring Jenny McCarthy (Wii)-atomic-forge
         case 0x001B0200: // Beowulf (PS3/X360)-atomic-fat+bin
-      //case 0x001C0000: // Lost: Via Domus (PS3)-atomic-gear
+        case 0x001C0000: // Lost: Via Domus (PS3)-atomic-gear
             if (cfg->version == 0x001B0100)
                 config_bao_entry(cfg, 0xA4, 0x28); // PC: 0xA8, PS3/X360: 0xA4
             else
@@ -214,9 +208,29 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = UBI_IMA;
             cfg->codec_map[0x04] = FMT_OGG;
             cfg->codec_map[0x05] = RAW_XMA1_str;
-            cfg->codec_map[0x07] = RAW_AT3_105;
+            cfg->codec_map[0x07] = RAW_AT3;
 
-            cfg->v1_bao = true;
+            cfg->audio_stream_subtype = 0x78;
+
+            cfg->v1_bao = true; // 0x20xxxxxx 0x30xxxxxx 0x50xxxxxx names
+
+            break;
+
+        case 0x001D0A00: // Shaun White Snowboarding (PSP)-atomic-gear
+            config_bao_entry(cfg, 0x84, 0x24);
+
+            config_bao_audio_b(cfg, 0x08, 0x1c, 0x20, 0x20, (1 << 2), (1 << 5));
+            config_bao_audio_m(cfg, 0x28, 0x30, 0x38, 0x40, 0x4c, 0x5c);
+
+            config_bao_layer_m(cfg, 0x3c, 0x20, 0x24, 0x34, 0x3c, 0x40, 0x00, 0x00, (1 << 2)); // 0x1c: bao group id?, (1<<1) = layer loop flag
+            config_bao_layer_e(cfg, 0x38, 0x00, 0x04, 0x08, 0x10);
+
+            config_bao_silence_f(cfg, 0x1c);
+
+            cfg->codec_map[0x06] = RAW_PSX_new;
+            cfg->codec_map[0x07] = FMT_AT3; //layer only
+
+            cfg->v1_bao = true; // 0x20xxxxxx 0x30xxxxxx 0x50xxxxxx names
 
             break;
 
@@ -225,7 +239,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
         case 0x001F0011: // Naruto: The Broken Bond (X360)-package
         case 0x0021000C: // Splinter Cell: Conviction (E3 2009 Demo)(X360)-package
         case 0x0022000D: // Just Dance (Wii)-package, We Dare (PS3/Wii)-package
-        case 0x0022FF15: // James Cameron's Avatar: The Game (Wii)-package
+        case 0x0022F015: // James Cameron's Avatar: The Game (Wii)-package
         case 0x00220017: // James Cameron's Avatar: The Game (PS3/X360/PC)-spk
         case 0x00220018: // James Cameron's Avatar: The Game (PS3/X360/PC)-spk
         case 0x0022001B: // Prince of Persia: The Forgotten Sands (Wii)-package
@@ -250,7 +264,7 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = UBI_IMA;
             cfg->codec_map[0x04] = FMT_OGG;
             cfg->codec_map[0x05] = RAW_XMA1_str;
-            cfg->codec_map[0x07] = RAW_AT3_105;
+            cfg->codec_map[0x07] = RAW_AT3;
             cfg->codec_map[0x09] = RAW_DSP;
 
             if (cfg->version >= 0x00220000) // Avatar (X360)
@@ -259,16 +273,18 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             if (cfg->version == 0x0022000D) // Just Dance (Wii) oddity
                 cfg->audio_ignore_external_size = true;
 
+            cfg->audio_stream_subtype = 0x78;
+
             break;
 
         case 0x00220015: // James Cameron's Avatar: The Game (PSP)-package
         case 0x0022001E: // Prince of Persia: The Forgotten Sands (PSP)-package
-            config_bao_entry(cfg, 0x84, 0x28); // PSP: 0x84
+            config_bao_entry(cfg, 0x84, 0x28);
 
             config_bao_audio_b(cfg, 0x08, 0x1c, 0x20, 0x20, (1 << 2), (1 << 5)); // (1 << 4): prefetch flag?
             config_bao_audio_m(cfg, 0x28, 0x30, 0x38, 0x40, 0x48, 0x58);
 
-            config_bao_layer_m(cfg, 0x00, 0x20, 0x24, 0x34, 0x3c, 0x40, 0x00, 0x00, (1 << 2)); // 0x1c: id-like
+            config_bao_layer_m(cfg, 0x00, 0x20, 0x24, 0x34, 0x3c, 0x40, 0x00, 0x00, (1 << 2)); // 0x1c: bao group id?
             config_bao_layer_e(cfg, 0x28, 0x00, 0x04, 0x08, 0x10);
 
             cfg->codec_map[0x06] = RAW_PSX_new;
@@ -317,12 +333,16 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->codec_map[0x03] = FMT_OGG;
             cfg->codec_map[0x04] = RAW_XMA2_new;
             cfg->codec_map[0x05] = RAW_PSX;
-            cfg->codec_map[0x06] = RAW_AT3_132;
-            if (cfg->version == 0x0025010A) // no apparent flag
-                cfg->codec_map[0x06] = RAW_AT3_105;
+            cfg->codec_map[0x06] = RAW_AT3;
 
             if (cfg->version == 0x0025011D)
                 cfg->header_less_le_flag = true;
+
+            cfg->audio_stream_subtype = 0x88;
+
+            cfg->layer_default_subtype = 2; //Scott Pilgrim, Shaun White
+            if (cfg->version == 0x0025010A) // no apparent flag
+                cfg->layer_default_subtype = 1; // not used?
 
             //TODO: some SPvsTW layers look like should loop (0x30 flag?)
             //TODO: some POP layers have different sample rates (ambience)
@@ -330,22 +350,35 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             break;
 
         case 0x00260000: // Michael Jackson: The Experience (X360)-package
+        case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
             config_bao_entry(cfg, 0xB8, 0x28);
 
             config_bao_audio_b(cfg, 0x08, 0x28, 0x30, 0x3c, 1, 1); //loop?
             config_bao_audio_m(cfg, 0x4c, 0x54, 0x5c, 0x64, 0x6c, 0x7c);
 
+            config_bao_sequence(cfg, 0x38, 0x2c, 0x28, 0x14);
+
             config_bao_layer_m(cfg, 0x00, 0x2c, 0x34,  0x4c, 0x54, 0x58,  0x00, 0x00, 1);
             config_bao_layer_e(cfg, 0x34, 0x00, 0x04, 0x08, 0x1c);
 
+          //cfg->codec_map[0x01] = RAW_PCM;
+            cfg->codec_map[0x02] = UBI_IMA;
             cfg->codec_map[0x03] = FMT_OGG;
             cfg->codec_map[0x04] = RAW_XMA2_new;
+          //cfg->codec_map[0x05] = RAW_PSX;
+            cfg->codec_map[0x06] = RAW_AT3;
 
             cfg->audio_ignore_external_size = true; // leave_me_alone.pk
+
+            cfg->audio_stream_subtype = 0x8c;
+
+            //TODO: some POP SOT IMA sound off, but seem correctly parsed
+            // (rip error? ex. 2a86c5ca.pk + d0a4ef615adf1c5a4e17f3ac.spk)
 
             break;
 
         case 0x00270102: // Drawsome (Wii)-package
+        case 0x00280102: // Tom Clancy's Ghost Recon Future Soldier Beta (X360)-package
             config_bao_entry(cfg, 0xAC, 0x28);
 
             config_bao_audio_b(cfg, 0x08, 0x28, 0x2c, 0x38, 1, 1);
@@ -353,13 +386,24 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
 
             config_bao_sequence(cfg, 0x38, 0x2c, 0x28, 0x14);
 
+            config_bao_layer_m(cfg, 0x00, 0x2c, 0x34, 0x48, 0x50, 0x54, 0x58, 0x5c, 1);
+            config_bao_layer_e(cfg, 0x2c, 0x00, 0x04, 0x08, 0x1c);
+
+            config_bao_audio_c(cfg, 0x68, 0x6c, 0x80);
+
             cfg->codec_map[0x02] = UBI_IMA;
+            cfg->codec_map[0x04] = FMT_OGG;
+            cfg->codec_map[0x05] = RAW_XMA2_new;
+
+            // ex. Mus_Proto_BodyDetection.pk (standard) vs MP_Proto_Dynamic_Insertion.pk (odd)
+            cfg->audio_fix_xma_memory_baos = true; 
+            cfg->layer_ignore_error = true; // some layers have different sample rates
 
             break;
 
         case 0x00280303: // Tom Clancy's Ghost Recon Future Soldier (PC/PS3)-package
-        case 0x00280305: // Far Cry 3: Blood Dragon (X360/PS3)-spk
-        case 0x00280306: // Far Cry 3: Blood Dragon (X360/PS3)-spk
+        case 0x00280305: // Far Cry 3: Blood Dragon (X360/PS3)-spk-dunia
+        case 0x00280306: // Far Cry 3: Blood Dragon (X360/PS3)-spk-dunia
             config_bao_entry(cfg, 0xBC, 0x28);
 
             config_bao_audio_b(cfg, 0x08, 0x38, 0x3c, 0x48, 1, 1);
@@ -385,73 +429,52 @@ bool ubi_bao_config_version(ubi_bao_config_t* cfg, STREAMFILE* sf, uint32_t vers
             cfg->audio_fix_xma_samples = true; // W H Y
             cfg->layer_ignore_error = true; //TODO: some GR layer sample rates don't match
             cfg->audio_stream_subtype = 0x90;
-            cfg->layer_stream_subtype = 0x78; //TODO: unknown field, all layers in BD use RAW_AT3_105, check others
 
             //TODO: some GR files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
 
+            // FC3 has a few files that are truncated a few bytes (extraction issue?)
+            // FC3 also has file with garbage in the upper bytes of type (00448bc8.spk)
             break;
 
-        case 0x002A0300: // Watch Dogs (Wii U), Far Cry 3: Blood Dragon (PS4)-spk-
-            config_bao_entry(cfg, 0xD8, 0x1c);
+        case 0x00290106: // Splinter Cell: Blacklist (PS3/X360)-atomic-gear
+        case 0x002A0300: // Watch_Dogs (X360/PS3/Wii U)-spk-dunia, Far Cry 3: Blood Dragon (PS4)-spk-dunia
+            // - v29: new BAO format
+            // - v2A: modified layers, inline data with no header
 
-            //TODO: 68=alt stream size? 88=alt stream id? 34=alt stream flag?
-            // 0x48: sometimes stream_size
-            config_bao_audio_b(cfg, 0x68, 0x84, 0x40, 0x3c, 1, 1); 
-            config_bao_audio_m(cfg, 0x5c, 0x60, 0xAc, 0xB4, 0x58, 0x00);
-
-          //cfg->codec_map[0x03] = UBI_IMA_seek; //TODO: header format is a bit different
-            cfg->codec_map[0x09] = RAW_AT9; // PS4
-
-            //TODO: some fields are variable sized
-            cfg->audio_extradata_size = 0xA8;
-
+            cfg->codec_map[0x00] = CODEC_NONE;
+            cfg->codec_map[0x01] = RAW_PCM;
+            cfg->codec_map[0x02] = UBI_IMA; // v6
+            cfg->codec_map[0x03] = UBI_IMA_seek; // v6 //TODO: header format is a bit different
+            cfg->codec_map[0x04] = FMT_OGG;
+            cfg->codec_map[0x05] = RAW_XMA2_new;
+          //cfg->codec_map[0x06] = RAW_PSX_new;
+            cfg->codec_map[0x07] = RAW_MP3;
+          //cfg->codec_map[0x08] = RAW_DSP;
+            cfg->codec_map[0x09] = RAW_AT9;
             break;
 
-        case 0x001D0A00: // Shaun White Snowboarding (PSP)-atomic-gear
-        case 0x00260102: // Prince of Persia Trilogy HD (PS3)-package-gear
-            /* similar to 0x00250108 but most values are moved +4
-             * - base 0xB8, skip 0x28 */
-        case 0x00290106: // Splinter Cell: Blacklist (PS3)-atomic-gear
-            /* quite different, lots of flags and random values
-             * - base varies per type (0xF0=audio), skip 0x20
-             * - 0x74: type, 0x78: channels, 0x7c: sample rate, 0x80: num_samples
-             * - 0x94: stream id? 0x9C: extra size */
+        case 0x002B0000: // Far Cry 4 (multi)-spk-dunia
+        case 0x002B0100: // Far Cry 4 (multi)-spk-dunia, Far Cry Primal (multi)-spk-dunia
+            // - v2B: extra audio/layer flags, modified audio ATRAC9 extradata
 
-      //case 0x002B0000: // Far Cry 4 (multi)-spk-dunia
-        case 0x002B0100: // Far Cry 4 (multi)-spk-dunia
-        #if 0
-            config_bao_entry(cfg, 0xD8, 0x20);
+            cfg->codec_map[0x00] = CODEC_NONE;      //SAMPLE_INVALID
+            cfg->codec_map[0x01] = RAW_PCM;         //'PCM'
+            cfg->codec_map[0x02] = UBI_IMA;         //'IMAADPCM' (v6)
+            cfg->codec_map[0x03] = UBI_IMA_seek;    //'IMADPCM Seekable Everywhere' (v6)
+            cfg->codec_map[0x04] = UBI_IMA_mark;    //'IMADPCM Seekable on Wave Markers'
+            cfg->codec_map[0x05] = FMT_OGG;         //'OGG'
+            cfg->codec_map[0x06] = RAW_XMA2_new;    //'XMA2'
+          //cfg->codec_map[0x07] = RAW_PSX_new;     //'VAG'
+            cfg->codec_map[0x08] = RAW_MP3;         //'MP3'
+          //cfg->codec_map[0x09] = RAW_DSP;         //'Nintendon ADPCM' (sic)
+            cfg->codec_map[0x0A] = RAW_AT9;         //'ATRAC9'
 
-            config_bao_audio_b(cfg, 0xA4?, 0x84, 0x40, 0x48?, 1, 1); //TODO: 54/74=alt header size? 94=alt stream size?
-            config_bao_audio_m(cfg, 0x68, 0x6c, 0x70/94, 0x70/94, 0x64, 0xA8);
-
-            /* debug info:
-                SAMPLE_INVALID = 0,
-                SAMPLE_PCM = 1,
-                SAMPLE_IMAADPCM = 2,
-                SAMPLE_IMADPCM_SEEKABLE_EVERYWHERE = 3,
-                SAMPLE_IMADPCM_SEEKABLE_ON_WAVE_MARKERS = 4,
-                SAMPLE_OGG = 5,
-                SAMPLE_XMA2 = 6,
-                SAMPLE_VAG = 7,
-                SAMPLE_MP3 = 8,
-                SAMPLE_DM = 9,
-                SAMPLE_ATRAC9 = 10,
-            */
-            cfg->codec_map[0x05] = FMT_OGG; // PC
-            cfg->codec_map[0x08] = RAW_MP3; // PS3
-            cfg->codec_map[0x0A] = RAW_AT9; // PS4
-
-            // stream/prefetch size go after extradata (must be detected + skipped)
-            // prefetch seems to be in .spk, streams in .sbao
-
-            // hashed with custom crc64 (see Gibbed.Dunia) from "soundbinary\%08x.%s" (w/ .spk/bao/sbao)
-            // ex. COMMON.FAT: 93D21F1037911836 > "soundbinary\2fffffff.spk"
-            cfg->file = FILE_DUNIA_CRC64;
+            // FC4 PS3 very rarely has wrong .sbao size (001a400f.spk + 001a3fa5.sbao), should clamp atomic BAO
+            //cfg->ignore_atomic_bao_size = true;
             break;
-        #endif
 
-        default: // others possibly using BAO: Watch_Dogs, Far Cry Primal
+        default: 
+            // others possibly using BAO: Tom Clancy's series (Far Cry 5+, Watch_Dogs 2+ uses Wwise)
             vgm_logi("UBI BAO: unknown BAO version %08x (report)\n", cfg->version);
             return false;
     }

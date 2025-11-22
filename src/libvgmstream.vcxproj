@@ -80,7 +80,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="api.h" />
     <ClInclude Include="libvgmstream.h" />
     <ClInclude Include="libvgmstream_streamfile.h" />
     <ClInclude Include="streamfile.h" />
@@ -188,6 +187,7 @@
     <ClInclude Include="meta\txth_streamfile.h" />
     <ClInclude Include="meta\txtp.h" />
     <ClInclude Include="meta\ubi_bao_config.h" />
+    <ClInclude Include="meta\ubi_bao_parser.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_ckd_cwav_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
@@ -221,10 +221,12 @@
     <ClInclude Include="util\paths.h" />
     <ClInclude Include="util\reader_get.h" />
     <ClInclude Include="util\reader_get_nibbles.h" />
+    <ClInclude Include="util\reader_helper.h" />
     <ClInclude Include="util\reader_put.h" />
     <ClInclude Include="util\reader_sf.h" />
     <ClInclude Include="util\reader_text.h" />
     <ClInclude Include="util\sf_utils.h" />
+    <ClInclude Include="util\spu_utils.h" />
     <ClInclude Include="util\text_reader.h" />
     <ClInclude Include="util\vgmstream_limits.h" />
     <ClInclude Include="util\vorbis_codebooks.h" />
@@ -777,6 +779,7 @@
     <ClCompile Include="meta\ubi_apm.c" />
     <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_bao_config.c" />
+    <ClCompile Include="meta\ubi_bao_parser.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
     <ClCompile Include="meta\ubi_ckd_cwav.c" />
     <ClCompile Include="meta\ubi_hx.c" />
@@ -817,6 +820,7 @@
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wb.c" />
     <ClCompile Include="meta\wbk.c" />
+    <ClCompile Include="meta\wd.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\ws_aud.c" />
@@ -871,6 +875,7 @@
     <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\reader_put.c" />
     <ClCompile Include="util\sf_utils.c" />
+    <ClCompile Include="util\spu_utils.c" />
     <ClCompile Include="util\text_reader.c" />
     <ClCompile Include="util\vorbis_codebooks.c" />
   </ItemGroup>

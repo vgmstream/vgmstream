@@ -316,7 +316,7 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
             uint32_t key = i;
             for (int round = 0; round < 8; round++) {
                 uint32_t tmp1 = (key >> 1);
-                uint32_t tmp2 = -(key & 1) & 0xEDB88324;
+                uint32_t tmp2 = (key & 1) ? 0xEDB88324 : 0; //original (UB-ish): -(key & 1) & 0xEDB88324;
                 key = tmp1 ^ tmp2;
             }
             if (key == 0)

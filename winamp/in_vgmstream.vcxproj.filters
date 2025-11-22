@@ -24,6 +24,9 @@
     <ClInclude Include="sdk\in2.h">
       <Filter>sdk\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sdk\in2_extra.h">
+      <Filter>sdk\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="sdk\ipc_pe.h">
       <Filter>sdk\Header Files</Filter>
     </ClInclude>
@@ -41,6 +44,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="in_config.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="in_log.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="in_streamfile.c">
