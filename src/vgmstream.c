@@ -609,17 +609,16 @@ fail:
  * - opens its own streamfile from on a base one. One streamfile per channel may be open (to improve read/seeks).
  * Should be called in metas before returning the VGMSTREAM.
  */
-int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset) {
+bool vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset) {
     return vgmstream_open_stream_bf(vgmstream, sf, start_offset, 0);
 }
 
-int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer) {
+bool vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, bool force_multibuffer) {
     STREAMFILE* file = NULL;
     char filename[PATH_LIMIT];
-    int ch;
-    int use_streamfile_per_channel = 0;
-    int use_same_offset_per_channel = 0;
-    int is_stereo_codec = 0;
+    bool use_streamfile_per_channel = false;
+    bool use_same_offset_per_channel = false;
+    bool is_stereo_codec = false;
 
 
     if (vgmstream == NULL) {
@@ -629,29 +628,29 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
 
     /* no need to open anything */
     if (vgmstream->coding_type == coding_SILENCE)
-        return 1;
+        return true;
 
     /* stream/offsets not needed, managed by layout */
     if (vgmstream->layout_type == layout_segmented ||
         vgmstream->layout_type == layout_layered)
-        return 1;
+        return true;
 
     /* stream/offsets not needed, managed by decoder */
     if (vgmstream->coding_type == coding_NWA ||
         vgmstream->coding_type == coding_ACM ||
         vgmstream->coding_type == coding_CRI_HCA)
-        return 1;
+        return true;
 
 #ifdef VGM_USE_VORBIS
     /* stream/offsets not needed, managed by decoder */
     if (vgmstream->coding_type == coding_OGG_VORBIS)
-        return 1;
+        return true;
 #endif
 
 #ifdef VGM_USE_FFMPEG
     /* stream/offsets not needed, managed by decoder */
     if (vgmstream->coding_type == coding_FFmpeg)
-        return 1;
+        return true;
 #endif
 
     if ((vgmstream->coding_type == coding_CRI_ADX ||
@@ -711,30 +710,30 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
 
     /* if interleave is big enough keep a buffer per channel */
     if (vgmstream->interleave_block_size * vgmstream->channels >= STREAMFILE_DEFAULT_BUFFER_SIZE) {
-        use_streamfile_per_channel = 1;
+        use_streamfile_per_channel = true;
     }
 
     /* if blocked layout (implicit) use multiple streamfiles; using only one leads to
      * lots of buffer-trashing, with all the jumping around in the block layout
      * (this increases total of data read but still seems faster) */
     if (vgmstream->layout_type != layout_none && vgmstream->layout_type != layout_interleave) {
-        use_streamfile_per_channel = 1;
+        use_streamfile_per_channel = true;
     }
 
     /* for hard-to-detect fixed offsets or full interleave */
     if (force_multibuffer) {
-        use_streamfile_per_channel = 1;
+        use_streamfile_per_channel = true;
     }
 
     /* for mono or codecs like IMA (XBOX, MS IMA, MS ADPCM) where channels work with the same bytes */
     if (vgmstream->layout_type == layout_none) {
-        use_same_offset_per_channel = 1;
+        use_same_offset_per_channel = true;
     }
 
     /* stereo codecs interleave in 2ch pairs (interleave size should still be: full_block_size / channels) */
     if (vgmstream->layout_type == layout_interleave &&
             (vgmstream->coding_type == coding_XBOX_IMA || vgmstream->coding_type == coding_MTAF)) {
-        is_stereo_codec = 1;
+        is_stereo_codec = true;
     }
 
     if (sf == NULL || start_offset < 0) {
@@ -750,17 +749,20 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
             if (!file) goto fail;
         }
 
-        for (ch = 0; ch < vgmstream->channels; ch++) {
+        for (int ch = 0; ch < vgmstream->channels; ch++) {
             off_t offset;
             if (use_same_offset_per_channel) {
                 offset = start_offset;
-            } else if (is_stereo_codec) {
-                int ch_mod = (ch & 1) ? ch - 1 : ch; /* adjust odd channels (ch 0,1,2,3,4,5 > ch 0,0,2,2,4,4) */
+            }
+            else if (is_stereo_codec) {
+                int ch_mod = (ch & 1) ? ch - 1 : ch; // adjust odd channels (ch 0,1,2,3,4,5 > ch 0,0,2,2,4,4)
                 offset = start_offset + vgmstream->interleave_block_size * ch_mod;
-            } else if (vgmstream->interleave_first_block_size) {
-                /* start_offset assumes + vgmstream->interleave_first_block_size, maybe should do it here */
+            }
+            else if (vgmstream->interleave_first_block_size) {
+                // start_offset assumes + vgmstream->interleave_first_block_size, maybe should do it here
                 offset = start_offset + (vgmstream->interleave_first_block_size +  vgmstream->interleave_first_skip) * ch;
-            } else {
+            }
+            else {
                 offset = start_offset + vgmstream->interleave_block_size * ch;
             }
 
@@ -785,17 +787,17 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         flush_ea_mt(vgmstream);
     }
 
-    return 1;
+    return true;
 
 fail:
     /* open streams will be closed in close_vgmstream(), hopefully called by the meta */
-    return 0;
+    return false;
 }
 
-int vgmstream_is_virtual_filename(const char* filename) {
+bool vgmstream_is_virtual_filename(const char* filename) {
     int len = strlen(filename);
     if (len < 6)
-        return 0;
+        return false;
 
     /* vgmstream can play .txtp files that have size 0 but point to another file with config
      * based only in the filename (ex. "file.fsb #2.txtp" plays 2nd subsong of file.fsb).

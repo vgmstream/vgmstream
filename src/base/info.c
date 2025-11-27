@@ -1,5 +1,5 @@
 #include <ctype.h>
-#include "../vgmstream.h"
+#include "info.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "mixing.h"
@@ -199,6 +199,8 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
 
 }
 
+
+#if 0
 void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* info) {
     if (!info) {
         return;
@@ -289,7 +291,7 @@ void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* info) {
         snprintf(info->stream_info.name, sizeof(info->stream_info.name), "%s", vgmstream->stream_name);
     }
 }
-
+#endif
 
 /*******************************************************************************/
 /* BITRATE                                                                     */

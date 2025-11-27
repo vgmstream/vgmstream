@@ -110,6 +110,9 @@
     <ClInclude Include="base\decode_state.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\info.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\mixer.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
