@@ -2,13 +2,15 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/layout_utils.h"
+#include "../util/endianness.h"
+#include "../util/spu_utils.h"
 
 
 /* PSF single - Pivotal games single segment (external in some PC/Xbox or inside bigfiles) [The Great Escape, Conflict series] */
 VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, sample_rate, rate_value, interleave;
+    int loop_flag, channels, sample_rate, rate_value, interleave;
     uint32_t psf_config;
     size_t data_size;
     coding_t codec;
@@ -22,7 +24,7 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
     if (!check_extensions(sf, "psf,swd"))
         return NULL;
 
-    uint8_t flags = read_8bit(0x03,sf);
+    uint8_t flags = read_u8(0x03,sf);
     switch(flags) {
         case 0xC0: /* [The Great Escape (PS2), Conflict: Desert Storm (PS2)] */
         case 0x40: /* [The Great Escape (PS2)] */
@@ -32,9 +34,9 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
             codec = coding_PSX;
             interleave = 0x10;
 
-            channel_count = 2;
+            channels = 2;
             if (flags == 0x21 || flags == 0x40)
-                channel_count = 1;
+                channels = 1;
             start_offset = 0x08;
             break;
 
@@ -44,9 +46,9 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
             codec = coding_PSX_pivotal;
             interleave = 0x10;
 
-            channel_count = 2;
+            channels = 2;
             if (flags == 0x01)
-                channel_count = 1;
+                channels = 1;
             start_offset = 0x08;
             break;
 
@@ -54,8 +56,8 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
             codec = coding_NGC_DSP;
             interleave = 0x08;
 
-            channel_count = 2;
-            start_offset = 0x08 + 0x60 * channel_count;
+            channels = 2;
+            start_offset = 0x08 + 0x60 * channels;
             break;
 
         default:
@@ -79,11 +81,11 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
             break;
     }
 
-    data_size = (psf_config & 0xFFFFF) * (interleave * channel_count); /* in blocks */
+    data_size = (psf_config & 0xFFFFF) * (interleave * channels); /* in blocks */
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_PSF;
@@ -95,7 +97,7 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
-            vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
+            vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
             break;
 
         case coding_PSX_pivotal:
@@ -103,18 +105,18 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
-            vgmstream->num_samples = ps_cfg_bytes_to_samples(data_size, 0x10, channel_count);
+            vgmstream->num_samples = ps_cfg_bytes_to_samples(data_size, 0x10, channels);
             break;
 
         case coding_NGC_DSP:
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
-            /* has standard DSP headers at 0x08 */
-            dsp_read_coefs_be(vgmstream,sf,0x08+0x1c,0x60);
-            dsp_read_hist_be (vgmstream,sf,0x08+0x40,0x60);
+            // has standard DSP headers at 0x08
+            dsp_read_coefs_be(vgmstream, sf, 0x08 + 0x1c, 0x60);
+            dsp_read_hist_be (vgmstream, sf, 0x08 + 0x40, 0x60);
 
-            vgmstream->num_samples = read_32bitBE(0x08, sf);//dsp_bytes_to_samples(data_size, channel_count);
+            vgmstream->num_samples = read_s32be(0x08, sf);//dsp_bytes_to_samples(data_size, channels);
             break;
 
         default:
@@ -138,8 +140,8 @@ fail:
 VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    segmented_layout_data *data = NULL;
-    int i,j, sequence_count = 0, loop_flag = 0, loop_start = 0, loop_end = 0;
+    segmented_layout_data* data = NULL;
+    int sequence_count = 0, loop_flag = 0, loop_start = 0, loop_end = 0;
     int sequence[512] = {0};
     off_t offsets[512] = {0};
     int total_subsongs = 0, target_subsong = sf->stream_index;
@@ -148,15 +150,14 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!is_id32be(0x00,sf, "PSF\x60") &&  /* [The Great Escape (PC/Xbox/PS2), Conflict: Desert Storm (Xbox/GC)] */
-        !is_id32be(0x00,sf, "PSF\x31"))    /* [Conflict: Desert Storm 2 (Xbox/GC/PS2), Conflict: Global Terror (Xbox)] */
-        goto fail;
+    if (!is_id32be(0x00,sf, "PSF\x60") &&  // [The Great Escape (PC/Xbox/PS2), Conflict: Desert Storm (Xbox/GC)]
+        !is_id32be(0x00,sf, "PSF\x31"))    // [Conflict: Desert Storm 2 (Xbox/GC/PS2), Conflict: Global Terror (Xbox)]
+        return NULL;
 
     /* .psf: actual extension
      * .swd: bigfile extension */
     if (!check_extensions(sf, "psf,swd"))
-        goto fail;
-
+        return NULL;
 
 
     /* transition table info:
@@ -212,22 +213,22 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
             current_track = -1;
 
             /* show transitions to help with ordering */
-            track[0][0] = read_16bitLE(0x08 + 0x0c*segment + 0x04, sf);
-            track[1][0] = read_16bitLE(0x08 + 0x0c*segment + 0x06, sf);
-            track[2][0] = read_16bitLE(0x08 + 0x0c*segment + 0x08, sf);
-            track[3][0] = read_16bitLE(0x08 + 0x0c*segment + 0x0a, sf);
-            snprintf(stream_name,sizeof(stream_name), "segment%03i to %03i/%03i/%03i/%03i", segment,track[0][0],track[1][0],track[2][0],track[3][0]);
+            track[0][0] = read_u16le(0x08 + 0x0c * segment + 0x04, sf);
+            track[1][0] = read_u16le(0x08 + 0x0c * segment + 0x06, sf);
+            track[2][0] = read_u16le(0x08 + 0x0c * segment + 0x08, sf);
+            track[3][0] = read_u16le(0x08 + 0x0c * segment + 0x0a, sf);
+            snprintf(stream_name, sizeof(stream_name), "segment%03i to %03i/%03i/%03i/%03i", segment,track[0][0],track[1][0],track[2][0],track[3][0]);
         }
 
         /* find target sequence */
         current_point = 0; /* segment 0 has track entry points */
         while (sequence_count < 512 && current_track >= 0) {
 
-            next_point = read_16bitLE(0x08 + 0x0c*current_point + 0x04 + 0x02*current_track, sf);
+            next_point = read_u16le(0x08 + 0x0c * current_point + 0x04 + 0x02 * current_track, sf);
 
             /* find if next point repeats in our current track */
             repeat_point = -1;
-            for (i = 0; i < count[current_track]; i++) {
+            for (int i = 0; i < count[current_track]; i++) {
 
                 if (track[current_track][i] == next_point) {
                     repeat_point = i;
@@ -255,7 +256,7 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
                         loop_flag = 1;
                     }
 
-                    next_point = read_16bitLE(0x08 + 0x0c*current_point + 0x04 + 0x02*current_track, sf);
+                    next_point = read_u16le(0x08 + 0x0c * current_point + 0x04 + 0x02 * current_track, sf);
 
                     if (loop_flag) {
                         loop_end = sequence_count; /* this points to the next_point that will be added below */
@@ -290,7 +291,7 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
     data = init_layout_segmented(sequence_count);
     if (!data) goto fail;
 
-    for (i = 0; i < sequence_count; i++) {
+    for (int i = 0; i < sequence_count; i++) {
         off_t psf_offset;
         size_t psf_size;
         int old_psf = -1;
@@ -300,7 +301,7 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
 
         /* find repeated sections (sequences often repeat PSFs) */
         offsets[i] = psf_offset;
-        for (j = 0; j < i; j++) {
+        for (int j = 0; j < i; j++) {
             if (offsets[j] == psf_offset) {
                 old_psf = j;
                 break;
@@ -342,14 +343,12 @@ fail:
 
 /* ***************************************************** */
 
-static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf,uint32_t* rid, int32_t* lid) {
+static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf, uint32_t* p_resource_id, int32_t* p_language_id) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, sample_rate = 0,  rate_value = 0, interleave, big_endian;
+    int loop_flag, channels, sample_rate = 0, pitch_value = 0, interleave;
     size_t data_size;
     coding_t codec;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
     /* standard:
      * 0x00: language ID
@@ -366,80 +365,62 @@ static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf,uint32_t* rid, int32_t*
     /* checks */
     if (!is_id32be(0x00,sf, "PFSM") &&
         !is_id32le(0x00,sf, "PFSM"))
-        goto fail;
+        return NULL;
     //if (!check_extensions(sf, "psf"))
-    //    goto fail;
+    //    return NULL;
 
-    big_endian = is_id32le(0x00,sf, "PFSM");
-    if (big_endian) {
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
-    }
-    else {
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
-    }
+    bool big_endian = is_id32le(0x00,sf, "PFSM");
+    read_u32_t read_u32 = get_read_u32(big_endian);
+    read_s32_t read_s32 = get_read_s32(big_endian);
+    read_u16_t read_u16 = get_read_u16(big_endian);
 
     loop_flag = 0;
 
-    // language id
-    *lid = read_32bit(0x8, sf);
-    // resource id
-    *rid = read_32bit(0x0C,sf);
+    *p_language_id = read_s32(0x08, sf);
+    *p_resource_id = read_u32(0x0C,sf);
 
-    if (big_endian && read_32bit(0x50, sf) != 0) { /* GC */
+    if (big_endian && read_u32(0x50, sf) != 0) { // GC
         codec = coding_NGC_DSP;
         interleave = 0x08;
-        channel_count = 1;
-        rate_value = (uint16_t)read_16bit(0x48, sf);
+        channels = 1;
+        pitch_value = read_u16(0x48, sf);
 
-        start_offset = 0x60 + 0x60 * channel_count;
+        start_offset = 0x60 + 0x60 * channels;
     }
-    else if (big_endian) { /* GC */
+    else if (big_endian) { // GC
         codec = coding_PCM16BE;
         interleave = 0x02;
-        channel_count = 1;
-        rate_value = (uint16_t)read_16bit(0x48, sf);
+        channels = 1;
+        pitch_value = read_u16(0x48, sf);
 
         start_offset = 0x60;
     }
-    else if ((uint8_t)read_8bit(0x16, sf) == 0xFF) { /* PS2 */
+    else if (read_u8(0x16, sf) == 0xFF) { // PS2
         codec = coding_PSX;
         interleave = 0x10;
-        rate_value = (uint16_t)read_16bit(0x14, sf);
-        channel_count = 1;
+        pitch_value = read_u16(0x14, sf);
+        channels = 1;
 
         start_offset = 0x18;
     }
-    else { /* PC/Xbox, some PS2/GC */
+    else { // PC/Xbox, some PS2/GC
         codec = coding_PSX_pivotal;
         interleave = 0x10;
-        sample_rate = (uint16_t)read_16bit(0x14, sf);
-        channel_count = 1;
+        sample_rate = read_u16(0x14, sf);
+        channels = 1;
 
         start_offset = 0x18;
     }
 
     data_size = get_streamfile_size(sf) - start_offset;
 
-    /* pitch/cents? */
     if (sample_rate == 0) {
-        /* pitch/cents? */
-        switch(rate_value) {
-            case 3763: sample_rate = 44100; break;
-            case 1365: sample_rate = 16000; break;
-            case 940:  sample_rate = 11050; break;
-            case 460:  sample_rate = 5000;  break;
-            default:
-                VGM_LOG("PSF: unknown rate value %x\n", rate_value);
-                sample_rate = rate_value * 11.72; /* not exact but works well enough */
-                break;
-        }
+        sample_rate = spu2_pitch_to_sample_rate_rounded(pitch_value);
     }
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_PSF;
@@ -451,7 +432,7 @@ static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf,uint32_t* rid, int32_t*
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, 16);
+            vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
             break;
 
         case coding_PSX:
@@ -459,7 +440,7 @@ static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf,uint32_t* rid, int32_t*
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
-            vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
+            vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
             break;
 
         case coding_PSX_pivotal:
@@ -467,18 +448,18 @@ static VGMSTREAM* init_vgmstream_psf_pfsm(STREAMFILE* sf,uint32_t* rid, int32_t*
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
-            vgmstream->num_samples = ps_cfg_bytes_to_samples(data_size, 0x10, channel_count);
+            vgmstream->num_samples = ps_cfg_bytes_to_samples(data_size, 0x10, channels);
             break;
 
         case coding_NGC_DSP:
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
-            /* has standard DSP headers at 0x08 */
-            dsp_read_coefs_be(vgmstream,sf,0x60+0x1c,0x60);
-            dsp_read_hist_be (vgmstream,sf,0x60+0x40,0x60);
+            // has standard DSP headers at 0x08
+            dsp_read_coefs_be(vgmstream, sf, 0x60 + 0x1c, 0x60);
+            dsp_read_hist_be (vgmstream, sf, 0x60 + 0x40, 0x60);
 
-            vgmstream->num_samples = read_32bitBE(0x60, sf);//dsp_bytes_to_samples(data_size, channel_count);
+            vgmstream->num_samples = read_s32be(0x60, sf);//dsp_bytes_to_samples(data_size, channels);
             break;
 
         default:
@@ -510,16 +491,15 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
     off_t skip = 0, chunk_offset, target_offset = 0, header_offset, subfile_offset = 0;
     size_t file_size, chunk_padding, target_size = 0, subfile_size = 0;
     int total_subsongs = 0, target_subsong = sf->stream_index;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     sch_type target_type = UNKNOWN;
-    char stream_name[STREAM_NAME_SIZE] ={0};
+    char stream_name[STREAM_NAME_SIZE] = {0};
 
 
     /* checks */
-    if (is_id32be(0x00,sf, "HDRS")) /* "HDRSND" (found on later games) */
+    if (is_id32be(0x00,sf, "HDRS")) // "HDRSND" (found on later games)
         skip = 0x0E;
     if (!is_id32be(skip + 0x00,sf, "SCH\0") &&
-        !is_id32le(skip + 0x00,sf, "SCH\0"))    /* (BE consoles) */
+        !is_id32le(skip + 0x00,sf, "SCH\0"))    // (BE consoles)
         return NULL;
 
     if (!check_extensions(sf, "sch"))
@@ -529,18 +509,14 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
     /* chunked format (id+size, GC pads to 0x20 and uses BE/inverted ids):
      * no other info so total subsongs would be count of usable chunks
      * (offsets are probably in level .dat files) */
-    int big_endian = (is_id32le(skip + 0x00,sf, "SCH\0"));
-    if (big_endian) {
-        read_32bit = read_32bitBE;
-        chunk_padding = 0x18;
-    }
-    else {
-        read_32bit = read_32bitLE;
-        chunk_padding = 0x00;
-    }
+    bool big_endian = is_id32le(skip + 0x00,sf, "SCH\0");
+    read_u32_t read_u32 = get_read_u32(big_endian);
+    read_s32_t read_s32 = get_read_s32(big_endian);
+
+    chunk_padding = big_endian ? 0x18 : 0x00;
 
     file_size = get_streamfile_size(sf);
-    if (read_32bit(skip + 0x04,sf) + skip + 0x08 + chunk_padding < file_size) /* sometimes padded */
+    if (read_u32(skip + 0x04,sf) + skip + 0x08 + chunk_padding < file_size) // sometimes padded
         goto fail;
 
     if (target_subsong == 0) target_subsong = 1;
@@ -549,8 +525,8 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
 
     /* get all files*/
     while (chunk_offset < file_size) {
-        uint32_t chunk_id   = read_32bitBE(chunk_offset + 0x00,sf);
-        uint32_t chunk_size = read_32bit(chunk_offset + 0x04,sf);
+        uint32_t chunk_id   = read_u32be(chunk_offset + 0x00,sf);
+        uint32_t chunk_size = read_u32(chunk_offset + 0x04,sf);
         sch_type current_type = UNKNOWN;
 
         switch(chunk_id) {
@@ -613,7 +589,7 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
              * 0x08: relative path to .psf
              * 0xNN: segment table (same as .psf)
              */
-            uint32_t rid = read_32bit(header_offset, sf);
+            uint32_t resource_id = read_u32(header_offset, sf);
             name_size = read_u8(header_offset + 0x04, sf);
             read_string(name, name_size, header_offset + 0x08, sf);
 
@@ -621,8 +597,8 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
             if (read_u8(header_offset + 0x07, sf) == 0xCC) {
                 external_sf = open_streamfile_by_filename(sf, SCH_STREAM);
                 if (external_sf) {
-                    subfile_offset = read_32bit(header_offset + 0x08 + name_size, sf);
-                    subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
+                    subfile_offset = read_u32(header_offset + 0x08 + name_size, sf);
+                    subfile_size = get_streamfile_size(external_sf) - subfile_offset; // not ok but meh
 
                     temp_sf = setup_subfile_streamfile(external_sf, subfile_offset,subfile_size, "psf");
                     if (!temp_sf) goto fail;
@@ -650,17 +626,17 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 if (!vgmstream) goto fail;
             }
 
-            snprintf(stream_name, sizeof(stream_name), "R%u_%s-%s", rid, "IMUS", name);
+            snprintf(stream_name, sizeof(stream_name), "R%u_%s-%s", resource_id, "IMUS", name);
             break;
         }
 
         case PFST: { /* external track */
-            STREAMFILE *psf_sf = 0;
+            STREAMFILE* psf_sf = 0;
             uint8_t name_size = 0;
             char name[256];
 
-            int32_t lid = read_32bit(header_offset, sf);
-            uint32_t rid = read_32bit(header_offset + 0x4, sf);
+            int32_t language_id = read_s32(header_offset, sf);
+            uint32_t resource_id = read_u32(header_offset + 0x04, sf);
             if (chunk_padding == 0 && target_size > 0x08 + 0x0c) { /* TGE PC/Xbox version */
                 /* 0x00: language ID
                  * 0x04: resource ID, maybe game computed this from a resource name.
@@ -673,18 +649,17 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                  */
                 
                 /* later games have name but actually use bigfile [Conflict: Global Storm (Xbox)] */
-                if ((read_32bitBE(header_offset + 0x14, sf) & 0x0000FFFF) == 0xCCCC) {
-                    name_size = read_8bit(header_offset + 0x13, sf);
+                if ((read_u32be(header_offset + 0x14, sf) & 0x0000FFFF) == 0xCCCC) {
+                    name_size = read_u8(header_offset + 0x13, sf);
                     read_string(name,name_size, header_offset + 0x18, sf);
 
                     external_sf = open_streamfile_by_filename(sf, SCH_STREAM);
                     if (!external_sf) {
                         vgm_logi("SCH: external file '%s' not found (put together)\n", SCH_STREAM);
                     }
-                    else
-                    {
-                        subfile_offset = read_32bit(header_offset + 0x0c, sf);
-                        subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
+                    else {
+                        subfile_offset = read_u32(header_offset + 0x0c, sf);
+                        subfile_size = get_streamfile_size(external_sf) - subfile_offset; // not ok but meh
 
                         temp_sf = setup_subfile_streamfile(external_sf, subfile_offset, subfile_size, "psf");
                         if (!temp_sf) goto fail;
@@ -716,10 +691,10 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 external_sf = open_streamfile_by_filename(sf, name);
                 if (!external_sf) goto fail;
 
-                subfile_offset = read_32bit(header_offset + 0x24, sf);
-                subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
+                subfile_offset = read_u32(header_offset + 0x24, sf);
+                subfile_size = get_streamfile_size(external_sf) - subfile_offset; // not ok but meh
 
-                temp_sf = setup_subfile_streamfile(external_sf, subfile_offset,subfile_size, "psf");
+                temp_sf = setup_subfile_streamfile(external_sf, subfile_offset, subfile_size, "psf");
                 if (!temp_sf) goto fail;
 
                 psf_sf = temp_sf;
@@ -734,8 +709,8 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 external_sf = open_streamfile_by_filename(sf, name);
                 if (!external_sf) goto fail;
 
-                subfile_offset = read_32bit(header_offset + 0x08, sf);
-                subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
+                subfile_offset = read_u32(header_offset + 0x08, sf);
+                subfile_size = get_streamfile_size(external_sf) - subfile_offset; // not ok but meh
 
                 temp_sf = setup_subfile_streamfile(external_sf, subfile_offset,subfile_size, "psf");
                 if (!temp_sf) goto fail;
@@ -749,29 +724,30 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 if (!vgmstream) goto fail;
             }
 
-            if (lid >= 0)
-                snprintf(stream_name,sizeof(stream_name), "R%u_L%d_%s-%s" , rid, lid, "PFST", name);
+            if (language_id >= 0)
+                snprintf(stream_name,sizeof(stream_name), "R%u_L%d_%s-%s" , resource_id, language_id, "PFST", name);
             else
-                snprintf(stream_name, sizeof(stream_name), "R%u_%s-%s", rid, "PFST", name);
+                snprintf(stream_name, sizeof(stream_name), "R%u_%s-%s", resource_id, "PFST", name);
             break;
         }
 
-        case PFSM:
+        case PFSM: {
             /* internal sound */
+            int32_t language_id = 0;
+            uint32_t resource_id = 0;
 
             temp_sf = setup_subfile_streamfile(sf, target_offset,target_size, NULL);
             if (!temp_sf) goto fail;
 
-            uint32_t rid = 0;
-            int32_t lid = 0;
-            vgmstream = init_vgmstream_psf_pfsm(temp_sf, &rid, &lid);
+            vgmstream = init_vgmstream_psf_pfsm(temp_sf, &resource_id, &language_id);
             if (!vgmstream) goto fail;
 
-            if(lid >= 0)
-                snprintf(stream_name, sizeof(stream_name), "R%u_L%d_%s", rid, lid, "PFSM");
+            if (language_id >= 0)
+                snprintf(stream_name, sizeof(stream_name), "R%u_L%d_%s", resource_id, language_id, "PFSM");
             else
-                snprintf(stream_name, sizeof(stream_name), "R%u_%s", rid, "PFSM");
+                snprintf(stream_name, sizeof(stream_name), "R%u_%s", resource_id, "PFSM");
             break;
+        }
 
         default: /* target not found */
             goto fail;
