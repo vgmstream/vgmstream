@@ -42,8 +42,9 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
         return NULL;
 
     /* .adx: standard
-     * .adp: Headhunter (DC) */
-    if (!check_extensions(sf,"adx,adp"))
+     * .adp: Headhunter (DC)
+     * .sfa: Softdec2 video's extension for ADX audio tracks (before importing) */
+    if (!check_extensions(sf,"adx,adp,sfa"))
         return NULL;
 
     start_offset = read_u16be(0x02,sf) + 0x04;

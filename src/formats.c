@@ -2,6 +2,7 @@
 #include "coding/coding.h"
 #include "layout/layout.h"
 #include "base/plugins.h"
+#include "base/info.h"
 
 
 /* Defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
@@ -539,6 +540,7 @@ static const char* extension_list[] = {
     "seg",
     "sem", //txth/reserved [Oretachi Game Center Zoku: Sonic Wings (PS2)]
     "sf0",
+    "sfa",
     "sfl",
     "sfs",
     "sfx",

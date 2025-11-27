@@ -244,38 +244,8 @@ typedef struct {
 } VGMSTREAM;
 
 
-typedef struct {
-    int sample_rate;
-    int channels;
-    struct mixing_info {
-        int input_channels;
-        int output_channels;
-    } mixing_info;
-    int channel_layout;
-    struct loop_info {
-        int start;
-        int end;
-    } loop_info;
-    size_t num_samples;
-    char encoding[128];
-    char layout[128];
-    struct interleave_info {
-        int value;
-        int first_block;
-        int last_block;
-    } interleave_info;
-    int frame_size;
-    char metadata[128];
-    int bitrate;
-    struct stream_info {
-        int current;
-        int total;
-        char name[128];
-    } stream_info;
-} vgmstream_info;
-
 /* -------------------------------------------------------------------------*/
-/* vgmstream "public" API                                                   */
+/* vgmstream internal API                                                   */
 /* -------------------------------------------------------------------------*/
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
@@ -302,19 +272,8 @@ int render_vgmstream2(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstre
 /* Seek to sample position (next render starts from that point). Use only after config is set (vgmstream_apply_config) */
 void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample);
 
-/* Write a description of the stream into array pointed by desc, which must be length bytes long.
- * Will always be null-terminated if length > 0 */
-void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length);
-void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* desc);
-
-/* Return the average bitrate in bps of all unique files contained within this stream. */
-int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream);
-
-/* Return 1 if vgmstream detects from the filename that said file can be used even if doesn't physically exist */
-int vgmstream_is_virtual_filename(const char* filename);
-
 /* -------------------------------------------------------------------------*/
-/* vgmstream "private" API                                                  */
+/* vgmstream internal helpers                                               */
 /* -------------------------------------------------------------------------*/
 
 /* Allocate initial memory for the VGMSTREAM */
@@ -323,19 +282,9 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int looped);
 /* Prepare the VGMSTREAM's initial state once parsed and ready, but before playing. */
 void setup_vgmstream(VGMSTREAM* vgmstream);
 
-/* Open the stream for reading at offset (taking into account layouts, channels and so on).
- * Returns 0 on failure */
-int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset);
-int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer);
-
-/* Get description info */
-void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
-void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
-void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
-
-//TODO: remove, unused internally
-/* calculate the number of samples to be played based on looping parameters */
-int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM* vgmstream);
+/* Open the stream for reading at offset (taking into account layouts, channels and so on). */
+bool vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset);
+bool vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, bool force_multibuffer);
 
 /* Force enable/disable internal looping. Should be done before playing anything (or after reset),
  * and not all codecs support arbitrary loop values ATM. */
@@ -345,5 +294,8 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target);
 
 void setup_vgmstream_play_state(VGMSTREAM* vgmstream);
+
+/* Return 1 if vgmstream detects from the filename that said file can be used even if doesn't physically exist */
+bool vgmstream_is_virtual_filename(const char* filename);
 
 #endif

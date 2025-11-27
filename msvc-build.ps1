@@ -250,40 +250,109 @@ $fb2kPdbFiles64 = @(
     "x64/$configuration/foo_input_vgmstream.pdb"
 )
 
+# make a valid zip from a dir, since Compress-Archive uses non-standard backslashes
+function CompressProperZip {
+    param(
+        [string]$Path,
+        [string]$ZipFile
+    )
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    if (Test-Path $ZipFile) {
+        Remove-Item $ZipFile -Force
+    }
+
+    # may use work dir otherwise
+    $Path = (Resolve-Path $Path).Path
+    if (-not $Path.EndsWith('\')) {
+        $Path += '\'
+    }
+
+    $file = $null
+    $zip = $null
+    try {
+        $file  = [System.IO.File]::Open($ZipFile, [System.IO.FileMode]::Create)
+        $zip = New-Object System.IO.Compression.ZipArchive($file, [System.IO.Compression.ZipArchiveMode]::Create, $false)
+
+        Get-ChildItem -Path $Path -Recurse -File | ForEach-Object {
+            $fullPath = $_.FullName
+
+            # load relative paths and normalize to forward slashes
+            $relPath = $fullPath.Substring($Path.Length)
+            $relPath = $relPath -replace '\\','/'
+
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $fullPath, $relPath) | Out-Null
+        }
+    }
+    finally {
+        if ($zip) { $zip.Dispose() }
+        if ($file)  { $file.Dispose() }
+    }
+}
+
 
 function MakePackage
 {
     Build
 
-    if(!(Test-Path "$configuration/vgmstream-cli.exe")) {
+    if (!(Test-Path "$configuration/vgmstream-cli.exe")) {
         Write-Error "Unable to find binaries, check for compilation errors"
         return
     }
 
-    mkdir -Force bin
+    mkdir -Force bin | Out-Null
 
     Compress-Archive $cliFiles32 bin/vgmstream-win.zip -Force
     Compress-Archive $cliFiles64 bin/vgmstream-win64.zip -Force
 
     # foobar 32 and 64-bit components go to the same file, in an extra "x64" subdir for the later
-    mkdir -Force bin/foobar2000
-    mkdir -Force bin/foobar2000/x64
+    mkdir -Force bin/foobar2000 | Out-Null
+    mkdir -Force bin/foobar2000/x64 | Out-Null
     Copy-Item $fb2kFiles32 bin/foobar2000/ -Recurse -Force
     Copy-Item $fb2kFiles64 bin/foobar2000/x64/ -Recurse -Force
     Remove-Item $fb2kFiles_remove -ErrorAction Ignore
 
-    # workaround for a foobar 2.0 64-bit bug: (earlier?) powershell creates zip paths with '\' (which seem
-    # non-standard), and apparently that confuses foobar when trying to unpack the zip
+    # workaround for a foobar 2.0 64-bit bug: (earlier?) PowerShell creates zip paths with '\' (which seem
+    # non-standard), and that confuses foobar when trying to unpack x64/* subdirs in the zip.
+    $component_done = $false
     try {
-        # should be available in github actions
-        & '7z' a -tzip bin/foo_input_vgmstream.fb2k-component ./bin/foobar2000/*
-    } catch {
-        # works for 32-bit at least
-        Compress-Archive -Path bin/foobar2000/* bin/foo_input_vgmstream.zip -Force
-        Move-Item bin/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+        if (-not $component_done) {
+            # makes standard zips and should be available in github actions, but not common in PATH/current dir
+            & '7z' a -tzip bin/foo_input_vgmstream.fb2k-component ./bin/foobar2000/*
+            $component_done = $true
+            #Write-Output "Packaged foobar2000 component with 7z"
+        }
+    } catch { }
+
+    try {
+        if (-not $component_done) {
+            # manually make a proper zip using PowerShell arcane stuff
+            CompressProperZip -Path "bin\foobar2000" -ZipFile "bin\foo_input_vgmstream.fb2k-component"
+            $component_done = $true
+            #Write-Output "Packaged foobar2000 component with custom script"
+        }
+    } catch { }
+
+    # shutil seems to default to Compress-Archive which uses backslashes in paths (could call a custom .py instead)
+    #python -c "__import__('shutil').make_archive('bin\foo_input_vgmstream', 'zip', 'bin/foobar2000)"
+
+    try {
+        if (-not $component_done) {
+            # PowerShell defaults, maybe it will work some day
+            Write-Warning "Could not make a proper zip, component may only work with foobar 32-bit"
+            Compress-Archive -Path bin/foobar2000/* bin/foo_input_vgmstream.zip -Force
+            Move-Item bin/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+        }
+    } catch { }
+
+    if (-not $component_done) {
+        Write-Warning "Could not package foobar component"
     }
-    
-    Remove-Item -Path bin/foobar2000 -Recurse -ErrorAction Ignore
+
+    if ($component_done) {
+        Remove-Item -Path bin/foobar2000 -Recurse -ErrorAction Ignore
+    }
 }
 
 

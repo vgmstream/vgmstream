@@ -25,29 +25,6 @@ int32_t vgmstream_get_samples(VGMSTREAM* vgmstream) {
     return vgmstream->pstate.play_duration;
 }
 
-/* calculate samples based on player's config */
-int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM* vgmstream) {
-    if (vgmstream->loop_flag) {
-        if (vgmstream->loop_target == (int)looptimes) { /* set externally, as this function is info-only */
-            /* Continue playing the file normally after looping, instead of fading.
-             * Most files cut abruply after the loop, but some do have proper endings.
-             * With looptimes = 1 this option should give the same output vs loop disabled */
-            int loop_count = (int)looptimes; /* no half loops allowed */
-            return vgmstream->loop_start_sample
-                + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count
-                + (vgmstream->num_samples - vgmstream->loop_end_sample);
-        }
-        else {
-            return vgmstream->loop_start_sample
-                + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * looptimes
-                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate;
-        }
-    }
-    else {
-        return vgmstream->num_samples;
-    }
-}
-
 /*****************************************************************************/
 
 /* apply config like forced loops */

@@ -1,4 +1,5 @@
 #include "api_internal.h"
+#include "info.h"
 
 
 static int get_internal_log_level(libvgmstream_loglevel_t level) {

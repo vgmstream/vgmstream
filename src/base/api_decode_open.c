@@ -1,6 +1,7 @@
 #include "api_internal.h"
 #include "sbuf.h"
 #include "mixing.h"
+#include "info.h"
 
 
 static void apply_config(libvgmstream_priv_t* priv) {

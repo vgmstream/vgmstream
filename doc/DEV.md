@@ -120,7 +120,7 @@ Very simplified it goes like this:
 - player (CLI, plugin, etc) opens a file stream (STREAMFILE) *[plugin's main/decode]*
 - init tries all parsers (metas) until one works *[init_vgmstream]*
 - parser reads header (channels, sample rate, loop points) and set ups the VGMSTREAM struct, if the format is correct *[init_vgmstream_(format-name)]*
-- player finds total_samples to play, based on the number of loops and other settings *[get_vgmstream_play_samples]*
+- player finds total_samples to play, based on the number of loops and other settings
 - player asks to fill a small sample buffer *[render_vgmstream]*
 - layout prepares samples and offsets to read from the stream *[render_vgmstream_(layout)]*
 - decoder reads and decodes bytes into PCM samples *[decode_vgmstream_(coding)]*

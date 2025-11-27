@@ -92,6 +92,7 @@
     <ClInclude Include="base\codec_info.h" />
     <ClInclude Include="base\decode.h" />
     <ClInclude Include="base\decode_state.h" />
+    <ClInclude Include="base\info.h" />
     <ClInclude Include="base\mixer.h" />
     <ClInclude Include="base\mixer_priv.h" />
     <ClInclude Include="base\mixing.h" />

@@ -12,19 +12,21 @@ VGMSTREAM* init_vgmstream_csmp(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "CSMP"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "csmp"))
-        goto fail;
-    if (read_u32be(0x04, sf) != 1) /* version? */
-        goto fail;
+        return NULL;
+    if (read_u32be(0x04, sf) != 1) // version?
+        return NULL;
 
-    /* INFO > PAD > DATA */
-    if (!find_chunk(sf, get_id32be("DATA"),first_offset,0, &chunk_offset,NULL, 1, 0))
-        goto fail;
+    // originally implemented by Antidote (see 9a03256)
 
-    /* contains a not quite standard DSP header */
-    channels = 1; /* also at INFO + 0x00? (in practice uses dual stereo in separate files) */
-    loop_flag = read_s16be(chunk_offset+0x0c,sf); /* also at INFO + 0x01 */
+    // fixed chunks: INFO > PAD > DATA
+    if (!find_chunk(sf, get_id32be("DATA"), first_offset,0, &chunk_offset, NULL, 1, 0))
+        return NULL;
+
+    // contains a not quite standard DSP header
+    channels = 1; // also at INFO + 0x00? (in practice uses dual stereo in separate files)
+    loop_flag = read_s16be(chunk_offset + 0x0c,sf); // also at INFO + 0x01
     start_offset = chunk_offset + 0x60;
 
 
@@ -35,7 +37,7 @@ VGMSTREAM* init_vgmstream_csmp(STREAMFILE* sf) {
     vgmstream->meta_type = meta_CSMP;
     vgmstream->sample_rate = read_s32be(chunk_offset+0x08,sf);
     vgmstream->num_samples = read_s32be(chunk_offset+0x00,sf);
-    vgmstream->loop_start_sample = read_s32be(chunk_offset+0x10,sf); /* unlike regular DSP's nibbles */
+    vgmstream->loop_start_sample = read_s32be(chunk_offset+0x10,sf); // unlike regular DSP's nibbles
     vgmstream->loop_end_sample   = read_s32be(chunk_offset+0x14,sf) + 1;
 
     vgmstream->coding_type = coding_NGC_DSP;
