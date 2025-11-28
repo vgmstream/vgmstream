@@ -85,15 +85,18 @@ VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf) {
             vgmstream->layout_type = layout_none;
             break;
         //Riven DVD
-        case 0x0002: /* MPEG Layer II */
+        case 0x0002: /* MPEG-2 Layer II LSF */
+            vgmstream->layout_type = layout_none;
 #if defined(VGM_USE_MPEG)
-            vgmstream->coding_type = coding_MPEG_layer2;
+            vgmstream->codec_data = init_mpeg(sf, start_offset, &vgmstream->coding_type, vgmstream->channels);  // Uses MPEG-2 LSF variant.
 #elif defined(VGM_USE_FFMPEG)
             vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset, chunk_size - 0x14);
 #else
             goto fail;
 #endif
-            vgmstream->layout_type = layout_none;
+            if (!vgmstream->codec_data)
+                goto fail;
             break;
 
         default: /* Unknown format */
