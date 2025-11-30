@@ -36,27 +36,29 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         void* buf_filled = NULL;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
-            /* handle looping (loop_layout has been called below, changes segments/state) */
+            /* handle loop end to start (loop_layout_segmented has been called in decode_loop_loop) */
+
+            // update temp vars, since state changed in decode_do_loop > loop_layout_segmented
+            vs = data->segments[data->current_segment];
             samples_this_block = vgmstream_get_samples(vs);
             mixing_info(vs, NULL, &current_channels);
 
-            vs = data->segments[data->current_segment];
+            ;VGM_LOG("SEGMENTED: loop point\n");
             continue;
         }
 
         /* detect segment change and restart (after loop, but before decode, to allow looping to kick in) */
         if (vgmstream->samples_into_block >= samples_this_block) {
+            //;VGM_LOG("SEGMENTED: next segment\n");
             data->current_segment++;
 
             if (data->current_segment >= data->segment_count) { /* when decoding more than num_samples */
-                VGM_LOG_ONCE("SEGMENTED: reached last segment\n");
+                VGM_LOG_ONCE("SEGMENTED: reached last segment, into=%i, this=%i, curr=%i\n", vgmstream->samples_into_block, samples_this_block, data->current_segment);
                 goto decode_fail;
             }
 
             vs = data->segments[data->current_segment];
-
-            /* in case of looping spanning multiple segments */
-            reset_vgmstream(vs);
+            reset_vgmstream(vs); // in case of looping spanning multiple segments
 
             samples_this_block = vgmstream_get_samples(vs);
             mixing_info(vs, NULL, &current_channels);
@@ -141,7 +143,9 @@ void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample) {
 }
 
 void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
+    //;VGM_LOG("SEGMENTED: loop layout at %i\n", loop_sample);
     seek_layout_segmented(vgmstream, loop_sample);
+    //;VGM_LOG("SEGMENTED: loop layout done: segment=%i, into=%i\n", data->current_segment, vgmstream->samples_into_block);
 }
 
 
