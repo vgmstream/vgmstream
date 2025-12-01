@@ -48,6 +48,7 @@ static const char* extension_list[] = {
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]
     "adc", //txth/reserved [Tomb Raider The Last Revelation (DC), Tomb Raider Chronicles (DC)]
     "adm",
+    "adm2", //txth/reserved [Onmyou Taisenki: Byakko Enbu (PS2)]
     "adp",
     "adpcm",
     "adpcmx",
