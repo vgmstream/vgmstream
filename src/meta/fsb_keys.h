@@ -77,6 +77,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5, FSBKEY_ADD("M2QEEj6au7Nx0pgYpl8Uhqe9R3CWEjPGbPK6KENwG9eypOkpYq") }, // Undisputed (PC) 
         { MODE_FSB5, FSBKEY_ADD("+1@+#{n`<h0(r|:1") }, // Wreckreation (PC)
         { MODE_FSB5, FSBKEY_ADD("MyPjgFmodKey2020^.^") }, // The Tale of Food / Shi Wu Yu (Android)
+        { MODE_FSB5, FSBKEY_ADD("gfnalknasfg02930293fdksj098234fjeijfiejfei030") }, // ScourgeBringer (Switch)
 
         /* some games use a key per file, generated from the filename
          * (could add all of them but there are a lot of songs, so external .fsbkey are probably better) */
