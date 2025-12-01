@@ -1590,6 +1590,9 @@ static const hcakey_info hcakey_list[] = {
     // Pac-Man World 2 Re-Pac (PC)
     {5646981318476813},         // 00140FE64B8A840D
 
+    // Towa and the Guardians of the Sacred Tree (multi)
+    {2024060613531654235},      // 1C16E8677169D85B
+
 };
 
 #endif
