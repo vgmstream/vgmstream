@@ -1150,6 +1150,9 @@
     <ClCompile Include="meta\afc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\afs.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\agsc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -440,6 +440,7 @@
     <ClCompile Include="meta\adx.c" />
     <ClCompile Include="meta\adx_monster.c" />
     <ClCompile Include="meta\afc.c" />
+    <ClCompile Include="meta\afs.c" />
     <ClCompile Include="meta\agsc.c" />
     <ClCompile Include="meta\ahv.c" />
     <ClCompile Include="meta\ahx.c" />
