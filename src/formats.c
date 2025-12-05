@@ -56,6 +56,7 @@ static const char* extension_list[] = {
     "adw",
     "adx",
     "afc",
+    "afs",
     "afs2",
     "agsc",
     "ahx",

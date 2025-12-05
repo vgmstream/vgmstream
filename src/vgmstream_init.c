@@ -510,6 +510,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ueba,
     init_vgmstream_ubi_bao_spk,
     init_vgmstream_wd,
+    init_vgmstream_afs,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_afc,

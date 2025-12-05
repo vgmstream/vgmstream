@@ -1053,4 +1053,6 @@ VGMSTREAM* init_vgmstream_ueba(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_wd(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_afs(STREAMFILE* sf);
+
 #endif
