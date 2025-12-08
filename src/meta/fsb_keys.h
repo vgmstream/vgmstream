@@ -78,6 +78,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5, FSBKEY_ADD("+1@+#{n`<h0(r|:1") }, // Wreckreation (PC)
         { MODE_FSB5, FSBKEY_ADD("MyPjgFmodKey2020^.^") }, // The Tale of Food / Shi Wu Yu (Android)
         { MODE_FSB5, FSBKEY_ADD("gfnalknasfg02930293fdksj098234fjeijfiejfei030") }, // ScourgeBringer (Switch)
+        { MODE_FSB5, FSBKEY_ADD("skkpycwtxzxnbozd0hb1ial0hxnrbuo0") }, // Return to Monkey Island (PC/)
 
         /* some games use a key per file, generated from the filename
          * (could add all of them but there are a lot of songs, so external .fsbkey are probably better) */
