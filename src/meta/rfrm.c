@@ -31,15 +31,15 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
 
         while (chunk_offset < file_size) {
             uint32_t chunk_type = read_32bitBE(chunk_offset + 0x00,sf);
-            size_t chunk_size   = read_32bitLE(chunk_offset + 0x08,sf);
+            size_t chunk_size   = read_32bitLE(chunk_offset + 0x04,sf);
 
             switch(chunk_type) {
+                case 0x4C41424C: /* "LABL" */
+                    chunk_offset += 0x18 + chunk_size;
+                    break;
                 case 0x464D5441: /* "FMTA" */
                     fmta_offset = chunk_offset + 0x18;
-                    chunk_offset += 5 + 0x18 + chunk_size;
-                    if (version == 0x2E) {
-                        chunk_offset--;
-                    }
+                    chunk_offset += 0x18 + chunk_size;
                     break;
                 case 0x44415441: /* "DATA" */
                     data_offset = chunk_offset + 0x18;
@@ -49,17 +49,15 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
                     break;
                 case 0x52415333: /* "RAS3" */
                     ras3_offset = chunk_offset + 0x18;
-                    if (version == 0x1F) {
-                        chunk_offset += 60;
-                    } else {
-                        chunk_offset += 62;
-                    }
+                    chunk_offset += 0x18 + chunk_size;
                     break;
                 case 0x43524D53: /* CRMS */
-                    chunk_offset += 9 + 0x18 + chunk_size + read_32bitLE(chunk_offset + 0x18 + chunk_size + 5, sf);
+                    chunk_offset += 0x18 + chunk_size;
                     break;
                 default:
-                    goto fail;
+                    /* skip unknown chunk ... this may or may not work */
+                    chunk_offset += 0x18 + chunk_size;
+                    break;
             }
         }
 
