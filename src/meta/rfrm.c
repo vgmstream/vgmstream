@@ -65,15 +65,15 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
             goto fail;
     }
 
-
+    unsigned int channel_layout = 0;
     /* parse FMTA / DATA (fully interleaved standard DSPs) */
     if (version == 0x1F) {
         channels = read_8bit(fmta_offset + 0x00, sf);
     } else {
         channels = read_8bit(fmta_offset + 0x02, sf);
+        channel_layout = read_16bitLE(fmta_offset, sf);
     }
     if (channels == 0) goto fail; /* div by zero */
-    /* FMTA 0x08: channel mapping */
 
     header_offset = data_offset;
     start_offset = header_offset + 0x80 * channels;
@@ -124,6 +124,10 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
     vgmstream->interleave_block_size = interleave;
     dsp_read_coefs(vgmstream, sf, header_offset + 0x1C, 0x80, 0);
     dsp_read_hist (vgmstream, sf, header_offset + 0x40, 0x80, 0);
+
+    if (channel_layout) {
+        vgmstream->channel_layout = channel_layout;
+    }
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
