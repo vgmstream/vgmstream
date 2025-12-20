@@ -12,18 +12,14 @@ VGMSTREAM* init_vgmstream_smh_smc(STREAMFILE* sf) {
 
 
     /* checks */
+    total_subsongs = read_s32le(0x00,sf);
+    if (total_subsongs * 0x10 + 0x10 != get_streamfile_size(sf))
+        return NULL;
     if (!check_extensions(sf, "smh"))
         return NULL;
 
-    total_subsongs = read_s32le(0x00,sf);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
-
-    if (total_subsongs * 0x10 + 0x10 != get_streamfile_size(sf))
-        return NULL;
-
-    sb = open_streamfile_by_ext(sf, "smc");
-    if (!sb) goto fail;
 
     header_offset = 0x10 + (target_subsong - 1) * 0x10;
 
@@ -34,6 +30,8 @@ VGMSTREAM* init_vgmstream_smh_smc(STREAMFILE* sf) {
     channels      = read_u16le(header_offset+0x0e, sf);
     loop_flag = 0;
 
+    sb = open_streamfile_by_ext(sf, "smc");
+    if (!sb) goto fail;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
@@ -44,7 +42,7 @@ VGMSTREAM* init_vgmstream_smh_smc(STREAMFILE* sf) {
 
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
-    vgmstream->meta_type = meta_SMC_SMH;
+    vgmstream->meta_type = meta_SMH_SMC;
 
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;

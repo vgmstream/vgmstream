@@ -584,7 +584,7 @@ typedef enum {
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
     meta_MSH_MSB,
     meta_TXTP,
-    meta_SMC_SMH,           /* Wangan Midnight (System 246) */
+    meta_SMH_SMC,
     meta_PPST,
     meta_SPS_N1,
     meta_UBI_BAO,
