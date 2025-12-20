@@ -443,7 +443,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ogv_3rdeye,
     init_vgmstream_sspr,
     init_vgmstream_piff_tpcm,
-    init_vgmstream_wxd_wxh,
+    init_vgmstream_wxh_wxd,
     init_vgmstream_bnk_relic,
     init_vgmstream_xsh_xsd_xss,
     init_vgmstream_psb,

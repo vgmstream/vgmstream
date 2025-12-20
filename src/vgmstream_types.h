@@ -681,7 +681,7 @@ typedef enum {
     meta_DSP_KWA,
     meta_OGV_3RDEYE,
     meta_PIFF_TPCM,
-    meta_WXD_WXH,
+    meta_WXH_WXD,
     meta_BNK_RELIC,
     meta_XSH_XSD_XSS,
     meta_PSB,

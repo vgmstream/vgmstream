@@ -1467,7 +1467,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_KWA,              "Kuju London .KWA header"},
         {meta_OGV_3RDEYE,           "3rdEye .OGV header"},
         {meta_PIFF_TPCM,            "Tantalus PIFF TPCM header"},
-        {meta_WXD_WXH,              "Relic WXD+WXH header"},
+        {meta_WXH_WXD,              "Relic WXH+WXD header"},
         {meta_BNK_RELIC,            "Relic BNK header"},
         {meta_XSH_XSD_XSS,          "Treyarch XSH+XSD/XSS header"},
         {meta_PSB,                  "M2 PSB header"},

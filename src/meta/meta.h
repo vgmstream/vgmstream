@@ -935,7 +935,7 @@ VGMSTREAM* init_vgmstream_sspr(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_piff_tpcm(STREAMFILE* sf);
 
-VGMSTREAM* init_vgmstream_wxd_wxh(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_wxh_wxd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bnk_relic(STREAMFILE* sf);
 
