@@ -309,7 +309,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_mcadpcm,
     init_vgmstream_ubi_lyn,
     init_vgmstream_ubi_lyn_container,
-    init_vgmstream_msb_msh,
+    init_vgmstream_msh_msb,
     init_vgmstream_txtp,
     init_vgmstream_ppst,
     init_vgmstream_sps_n1_segmented,

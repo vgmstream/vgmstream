@@ -582,7 +582,7 @@ typedef enum {
     meta_SRE_PCM,
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
-    meta_MSB_MSH,           /* sfx companion of MIH+MIB */
+    meta_MSH_MSB,
     meta_TXTP,
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
     meta_PPST,
