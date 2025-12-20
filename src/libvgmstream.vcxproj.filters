@@ -1657,7 +1657,7 @@
     <ClCompile Include="meta\mio.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\mjb_mjh.c">
+    <ClCompile Include="meta\mjh_mjb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mogg.c">
