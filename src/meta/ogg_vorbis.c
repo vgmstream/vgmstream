@@ -333,6 +333,17 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
         return 1;
     }
 
+    /* .owp: anemoi (PC) (RealLive engine?) */
+    if (read_u32be(0x00,sf) == 0x765E5E6A) { 
+        cfg->key[0] = 0x39;
+        cfg->key_len = 1;
+        cfg->is_encrypted = 1;
+
+        if (!check_extensions(sf,"owp"))
+            goto fail;
+
+        return 1;
+    }
 
     /***************************************/
     /* harder to check (could be improved) */

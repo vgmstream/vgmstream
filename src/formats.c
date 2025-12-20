@@ -440,6 +440,7 @@ static const char* extension_list[] = {
     "opusx",
     "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
+    "owp",
 
     "p04", //txth/reserved [Psychic Force 2012 (DC), Skies of Arcadia (DC)]
     "p08", //txth/reserved [SoulCalibur (DC)]
