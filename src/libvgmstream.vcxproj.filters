@@ -2314,7 +2314,7 @@
     <ClCompile Include="meta\wwise.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\wxd_wxh.c">
+    <ClCompile Include="meta\wxh_wxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xa.c">

@@ -828,7 +828,7 @@
     <ClCompile Include="meta\wv6.c" />
     <ClCompile Include="meta\wvs.c" />
     <ClCompile Include="meta\wwise.c" />
-    <ClCompile Include="meta\wxd_wxh.c" />
+    <ClCompile Include="meta\wxh_wxd.c" />
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\xa2_acclaim.c" />
     <ClCompile Include="meta\xabp.c" />
