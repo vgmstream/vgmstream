@@ -30,7 +30,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - CRI ADX header (type 05) [*ADX_05*]
   - *adx*
     - Subfiles: *adx_subkey*
-  - *adx_subkey*: `.adx .adp + .(external)`
+  - *adx_subkey*: `.adx .adp .sfa + .(external)`
   - Codecs: CRI_ADX_fixed CRI_ADX CRI_ADX_exp CRI_ADX_enc_8 CRI_ADX_enc_9
 - **brstm.c**
   - Nintendo RSTM header [*RSTM*]
@@ -219,7 +219,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Ogg Vorbis header (KOVS) [*OGG_KOVS*]
   - *ogg_vorbis*
     - Subfiles: *ogg_vorbis*
-  - *ogg_vorbis_config*: `.ogg .logg .adx .rof .acm .sod .msa .bin .lbin .oga .ogs .ogv .kvs .kovs .rpgmvo .ogg_ .bgm .gwm .mus .fish .isd .sngw .lse .eno .um3 .u0 + .(external)`
+  - *ogg_vorbis_config*: `.ogg .logg .adx .rof .acm .sod .msa .bin .lbin .oga .ogs .ogv .snd .kvs .kovs .rpgmvo .ogg_ .bgm .gwm .mus .fish .owp .isd .sngw .lse .eno .um3 .u0 + .(external)`
     - Subfiles: *ogg_vorbis_config ogg_vorbis_cfg_ovmi ogg_vorbis_tests ogg_vorbis_common ogg_vorbis_tink ogg_vorbis*
   - Codecs: OGG OGG_VORBIS
 - **sfl.c**
@@ -505,7 +505,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DSP
 - **ish_isd.c**
   - ISH+ISD DSP Header [*ISH_ISD*]
-  - *ish_isd*: `.isd + .ish`
+  - *ish_isd*: `.ish + .isd`
   - Codecs: NGC_DSP
 - **gsnd.c**
   - Tecmo GSND Header [*GSND*]
@@ -1175,9 +1175,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ubi_lyn_container*: `.sns .wav .lwav .son`
     - Subfiles: *ubi_lyn*
   - Codecs: PCM16LE NGC_DSP OGG_VORBIS MPEG MP4/AAC XMA
-- **msb_msh.c**
-  - Sony MultiStream MSH+MSB header [*MSB_MSH*]
-  - *msb_msh*: `.msb + .msh`
+- **msh_msb.c**
+  - Sony MultiStream MSH+MSB header [*MSH_MSB*]
+  - *msh_msb*: `.msh + .msb`
   - Codecs: PSX
 - **ppst.c**
   - epics PPST header [*PPST*]
@@ -1602,9 +1602,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Tantalus PIFF TPCM header [*PIFF_TPCM*]
   - *piff_tpcm*: `.tad`
   - Codecs: TANTALUS
-- **wxd_wxh.c**
-  - Relic WXD+WXH header [*WXD_WXH*]
-  - *wxd_wxh*: `.wxd + .wxh`
+- **wxh_wxd.c**
+  - Relic WXH+WXD header [*WXH_WXD*]
+  - *wxh_wxd*: `.wxh + .wxd`
   - Codecs: RELIC
 - **bnk_relic.c**
   - Relic BNK header [*BNK_RELIC*]
@@ -1800,7 +1800,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **mhwk.c**
   - Broderbund MHWK header [*MHWK*]
   - *mhwk*: `.mhk`
-  - Codecs: PCM8_U DVI_IMA MPEG_layer2
+  - Codecs: PCM8_U DVI_IMA FFmpeg(various)
 - **cf_df.c**
   - Cyberflix DreamFactory header [*CF_DF*]
   - *cf_df*: `.snd .sfx .mov`
@@ -1835,9 +1835,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *vas_kceo_container*: `.vas`
     - Subfiles: *vas_kceo*
   - Codecs: PCM16LE XBOX_IMA PSX NGC_DSP
-- **mjb_mjh.c**
-  - Sony MultiStream MJH+MJB header [*MJB_MJH*]
-  - *mjb_mjh*: `.mjb + .mjh .mjb`
+- **mjh_mjb.c**
+  - Sony MultiStream MJH+MJB header [*MJH_MJB*]
+  - *mjh_mjb*: `.mjh + .mjb`
   - Codecs: PSX
 - **mic_koei.c**
   - KOEI .MIC header [*MIC_KOEI*]
@@ -1919,7 +1919,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *wv6*: `.wv6`
   - Codecs: WV6_IMA
 - **smh_smc.c**
-  - Genki SMC+SMH header [*SMC_SMH*]
+  - Genki SMH+SMC header [*SMH_SMC*]
   - *smh_smc*: `.smh + .smc`
   - Codecs: PSX
 - **flx.c**
