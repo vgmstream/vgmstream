@@ -674,7 +674,7 @@ typedef enum {
     meta_DSP_CWAC,
     meta_COMPRESSWAVE,
     meta_KTAC,
-    meta_MJB_MJH,
+    meta_MJH_MJB,
     meta_BSNF,
     meta_TAC,
     meta_IDSP_TOSE,

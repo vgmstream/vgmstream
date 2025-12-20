@@ -1460,7 +1460,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_CWAC,             "CRI CWAC header"},
         {meta_COMPRESSWAVE,         "CompressWave .cwav header"},
         {meta_KTAC,                 "Koei Tecmo KTAC header"},
-        {meta_MJB_MJH,              "Sony MultiStream MJH+MJB header"},
+        {meta_MJH_MJB,              "Sony MultiStream MJH+MJB header"},
         {meta_BSNF,                 "id Software BSNF header"},
         {meta_TAC,                  "tri-Ace Codec header"},
         {meta_IDSP_TOSE,            "TOSE .IDSP header"},

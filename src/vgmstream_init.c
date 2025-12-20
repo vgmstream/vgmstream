@@ -518,7 +518,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_vas_kceo,
     init_vgmstream_vas_kceo_container,
     init_vgmstream_mib_mih,
-    init_vgmstream_mjb_mjh,
+    init_vgmstream_mjh_mjb,
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
     init_vgmstream_tgc,
