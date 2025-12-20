@@ -609,7 +609,7 @@
     <ClCompile Include="meta\mib_mih.c" />
     <ClCompile Include="meta\mic_koei.c" />
     <ClCompile Include="meta\mio.c" />
-    <ClCompile Include="meta\mjb_mjh.c" />
+    <ClCompile Include="meta\mjh_mjb.c" />
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\mp4_faac.c" />
@@ -617,11 +617,11 @@
     <ClCompile Include="meta\mpds.c" />
     <ClCompile Include="meta\mpeg.c" />
     <ClCompile Include="meta\msa.c" />
-    <ClCompile Include="meta\msb_msh.c" />
     <ClCompile Include="meta\msf.c" />
     <ClCompile Include="meta\msf_banpresto.c" />
     <ClCompile Include="meta\msf_konami.c" />
     <ClCompile Include="meta\msf_tamasoft.c" />
+    <ClCompile Include="meta\msh_msb.c" />
     <ClCompile Include="meta\msv.c" />
     <ClCompile Include="meta\mta2.c" />
     <ClCompile Include="meta\mtaf.c" />
@@ -828,7 +828,7 @@
     <ClCompile Include="meta\wv6.c" />
     <ClCompile Include="meta\wvs.c" />
     <ClCompile Include="meta\wwise.c" />
-    <ClCompile Include="meta\wxd_wxh.c" />
+    <ClCompile Include="meta\wxh_wxd.c" />
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\xa2_acclaim.c" />
     <ClCompile Include="meta\xabp.c" />

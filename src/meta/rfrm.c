@@ -11,17 +11,17 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "RFRM"))
-        goto fail;
+        return NULL;
     /* 0x08: file size but not exact */
     if (!is_id32be(0x14, sf, "CSMP"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "csmp"))
-        goto fail;
+        return NULL;
 
     uint32_t version = read_32bitLE(0x18,sf);
     if (version != 0x1F && version != 0x2E) /* assumed, also at 0x1c */
-        goto fail;
+        return NULL;
 
 
     /* parse chunks (always BE) */
@@ -62,7 +62,7 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
         }
 
         if (!fmta_offset || !data_offset || !data_size)
-            goto fail;
+            return NULL;
     }
 
     unsigned int channel_layout = 0;
@@ -73,7 +73,7 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
         channels = read_8bit(fmta_offset + 0x02, sf);
         channel_layout = read_16bitLE(fmta_offset, sf);
     }
-    if (channels == 0) goto fail; /* div by zero */
+    if (channels == 0) return NULL; /* div by zero */
 
     header_offset = data_offset;
     start_offset = header_offset + 0x80 * channels;
@@ -150,13 +150,13 @@ VGMSTREAM* init_vgmstream_rfrm(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "RFRM"))
-        goto fail;
+        return NULL;
     /* 0x08: file size but not exact */
     if (!is_id32be(0x14, sf, "CSMP"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "csmp"))
-        goto fail;
+        return NULL;
 
     version = read_32bitBE(0x18,sf); /* assumed, also at 0x1c */
     if (version == 0x0a) { /* DKCTF Wii U */
@@ -176,7 +176,7 @@ VGMSTREAM* init_vgmstream_rfrm(STREAMFILE* sf) {
         return init_vgmstream_rfrm_mpr(sf);
     }
     else {
-        goto fail;
+        return NULL;
     }
 
 
@@ -205,7 +205,7 @@ VGMSTREAM* init_vgmstream_rfrm(STREAMFILE* sf) {
         }
 
         if (!fmta_offset || !data_offset || !data_size)
-            goto fail;
+            return NULL;
     }
 
 

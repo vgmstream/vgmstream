@@ -440,6 +440,7 @@ static const char* extension_list[] = {
     "opusx",
     "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
+    "owp",
 
     "p04", //txth/reserved [Psychic Force 2012 (DC), Skies of Arcadia (DC)]
     "p08", //txth/reserved [SoulCalibur (DC)]
@@ -1368,9 +1369,9 @@ static const meta_info meta_info_list[] = {
         {meta_SRE_PCM,              "Capcom .SRE+PCM header"},
         {meta_DSP_MCADPCM,          "Bethesda .mcadpcm header"},
         {meta_UBI_LYN,              "Ubisoft LyN RIFF header"},
-        {meta_MSB_MSH,              "Sony MultiStream MSH+MSB header"},
+        {meta_MSH_MSB,              "Sony MultiStream MSH+MSB header"},
         {meta_TXTP,                 "TXTP generic header"},
-        {meta_SMC_SMH,              "Genki SMC+SMH header"},
+        {meta_SMH_SMC,              "Genki SMH+SMC header"},
         {meta_PPST,                 "epics PPST header"},
         {meta_SPS_N1,               "Nippon Ichi .SPS header"},
         {meta_UBI_BAO,              "Ubisoft BAO header"},
@@ -1460,14 +1461,14 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_CWAC,             "CRI CWAC header"},
         {meta_COMPRESSWAVE,         "CompressWave .cwav header"},
         {meta_KTAC,                 "Koei Tecmo KTAC header"},
-        {meta_MJB_MJH,              "Sony MultiStream MJH+MJB header"},
+        {meta_MJH_MJB,              "Sony MultiStream MJH+MJB header"},
         {meta_BSNF,                 "id Software BSNF header"},
         {meta_TAC,                  "tri-Ace Codec header"},
         {meta_IDSP_TOSE,            "TOSE .IDSP header"},
         {meta_DSP_KWA,              "Kuju London .KWA header"},
         {meta_OGV_3RDEYE,           "3rdEye .OGV header"},
         {meta_PIFF_TPCM,            "Tantalus PIFF TPCM header"},
-        {meta_WXD_WXH,              "Relic WXD+WXH header"},
+        {meta_WXH_WXD,              "Relic WXH+WXD header"},
         {meta_BNK_RELIC,            "Relic BNK header"},
         {meta_XSH_XSD_XSS,          "Treyarch XSH+XSD/XSS header"},
         {meta_PSB,                  "M2 PSB header"},
