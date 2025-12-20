@@ -654,7 +654,7 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                 || strstr(comment,"LOOPSTART=") == comment                  /* common? */
                 || strstr(comment,"um3.stream.looppoint.start=") == comment /* Ultramarine / Bruns Engine files */
                 || strstr(comment,"LOOP_BEGIN=") == comment                 /* Hatsune Miku: Project Diva F (PS3) */
-                || strstr(comment,"LoopStart=") == comment                  /* Capcom games [Devil May Cry 4 (PC)] */
+                || strstr(comment,"LoopStart=") == comment                  /* Capcom games [Devil May Cry 4 (PC), Street Fighter III 3rd Strike for NESiCAxLive (AC)] */
                 || strstr(comment,"LOOP=") == comment                       /* Duke Nukem 3D: 20th Anniversary World Tour */
                 || strstr(comment,"XIPH_CUE_LOOPSTART=") == comment         /* DeNa games [Super Mario Run (Android), FF Record Keeper (Android)] */
                 || strstr(comment,"LOOPS=") == comment                      /* The Rumble Fish + (Switch) */
@@ -710,10 +710,10 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                 loop_flag = 1;
             }
             else if (strstr(comment,"M=7F") == comment) {                   /* Megaman X Legacy Collection: MMX1/2/3 (PC) start/end */
-                if (loop_flag && loop_start < 0) { /* LoopStart should set as -1 before */
+                if (loop_flag && loop_start < 0 && loop_end <= 0) { /* LoopStart should set as -1 before */
                     sscanf(comment,"M=7F%x", &loop_start);
                 }
-                else if (loop_flag && loop_start >= 0) {
+                else if (loop_flag && loop_start >= 0 && loop_end <= 0) {
                     sscanf(comment,"M=7F%x", &loop_end);
                     loop_end_found = 1;
                 }
