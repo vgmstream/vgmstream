@@ -1681,9 +1681,6 @@
     <ClCompile Include="meta\msa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\msb_msh.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\msf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1694,6 +1691,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\msf_tamasoft.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\msh_msb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\msv.c">
