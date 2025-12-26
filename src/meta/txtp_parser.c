@@ -325,7 +325,9 @@ static int get_fade(const char* params, txtp_mix_data_t* mix, int* p_n) {
         mix->sample_post = -1;
     }
 
-    mix->time_end = mix->time_start + mix->time_end; /* defined as length */
+    // needs final length
+    mix->time_end = mix->time_start + mix->time_end;
+    mix->sample_end = mix->sample_start + mix->sample_end;
 
     *p_n = tn;
     return 1;
