@@ -160,6 +160,7 @@
     <ClInclude Include="meta\fsb_encrypted_streamfile.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb_keys.h" />
+    <ClInclude Include="meta\fsb_fev.h" />
     <ClInclude Include="meta\hca_bf.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\hca_keys_awb.h" />

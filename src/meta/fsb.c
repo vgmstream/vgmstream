@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "fsb_interleave_streamfile.h"
+#include "fsb_fev.h"
 
 
 typedef enum { NONE, MPEG, XBOX_IMA, FSB_IMA, PSX, XMA1, XMA2, DSP, CELT, PCM8, PCM8U, PCM16LE, PCM16BE, SILENCE } fsb_codec_t;
@@ -47,11 +48,13 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header_t*
 /* FSB1~4 - from games using FMOD audio middleware */
 VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf_fev = NULL;
     fsb_header_t fsb = {0};
+    fev_header_t fev = {0};
 
 
     /* checks */
-    uint32_t id = read_u32be(0x00,sf);
+    uint32_t id = read_u32be(0x00, sf);
     if (id < get_id32be("FSB1") || id > get_id32be("FSB4"))
         return NULL;
 
@@ -66,6 +69,14 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     if (!parse_fsb(&fsb, sf))
         return NULL;
 
+    //sf_fev = open_fev_filename_pair(sf); // TODO
+    sf_fev = open_streamfile_by_ext(sf, "fev");
+    if (sf_fev) {
+        sf_fev->stream_index = sf->stream_index;
+        if (!parse_fev(&fev, sf_fev))
+            goto fail;
+    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(fsb.channels, fsb.loop_flag);
@@ -78,7 +89,10 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     vgmstream->num_streams = fsb.total_subsongs;
     vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
-    if (fsb.name_offset)
+    /* prioritise FEV stream name, usually just the same FSB name but not truncated */
+    if (fev.name_offset)
+        read_string(vgmstream->stream_name, fev.name_size + 1, fev.name_offset, sf_fev);
+    else if (fsb.name_offset)
         read_string(vgmstream->stream_name, fsb.name_size + 1, fsb.name_offset, sf);
 
     switch(fsb.codec) {
@@ -218,11 +232,13 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     }
 
 
+    close_streamfile(sf_fev);
     if (!vgmstream_open_stream(vgmstream, sf, fsb.stream_offset))
         goto fail;
     return vgmstream;
 
 fail:
+    close_streamfile(sf_fev);
     close_vgmstream(vgmstream);
     return NULL;
 }
