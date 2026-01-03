@@ -95,22 +95,25 @@ static inline uint16_t read_fev_u16(fev_header_t* fev, STREAMFILE* sf) {
     return ret;
 }
 
-static bool read_fev_string(fev_header_t* fev, STREAMFILE* sf) {
+static bool read_fev_string(char* buf, size_t buf_size, fev_header_t* fev, STREAMFILE* sf) {
     // strings are probably the only "sane" thing in FEVs, so enforce stricter checks
     uint32_t str_size;
+    int i;
 
     // string size includes null terminator
     str_size = read_fev_u32(fev, sf);
-    if (str_size > 0x100) return false; // arbitrary max
+    if (str_size > buf_size) return false;
     if (str_size == 0x00) return true;
 
-    for (int i = 0; i < str_size - 1; i++) {
-        // ASCII only for now, less lenient than read_str
+    for (i = 0; i < str_size - 1; i++) {
+        // ASCII only for now, less lenient than read_string
         uint8_t c = read_u8(fev->offset++, sf);
         if (c < 0x20 || c > 0x7E) return false;
+        if (buf) buf[i] = c;
     }
     if (read_u8(fev->offset++, sf) != 0x00)
         return false;
+    if (buf) buf[i] = '\0';
 
     return true;
 }
@@ -138,7 +141,7 @@ static bool parse_fev_properties(fev_header_t* fev, STREAMFILE* sf) {
 
     properties = read_fev_u32(fev, sf);
     for (int i = 0; i < properties; i++) {
-        if (!read_fev_string(fev, sf)) // property name
+        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // property name
             return false;
 
         // enum: 0 = int, 1 = float, 2 = string
@@ -148,7 +151,7 @@ static bool parse_fev_properties(fev_header_t* fev, STREAMFILE* sf) {
 
         if (property_type != 0x02)
             fev->offset += 0x04;
-        else if (!read_fev_string(fev, sf)) // property
+        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // property
             return false;
     }
 
@@ -159,7 +162,7 @@ static bool parse_fev_properties(fev_header_t* fev, STREAMFILE* sf) {
 static bool parse_fev_category(fev_header_t* fev, STREAMFILE* sf) {
     uint32_t categories;
 
-    if (!read_fev_string(fev, sf)) // category name
+    if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // category name
         return false;
     // 0x00: volume
     // 0x04: pitch
@@ -183,7 +186,7 @@ static bool parse_fev_event_sound(fev_header_t* fev, STREAMFILE* sf) {
 
     if (fev->version >= FMOD_FEV_VERSION_39_0)
         fev->offset += 0x02; // name index?
-    else if (!read_fev_string(fev, sf)) // sound name
+    else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // sound name
         return false;
 
     // 0x00: x(?)
@@ -226,15 +229,15 @@ static bool parse_fev_event_envelope(fev_header_t* fev, STREAMFILE* sf) {
     uint32_t points;
 
     if (fev->version >= FMOD_FEV_VERSION_39_0)
-        fev->offset += 0x04; // name index?
+        fev->offset += 0x04; // parent envelope name index?
     else {
-        if (!read_fev_string(fev, sf)) // envelope name
+        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // envelope name
             return false;
-        if (!read_fev_string(fev, sf)) // parent envelope name
+        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // parent envelope name
             return false;
     }
 
-    if (!read_fev_string(fev, sf)) // dsp unit name
+    if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // dsp unit name
         return false;
 
     // 0x00: dsp param index
@@ -269,7 +272,7 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
     layers = read_fev_u32(fev, sf);
     for (int i = 0; i < layers; i++) {
         if (fev->version < FMOD_FEV_VERSION_39_0) {
-            if (!read_fev_string(fev, sf)) // layer name
+            if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // layer name
                 return false;
         }
 
@@ -283,7 +286,7 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
             fev->offset += 0x02;
         if (fev->version >= FMOD_FEV_VERSION_39_0)
             fev->offset += 0x02;
-        else if (!read_fev_string(fev, sf)) // param name
+        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // param name
             return false;
         if (fev->version >= FMOD_FEV_VERSION_29_0) {
             sounds    = read_fev_u16(fev, sf);
@@ -308,7 +311,7 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
     for (int i = 0; i < params; i++) {
         if (fev->version >= FMOD_FEV_VERSION_65_0)
             fev->offset += 0x04; // name index?
-        else if (!read_fev_string(fev, sf)) // param name
+        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // param name
             return false;
 
         if (fev->version <  FMOD_FEV_VERSION_18_0)
@@ -359,7 +362,7 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
         fev->offset += 0x04; // name index?
-    else if (!read_fev_string(fev, sf)) // event name
+    else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // event name
         return false;
 
     if (fev->version >= FMOD_FEV_VERSION_58_0) {
@@ -448,7 +451,7 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
 
     categories = read_fev_u32(fev, sf);
     for (int i = 0; i < categories; i++) {
-        if (!read_fev_string(fev, sf))
+        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
             return false;
     }
 
@@ -461,7 +464,7 @@ static bool parse_fev_event_category(fev_header_t* fev, STREAMFILE* sf) {
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
         fev->offset += 0x04; // name index?
-    else if (!read_fev_string(fev, sf)) // event category name
+    else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // event category name
         return false;
 
     if (fev->version >= FMOD_FEV_VERSION_23_0) {
@@ -543,8 +546,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     // further research from FMOD::EventSystemI::load in Split/Second's fmod_event.dll
     // lastly also found this project by putting fmod_event.dll's func name in github search
     // https://github.com/barspinoff/bmod/blob/main/tools/fmod_event/src/fmod_eventsystemi.cpp
-    uint32_t wave_banks, event_groups, sound_defs, languages = 1;
-    uint32_t bank_name_offset, bank_name_idx = -1;
+    uint32_t wave_banks, event_groups, sound_defs, languages = 1, bank_name_idx = -1;
     char target_bank_name[STREAM_NAME_SIZE];
     int target_subsong = sf->stream_index;
 
@@ -579,7 +581,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
 
     // FEV bank name (should match filename)
     if (fev->version >= FMOD_FEV_VERSION_25_0) {
-        if (!read_fev_string(fev, sf))
+        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
             return false;
     }
 
@@ -594,7 +596,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         // 0x00: mode/flags?
         // 0x04: (v0x14+) max streams
         // 0x08: (v0x3D+) hash[]
-        // 0x0C: (v0x41+) fsb suffix[]?
+        // 0x0C: (v0x41+) fsb suffix[](?)
         // 0x10: FSB bank name (should match filename)
         fev->offset += 0x04;
         if (fev->version >= FMOD_FEV_VERSION_20_0)
@@ -604,13 +606,11 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         if (fev->version >= FMOD_FEV_VERSION_65_0)
             fev->offset += 0x04 * languages;
 
-        bank_name_offset = fev->offset;
-        if (!read_fev_string(fev, sf)) // wave bank name
+        if (!read_fev_string(target_bank_name, STREAM_NAME_SIZE, fev, sf)) // wave bank name
             return false;
         // v0x41+ just store indices later, no samples to go
         // with yet, but assuming they're referring to these
         if (fev->version >= FMOD_FEV_VERSION_65_0) {
-            read_string(target_bank_name, STREAM_NAME_SIZE, bank_name_offset + 0x04, sf);
             if (strncasecmp(target_bank_name, fev->target_bank, STREAM_NAME_SIZE) == 0) {
                 if (bank_name_idx != -1)
                     vgm_logi("FEV: Multiple identical bank names!\n");
@@ -644,9 +644,11 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     for (int i = 0; i < sound_defs; i++) {
         uint32_t entries, entry_type, stream_index;
 
+        // this could be used as a cue name
+        // a stream can be in multiple cues
         if (fev->version >= FMOD_FEV_VERSION_65_0)
             fev->offset += 0x04; // name index?
-        else if (!read_fev_string(fev, sf)) // sound def name
+        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // sound def name
             return false;
 
         // 0x00: (v0x2E+) def index
@@ -670,7 +672,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
                 bool is_target_bank = false;
 
                 stream_name_offset = fev->offset;
-                if (!read_fev_string(fev, sf)) // stream name
+                if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // stream name
                     return false;
 
                 if (fev->version >= FMOD_FEV_VERSION_65_0) {
@@ -678,10 +680,8 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
                     is_target_bank = (read_fev_u32(fev, sf) == bank_name_idx);
                 }
                 else {
-                    bank_name_offset = fev->offset;
-                    if (!read_fev_string(fev, sf)) // bank name
+                    if (!read_fev_string(target_bank_name, STREAM_NAME_SIZE, fev, sf)) // bank name
                         return false;
-                    read_string(target_bank_name, STREAM_NAME_SIZE, bank_name_offset + 0x04, sf);
                     if (strncasecmp(target_bank_name, fev->target_bank, STREAM_NAME_SIZE) == 0)
                         is_target_bank = true;
                 }
@@ -708,7 +708,100 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         }
     }
 
-    // didn't find it?
+    // anything beyond this is not relevant for song names
+    // but the implementation is here for future reference
+#if 0
+    if (fev->version >= FMOD_FEV_VERSION_21_0) {
+        uint32_t reverb_defs;
+
+        reverb_defs = read_fev_u32(fev, sf);
+        for (int i = 0; i < reverb_defs; i++) {
+            if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
+                return false;
+
+            // 0x00: room
+            // 0x04: room HF
+            // 0x08: DEPRECATED
+            // 0x0C: decay time
+            // 0x10: decay HF ratio
+            // 0x14: reflections
+            // 0x18: reflections delay
+            // 0x1C: reverb
+            // 0x20: reverb delay
+            // 0x24: diffusion
+            // 0x28: density
+            // 0x2C: HF reference
+            // 0x30: (v0x1C+) room LF
+            // 0x34: (v0x1C+) LF reference
+            // 0x38: instance
+            // 0x3C: environment
+            // 0x40: DEPRECATED env size
+            // 0x44: env diffusion
+            // 0x48: room LF
+            // 0x4C: decay LF ratio
+            // 0x50: DEPRECATED reflections pan[3]
+            // 0x5C: DEPRECATED reverb pan[3]
+            // 0x68: DEPRECATED echo time
+            // 0x6C: DEPRECATED echo depth
+            // 0x70: modulation time
+            // 0x74: modulation depth
+            // 0x78: DEPRECATED air absorption HF
+            // 0x7C: LF reference
+            // 0x80: flags
+            fev->offset += 0x30;
+            if (fev->version >= FMOD_FEV_VERSION_28_0)
+                fev->offset += 0x08;
+            fev->offset += 0x4C;
+        }
+    }
+
+    // composition data, similar to RIFF layout
+    if (fev->version >= FMOD_FEV_VERSION_47_0) {
+        uint32_t comp_end, chunk_size, chunk_id;
+
+        do {
+            chunk_size = read_fev_u32(fev, sf);
+            // written in LE for v0x2F, afterward in BE
+            chunk_id = (fev->version == FMOD_FEV_VERSION_47_0)
+                ? read_u32le(fev->offset, sf)
+                : read_u32be(fev->offset, sf);
+            fev->offset += 0x04;
+
+            switch (chunk_size) {
+                case 0x636F6D70: // "comp" composition container header
+                    comp_end = fev->offset - 0x08 + chunk_size;
+                    break;
+
+                case 0x73657474: // "sett" music settings
+                    // 0x00: volume
+                    // 0x04: reverb
+                    fev->offset += 0x08;
+                    break;
+
+                case 0x6C6E6B73: // "lnks" link container
+                    // sub-chunks: "lnkh", "lnk ", "lnkd", "cond", "cprm", "cms ", "cc  ", "lfsh", "lfsd"
+                case 0x63756573: // "cues" cue container
+                    // sub-chunks: "entl"
+                case 0x70726D73: // "prms" parameter container
+                    // sub-chunks: "prmh", "prmd", "entl"
+                case 0x73636E73: // "scns" scene container
+                    // sub-chunks: "scnh", "scnd"
+                case 0x74686D73: // "thms" theme container
+                    // sub-chunks: "thmh", "thm ", "thmd", "cond", "cprm", "cms ", "cc  "
+                case 0x746C6E73: // "tlns" timeline container
+                    // sub-chunks: "tlnh", "tlnd"
+                case 0x73676D73: // "sgms" segment container
+                    // sub-chunks: "sgmh", "sgmd", "smpf", "str ", "smpm"
+                default: // unknown
+                    fev->offset += chunk_size - 0x08;
+                    break;
+            }
+
+        } while (fev->offset < comp_end);
+        // should just be until EOF
+    }
+#endif
+
     return false;
 }
 
