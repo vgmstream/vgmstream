@@ -69,9 +69,9 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     if (!parse_fsb(&fsb, sf))
         return NULL;
 
-    //sf_fev = open_fev_filename_pair(sf); // TODO
-    sf_fev = open_streamfile_by_ext(sf, "fev");
+    sf_fev = open_fev_filename_pair(sf);
     if (sf_fev) {
+        get_streamfile_basename(sf, fev.target_bank, STREAM_NAME_SIZE);
         sf_fev->stream_index = sf->stream_index;
         if (!parse_fev(&fev, sf_fev))
             goto fail;
@@ -89,9 +89,9 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     vgmstream->num_streams = fsb.total_subsongs;
     vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
-    /* prioritise FEV stream name, usually just the same FSB name but not truncated */
+    /* prioritise FEV stream names, usually the same FSB name just not truncated */
     if (fev.name_offset)
-        read_string(vgmstream->stream_name, fev.name_size + 1, fev.name_offset, sf_fev);
+        read_string(vgmstream->stream_name, fev.name_size, fev.name_offset, sf_fev);
     else if (fsb.name_offset)
         read_string(vgmstream->stream_name, fsb.name_size + 1, fsb.name_offset, sf);
 
