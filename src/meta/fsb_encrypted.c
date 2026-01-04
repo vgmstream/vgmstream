@@ -81,7 +81,7 @@ static VGMSTREAM* test_fsbkey(STREAMFILE* sf, const uint8_t* key, size_t key_siz
         if (!temp_sf) return NULL;
         //;dump_streamfile(temp_sf, 1);
 
-        if (!vc  && test_fsb4) vc = init_vgmstream_fsb(temp_sf);
+        if (!vc && test_fsb4) vc = init_vgmstream_fsb(temp_sf);
         if (!vc && test_fsb5) vc = init_vgmstream_fsb5(temp_sf);
 
         close_streamfile(temp_sf);

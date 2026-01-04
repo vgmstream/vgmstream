@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "fsb_interleave_streamfile.h"
+#include "fsb_fev.h"
 
 
 typedef enum { NONE, MPEG, XBOX_IMA, FSB_IMA, PSX, XMA1, XMA2, DSP, CELT, PCM8, PCM8U, PCM16LE, PCM16BE, SILENCE } fsb_codec_t;
@@ -42,6 +43,7 @@ typedef struct {
 } fsb_header_t;
 
 static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf);
+static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb);
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header_t* fsb, bool is_new_lib);
 
 /* FSB1~4 - from games using FMOD audio middleware */
@@ -51,7 +53,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 
 
     /* checks */
-    uint32_t id = read_u32be(0x00,sf);
+    uint32_t id = read_u32be(0x00, sf);
     if (id < get_id32be("FSB1") || id > get_id32be("FSB4"))
         return NULL;
 
@@ -78,8 +80,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     vgmstream->num_streams = fsb.total_subsongs;
     vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
-    if (fsb.name_offset)
-        read_string(vgmstream->stream_name, fsb.name_size + 1, fsb.name_offset, sf);
+    get_name(vgmstream->stream_name, &fsb, sf);
 
     switch(fsb.codec) {
 
@@ -213,7 +214,6 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
             break;
 
         default:
-            VGM_LOG("3\n");
             goto fail;
     }
 
@@ -669,4 +669,28 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
     return true;
 fail:
     return false;
+}
+
+static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
+    STREAMFILE* sf_fev = NULL;
+    fev_header_t fev = {0};
+
+    sf_fev = open_fev_filename_pair(sf_fsb);
+    if (sf_fev) {
+        char filename[STREAM_NAME_SIZE];
+        get_streamfile_basename(sf_fsb, filename, STREAM_NAME_SIZE);
+
+        sf_fev->stream_index = sf_fsb->stream_index;
+        if (!parse_fev(&fev, sf_fev, filename))
+            vgm_logi("FSB: Failed to parse FEV1 data");
+    }
+
+    /* prioritise FEV stream names, usually the same as the FSB name just not truncated */
+    /* benefits games where base names are all identical [Split/Second (PS3/X360/PC)] */
+    if (fev.name_offset && fev.name_size)
+        read_string(buf, fev.name_size, fev.name_offset, sf_fev);
+    else if (fsb->name_offset)
+        read_string(buf, fsb->name_size + 1, fsb->name_offset, sf_fsb);
+
+    close_streamfile(sf_fev);
 }

@@ -314,6 +314,9 @@
     <ClInclude Include="meta\fsb_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\fsb_fev.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\hca_bf.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
