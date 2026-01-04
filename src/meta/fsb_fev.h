@@ -329,8 +329,13 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
         if (fev->version >= FMOD_FEV_VERSION_18_0)
             fev->offset += 0x04;
         fev->offset += 0x04;
-        if (fev->version >= FMOD_FEV_VERSION_12_0)
-            fev->offset += read_fev_u32(fev, sf) * 0x04;
+        if (fev->version >= FMOD_FEV_VERSION_12_0) {
+            // while msvc doesn't break this, it "works around" by doing +1
+            // on the value returned from read_fev_u32 so safety precaution
+            //fev->offset += read_fev_u32(fev, sf) * 0x04;
+            uint32_t points = read_fev_u32(fev, sf);
+            fev->offset += points * 0x04;
+        }
     }
 
     if (!parse_fev_properties(fev, sf))
@@ -500,9 +505,9 @@ static void parse_fev_sound_def_def(fev_header_t* fev, STREAMFILE* sf) {
     // 0x38: (v0x3C+) pitch recalc mode
     // 0x3C: (v0x44+) position rand min
     // 0x40: (v0x2A+) position rand max
-    // 0x44: (v0x3E+) trigger delay min
-    // 0x48: (v0x3E+) trigger delay max
-    // 0x4C: (v0x3F+) spawn count
+    // 0x44: (v0x3E+) trigger delay min (u16)
+    // 0x46: (v0x3E+) trigger delay max (u16)
+    // 0x48: (v0x3F+) spawn count (u16)
     fev->offset += 0x08;
     if (fev->version <  FMOD_FEV_VERSION_34_0 ||
         fev->version >= FMOD_FEV_VERSION_38_0)
@@ -526,9 +531,9 @@ static void parse_fev_sound_def_def(fev_header_t* fev, STREAMFILE* sf) {
     if (fev->version >= FMOD_FEV_VERSION_42_0)
         fev->offset += 0x04;
     if (fev->version >= FMOD_FEV_VERSION_62_0)
-        fev->offset += 0x08;
-    if (fev->version >= FMOD_FEV_VERSION_63_0)
         fev->offset += 0x04;
+    if (fev->version >= FMOD_FEV_VERSION_63_0)
+        fev->offset += 0x02;
 
 }
 
@@ -569,8 +574,12 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         fev->offset += 0x04; // fmod_event.dll v0x3E still reads this
     if (fev->version >= FMOD_FEV_VERSION_50_0)
         fev->offset += 0x04; // fmod_event.dll v0x3E seeks over this
-    if (fev->version >= FMOD_FEV_VERSION_64_0)
-        fev->offset += read_fev_u32(fev, sf) * 0x08;
+    if (fev->version >= FMOD_FEV_VERSION_64_0) {
+        // msvc breaks by ignoring the +4b advance from read_fev_u32
+        //fev->offset += read_fev_u32(fev, sf) * 0x08;
+        uint32_t objects = read_fev_u32(fev, sf);
+        fev->offset += objects * 0x08;
+    }
 
     // FEV bank name (should match filename)
     if (fev->version >= FMOD_FEV_VERSION_25_0) {
