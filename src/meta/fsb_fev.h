@@ -9,9 +9,6 @@ typedef struct {
     off_t name_offset;
     size_t name_size;
 
-    /* populate from fsb */
-    char target_bank[STREAM_NAME_SIZE];
-
     /* internal */
     off_t offset;
 } fev_header_t;
@@ -83,10 +80,15 @@ typedef struct {
 #define FMOD_FEV_VERSION_69_0   0x00450000  // ?
 
 
-static inline void seek_fev(fev_header_t* fev, uint32_t offset) {
+static inline uint32_t tell_fev(fev_header_t* fev) {
+    return fev->offset;
+}
+
+static inline void seek_fev(fev_header_t* fev, uint32_t bytes) {
     // compilers can get a bit funny when doing multiple read
     // operations directly on top of a plain "fev->offset += "
-    fev->offset += offset;
+    // so this forces it to pre-calc everything before adding
+    fev->offset += bytes;
 }
 
 static inline uint32_t read_fev_u32le(fev_header_t* fev, STREAMFILE* sf) {
@@ -165,7 +167,7 @@ static bool parse_fev_properties(fev_header_t* fev, STREAMFILE* sf) {
 }
 
 static bool parse_fev_category(fev_header_t* fev, STREAMFILE* sf) {
-    uint32_t categories;
+    uint32_t sub_categories;
 
     if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // category name
         return false;
@@ -177,8 +179,8 @@ static bool parse_fev_category(fev_header_t* fev, STREAMFILE* sf) {
     if (fev->version >= FMOD_FEV_VERSION_41_0)
         seek_fev(fev, 0x08);
 
-    categories = read_fev_u32le(fev, sf);
-    for (int i = 0; i < categories; i++) {
+    sub_categories = read_fev_u32le(fev, sf);
+    for (int i = 0; i < sub_categories; i++) {
         if (!parse_fev_category(fev, sf))
             return false;
     }
@@ -462,7 +464,7 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
 }
 
 static bool parse_fev_event_category(fev_header_t* fev, STREAMFILE* sf) {
-    uint32_t event_groups, events;
+    uint32_t sub_groups, events;
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
         seek_fev(fev, 0x04); // name index?
@@ -474,10 +476,10 @@ static bool parse_fev_event_category(fev_header_t* fev, STREAMFILE* sf) {
             return false;
     }
 
-    event_groups = read_fev_u32le(fev, sf);
-    events       = read_fev_u32le(fev, sf);
+    sub_groups = read_fev_u32le(fev, sf);
+    events     = read_fev_u32le(fev, sf);
 
-    for (int i = 0; i < event_groups; i++) {
+    for (int i = 0; i < sub_groups; i++) {
         if (!parse_fev_event_category(fev, sf))
             return false;
     }
@@ -541,7 +543,7 @@ static void parse_fev_sound_def_def(fev_header_t* fev, STREAMFILE* sf) {
 }
 
 
-static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name) {
     // initial research based on this which appears to be for FEV v0x34~v0x38
     // https://github.com/xoreos/xoreos/blob/master/src/sound/fmodeventfile.cpp
     // further research from FMOD::EventSystemI::load in Split/Second's fmod_event.dll
@@ -549,7 +551,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     // https://github.com/barspinoff/bmod/blob/main/tools/fmod_event/src/fmod_eventsystemi.cpp
     uint32_t wave_banks, event_groups, sound_defs, languages = 1;
     int target_subsong = sf->stream_index, bank_name_idx = -1;
-    char target_bank_name[STREAM_NAME_SIZE];
+    char wavebank_name[STREAM_NAME_SIZE];
 
     if (!is_id32be(0x00, sf, "FEV1"))
         return false;
@@ -609,12 +611,12 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         if (fev->version >= FMOD_FEV_VERSION_65_0)
             seek_fev(fev, 0x04 * languages);
 
-        if (!read_fev_string(target_bank_name, STREAM_NAME_SIZE, fev, sf)) // wave bank name
+        if (!read_fev_string(wavebank_name, STREAM_NAME_SIZE, fev, sf)) // wave bank name
             return false;
         // v0x41+ just store indices later, no samples to go
         // with yet, but assuming they're referring to these
         if (fev->version >= FMOD_FEV_VERSION_65_0) {
-            if (strncasecmp(target_bank_name, fev->target_bank, STREAM_NAME_SIZE) == 0) {
+            if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
                 if (bank_name_idx != -1)
                     vgm_logi("FEV: Multiple identical bank names!\n");
                 bank_name_idx = i;
@@ -674,7 +676,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
                 uint32_t stream_name_offset;
                 bool is_target_bank = false;
 
-                stream_name_offset = fev->offset; // tell_fev(fev);
+                stream_name_offset = tell_fev(fev);
                 if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // stream name
                     return false;
 
@@ -683,10 +685,10 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
                     is_target_bank = (read_fev_u32le(fev, sf) == bank_name_idx);
                 }
                 else {
-                    if (!read_fev_string(target_bank_name, STREAM_NAME_SIZE, fev, sf)) // bank name
+                    if (!read_fev_string(wavebank_name, STREAM_NAME_SIZE, fev, sf)) // bank name
                         return false;
                     // case should match, but some games have all-upper or all-lower filenames
-                    if (strncasecmp(target_bank_name, fev->target_bank, STREAM_NAME_SIZE) == 0)
+                    if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0)
                         is_target_bank = true;
                 }
 
@@ -765,6 +767,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     // [Critter Crunch (PS3), Bolt (PC/X360)]
     if (fev->version >= FMOD_FEV_VERSION_47_0) {
         uint32_t comp_end, chunk_size, chunk_id;
+        comp_end = get_streamfile_size(sf);
 
         do {
             chunk_size = read_fev_u32le(fev, sf);
@@ -802,7 +805,6 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
                     seek_fev(fev, chunk_size - 0x08);
                     break;
             }
-
         } while (tell_fev(fev) < comp_end);
         // should just be until EOF
     }
