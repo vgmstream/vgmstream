@@ -83,13 +83,19 @@ typedef struct {
 #define FMOD_FEV_VERSION_69_0   0x00450000  // ?
 
 
-static inline uint32_t read_fev_u32(fev_header_t* fev, STREAMFILE* sf) {
+static inline void seek_fev(fev_header_t* fev, uint32_t offset) {
+    // compilers can get a bit funny when doing multiple read
+    // operations directly on top of a plain "fev->offset += "
+    fev->offset += offset;
+}
+
+static inline uint32_t read_fev_u32le(fev_header_t* fev, STREAMFILE* sf) {
     uint32_t ret = read_u32le(fev->offset, sf);
     fev->offset += 0x04;
     return ret;
 }
 
-static inline uint16_t read_fev_u16(fev_header_t* fev, STREAMFILE* sf) {
+static inline uint16_t read_fev_u16le(fev_header_t* fev, STREAMFILE* sf) {
     uint16_t ret = read_u16le(fev->offset, sf);
     fev->offset += 0x02;
     return ret;
@@ -101,7 +107,7 @@ static bool read_fev_string(char* buf, size_t buf_size, fev_header_t* fev, STREA
     int i;
 
     // string size includes null terminator
-    str_size = read_fev_u32(fev, sf);
+    str_size = read_fev_u32le(fev, sf);
     if (str_size > buf_size) return false;
     if (str_size == 0x00) return true;
 
@@ -139,18 +145,18 @@ static bool read_fev_uuid(fev_header_t* fev, STREAMFILE* sf) {
 static bool parse_fev_properties(fev_header_t* fev, STREAMFILE* sf) {
     uint32_t properties, property_type;
 
-    properties = read_fev_u32(fev, sf);
+    properties = read_fev_u32le(fev, sf);
     for (int i = 0; i < properties; i++) {
         if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // property name
             return false;
 
         // enum: 0 = int, 1 = float, 2 = string
-        property_type = read_fev_u32(fev, sf);
+        property_type = read_fev_u32le(fev, sf);
         if (property_type < 0x00 || property_type > 0x02)
             return false;
 
         if (property_type != 0x02)
-            fev->offset += 0x04;
+            seek_fev(fev, 0x04);
         else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // property
             return false;
     }
@@ -167,11 +173,11 @@ static bool parse_fev_category(fev_header_t* fev, STREAMFILE* sf) {
     // 0x04: pitch
     // 0x08: (v0x29+) max playbacks
     // 0x0C: (v0x29+) max playbacks flags
-    fev->offset += 0x08;
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_41_0)
-        fev->offset += 0x08;
+        seek_fev(fev, 0x08);
 
-    categories = read_fev_u32(fev, sf);
+    categories = read_fev_u32le(fev, sf);
     for (int i = 0; i < categories; i++) {
         if (!parse_fev_category(fev, sf))
             return false;
@@ -183,7 +189,7 @@ static bool parse_fev_category(fev_header_t* fev, STREAMFILE* sf) {
 static bool parse_fev_event_sound(fev_header_t* fev, STREAMFILE* sf) {
 
     if (fev->version >= FMOD_FEV_VERSION_39_0)
-        fev->offset += 0x02; // name index?
+        seek_fev(fev, 0x02); // name index?
     else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // sound name
         return false;
 
@@ -203,21 +209,21 @@ static bool parse_fev_event_sound(fev_header_t* fev, STREAMFILE* sf) {
     // 0x34: fade out
     // 0x38: (v0x18+) fade in type
     // 0x3C: (v0x18+) fade out type
-    fev->offset += 0x08;
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_30_0)
-        fev->offset += 0x04;
-    fev->offset += 0x04;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_31_0)
-        fev->offset += 0x04;
-    fev->offset += 0x08;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_36_0)
-        fev->offset += 0x04;
-    fev->offset += 0x04;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x04);
     if (fev->version <  FMOD_FEV_VERSION_52_0)
-        fev->offset += 0x08;
-    fev->offset += 0x0C;
+        seek_fev(fev, 0x08);
+    seek_fev(fev, 0x0C);
     if (fev->version >= FMOD_FEV_VERSION_24_0)
-        fev->offset += 0x08;
+        seek_fev(fev, 0x08);
 
     return true;
 }
@@ -226,7 +232,7 @@ static bool parse_fev_event_envelope(fev_header_t* fev, STREAMFILE* sf) {
     uint32_t points;
 
     if (fev->version >= FMOD_FEV_VERSION_39_0)
-        fev->offset += 0x04; // parent envelope name index?
+        seek_fev(fev, 0x04); // parent envelope name index?
     else {
         if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // envelope name
             return false;
@@ -241,23 +247,23 @@ static bool parse_fev_event_envelope(fev_header_t* fev, STREAMFILE* sf) {
     // 0x04: (v0x26+) flags
     // 0x08: (v0x39+) more flags
     // 0x0C: points[]
-    fev->offset += 0x04;
+    seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_38_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_57_0)
-        fev->offset += 0x04;
-    points = read_fev_u32(fev, sf);
+        seek_fev(fev, 0x04);
+    points = read_fev_u32le(fev, sf);
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        fev->offset += points * 0x04; // idx
+        seek_fev(fev, points * 0x04); // idx
     else {
-        fev->offset += points * 0x08; // x,y
+        seek_fev(fev, points * 0x08); // x,y
         if (fev->version >= FMOD_FEV_VERSION_13_0)
-            fev->offset += points * 0x04; // flags
+            seek_fev(fev, points * 0x04); // flags
     }
     // params/flags
-    fev->offset += 0x04;
+    seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_26_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
 
     return true;
 }
@@ -265,7 +271,7 @@ static bool parse_fev_event_envelope(fev_header_t* fev, STREAMFILE* sf) {
 static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
     uint32_t layers, params, sounds, envelopes;
 
-    layers = read_fev_u32(fev, sf);
+    layers = read_fev_u32le(fev, sf);
     for (int i = 0; i < layers; i++) {
         if (fev->version <  FMOD_FEV_VERSION_39_0) {
             if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // layer name
@@ -277,20 +283,22 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
         // 0x06: param name (str), (v0x27+) param index (u16)
         // 0x08: sounds (u32), (v0x1D+) sounds (u16)
         // 0x0A: envelopes (u32), (v0x1D+) envelopes (u16)
-        fev->offset += (fev->version >= FMOD_FEV_VERSION_29_0) ? 0x02 : 0x04;
+        fev->version >= FMOD_FEV_VERSION_29_0
+            ? seek_fev(fev, 0x02)
+            : seek_fev(fev, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_37_0)
-            fev->offset += 0x02;
+            seek_fev(fev, 0x02);
         if (fev->version >= FMOD_FEV_VERSION_39_0)
-            fev->offset += 0x02;
+            seek_fev(fev, 0x02);
         else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // param name
             return false;
         if (fev->version >= FMOD_FEV_VERSION_29_0) {
-            sounds    = read_fev_u16(fev, sf);
-            envelopes = read_fev_u16(fev, sf);
+            sounds    = read_fev_u16le(fev, sf);
+            envelopes = read_fev_u16le(fev, sf);
         }
         else {
-            sounds    = read_fev_u32(fev, sf);
-            envelopes = read_fev_u32(fev, sf);
+            sounds    = read_fev_u32le(fev, sf);
+            envelopes = read_fev_u32le(fev, sf);
         }
 
         for (int j = 0; j < sounds; j++) {
@@ -303,10 +311,10 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
         }
     }
 
-    params = read_fev_u32(fev, sf);
+    params = read_fev_u32le(fev, sf);
     for (int i = 0; i < params; i++) {
         if (fev->version >= FMOD_FEV_VERSION_65_0)
-            fev->offset += 0x04; // name index?
+            seek_fev(fev, 0x04); // name index?
         else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // param name
             return false;
 
@@ -321,21 +329,16 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
         // 0x20: envelopes
         // 0x24: (v0x0C+) sustain points[]
         if (fev->version <  FMOD_FEV_VERSION_18_0)
-            fev->offset += 0x08;
-        fev->offset += 0x10;
+            seek_fev(fev, 0x08);
+        seek_fev(fev, 0x10);
         if (fev->version >= FMOD_FEV_VERSION_11_0 &&
             fev->version <  FMOD_FEV_VERSION_16_0)
-            fev->offset += 0x04;
+            seek_fev(fev, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_18_0)
-            fev->offset += 0x04;
-        fev->offset += 0x04;
-        if (fev->version >= FMOD_FEV_VERSION_12_0) {
-            // while msvc doesn't break this, it "works around" by doing +1
-            // on the value returned from read_fev_u32 so safety precaution
-            //fev->offset += read_fev_u32(fev, sf) * 0x04;
-            uint32_t points = read_fev_u32(fev, sf);
-            fev->offset += points * 0x04;
-        }
+            seek_fev(fev, 0x04);
+        seek_fev(fev, 0x04);
+        if (fev->version >= FMOD_FEV_VERSION_12_0)
+            seek_fev(fev, read_fev_u32le(fev, sf) * 0x04);
     }
 
     if (!parse_fev_properties(fev, sf))
@@ -346,7 +349,7 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
 
 static bool parse_fev_event_simple(fev_header_t* fev, STREAMFILE* sf) {
 
-    fev->offset += 0x04; // flags
+    seek_fev(fev, 0x04); // flags
     if (!parse_fev_event_sound(fev, sf))
         return false;
 
@@ -358,10 +361,10 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
 
     event_type = 0x08; // 0x08 = complex, 0x10 = simple
     if (fev->version >= FMOD_FEV_VERSION_52_0)
-        event_type = read_fev_u32(fev, sf);
+        event_type = read_fev_u32le(fev, sf);
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        fev->offset += 0x04; // name index?
+        seek_fev(fev, 0x04); // name index?
     else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // event name
         return false;
 
@@ -399,42 +402,42 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
     // 0x84: (v0x16+) pan level 3D
     // 0x8C: (v0x44+) position randomisation 3D min
     // 0x90: (v0x28+) position randomisation 3D max
-    fev->offset += 0x08;
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_32_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_10_0)
-        fev->offset += 0x04;
-    fev->offset += 0x04;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_56_0)
-        fev->offset += 0x04;
-    fev->offset += 0x0C;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x0C);
     if (fev->version >= FMOD_FEV_VERSION_69_0)
-        fev->offset += 0x08;
-    fev->offset += 0x04;
+        seek_fev(fev, 0x08);
+    seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_9_0)
-        fev->offset += 0x2C;
+        seek_fev(fev, 0x2C);
     if (fev->version >= FMOD_FEV_VERSION_11_0)
-        fev->offset += 0x08;
+        seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_28_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_11_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_18_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_19_0)
-        fev->offset += 0x08;
+        seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_43_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_45_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_22_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_68_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_40_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
 
     if ((event_type & 0x18) == 0x08) {
         if (!parse_fev_event_complex(fev, sf))
@@ -449,7 +452,7 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
         return false;
     }
 
-    categories = read_fev_u32(fev, sf);
+    categories = read_fev_u32le(fev, sf);
     for (int i = 0; i < categories; i++) {
         if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
             return false;
@@ -462,7 +465,7 @@ static bool parse_fev_event_category(fev_header_t* fev, STREAMFILE* sf) {
     uint32_t event_groups, events;
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        fev->offset += 0x04; // name index?
+        seek_fev(fev, 0x04); // name index?
     else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // event category name
         return false;
 
@@ -471,8 +474,8 @@ static bool parse_fev_event_category(fev_header_t* fev, STREAMFILE* sf) {
             return false;
     }
 
-    event_groups = read_fev_u32(fev, sf);
-    events       = read_fev_u32(fev, sf);
+    event_groups = read_fev_u32le(fev, sf);
+    events       = read_fev_u32le(fev, sf);
 
     for (int i = 0; i < event_groups; i++) {
         if (!parse_fev_event_category(fev, sf))
@@ -508,32 +511,32 @@ static void parse_fev_sound_def_def(fev_header_t* fev, STREAMFILE* sf) {
     // 0x44: (v0x3E+) trigger delay min (u16)
     // 0x46: (v0x3E+) trigger delay max (u16)
     // 0x48: (v0x3F+) spawn count (u16)
-    fev->offset += 0x08;
+    seek_fev(fev, 0x08);
     if (fev->version <  FMOD_FEV_VERSION_34_0 ||
         fev->version >= FMOD_FEV_VERSION_38_0)
-        fev->offset += 0x04;
-    fev->offset += 0x08;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        fev->offset += 0x04;
-    fev->offset += 0x08;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        fev->offset += 0x04;
-    fev->offset += 0x04;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        fev->offset += 0x04;
-    fev->offset += 0x08;
+        seek_fev(fev, 0x04);
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_60_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_68_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_42_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_62_0)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_63_0)
-        fev->offset += 0x02;
+        seek_fev(fev, 0x02);
 
 }
 
@@ -565,21 +568,19 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
 
     // by far the biggest issue with FEV is the lack of pointers to anything,
     // so everything has to be read in sequence until you get to stream names
-    fev->offset = 0x08;
 
-    // 0x00: (v0x2E+) sound def pool
-    // 0x04: (v0x32+) 64-bit sound def pool
-    // 0x08: (v0x40+) object table[] {idx, alloc_size}
+    // 0x00: FEV1
+    // 0x04: version
+    // 0x08: (v0x2E+) sound def pool
+    // 0x0C: (v0x32+) 64-bit sound def pool
+    // 0x10: (v0x40+) object table[] {idx, alloc_size}
+    seek_fev(fev, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_46_0)
-        fev->offset += 0x04; // fmod_event.dll v0x3E still reads this
+        seek_fev(fev, 0x04); // fmod_event.dll v0x3E still reads this
     if (fev->version >= FMOD_FEV_VERSION_50_0)
-        fev->offset += 0x04; // fmod_event.dll v0x3E seeks over this
-    if (fev->version >= FMOD_FEV_VERSION_64_0) {
-        // msvc breaks by ignoring the +4b advance from read_fev_u32
-        //fev->offset += read_fev_u32(fev, sf) * 0x08;
-        uint32_t objects = read_fev_u32(fev, sf);
-        fev->offset += objects * 0x08;
-    }
+        seek_fev(fev, 0x04); // fmod_event.dll v0x3E seeks over this
+    if (fev->version >= FMOD_FEV_VERSION_64_0)
+        seek_fev(fev, read_fev_u32le(fev, sf) * 0x08);
 
     // FEV bank name (should match filename)
     if (fev->version >= FMOD_FEV_VERSION_25_0) {
@@ -590,9 +591,9 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
 
     // 0x00: sound banks
     // 0x04: (v0x41+) languages (32 max, not enforced?)
-    wave_banks = read_fev_u32(fev, sf);
+    wave_banks = read_fev_u32le(fev, sf);
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        languages = read_fev_u32(fev, sf);
+        languages = read_fev_u32le(fev, sf);
 
     for (int i = 0; i < wave_banks; i++) {
         // 0x00: mode/flags?
@@ -600,13 +601,13 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         // 0x08: (v0x3D+) hash[]
         // 0x0C: (v0x41+) fsb suffix[](?)
         // 0x10: FSB bank name (should match filename)
-        fev->offset += 0x04;
+        seek_fev(fev, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_20_0)
-            fev->offset += 0x04;
+            seek_fev(fev, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_61_0)
-            fev->offset += 0x08 * languages;
+            seek_fev(fev, 0x08 * languages);
         if (fev->version >= FMOD_FEV_VERSION_65_0)
-            fev->offset += 0x04 * languages;
+            seek_fev(fev, 0x04 * languages);
 
         if (!read_fev_string(target_bank_name, STREAM_NAME_SIZE, fev, sf)) // wave bank name
             return false;
@@ -624,7 +625,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     if (!parse_fev_category(fev, sf))
         return false;
 
-    event_groups = read_fev_u32(fev, sf);
+    event_groups = read_fev_u32le(fev, sf);
     for (int i = 0; i < event_groups; i++) {
         if (!parse_fev_event_category(fev, sf))
             return false;
@@ -637,60 +638,61 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     if (fev->version >= FMOD_FEV_VERSION_46_0) {
         uint32_t sound_def_defs;
 
-        sound_def_defs = read_fev_u32(fev, sf);
+        sound_def_defs = read_fev_u32le(fev, sf);
         for (int i = 0; i < sound_def_defs; i++)
             parse_fev_sound_def_def(fev, sf);
     }
 
-    sound_defs = read_fev_u32(fev, sf);
+    sound_defs = read_fev_u32le(fev, sf);
     for (int i = 0; i < sound_defs; i++) {
         uint32_t entries, entry_type, stream_index;
 
         // this could be used as a cue name
         // a stream can be in multiple cues
         if (fev->version >= FMOD_FEV_VERSION_65_0)
-            fev->offset += 0x04; // name index?
+            seek_fev(fev, 0x04); // name index?
         else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // sound def name
             return false;
 
         // 0x00: (v0x2E+) def index
         // 0x04: stream entries
         if (fev->version >= FMOD_FEV_VERSION_46_0)
-            fev->offset += 0x04;
+            seek_fev(fev, 0x04);
         else
             parse_fev_sound_def_def(fev, sf);
 
-        entries = read_fev_u32(fev, sf);
+        entries = read_fev_u32le(fev, sf);
         for (int j = 0; j < entries; j++) {
             // 0x00: entry type
             // 0x04: (v0x0E+) weight
-            entry_type = read_fev_u32(fev, sf);
+            entry_type = read_fev_u32le(fev, sf);
             if (fev->version >= FMOD_FEV_VERSION_14_0)
-                fev->offset += 0x04;
+                seek_fev(fev, 0x04);
 
             // enum: 0 = wavetable, 1 = oscillator, 2 = null, 3 = programmer
             if (entry_type == 0x00) {
                 uint32_t stream_name_offset;
                 bool is_target_bank = false;
 
-                stream_name_offset = fev->offset;
+                stream_name_offset = fev->offset; // tell_fev(fev);
                 if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // stream name
                     return false;
 
                 if (fev->version >= FMOD_FEV_VERSION_65_0) {
                     // as above, no actual v0x41+ samples to confirm, but...
-                    is_target_bank = (read_fev_u32(fev, sf) == bank_name_idx);
+                    is_target_bank = (read_fev_u32le(fev, sf) == bank_name_idx);
                 }
                 else {
                     if (!read_fev_string(target_bank_name, STREAM_NAME_SIZE, fev, sf)) // bank name
                         return false;
+                    // case should match, but some games have all-upper or all-lower filenames
                     if (strncasecmp(target_bank_name, fev->target_bank, STREAM_NAME_SIZE) == 0)
                         is_target_bank = true;
                 }
 
                 // 0x00: stream index
                 // 0x04: (v0x08+) length in ms
-                stream_index = read_fev_u32(fev, sf);
+                stream_index = read_fev_u32le(fev, sf);
                 if (is_target_bank && stream_index == target_subsong) {
                     fev->name_size = read_u32le(stream_name_offset, sf);
                     fev->name_offset = stream_name_offset + 0x04;
@@ -698,12 +700,12 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
                     return true;
                 }
                 if (fev->version >= FMOD_FEV_VERSION_8_0)
-                    fev->offset += 0x04;
+                    seek_fev(fev, 0x04);
             }
             else if (entry_type == 0x01) {
                 // 0x00: oscillator type
                 // 0x04: frequency
-                fev->offset += 0x08;
+                seek_fev(fev, 0x08);
             }
             else if (entry_type > 0x03)
                 return false;
@@ -718,7 +720,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     if (fev->version >= FMOD_FEV_VERSION_21_0) {
         uint32_t reverb_defs;
 
-        reverb_defs = read_fev_u32(fev, sf);
+        reverb_defs = read_fev_u32le(fev, sf);
         for (int i = 0; i < reverb_defs; i++) {
             if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
                 return false;
@@ -752,10 +754,10 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
             // 0x78: DEPRECATED air absorption HF
             // 0x7C: LF reference
             // 0x80: flags
-            fev->offset += 0x30;
+            seek_fev(fev, 0x30);
             if (fev->version >= FMOD_FEV_VERSION_28_0)
-                fev->offset += 0x08;
-            fev->offset += 0x4C;
+                seek_fev(fev, 0x08);
+            seek_fev(fev, 0x4C);
         }
     }
 
@@ -765,22 +767,21 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         uint32_t comp_end, chunk_size, chunk_id;
 
         do {
-            chunk_size = read_fev_u32(fev, sf);
+            chunk_size = read_fev_u32le(fev, sf);
             // LE in v0x2F, BE in v0x30+ (official docs say the opposite)
             chunk_id = (fev->version == FMOD_FEV_VERSION_47_0)
-                ? read_u32le(fev->offset, sf)
-                : read_u32be(fev->offset, sf);
-            fev->offset += 0x04;
+                ? read_fev_u32le(fev, sf)
+                : read_fev_u32be(fev, sf);
 
             switch (chunk_size) {
                 case 0x636F6D70: // "comp" composition container header
-                    comp_end = fev->offset - 0x08 + chunk_size;
+                    comp_end = tell_fev(fev) - 0x08 + chunk_size;
                     break;
 
                 case 0x73657474: // "sett" music settings
                     // 0x00: volume
                     // 0x04: reverb
-                    fev->offset += 0x08;
+                    seek_fev(fev, 0x08);
                     break;
 
                 case 0x6C6E6B73: // "lnks" link container
@@ -798,11 +799,11 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
                 case 0x73676D73: // "sgms" segment container
                     // sub-chunks: "sgmh", "sgmd", "smpf", "str ", "smpm"
                 default: // unknown
-                    fev->offset += chunk_size - 0x08;
+                    seek_fev(fev, chunk_size - 0x08);
                     break;
             }
 
-        } while (fev->offset < comp_end);
+        } while (tell_fev(fev) < comp_end);
         // should just be until EOF
     }
 #endif
