@@ -8,6 +8,7 @@ typedef struct {
     uint8_t key[FSB_KEY_MAX];
     size_t key_size;
     int is_alt;
+    int is_fsb;
 } fsb_decryption_data;
 
 /* Encrypted FSB info from guessfsb and fsbext */
@@ -37,18 +38,33 @@ static size_t fsb_decryption_read(STREAMFILE* sf, uint8_t *dest, off_t offset, s
     bytes_read = read_streamfile(dest, offset, length, sf);
 
     /* decrypt data (inverted bits and xor) */
-    for (i = 0; i < bytes_read; i++) {
-        uint8_t xor = data->key[(offset + i) % data->key_size];
-        uint8_t val = dest[i];
-        if (data->is_alt) {
-            dest[i] = reverse_bits_table[val ^ xor];
-        }
-        else {
-            dest[i] = reverse_bits_table[val] ^ xor;
+    if (data->is_fsb) {
+        for (i = 0; i < bytes_read; i++) {
+            uint8_t xor = data->key[(offset + i) % data->key_size];
+            uint8_t val = dest[i];
+            if (data->is_alt) {
+                dest[i] = reverse_bits_table[val ^ xor];
+            }
+            else {
+                dest[i] = reverse_bits_table[val] ^ xor;
+            }
         }
     }
 
     return bytes_read;
+}
+
+/* Disable encryption upon init if reading FEV or TXTM */
+static int fsb_decryption_init(STREAMFILE* sf, fsb_decryption_data* data) {
+    uint8_t tmp[0x04];
+    int bytes = fsb_decryption_read(sf, tmp, 0x00, 0x04, data);
+    if (bytes != 0x04) return -1;
+
+    if (check_extensions(sf, "txtm") ||
+        (get_u32be(tmp) & 0xFFFFFF00) != get_id32be("FSB\0"))
+        data->is_fsb = 0;
+
+    return 0;
 }
 
 static STREAMFILE* setup_fsb_streamfile(STREAMFILE* sf, const uint8_t* key, size_t key_size, int is_alt) {
@@ -63,11 +79,12 @@ static STREAMFILE* setup_fsb_streamfile(STREAMFILE* sf, const uint8_t* key, size
     memcpy(io_data.key, key, key_size);
     io_data.key_size = key_size;
     io_data.is_alt = is_alt;
+    io_data.is_fsb = 1;
 
     /* setup subfile */
     new_sf = open_wrap_streamfile(sf);
-    new_sf = open_io_streamfile_f(new_sf, &io_data,io_data_size, fsb_decryption_read,NULL);
-    new_sf = open_fakename_streamfile(new_sf, NULL,"fsb");
+    new_sf = open_io_streamfile_ex_f(new_sf, &io_data,io_data_size, fsb_decryption_read,NULL, fsb_decryption_init,NULL);
+    //new_sf = open_fakename_streamfile(new_sf, NULL, "fsb"); /* doesn't preserve original caps, may break TXTM */
     return new_sf;
 }
 
@@ -81,6 +98,7 @@ static bool test_fsb_streamfile(STREAMFILE* sf, const uint8_t* key, size_t key_s
     memcpy(io_data.key, key, key_size);
     io_data.key_size = key_size;
     io_data.is_alt = is_alt;
+    io_data.is_fsb = 1;
 
     /* setup subfile */
     uint8_t tmp[0x04];
