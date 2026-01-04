@@ -682,7 +682,7 @@ static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
 
         sf_fev->stream_index = sf_fsb->stream_index;
         if (!parse_fev(&fev, sf_fev, filename))
-            vgm_logi("FEV: Failed to parse FEV1 data");
+            vgm_logi("FSB: Failed to parse FEV1 data");
     }
 
     /* prioritise FEV stream names, usually the same as the FSB name just not truncated */
