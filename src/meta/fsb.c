@@ -43,7 +43,7 @@ typedef struct {
 } fsb_header_t;
 
 static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf);
-static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb);
+static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* sf);
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header_t* fsb, bool is_new_lib);
 
 /* FSB1~4 - from games using FMOD audio middleware */
@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     vgmstream->num_streams = fsb.total_subsongs;
     vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
-    get_name(vgmstream->stream_name, &fsb, sf);
+    get_name(vgmstream->stream_name, STREAM_NAME_SIZE, &fsb, sf);
 
     switch(fsb.codec) {
 
@@ -671,7 +671,7 @@ fail:
     return false;
 }
 
-static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
+static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
     STREAMFILE* sf_fev = NULL;
     fev_header_t fev = {0};
 
@@ -682,13 +682,13 @@ static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
 
         sf_fev->stream_index = sf_fsb->stream_index;
         if (!parse_fev(&fev, sf_fev, filename))
-            vgm_logi("FSB: Failed to parse FEV1 data");
+            vgm_logi("FSB: Failed to parse FEV1 data\n");
     }
 
     /* prioritise FEV stream names, usually the same as the FSB name just not truncated */
     /* benefits games where base names are all identical [Split/Second (PS3/X360/PC)] */
-    if (fev.name_offset && fev.name_size)
-        read_string(buf, fev.name_size, fev.name_offset, sf_fev);
+    if (fev.output_stream_name[0])
+        snprintf(buf, buf_size, "%s", fev.output_stream_name);
     else if (fsb->name_offset)
         read_string(buf, fsb->name_size + 1, fsb->name_offset, sf_fsb);
 
