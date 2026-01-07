@@ -846,11 +846,11 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
 
         fev->version = read_u32le(0x14, sf);
         // find the RIFF>LIST>LGCY chunk which has FEV1 format data
-        if (!find_chunk_le(sf, get_id32be("LIST"), 0x0C, 0, &chunk_offset, NULL))
+        if (!find_aligned_chunk_le(sf, get_id32be("LIST"), 0x0C, 0, &chunk_offset, NULL))
             return false;
         if (!is_id32be(chunk_offset + 0x00, sf, "PROJ"))
             return false;
-        if (!find_chunk_le(sf, get_id32be("LGCY"), chunk_offset + 0x04, 0, &chunk_offset, NULL))
+        if (!find_aligned_chunk_le(sf, get_id32be("LGCY"), chunk_offset + 0x04, 0, &chunk_offset, NULL))
             return false;
 
         fev->offset = chunk_offset;

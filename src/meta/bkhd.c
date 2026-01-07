@@ -44,7 +44,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     if (version <= 26) {
         off_t data_offset_off;
         uint32_t data_offset, data_start, offset;
-        if (!find_chunk(sf, get_id32be("DATA"), base_offset, 0, &data_offset_off, NULL, big_endian, 0))
+        if (!find_chunk(sf, get_id32be("DATA"), base_offset, 0, &data_offset_off, NULL, big_endian, 0, 0))
             return NULL;
         data_offset = data_offset_off;
 
