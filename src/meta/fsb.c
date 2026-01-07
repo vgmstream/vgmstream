@@ -674,6 +674,7 @@ fail:
 static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
     STREAMFILE* sf_fev = NULL;
     fev_header_t fev = {0};
+    bool has_fev_name = false;
 
     sf_fev = open_fev_filename_pair(sf_fsb);
     if (sf_fev) {
@@ -681,14 +682,15 @@ static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* 
         get_streamfile_basename(sf_fsb, filename, STREAM_NAME_SIZE);
 
         sf_fev->stream_index = sf_fsb->stream_index;
-        if (!parse_fev(&fev, sf_fev, filename))
-            vgm_logi("FSB: Failed to parse FEV1 data\n");
+        has_fev_name = parse_fev(&fev, sf_fev, filename);
+        if (!has_fev_name)
+            vgm_logi("FSB: Failed to parse FEV data\n");
     }
 
     /* prioritise FEV stream names, usually the same as the FSB name just not truncated */
     /* benefits games where base names are all identical [Split/Second (PS3/X360/PC)] */
-    if (fev.output_stream_name[0])
-        snprintf(buf, buf_size, "%s", fev.output_stream_name);
+    if (has_fev_name && fev.stream_name[0])
+        snprintf(buf, buf_size, "%s", fev.stream_name);
     else if (fsb->name_offset)
         read_string(buf, fsb->name_size + 1, fsb->name_offset, sf_fsb);
 
