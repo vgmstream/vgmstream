@@ -5,11 +5,13 @@
 
 
 typedef struct {
+    /* input */
+    int target_subsong;
+
+    /* state */
     uint32_t version;
     //uint32_t languages;
-
     int bank_name_idx;
-    int target_subsong;
 
     /*
     char sound_name[STREAM_NAME_SIZE];
@@ -19,6 +21,7 @@ typedef struct {
     // merged output of the two strings above
     char output_stream_name[STREAM_NAME_SIZE];
     */
+    /* output */
     char stream_name[STREAM_NAME_SIZE];
     size_t stream_name_len;
 
@@ -125,24 +128,17 @@ static inline uint16_t read_fev_u16le(fev_header_t* fev, STREAMFILE* sf) {
 
 static bool read_fev_string(char* buf, size_t buf_size, fev_header_t* fev, STREAMFILE* sf) {
     // strings are probably the only "sane" thing in FEVs, so enforce stricter checks
-    uint32_t str_size;
-    int i;
+    uint32_t str_size, read_size;
 
     // string size includes null terminator
     str_size = read_fev_u32le(fev, sf);
     if (str_size > buf_size) return false;
     if (str_size == 0x00) return true;
 
-    for (i = 0; i < str_size - 1; i++) {
-        // ASCII only for now, less lenient than read_string
-        uint8_t c = read_u8(fev->offset++, sf);
-        if (c < 0x20 || c > 0x7E) return false;
-        if (buf) buf[i] = c;
-    }
-    if (read_u8(fev->offset++, sf) != 0x00)
-        return false;
-    if (buf) buf[i] = '\0';
+    read_size = read_string(buf, buf_size, fev->offset, sf);
+    if (read_size != str_size - 1) return false;
 
+    fev->offset += str_size;
     return true;
 }
 
@@ -785,19 +781,30 @@ static bool parse_fev_main(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank
     // [Critter Crunch (PS3), Bolt (PC/X360)]
     if (fev->version >= FMOD_FEV_VERSION_47_0) {
         uint32_t comp_end, chunk_size, chunk_id;
-        comp_end = get_streamfile_size(sf);
 
-        do {
+        chunk_size = read_fev_u32le(fev, sf);
+        // LE in v0x2F, BE in v0x30+ (official docs say the opposite)
+        chunk_id = (fev->version == FMOD_FEV_VERSION_47_0)
+            ? read_fev_u32le(fev, sf)
+            : read_fev_u32be(fev, sf);
+
+        // should just be until EOF
+        if (chunk_id != get_id32be("comp"))
+            return false;
+        comp_end = tell_fev(fev) - 0x08 + chunk_size;
+        if (comp_end > get_streamfile_size(sf))
+            return false;
+
+        while (tell_fev(fev) < comp_end) {
             chunk_size = read_fev_u32le(fev, sf);
-            // LE in v0x2F, BE in v0x30+ (official docs say the opposite)
             chunk_id = (fev->version == FMOD_FEV_VERSION_47_0)
                 ? read_fev_u32le(fev, sf)
                 : read_fev_u32be(fev, sf);
 
             switch (chunk_size) {
-                case 0x636F6D70: // "comp" composition container header
-                    comp_end = tell_fev(fev) - 0x08 + chunk_size;
-                    break;
+                case 0x636F6D70: // "comp" composition container header, parsed earlier
+                    vgm_logi("FEV: Multiple composition headers\n");
+                    return false;
 
                 case 0x73657474: // "sett" music settings
                     // 0x00: volume
@@ -819,12 +826,14 @@ static bool parse_fev_main(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank
                     // sub-chunks: "tlnh", "tlnd"
                 case 0x73676D73: // "sgms" segment container
                     // sub-chunks: "sgmh", "sgmd", "smpf", "str ", "smpm"
-                default: // unknown
                     seek_fev(fev, chunk_size - 0x08);
                     break;
+
+                default:
+                    vgm_logi("FEV: Unknown composition header chunk %08X at 0x%X\n", chunk_id, tell_fev(fev));
+                    return false;
             }
-        } while (tell_fev(fev) < comp_end);
-        // should just be until EOF
+        }
     }
 #endif
 
@@ -846,11 +855,11 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
 
         fev->version = read_u32le(0x14, sf);
         // find the RIFF>LIST>LGCY chunk which has FEV1 format data
-        if (!find_aligned_chunk_le(sf, get_id32be("LIST"), 0x0C, 0, &chunk_offset, NULL))
+        if (!find_aligned_chunk_le(sf, get_id32be("LIST"), 0x0C, false, &chunk_offset, NULL))
             return false;
         if (!is_id32be(chunk_offset + 0x00, sf, "PROJ"))
             return false;
-        if (!find_aligned_chunk_le(sf, get_id32be("LGCY"), chunk_offset + 0x04, 0, &chunk_offset, NULL))
+        if (!find_aligned_chunk_le(sf, get_id32be("LGCY"), chunk_offset + 0x04, false, &chunk_offset, NULL))
             return false;
 
         fev->offset = chunk_offset;
@@ -863,10 +872,6 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
         fev->version < FMOD_FEV_VERSION_7_0 ||
         fev->version > FMOD_FEV_VERSION_69_0)
         return false;
-
-    fev->target_subsong = sf->stream_index;
-    if (fev->target_subsong == 0) fev->target_subsong = 1;
-    fev->target_subsong--;
 
     if (!parse_fev_main(fev, sf, fsb_wavebank_name, is_riff))
         return false;

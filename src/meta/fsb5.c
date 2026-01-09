@@ -35,8 +35,8 @@ typedef struct {
 
 /* ********************************************************************************** */
 
+static void get_name(char* buf, size_t buf_size, int target_subsong, fsb5_header* fsb5, STREAMFILE* sf_fsb);
 static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, fsb5_header* fsb5);
-static void get_name(char* buf, size_t buf_size, fsb5_header* fsb5, STREAMFILE* sf);
 static void read_vorbis_seek(VGMSTREAM* v, STREAMFILE* sf, fsb5_header* fsb5);
 
 /* FSB5 - Firelight's FMOD Studio SoundBank format */
@@ -296,7 +296,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     vgmstream->num_streams = fsb5.total_subsongs;
     vgmstream->stream_size = fsb5.stream_size;
     vgmstream->meta_type = meta_FSB5;
-    get_name(vgmstream->stream_name, STREAM_NAME_SIZE, &fsb5, sf);
+    get_name(vgmstream->stream_name, STREAM_NAME_SIZE, target_subsong, &fsb5, sf);
 
     switch (fsb5.codec) {
         case 0x00:  /* FMOD_SOUND_FORMAT_NONE */
@@ -665,24 +665,29 @@ static void read_vorbis_seek(VGMSTREAM* v, STREAMFILE* sf, fsb5_header* fsb5) {
     seek_table_set_reset_decoder(v);
 }
 
-static void get_name(char* buf, size_t buf_size, fsb5_header* fsb5, STREAMFILE* sf_fsb) {
+static void get_name(char* buf, size_t buf_size, int target_subsong, fsb5_header* fsb5, STREAMFILE* sf_fsb) {
     STREAMFILE* sf_fev = NULL;
     fev_header_t fev = {0};
-    bool has_fev_name = false;
+    bool fev_parsed = false;
 
     sf_fev = open_fev_filename_pair(sf_fsb);
     if (sf_fev) {
         char filename[STREAM_NAME_SIZE];
         get_streamfile_basename(sf_fsb, filename, STREAM_NAME_SIZE);
 
-        sf_fev->stream_index = sf_fsb->stream_index;
-        has_fev_name = parse_fev(&fev, sf_fev, filename);
-        if (!has_fev_name)
+        fev.target_subsong = target_subsong - 1;
+        fev_parsed = parse_fev(&fev, sf_fev, filename);
+        // should be just RIFF FEV, which contain a LGCY chunk with FEV1 data
+        // (does not include newer joined RIFF FEV .bank files)
+        if (!fev_parsed)
             VGM_LOG("FSB: Failed to parse FEV data\n");
     }
 
-    // prioritise FEV stream names, can have multiple names for a stream
-    if (has_fev_name && fev.stream_name[0])
+    // prioritise FEV stream names; maybe not as beneficial as FSB3/4, but still has
+    // full names not trimmed to the base name, and some streams have multiple names
+    // which the FSB only stores the last one [Tearaway (PSV) - sports_t02_l03.fsb#1
+    // Superbrothers: Sword & Sworcery (Android) - SSSpeoplecombat.fsb#3]
+    if (fev_parsed && fev.stream_name[0])
         snprintf(buf, buf_size, "%s", fev.stream_name);
     else if (fsb5->name_offset)
         read_string(buf, buf_size, fsb5->name_offset, sf_fsb);
