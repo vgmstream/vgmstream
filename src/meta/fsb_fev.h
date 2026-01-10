@@ -59,14 +59,14 @@ typedef struct {
 #define FMOD_FEV_VERSION_34_0   0x00220000  // Ys Online: The Call of Solum (PC)
 //#define FMOD_FEV_VERSION_35_0 0x00230000  // ?
 #define FMOD_FEV_VERSION_36_0   0x00240000  // ?
-#define FMOD_FEV_VERSION_37_0   0x00250000  // Conan (X360)
+#define FMOD_FEV_VERSION_37_0   0x00250000  // Conan (X360), Manhunt 2 (Wii)
 #define FMOD_FEV_VERSION_38_0   0x00260000  // ?
 #define FMOD_FEV_VERSION_39_0   0x00270000  // ?
 #define FMOD_FEV_VERSION_40_0   0x00280000  // ?
 #define FMOD_FEV_VERSION_41_0   0x00290000  // ?
 #define FMOD_FEV_VERSION_42_0   0x002A0000  // ?
 #define FMOD_FEV_VERSION_43_0   0x002B0000  // ?
-#define FMOD_FEV_VERSION_44_0   0x002C0000  // Monster Jam (PS2)
+#define FMOD_FEV_VERSION_44_0   0x002C0000  // Monster Jam (PS2), Manhunt 2 (PC)
 #define FMOD_FEV_VERSION_45_0   0x002D0000  // ?
 #define FMOD_FEV_VERSION_46_0   0x002E0000  // ?
 #define FMOD_FEV_VERSION_47_0   0x002F0000  // ?
@@ -103,8 +103,8 @@ static size_t append_fev_string(char* buf, size_t buf_size, char* str, size_t st
 }
 
 
+// strings are probably the only "sane" thing in FEVs, so enforce stricter checks
 static bool reader_fev_string(char* buf, size_t buf_size, reader_t* r) {
-    // strings are probably the only "sane" thing in FEVs, so enforce stricter checks
     uint32_t str_size, read_size;
 
     // string size includes null terminator
@@ -119,8 +119,25 @@ static bool reader_fev_string(char* buf, size_t buf_size, reader_t* r) {
     return true;
 }
 
+// bank names rarely include a directory name to be stripped [Manhunt 2 (Wii/PC)]
+static bool reader_fev_bankname(char* buf, size_t buf_size, reader_t* r) {
+    char tmp[STREAM_NAME_SIZE];
+    char* path;
+
+    if (!reader_fev_string(tmp, STREAM_NAME_SIZE, r))
+        return false;
+
+    // TODO: posix path separator only(?)
+    path = strrchr(tmp, '/');
+    if (path) path++;
+
+    snprintf(buf, buf_size, "%s", path ? path : tmp);
+
+    return true;
+}
+
+// similarly to strings, UUIDs are one of the rare "sane" things to check for
 static bool reader_fev_uuid(reader_t* r) {
-    // similarly to strings, UUIDs are one of the rare "sane" things to check for
     uint16_t uuid_seg3, uuid_seg4;
 
     uuid_seg3 = read_u16le(r->offset + 0x06, r->sf);
@@ -537,8 +554,6 @@ static void parse_fev_sound_def_def(fev_header_t* fev, reader_t* r) {
 static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r, char* fsb_wavebank_name) {
     uint32_t entries, entry_type, stream_index;
 
-    // this could be used as a cue name
-    // a stream can be in multiple cues
     if (fev->version >= FMOD_FEV_VERSION_65_0)
         reader_skip(r, 0x04); // name index?
     else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // sound def name
@@ -572,7 +587,7 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r, char* fsb_waveba
                 if (fev->version >= FMOD_FEV_VERSION_65_0)
                     is_target_bank = (reader_u32(r) == fev->bank_name_idx);
                 else {
-                    if (!reader_fev_string(wavebank_name, STREAM_NAME_SIZE, r)) // bank name
+                    if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r)) // bank name
                         return false;
                     // case should match, but some games have all-upper or all-lower filenames
                     if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0)
@@ -613,12 +628,12 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r, char* fsb_waveba
 }
 
 
+// initial research based on this which appears to be for FEV v0x34~v0x38
+// https://github.com/xoreos/xoreos/blob/master/src/sound/fmodeventfile.cpp
+// further research from FMOD::EventSystemI::load in Split/Second's fmod_event.dll
+// lastly also found this project by putting fmod_event.dll's func name in github search
+// https://github.com/barspinoff/bmod/blob/main/tools/fmod_event/src/fmod_eventsystemi.cpp
 static bool parse_fev_main(fev_header_t* fev, reader_t* r, char* fsb_wavebank_name, bool is_riff) {
-    // initial research based on this which appears to be for FEV v0x34~v0x38
-    // https://github.com/xoreos/xoreos/blob/master/src/sound/fmodeventfile.cpp
-    // further research from FMOD::EventSystemI::load in Split/Second's fmod_event.dll
-    // lastly also found this project by putting fmod_event.dll's func name in github search
-    // https://github.com/barspinoff/bmod/blob/main/tools/fmod_event/src/fmod_eventsystemi.cpp
     uint32_t wave_banks, event_groups, sound_defs, languages = 1;
 
     fev->bank_name_idx = -1;
@@ -666,7 +681,7 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r, char* fsb_wavebank_na
         if (fev->version >= FMOD_FEV_VERSION_65_0)
             reader_skip(r, 0x04 * languages);
 
-        if (!reader_fev_string(wavebank_name, STREAM_NAME_SIZE, r)) // wave bank name
+        if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r)) // wave bank name
             return false;
         // v0x41+ just store indices later, but this one isn't in RIFF>LIST>STRR
         if (fev->version >= FMOD_FEV_VERSION_65_0) {
