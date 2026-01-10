@@ -10,10 +10,10 @@ typedef struct {
     uint32_t current;   /* start position, or next chunk after size (set to -1 to break) */
     uint32_t max;       /* max offset, or filesize if not set */
 
-    bool le_type;        /* read type as LE instead of more common BE */
-    bool be_size;        /* read type as BE instead of more common LE */
-    bool full_size;      /* chunk size includes type+size */
-    bool alignment;      /* chunks with odd size need to be aligned to even, per RIFF spec */
+    bool le_type;       /* read type as LE instead of more common BE */
+    bool be_size;       /* read type as BE instead of more common LE */
+    bool full_size;     /* chunk size includes type+size */
+    bool alignment;     /* chunks with odd size need to be aligned to even, per RIFF spec */
 } chunk_t;
 
 /* reads from current offset and updates chunk_t */

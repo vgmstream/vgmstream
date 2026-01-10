@@ -18,13 +18,13 @@ bool next_chunk(chunk_t* chunk, STREAMFILE* sf) {
     chunk->type = read_u32type(chunk->current + 0x00,sf);
     chunk->size = read_u32size(chunk->current + 0x04,sf);
 
-    /* enforce 16-bit chunk alignment */
-    if (chunk->alignment && (chunk->size & 0x01))
-        chunk->size++;
-
     chunk->offset = chunk->current + 0x04 + 0x04;
     chunk->current += chunk->full_size ? chunk->size : 0x08 + chunk->size;
     //;VGM_LOG("CHUNK: %x, %x, %x\n", dc.offset, chunk->type, chunk->size);
+
+    /* enforce 16-bit chunk alignment */
+    if (chunk->alignment && (chunk->size & 0x01))
+        chunk->current++;
 
     /* read past data */
     if (chunk->type == 0xFFFFFFFF || chunk->size == 0xFFFFFFFF)
