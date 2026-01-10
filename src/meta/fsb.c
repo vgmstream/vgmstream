@@ -43,7 +43,7 @@ typedef struct {
 } fsb_header_t;
 
 static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf);
-static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb);
+static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* sf_fsb);
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header_t* fsb, bool is_new_lib);
 
 /* FSB1~4 - from games using FMOD audio middleware */
@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     vgmstream->num_streams = fsb.total_subsongs;
     vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
-    get_name(vgmstream->stream_name, &fsb, sf);
+    get_name(vgmstream->stream_name, STREAM_NAME_SIZE, &fsb, sf);
 
     switch(fsb.codec) {
 
@@ -671,24 +671,30 @@ fail:
     return false;
 }
 
-static void get_name(char* buf, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
+static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* sf_fsb) {
     STREAMFILE* sf_fev = NULL;
     fev_header_t fev = {0};
+    bool fev_parsed = false;
 
     sf_fev = open_fev_filename_pair(sf_fsb);
     if (sf_fev) {
         char filename[STREAM_NAME_SIZE];
         get_streamfile_basename(sf_fsb, filename, STREAM_NAME_SIZE);
 
-        sf_fev->stream_index = sf_fsb->stream_index;
-        if (!parse_fev(&fev, sf_fev, filename))
-            vgm_logi("FSB: Failed to parse FEV1 data");
+        fev.target_subsong = sf_fsb->stream_index;
+        if (fev.target_subsong == 0) fev.target_subsong = 1;
+        fev.target_subsong--;
+        // usually FEV1, but RIFF FEV also seen rarely used with FSB4 (around 2011)
+        // [Marvel Super Hero Squad: Comic Combat (X360), Green Lantern: Rise of the Manhunters (PS3)]
+        fev_parsed = parse_fev(&fev, sf_fev, filename);
+        if (!fev_parsed)
+            vgm_logi("FSB: Failed to parse FEV data\n");
     }
 
-    /* prioritise FEV stream names, usually the same as the FSB name just not truncated */
-    /* benefits games where base names are all identical [Split/Second (PS3/X360/PC)] */
-    if (fev.name_offset && fev.name_size)
-        read_string(buf, fev.name_size, fev.name_offset, sf_fev);
+    // prioritise FEV stream names, usually the same as the FSB name just not truncated
+    // (benefits games where base names are all identical [Split/Second (PS3/X360/PC)])
+    if (fev_parsed && fev.stream_name[0])
+        snprintf(buf, buf_size, "%s", fev.stream_name);
     else if (fsb->name_offset)
         read_string(buf, fsb->name_size + 1, fsb->name_offset, sf_fsb);
 

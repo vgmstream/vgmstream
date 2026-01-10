@@ -2,7 +2,7 @@
 #include "reader_sf.h"
 
 
-int next_chunk(chunk_t* chunk, STREAMFILE* sf) {
+bool next_chunk(chunk_t* chunk, STREAMFILE* sf) {
     uint32_t (*read_u32type)(off_t,STREAMFILE*) = !chunk->le_type ? read_u32be : read_u32le;
     uint32_t (*read_u32size)(off_t,STREAMFILE*) = chunk->be_size ? read_u32be : read_u32le;
 
@@ -10,10 +10,10 @@ int next_chunk(chunk_t* chunk, STREAMFILE* sf) {
         chunk->max = get_streamfile_size(sf);
 
     if (chunk->current >= chunk->max)
-        return 0;
+        return false;
     /* can be used to signal "stop" */
     if (chunk->current < 0)
-        return 0;
+        return false;
 
     chunk->type = read_u32type(chunk->current + 0x00,sf);
     chunk->size = read_u32size(chunk->current + 0x04,sf);
@@ -22,16 +22,20 @@ int next_chunk(chunk_t* chunk, STREAMFILE* sf) {
     chunk->current += chunk->full_size ? chunk->size : 0x08 + chunk->size;
     //;VGM_LOG("CHUNK: %x, %x, %x\n", dc.offset, chunk->type, chunk->size);
 
+    /* enforce 16-bit chunk alignment */
+    if (chunk->alignment && (chunk->size & 0x01))
+        chunk->current++;
+
     /* read past data */
     if (chunk->type == 0xFFFFFFFF || chunk->size == 0xFFFFFFFF)
-        return 0;
+        return false;
 
     /* empty chunk with 0 size is ok, seen in some formats (XVAG uses it as end marker, Wwise in JUNK) */
     if (chunk->type == 0 /*|| chunk->size == 0*/)
-        return 0;
+        return false;
 
     /* more chunks remain */
-    return 1;
+    return true;
 }
 
 
@@ -45,7 +49,7 @@ int next_chunk(chunk_t* chunk, STREAMFILE* sf) {
  *
  * returns 0 on failure
  */
-static int find_chunk_internal(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_type, int big_endian_size, int zero_size_end) {
+static bool find_chunk_internal(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, bool full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, bool big_endian_type, bool big_endian_size, bool zero_size_end, bool aligned) {
     int32_t (*read_32bit_type)(off_t,STREAMFILE*) = big_endian_type ? read_32bitBE : read_32bitLE;
     int32_t (*read_32bit_size)(off_t,STREAMFILE*) = big_endian_size ? read_32bitBE : read_32bitLE;
     off_t offset, max_offset;
@@ -66,38 +70,48 @@ static int find_chunk_internal(STREAMFILE* sf, uint32_t chunk_id, off_t start_of
         uint32_t chunk_size = read_32bit_size(offset + 0x04,sf);
 
         if (chunk_type == 0xFFFFFFFF || chunk_size == 0xFFFFFFFF)
-            return 0;
+            return false;
 
         if (chunk_type == chunk_id) {
             if (out_chunk_offset) *out_chunk_offset = offset + 0x08;
             if (out_chunk_size) *out_chunk_size = chunk_size;
-            return 1;
+            return true;
         }
 
         /* empty chunk with 0 size, seen in some formats (XVAG uses it as end marker, Wwise doesn't) */
         if (chunk_size == 0 && zero_size_end)
-            return 0;
+            return false;
+
+        /* next chunk should be on a 16-bit boundary (standard RIFF behavior) */
+        if (aligned && (chunk_size & 0x01))
+            chunk_size++;
 
         offset += full_chunk_size ? chunk_size : 0x08 + chunk_size;
     }
 
-    return 0;
+    return false;
 }
-int find_chunk_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(sf, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1, 0);
+bool find_aligned_chunk_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, bool full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(sf, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1, 0, 1);
 }
-int find_chunk_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(sf, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0, 0);
+bool find_aligned_chunk_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, bool full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(sf, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0, 0, 1);
 }
-int find_chunk(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_size, int zero_size_end) {
-    return find_chunk_internal(sf, chunk_id, start_offset, 0, full_chunk_size, out_chunk_offset, out_chunk_size, 1, big_endian_size, zero_size_end);
+bool find_chunk_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, bool full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(sf, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1, 0, 0);
 }
-int find_chunk_riff_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk_internal(sf, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, 1, 0, 0);
+bool find_chunk_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, bool full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(sf, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0, 0, 0);
 }
-int find_chunk_riff_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk_internal(sf, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, 1, 1, 0);
+bool find_chunk(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, bool full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, bool big_endian_size, bool zero_size_end, bool aligned) {
+    return find_chunk_internal(sf, chunk_id, start_offset, 0, full_chunk_size, out_chunk_offset, out_chunk_size, 1, big_endian_size, zero_size_end, aligned);
 }
-int find_chunk_riff_ve(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian) {
-    return find_chunk_internal(sf, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, big_endian, big_endian, 0);
+bool find_chunk_riff_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk_internal(sf, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, 1, 0, 0, 0);
+}
+bool find_chunk_riff_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk_internal(sf, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, 1, 1, 0, 0);
+}
+bool find_chunk_riff_ve(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size, bool big_endian) {
+    return find_chunk_internal(sf, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, big_endian, big_endian, 0, 0);
 }

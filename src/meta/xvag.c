@@ -66,7 +66,7 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
 
 
     /* "fmat": base format (always first) */
-    if (!find_chunk(sf, 0x666D6174,first_offset,0, &chunk_offset,&chunk_size, xvag.big_endian, 1)) /*"fmat"*/
+    if (!find_chunk(sf, 0x666D6174,first_offset,0, &chunk_offset,&chunk_size, xvag.big_endian, 1, 0)) /*"fmat"*/
         goto fail;
     xvag.channels    = read_32bit(chunk_offset+0x00,sf);
     xvag.codec       = read_32bit(chunk_offset+0x04,sf);
@@ -167,7 +167,7 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
             if (xvag.layers > 1 && !(xvag.layers*1 == vgmstream->channels || xvag.layers*2 == vgmstream->channels)) goto fail;
 
             /* "mpin": mpeg info */
-            if (!find_chunk(sf, 0x6D70696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"mpin"*/
+            if (!find_chunk(sf, 0x6D70696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1, 0)) /*"mpin"*/
                 goto fail;
 
             /* all layers/subsongs share the same config; not very useful but for posterity:
@@ -211,7 +211,7 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
 
             /* "a9in": ATRAC9 info */
             /*  0x00: frame size, 0x04: samples per frame, 0x0c: fact num_samples (no change), 0x10: encoder delay1 */
-            if (!find_chunk(sf, 0x6139696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"a9in"*/
+            if (!find_chunk(sf, 0x6139696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1, 0)) /*"a9in"*/
                 goto fail;
 
             if (xvag.layers > 1) {

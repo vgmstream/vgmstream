@@ -1,16 +1,30 @@
 #ifndef _FSB_FEV_H_
 #define _FSB_FEV_H_
 #include "../util/companion_files.h"
+#include "../util/reader_helper.h"
+#include "../util/chunks.h"
 
 
 typedef struct {
+    /* input */
+    int target_subsong;
+
+    /* state */
     uint32_t version;
+    //uint32_t languages;
+    int bank_name_idx;
 
-    off_t name_offset;
-    size_t name_size;
-
-    /* internal */
-    off_t offset;
+    /*
+    char sound_name[STREAM_NAME_SIZE];
+    size_t sound_name_len;
+    char sound_def_name[STREAM_NAME_SIZE];
+    size_t sound_def_name_len;
+    // merged output of the two strings above
+    char output_stream_name[STREAM_NAME_SIZE];
+    */
+    /* output */
+    char stream_name[STREAM_NAME_SIZE];
+    size_t stream_name_len;
 } fev_header_t;
 
 
@@ -29,7 +43,7 @@ typedef struct {
 #define FMOD_FEV_VERSION_18_0   0x00120000  // ?
 #define FMOD_FEV_VERSION_19_0   0x00130000  // ?
 #define FMOD_FEV_VERSION_20_0   0x00140000  // ?
-//#define FMOD_FEV_VERSION_21_0 0x00150000  // ?
+#define FMOD_FEV_VERSION_21_0   0x00150000  // ?
 #define FMOD_FEV_VERSION_22_0   0x00160000  // ?
 #define FMOD_FEV_VERSION_23_0   0x00170000  // ?
 #define FMOD_FEV_VERSION_24_0   0x00180000  // ?
@@ -45,18 +59,18 @@ typedef struct {
 #define FMOD_FEV_VERSION_34_0   0x00220000  // Ys Online: The Call of Solum (PC)
 //#define FMOD_FEV_VERSION_35_0 0x00230000  // ?
 #define FMOD_FEV_VERSION_36_0   0x00240000  // ?
-#define FMOD_FEV_VERSION_37_0   0x00250000  // Conan (X360)
+#define FMOD_FEV_VERSION_37_0   0x00250000  // Conan (X360), Manhunt 2 (Wii)
 #define FMOD_FEV_VERSION_38_0   0x00260000  // ?
 #define FMOD_FEV_VERSION_39_0   0x00270000  // ?
 #define FMOD_FEV_VERSION_40_0   0x00280000  // ?
 #define FMOD_FEV_VERSION_41_0   0x00290000  // ?
 #define FMOD_FEV_VERSION_42_0   0x002A0000  // ?
 #define FMOD_FEV_VERSION_43_0   0x002B0000  // ?
-#define FMOD_FEV_VERSION_44_0   0x002C0000  // Monster Jam (PS2)
+#define FMOD_FEV_VERSION_44_0   0x002C0000  // Monster Jam (PS2), Manhunt 2 (PC)
 #define FMOD_FEV_VERSION_45_0   0x002D0000  // ?
 #define FMOD_FEV_VERSION_46_0   0x002E0000  // ?
-//#define FMOD_FEV_VERSION_47_0 0x002F0000  // ?
-//#define FMOD_FEV_VERSION_48_0 0x00300000  // ?
+#define FMOD_FEV_VERSION_47_0   0x002F0000  // ?
+#define FMOD_FEV_VERSION_48_0   0x00300000  // ?
 #define FMOD_FEV_VERSION_49_0   0x00310000  // ?
 #define FMOD_FEV_VERSION_50_0   0x00320000  // Monster Jam: Urban Assault (PS2), Destroy All Humans: Path of the Furon (X360)
 //#define FMOD_FEV_VERSION_51_0 0x00330000  // ?
@@ -75,124 +89,119 @@ typedef struct {
 #define FMOD_FEV_VERSION_64_0   0x00400000  // Brutal Legend (PC), UFC Personal Trainer: The Ultimate Fitness (X360)
 #define FMOD_FEV_VERSION_65_0   0x00410000  // ?
 //#define FMOD_FEV_VERSION_66_0 0x00420000  // ?
-//#define FMOD_FEV_VERSION_67_0 0x00430000  // ?
+//#define FMOD_FEV_VERSION_67_0 0x00430000  // Green Lantern: Rise of the Manhunters (PS3), Orcs Must Die 2 (PC)
 #define FMOD_FEV_VERSION_68_0   0x00440000  // ?
-#define FMOD_FEV_VERSION_69_0   0x00450000  // ?
+#define FMOD_FEV_VERSION_69_0   0x00450000  // Disney/Pixar Brave (PS3), Badland (PSV), Dark Souls III (PC), Stronghold: Warlords (PC)
 
 
-static inline uint32_t tell_fev(fev_header_t* fev) {
-    return fev->offset;
+static size_t append_fev_string(char* buf, size_t buf_size, char* str, size_t str_size) {
+    if (!buf[0]) // empty buf, append new string
+        return snprintf(buf, buf_size, "%s", str);
+    else if (str_size < buf_size) // append secondary string
+        return snprintf(&buf[str_size], buf_size - str_size, "; %s", str);
+    return 0; // didn't append anything, buf_size limit reached
 }
 
-static inline void seek_fev(fev_header_t* fev, uint32_t bytes) {
-    // compilers can get a bit funny when doing multiple read
-    // operations directly on top of a plain "fev->offset += "
-    // so this forces it to pre-calc everything before adding
-    fev->offset += bytes;
-}
 
-static inline uint32_t read_fev_u32le(fev_header_t* fev, STREAMFILE* sf) {
-    uint32_t ret = read_u32le(fev->offset, sf);
-    fev->offset += 0x04;
-    return ret;
-}
-
-static inline uint16_t read_fev_u16le(fev_header_t* fev, STREAMFILE* sf) {
-    uint16_t ret = read_u16le(fev->offset, sf);
-    fev->offset += 0x02;
-    return ret;
-}
-
-static bool read_fev_string(char* buf, size_t buf_size, fev_header_t* fev, STREAMFILE* sf) {
-    // strings are probably the only "sane" thing in FEVs, so enforce stricter checks
-    uint32_t str_size;
-    int i;
+// strings are probably the only "sane" thing in FEVs, so enforce stricter checks
+static bool reader_fev_string(char* buf, size_t buf_size, reader_t* r) {
+    uint32_t str_size, read_size;
 
     // string size includes null terminator
-    str_size = read_fev_u32le(fev, sf);
+    str_size = reader_u32(r);
     if (str_size > buf_size) return false;
     if (str_size == 0x00) return true;
 
-    for (i = 0; i < str_size - 1; i++) {
-        // ASCII only for now, less lenient than read_string
-        uint8_t c = read_u8(fev->offset++, sf);
-        if (c < 0x20 || c > 0x7E) return false;
-        if (buf) buf[i] = c;
-    }
-    if (read_u8(fev->offset++, sf) != 0x00)
+    read_size = read_string(buf, buf_size, r->offset, r->sf);
+    if (read_size != str_size - 1) return false;
+
+    r->offset += str_size;
+    return true;
+}
+
+// bank names rarely include a directory name to be stripped [Manhunt 2 (Wii/PC)]
+static bool reader_fev_bankname(char* buf, size_t buf_size, reader_t* r) {
+    char tmp[STREAM_NAME_SIZE];
+    char* path;
+
+    if (!reader_fev_string(tmp, STREAM_NAME_SIZE, r))
         return false;
-    if (buf) buf[i] = '\0';
+
+    // TODO: posix path separator only(?)
+    path = strrchr(tmp, '/');
+    if (path) path++;
+
+    snprintf(buf, buf_size, "%s", path ? path : tmp);
 
     return true;
 }
 
-static bool read_fev_uuid(fev_header_t* fev, STREAMFILE* sf) {
-    // similarly to strings, uuids are one of the rare "sane" things to check for
+// similarly to strings, UUIDs are one of the rare "sane" things to check for
+static bool reader_fev_uuid(reader_t* r) {
     uint16_t uuid_seg3, uuid_seg4;
 
-    uuid_seg3 = read_u16le(fev->offset + 0x06, sf);
-    uuid_seg4 = read_u16be(fev->offset + 0x08, sf);
+    uuid_seg3 = read_u16le(r->offset + 0x06, r->sf);
+    uuid_seg4 = read_u16be(r->offset + 0x08, r->sf);
 
-    if ((uuid_seg3 & 0xF000) != 0x4000)
-        return false;
-    if ((uuid_seg4 & 0xF000) < 0x8000 ||
-        (uuid_seg4 & 0xF000) > 0xB000)
+    if ((uuid_seg3 & 0xF000) != 0x4000 ||
+        (uuid_seg4 & 0xF000) <  0x8000 ||
+        (uuid_seg4 & 0xF000) >  0xB000)
         return false;
 
-    fev->offset += 0x10;
+    r->offset += 0x10;
     return true;
 }
 
 
-static bool parse_fev_properties(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_properties(fev_header_t* fev, reader_t* r) {
     uint32_t properties, property_type;
 
-    properties = read_fev_u32le(fev, sf);
+    properties = reader_u32(r);
     for (int i = 0; i < properties; i++) {
-        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // property name
+        if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // property name
             return false;
 
         // enum: 0 = int, 1 = float, 2 = string
-        property_type = read_fev_u32le(fev, sf);
+        property_type = reader_u32(r);
         if (property_type < 0x00 || property_type > 0x02)
             return false;
 
         if (property_type != 0x02)
-            seek_fev(fev, 0x04);
-        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // property
+            reader_skip(r, 0x04);
+        else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // property
             return false;
     }
 
     return true;
 }
 
-static bool parse_fev_category(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_category(fev_header_t* fev, reader_t* r) {
     uint32_t sub_categories;
 
-    if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // category name
+    if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // category name
         return false;
     // 0x00: volume
     // 0x04: pitch
     // 0x08: (v0x29+) max playbacks
     // 0x0C: (v0x29+) max playbacks flags
-    seek_fev(fev, 0x08);
+    reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_41_0)
-        seek_fev(fev, 0x08);
+        reader_skip(r, 0x08);
 
-    sub_categories = read_fev_u32le(fev, sf);
+    sub_categories = reader_u32(r);
     for (int i = 0; i < sub_categories; i++) {
-        if (!parse_fev_category(fev, sf))
+        if (!parse_fev_category(fev, r))
             return false;
     }
 
     return true;
 }
 
-static bool parse_fev_event_sound(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_event_sound(fev_header_t* fev, reader_t* r) {
 
     if (fev->version >= FMOD_FEV_VERSION_39_0)
-        seek_fev(fev, 0x02); // name index?
-    else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // sound name
+        reader_skip(r, 0x02); // name index?
+    else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // sound name
         return false;
 
     // 0x00: x(?)
@@ -211,72 +220,72 @@ static bool parse_fev_event_sound(fev_header_t* fev, STREAMFILE* sf) {
     // 0x34: fade out
     // 0x38: (v0x18+) fade in type
     // 0x3C: (v0x18+) fade out type
-    seek_fev(fev, 0x08);
+    reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_30_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_31_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x08);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_36_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x04);
     if (fev->version <  FMOD_FEV_VERSION_52_0)
-        seek_fev(fev, 0x08);
-    seek_fev(fev, 0x0C);
+        reader_skip(r, 0x08);
+    reader_skip(r, 0x0C);
     if (fev->version >= FMOD_FEV_VERSION_24_0)
-        seek_fev(fev, 0x08);
+        reader_skip(r, 0x08);
 
     return true;
 }
 
-static bool parse_fev_event_envelope(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_event_envelope(fev_header_t* fev, reader_t* r) {
     uint32_t points;
 
     if (fev->version >= FMOD_FEV_VERSION_39_0)
-        seek_fev(fev, 0x04); // parent envelope name index?
+        reader_skip(r, 0x04); // parent envelope name index?
     else {
-        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // envelope name
+        if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // envelope name
             return false;
-        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // parent envelope name
+        if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // parent envelope name
             return false;
     }
 
-    if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // dsp unit name
+    if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // dsp unit name
         return false;
 
     // 0x00: dsp param index
     // 0x04: (v0x26+) flags
     // 0x08: (v0x39+) more flags
     // 0x0C: points[]
-    seek_fev(fev, 0x04);
+    reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_38_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_57_0)
-        seek_fev(fev, 0x04);
-    points = read_fev_u32le(fev, sf);
+        reader_skip(r, 0x04);
+    points = reader_u32(r);
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        seek_fev(fev, points * 0x04); // idx
+        reader_skip(r, points * 0x04); // idx
     else {
-        seek_fev(fev, points * 0x08); // x,y
+        reader_skip(r, points * 0x08); // x,y
         if (fev->version >= FMOD_FEV_VERSION_13_0)
-            seek_fev(fev, points * 0x04); // flags
+            reader_skip(r, points * 0x04); // flags
     }
     // params/flags
-    seek_fev(fev, 0x04);
+    reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_26_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
 
     return true;
 }
 
-static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_event_complex(fev_header_t* fev, reader_t* r) {
     uint32_t layers, params, sounds, envelopes;
 
-    layers = read_fev_u32le(fev, sf);
+    layers = reader_u32(r);
     for (int i = 0; i < layers; i++) {
         if (fev->version <  FMOD_FEV_VERSION_39_0) {
-            if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // layer name
+            if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // layer name
                 return false;
         }
 
@@ -285,39 +294,39 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
         // 0x06: param name (str), (v0x27+) param index (u16)
         // 0x08: sounds (u32), (v0x1D+) sounds (u16)
         // 0x0A: envelopes (u32), (v0x1D+) envelopes (u16)
-        fev->version >= FMOD_FEV_VERSION_29_0
-            ? seek_fev(fev, 0x02)
-            : seek_fev(fev, 0x04);
+        reader_skip(r, 0x02);
+        if (fev->version <  FMOD_FEV_VERSION_29_0)
+            reader_skip(r, 0x02);
         if (fev->version >= FMOD_FEV_VERSION_37_0)
-            seek_fev(fev, 0x02);
+            reader_skip(r, 0x02);
         if (fev->version >= FMOD_FEV_VERSION_39_0)
-            seek_fev(fev, 0x02);
-        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // param name
+            reader_skip(r, 0x02);
+        else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // param name
             return false;
         if (fev->version >= FMOD_FEV_VERSION_29_0) {
-            sounds    = read_fev_u16le(fev, sf);
-            envelopes = read_fev_u16le(fev, sf);
+            sounds    = reader_u16(r);
+            envelopes = reader_u16(r);
         }
         else {
-            sounds    = read_fev_u32le(fev, sf);
-            envelopes = read_fev_u32le(fev, sf);
+            sounds    = reader_u32(r);
+            envelopes = reader_u32(r);
         }
 
         for (int j = 0; j < sounds; j++) {
-            if (!parse_fev_event_sound(fev, sf))
+            if (!parse_fev_event_sound(fev, r))
                 return false;
         }
         for (int j = 0; j < envelopes; j++) {
-            if (!parse_fev_event_envelope(fev, sf))
+            if (!parse_fev_event_envelope(fev, r))
                 return false;
         }
     }
 
-    params = read_fev_u32le(fev, sf);
+    params = reader_u32(r);
     for (int i = 0; i < params; i++) {
         if (fev->version >= FMOD_FEV_VERSION_65_0)
-            seek_fev(fev, 0x04); // name index?
-        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // param name
+            reader_skip(r, 0x04); // name index?
+        else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // param name
             return false;
 
         // 0x00: (<v0x12) min?
@@ -331,47 +340,47 @@ static bool parse_fev_event_complex(fev_header_t* fev, STREAMFILE* sf) {
         // 0x20: envelopes
         // 0x24: (v0x0C+) sustain points[]
         if (fev->version <  FMOD_FEV_VERSION_18_0)
-            seek_fev(fev, 0x08);
-        seek_fev(fev, 0x10);
+            reader_skip(r, 0x08);
+        reader_skip(r, 0x10);
         if (fev->version >= FMOD_FEV_VERSION_11_0 &&
             fev->version <  FMOD_FEV_VERSION_16_0)
-            seek_fev(fev, 0x04);
+            reader_skip(r, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_18_0)
-            seek_fev(fev, 0x04);
-        seek_fev(fev, 0x04);
+            reader_skip(r, 0x04);
+        reader_skip(r, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_12_0)
-            seek_fev(fev, read_fev_u32le(fev, sf) * 0x04);
+            reader_skip(r, reader_u32(r) * 0x04);
     }
 
-    if (!parse_fev_properties(fev, sf))
+    if (!parse_fev_properties(fev, r))
         return false;
 
     return true;
 }
 
-static bool parse_fev_event_simple(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_event_simple(fev_header_t* fev, reader_t* r) {
 
-    seek_fev(fev, 0x04); // flags
-    if (!parse_fev_event_sound(fev, sf))
+    reader_skip(r, 0x04); // flags
+    if (!parse_fev_event_sound(fev, r))
         return false;
 
     return true;
 }
 
-static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_event(fev_header_t* fev, reader_t* r) {
     uint32_t event_type, categories;
 
     event_type = 0x08; // 0x08 = complex, 0x10 = simple
     if (fev->version >= FMOD_FEV_VERSION_52_0)
-        event_type = read_fev_u32le(fev, sf);
+        event_type = reader_u32(r);
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        seek_fev(fev, 0x04); // name index?
-    else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // event name
+        reader_skip(r, 0x04); // name index?
+    else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // event name
         return false;
 
     if (fev->version >= FMOD_FEV_VERSION_58_0) {
-        if (!read_fev_uuid(fev, sf))
+        if (!reader_fev_uuid(r))
             return false;
     }
 
@@ -404,49 +413,49 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
     // 0x84: (v0x16+) pan level 3D
     // 0x8C: (v0x44+) position randomisation 3D min
     // 0x90: (v0x28+) position randomisation 3D max
-    seek_fev(fev, 0x08);
+    reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_32_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_10_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_56_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x0C);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x0C);
     if (fev->version >= FMOD_FEV_VERSION_69_0)
-        seek_fev(fev, 0x08);
-    seek_fev(fev, 0x04);
+        reader_skip(r, 0x08);
+    reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_9_0)
-        seek_fev(fev, 0x2C);
+        reader_skip(r, 0x2C);
     if (fev->version >= FMOD_FEV_VERSION_11_0)
-        seek_fev(fev, 0x08);
+        reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_28_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_11_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_18_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_19_0)
-        seek_fev(fev, 0x08);
+        reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_43_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_45_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_22_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_68_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_40_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
 
     if ((event_type & 0x18) == 0x08) {
-        if (!parse_fev_event_complex(fev, sf))
+        if (!parse_fev_event_complex(fev, r))
             return false;
     }
     else if ((event_type & 0x18) == 0x10) {
-        if (!parse_fev_event_simple(fev, sf))
+        if (!parse_fev_event_simple(fev, r))
             return false;
     }
     else {
@@ -454,44 +463,44 @@ static bool parse_fev_event(fev_header_t* fev, STREAMFILE* sf) {
         return false;
     }
 
-    categories = read_fev_u32le(fev, sf);
+    categories = reader_u32(r);
     for (int i = 0; i < categories; i++) {
-        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
+        if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // category name
             return false;
     }
 
     return true;
 }
 
-static bool parse_fev_event_category(fev_header_t* fev, STREAMFILE* sf) {
+static bool parse_fev_event_category(fev_header_t* fev, reader_t* r) {
     uint32_t sub_groups, events;
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        seek_fev(fev, 0x04); // name index?
-    else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // event category name
+        reader_skip(r, 0x04); // name index?
+    else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // event category name
         return false;
 
     if (fev->version >= FMOD_FEV_VERSION_23_0) {
-        if (!parse_fev_properties(fev, sf))
+        if (!parse_fev_properties(fev, r))
             return false;
     }
 
-    sub_groups = read_fev_u32le(fev, sf);
-    events     = read_fev_u32le(fev, sf);
+    sub_groups = reader_u32(r);
+    events     = reader_u32(r);
 
     for (int i = 0; i < sub_groups; i++) {
-        if (!parse_fev_event_category(fev, sf))
+        if (!parse_fev_event_category(fev, r))
             return false;
     }
     for (int i = 0; i < events; i++) {
-        if (!parse_fev_event(fev, sf))
+        if (!parse_fev_event(fev, r))
             return false;
     }
 
     return true;
 }
 
-static void parse_fev_sound_def_def(fev_header_t* fev, STREAMFILE* sf) {
+static void parse_fev_sound_def_def(fev_header_t* fev, reader_t* r) {
 
     // 0x00: playlist settings
     // 0x04: spawn time min, (v0x22~v0x26) spawn intensity
@@ -513,123 +522,183 @@ static void parse_fev_sound_def_def(fev_header_t* fev, STREAMFILE* sf) {
     // 0x44: (v0x3E+) trigger delay min (u16)
     // 0x46: (v0x3E+) trigger delay max (u16)
     // 0x48: (v0x3F+) spawn count (u16)
-    seek_fev(fev, 0x08);
+    reader_skip(r, 0x08);
     if (fev->version <  FMOD_FEV_VERSION_34_0 ||
         fev->version >= FMOD_FEV_VERSION_38_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x08);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x08);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        seek_fev(fev, 0x04);
-    seek_fev(fev, 0x08);
+        reader_skip(r, 0x04);
+    reader_skip(r, 0x08);
     if (fev->version >= FMOD_FEV_VERSION_27_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_60_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_68_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_42_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_62_0)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
     if (fev->version >= FMOD_FEV_VERSION_63_0)
-        seek_fev(fev, 0x02);
+        reader_skip(r, 0x02);
 
 }
 
+static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r, char* fsb_wavebank_name) {
+    uint32_t entries, entry_type, stream_index;
 
-static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name) {
-    // initial research based on this which appears to be for FEV v0x34~v0x38
-    // https://github.com/xoreos/xoreos/blob/master/src/sound/fmodeventfile.cpp
-    // further research from FMOD::EventSystemI::load in Split/Second's fmod_event.dll
-    // lastly also found this project by putting fmod_event.dll's func name in github search
-    // https://github.com/barspinoff/bmod/blob/main/tools/fmod_event/src/fmod_eventsystemi.cpp
+    if (fev->version >= FMOD_FEV_VERSION_65_0)
+        reader_skip(r, 0x04); // name index?
+    else if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // sound def name
+        return false;
+
+    // 0x00: (v0x2E+) def index
+    // 0x04: stream entries
+    if (fev->version >= FMOD_FEV_VERSION_46_0)
+        reader_skip(r, 0x04);
+    else
+        parse_fev_sound_def_def(fev, r);
+
+    entries = reader_u32(r);
+    for (int i = 0; i < entries; i++) {
+        // 0x00: entry type
+        // 0x04: (v0x0E+) weight
+        entry_type = reader_u32(r);
+        if (fev->version >= FMOD_FEV_VERSION_14_0)
+            reader_skip(r, 0x04);
+
+        // enum: 0 = wavetable, 1 = oscillator, 2 = null, 3 = programmer
+        switch (entry_type) {
+            case 0x00: {
+                char wavebank_name[STREAM_NAME_SIZE];
+                char stream_name[STREAM_NAME_SIZE];
+                bool is_target_bank = false;
+
+                if (!reader_fev_string(stream_name, STREAM_NAME_SIZE, r)) // stream name
+                    return false;
+
+                if (fev->version >= FMOD_FEV_VERSION_65_0)
+                    is_target_bank = (reader_u32(r) == fev->bank_name_idx);
+                else {
+                    if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r)) // bank name
+                        return false;
+                    // case should match, but some games have all-upper or all-lower filenames
+                    if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0)
+                        is_target_bank = true;
+                }
+
+                // 0x00: stream index
+                // 0x04: (v0x08+) length in ms
+                stream_index = reader_u32(r);
+                // can have multiple names pointing to the same stream, FSB only stores the last one
+                if (is_target_bank && stream_index == fev->target_subsong && !strstr(fev->stream_name, stream_name))
+                    fev->stream_name_len += append_fev_string(fev->stream_name, STREAM_NAME_SIZE, stream_name, fev->stream_name_len);
+                if (fev->version >= FMOD_FEV_VERSION_8_0)
+                    reader_skip(r, 0x04);
+
+                break;
+            }
+
+            case 0x01:
+                // 0x00: oscillator type
+                // 0x04: frequency
+                reader_skip(r, 0x08);
+                break;
+
+            case 0x02:
+            case 0x03:
+                break;
+
+            default:
+                return false;
+        }
+    }
+
+    //if (has_stream_name)
+    //    fev->sound_def_name_len += append_fev_string(fev->sound_def_name, STREAM_NAME_SIZE, sound_def_name, fev->sound_def_name_len);
+
+    return true;
+}
+
+
+// initial research based on this which appears to be for FEV v0x34~v0x38
+// https://github.com/xoreos/xoreos/blob/master/src/sound/fmodeventfile.cpp
+// further research from FMOD::EventSystemI::load in Split/Second's fmod_event.dll
+// lastly also found this project by putting fmod_event.dll's func name in github search
+// https://github.com/barspinoff/bmod/blob/main/tools/fmod_event/src/fmod_eventsystemi.cpp
+static bool parse_fev_main(fev_header_t* fev, reader_t* r, char* fsb_wavebank_name, bool is_riff) {
     uint32_t wave_banks, event_groups, sound_defs, languages = 1;
-    int target_subsong = sf->stream_index, bank_name_idx = -1;
-    char wavebank_name[STREAM_NAME_SIZE];
 
-    if (!is_id32be(0x00, sf, "FEV1"))
-        return false;
-
-    fev->version = read_u32le(0x04, sf);
-    // fmod_event.dll rejects any version below 7.0
-    // last is v69.0 but do those FEV1s even exist?
-    // (0x41+ might be only found in FSB5/RIFF FEV)
-    if ((fev->version & 0xFF00FFFF) ||
-        fev->version < FMOD_FEV_VERSION_7_0 ||
-        fev->version > FMOD_FEV_VERSION_69_0)
-        return false;
-
-    if (target_subsong == 0) target_subsong = 1;
-    target_subsong--;
+    fev->bank_name_idx = -1;
+    //fev->languages = 1;
 
     // by far the biggest issue with FEV is the lack of pointers to anything,
     // so everything has to be read in sequence until you get to stream names
 
-    // 0x00: FEV1
-    // 0x04: version
-    // 0x08: (v0x2E+) sound def pool
-    // 0x0C: (v0x32+) 64-bit sound def pool
-    // 0x10: (v0x40+) object table[] {idx, alloc_size}
-    seek_fev(fev, 0x08);
+    // 0x00: (v0x2E+) sound def pool
+    // 0x04: (v0x32+) 64-bit sound def pool
+    // 0x08: (v0x40+) object table[] (FEV1 only, RIFF>LIST>OBCT)
     if (fev->version >= FMOD_FEV_VERSION_46_0)
-        seek_fev(fev, 0x04); // fmod_event.dll v0x3E still reads this
+        reader_skip(r, 0x04); // fmod_event.dll v0x3E still reads this
     if (fev->version >= FMOD_FEV_VERSION_50_0)
-        seek_fev(fev, 0x04); // fmod_event.dll v0x3E seeks over this
-    if (fev->version >= FMOD_FEV_VERSION_64_0)
-        seek_fev(fev, read_fev_u32le(fev, sf) * 0x08);
+        reader_skip(r, 0x04); // fmod_event.dll v0x3E seeks over this
+    if (fev->version >= FMOD_FEV_VERSION_64_0 && !is_riff)
+        reader_skip(r, reader_u32(r) * 0x08);
 
     // FEV bank name (should match filename)
     if (fev->version >= FMOD_FEV_VERSION_25_0) {
-        if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
+        if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r))
             return false;
     }
 
 
     // 0x00: sound banks
     // 0x04: (v0x41+) languages (32 max, not enforced?)
-    wave_banks = read_fev_u32le(fev, sf);
+    wave_banks = reader_u32(r);
     if (fev->version >= FMOD_FEV_VERSION_65_0)
-        languages = read_fev_u32le(fev, sf);
+        languages = reader_u32(r);
 
     for (int i = 0; i < wave_banks; i++) {
+        char wavebank_name[STREAM_NAME_SIZE];
+
         // 0x00: mode/flags?
         // 0x04: (v0x14+) max streams
         // 0x08: (v0x3D+) hash[]
         // 0x0C: (v0x41+) fsb suffix[](?)
         // 0x10: FSB bank name (should match filename)
-        seek_fev(fev, 0x04);
+        reader_skip(r, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_20_0)
-            seek_fev(fev, 0x04);
+            reader_skip(r, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_61_0)
-            seek_fev(fev, 0x08 * languages);
+            reader_skip(r, 0x08 * languages);
         if (fev->version >= FMOD_FEV_VERSION_65_0)
-            seek_fev(fev, 0x04 * languages);
+            reader_skip(r, 0x04 * languages);
 
-        if (!read_fev_string(wavebank_name, STREAM_NAME_SIZE, fev, sf)) // wave bank name
+        if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r)) // wave bank name
             return false;
-        // v0x41+ just store indices later, no samples to go
-        // with yet, but assuming they're referring to these
+        // v0x41+ just store indices later, but this one isn't in RIFF>LIST>STRR
         if (fev->version >= FMOD_FEV_VERSION_65_0) {
             if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
-                if (bank_name_idx != -1)
+                if (fev->bank_name_idx != -1)
                     vgm_logi("FEV: Multiple identical bank names!\n");
-                bank_name_idx = i;
+                fev->bank_name_idx = i;
             }
         }
     }
 
-    if (!parse_fev_category(fev, sf))
+    if (!parse_fev_category(fev, r))
         return false;
 
-    event_groups = read_fev_u32le(fev, sf);
+    event_groups = reader_u32(r);
     for (int i = 0; i < event_groups; i++) {
-        if (!parse_fev_event_category(fev, sf))
+        if (!parse_fev_event_category(fev, r))
             return false;
     }
 
@@ -640,96 +709,31 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
     if (fev->version >= FMOD_FEV_VERSION_46_0) {
         uint32_t sound_def_defs;
 
-        sound_def_defs = read_fev_u32le(fev, sf);
+        sound_def_defs = reader_u32(r);
         for (int i = 0; i < sound_def_defs; i++)
-            parse_fev_sound_def_def(fev, sf);
+            parse_fev_sound_def_def(fev, r);
     }
 
-    sound_defs = read_fev_u32le(fev, sf);
+    sound_defs = reader_u32(r);
     for (int i = 0; i < sound_defs; i++) {
-        uint32_t entries, entry_type, stream_index;
-
-        // this could be used as a cue name
-        // a stream can be in multiple cues
-        if (fev->version >= FMOD_FEV_VERSION_65_0)
-            seek_fev(fev, 0x04); // name index?
-        else if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // sound def name
+        if (!parse_fev_sound_def(fev, r, fsb_wavebank_name))
             return false;
-
-        // 0x00: (v0x2E+) def index
-        // 0x04: stream entries
-        if (fev->version >= FMOD_FEV_VERSION_46_0)
-            seek_fev(fev, 0x04);
-        else
-            parse_fev_sound_def_def(fev, sf);
-
-        entries = read_fev_u32le(fev, sf);
-        for (int j = 0; j < entries; j++) {
-            // 0x00: entry type
-            // 0x04: (v0x0E+) weight
-            entry_type = read_fev_u32le(fev, sf);
-            if (fev->version >= FMOD_FEV_VERSION_14_0)
-                seek_fev(fev, 0x04);
-
-            // enum: 0 = wavetable, 1 = oscillator, 2 = null, 3 = programmer
-            if (entry_type == 0x00) {
-                uint32_t stream_name_offset;
-                bool is_target_bank = false;
-
-                stream_name_offset = tell_fev(fev);
-                if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf)) // stream name
-                    return false;
-
-                if (fev->version >= FMOD_FEV_VERSION_65_0) {
-                    // as above, no actual v0x41+ samples to confirm, but...
-                    is_target_bank = (read_fev_u32le(fev, sf) == bank_name_idx);
-                }
-                else {
-                    if (!read_fev_string(wavebank_name, STREAM_NAME_SIZE, fev, sf)) // bank name
-                        return false;
-                    // case should match, but some games have all-upper or all-lower filenames
-                    if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0)
-                        is_target_bank = true;
-                }
-
-                // 0x00: stream index
-                // 0x04: (v0x08+) length in ms
-                stream_index = read_fev_u32le(fev, sf);
-                if (is_target_bank && stream_index == target_subsong) {
-                    fev->name_size = read_u32le(stream_name_offset, sf);
-                    fev->name_offset = stream_name_offset + 0x04;
-                    // found it, stop parsing
-                    return true;
-                }
-                if (fev->version >= FMOD_FEV_VERSION_8_0)
-                    seek_fev(fev, 0x04);
-            }
-            else if (entry_type == 0x01) {
-                // 0x00: oscillator type
-                // 0x04: frequency
-                seek_fev(fev, 0x08);
-            }
-            else if (entry_type > 0x03)
-                return false;
-        }
     }
 
-    // anything beyond this is not relevant for song names
-    // but the implementation is here for future reference
-    // (although rarely seen used, the comp cues chunk may
-    // also be of some interest to append to stream names)
+    // TODO: some files store stream names exclusively in the comp chunks later,
+    // some also are mixed with parts still in sound defs and parts only in comp
 #if 0
     if (fev->version >= FMOD_FEV_VERSION_21_0) {
         uint32_t reverb_defs;
 
-        reverb_defs = read_fev_u32le(fev, sf);
+        reverb_defs = reader_u32(r);
         for (int i = 0; i < reverb_defs; i++) {
-            if (!read_fev_string(NULL, STREAM_NAME_SIZE, fev, sf))
+            if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // reverb def name
                 return false;
 
             // 0x00: room
             // 0x04: room HF
-            // 0x08: DEPRECATED
+            // 0x08: DEPRECATED(?)
             // 0x0C: decay time
             // 0x10: decay HF ratio
             // 0x14: reflections
@@ -756,10 +760,10 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
             // 0x78: DEPRECATED air absorption HF
             // 0x7C: LF reference
             // 0x80: flags
-            seek_fev(fev, 0x30);
+            reader_skip(r, 0x30);
             if (fev->version >= FMOD_FEV_VERSION_28_0)
-                seek_fev(fev, 0x08);
-            seek_fev(fev, 0x4C);
+                reader_skip(r, 0x08);
+            reader_skip(r, 0x4C);
         }
     }
 
@@ -767,24 +771,35 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
     // [Critter Crunch (PS3), Bolt (PC/X360)]
     if (fev->version >= FMOD_FEV_VERSION_47_0) {
         uint32_t comp_end, chunk_size, chunk_id;
-        comp_end = get_streamfile_size(sf);
 
-        do {
-            chunk_size = read_fev_u32le(fev, sf);
-            // LE in v0x2F, BE in v0x30+ (official docs say the opposite)
-            chunk_id = (fev->version == FMOD_FEV_VERSION_47_0)
-                ? read_fev_u32le(fev, sf)
-                : read_fev_u32be(fev, sf);
+        chunk_size = reader_u32(r);
+        chunk_id = reader_u32(r);
+        // LE in v0x2F, BE in v0x30+ (official docs say the opposite)
+        if (fev->version >= FMOD_FEV_VERSION_48_0)
+            chunk_id = (chunk_id >> 24 | chunk_id >> 8 & 0xFF00 | (chunk_id & 0xFF00) << 8 | (chunk_id & 0xFF) << 24);
+
+        // should just be until EOF
+        if (chunk_id != get_id32be("comp"))
+            return false;
+        comp_end = r->offset - 0x08 + chunk_size;
+        if (comp_end > get_streamfile_size(r->sf))
+            return false;
+
+        while (r->offset < comp_end) {
+            chunk_size = reader_u32(r);
+            chunk_id = reader_u32(r);
+            if (fev->version >= FMOD_FEV_VERSION_48_0)
+                chunk_id = (chunk_id >> 24 | chunk_id >> 8 & 0xFF00 | (chunk_id & 0xFF00) << 8 | (chunk_id & 0xFF) << 24);
 
             switch (chunk_size) {
-                case 0x636F6D70: // "comp" composition container header
-                    comp_end = tell_fev(fev) - 0x08 + chunk_size;
-                    break;
+                case 0x636F6D70: // "comp" composition container header, parsed earlier
+                    vgm_logi("FEV: Multiple composition headers\n");
+                    return false;
 
                 case 0x73657474: // "sett" music settings
                     // 0x00: volume
                     // 0x04: reverb
-                    seek_fev(fev, 0x08);
+                    reader_skip(r, 0x08);
                     break;
 
                 case 0x6C6E6B73: // "lnks" link container
@@ -801,16 +816,72 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
                     // sub-chunks: "tlnh", "tlnd"
                 case 0x73676D73: // "sgms" segment container
                     // sub-chunks: "sgmh", "sgmd", "smpf", "str ", "smpm"
-                default: // unknown
-                    seek_fev(fev, chunk_size - 0x08);
+                    reader_skip(r, chunk_size - 0x08);
                     break;
+
+                default:
+                    vgm_logi("FEV: Unknown composition header chunk %08X at 0x%X\n", chunk_id, r->offset);
+                    return false;
             }
-        } while (tell_fev(fev) < comp_end);
-        // should just be until EOF
+        }
     }
 #endif
 
     // can rarely have no name in both FSB/FEV [Stoked (X360)]
+    return true;
+}
+
+static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name) {
+    reader_t r = {0};
+    off_t fev_offset;
+    bool is_riff;
+
+    if (is_id32be(0x00, sf, "FEV1")) {
+        fev->version = read_u32le(0x04, sf);
+        fev_offset = 0x08;
+        is_riff = false;
+    }
+    else if (is_id32be(0x00, sf, "RIFF") &&
+             is_id32be(0x08, sf, "FEV ")) {
+        off_t chunk_offset;
+
+        fev->version = read_u32le(0x14, sf);
+        // find the RIFF>LIST>LGCY chunk which has FEV1 format data
+        if (!find_aligned_chunk_le(sf, get_id32be("LIST"), 0x0C, false, &chunk_offset, NULL))
+            return false;
+        if (!is_id32be(chunk_offset + 0x00, sf, "PROJ"))
+            return false;
+        if (!find_aligned_chunk_le(sf, get_id32be("LGCY"), chunk_offset + 0x04, false, &chunk_offset, NULL))
+            return false;
+
+        fev_offset = chunk_offset;
+        is_riff = true;
+    }
+    else
+        return false;
+
+    reader_setup(&r, sf, fev_offset, false);
+
+    if ((fev->version & 0xFF00FFFF) ||
+        fev->version < FMOD_FEV_VERSION_7_0 ||
+        fev->version > FMOD_FEV_VERSION_69_0)
+        return false;
+
+    if (!parse_fev_main(fev, &r, fsb_wavebank_name, is_riff))
+        return false;
+
+    /*
+    // appending sound def names in addition to stream names
+    if (fev->sound_name[0]) {
+        if (fev->sound_def_name[0])
+            snprintf(fev->output_stream_name, STREAM_NAME_SIZE, "%s (%s)", fev->sound_name, fev->sound_def_name);
+        else
+            snprintf(fev->output_stream_name, STREAM_NAME_SIZE, "%s", fev->sound_name);
+    }
+    else if (fev->sound_def_name[0])
+        snprintf(fev->output_stream_name, STREAM_NAME_SIZE, "(%s)", fev->sound_def_name);
+    */
+
     return true;
 }
 

@@ -21,7 +21,7 @@ VGMSTREAM* init_vgmstream_csmp(STREAMFILE* sf) {
     // originally implemented by Antidote (see 9a03256)
 
     // fixed chunks: INFO > PAD > DATA
-    if (!find_chunk(sf, get_id32be("DATA"), first_offset,0, &chunk_offset, NULL, 1, 0))
+    if (!find_chunk(sf, get_id32be("DATA"), first_offset,0, &chunk_offset, NULL, 1, 0, 0))
         return NULL;
 
     // contains a not quite standard DSP header
