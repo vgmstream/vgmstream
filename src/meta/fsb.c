@@ -544,6 +544,12 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
                     fsb->loop_start     = 0;
                     fsb->loop_end       = 0;
 
+                    /* DSP extra data (coefs, init ps/hist etc.) [Manhunt 2 (Wii)] */
+                    if (fsb->mode & FSOUND_GCADPCM) {
+                        fsb->extradata_offset = header_offset + stream_header_size;
+                        stream_header_size += 0x2e * fsb->channels;
+                    }
+
                     /* XMA basic headers have extra data [Forza Motorsport 3 (X360)] */
                     if (fsb->mode & FSOUND_XMA) {
                         // 0x08: flags? (0x00=none?, 0x20=standard)
