@@ -8,12 +8,16 @@
 typedef struct {
     /* input */
     int target_subsong;
+    char fsb_wavebank_name[STREAM_NAME_SIZE];
 
     /* state */
     uint32_t version;
     //uint32_t languages;
     int bank_name_idx;
 
+    /* output */
+    char stream_name[STREAM_NAME_SIZE];
+    size_t stream_name_len;
     /*
     char sound_name[STREAM_NAME_SIZE];
     size_t sound_name_len;
@@ -22,9 +26,6 @@ typedef struct {
     // merged output of the two strings above
     char output_stream_name[STREAM_NAME_SIZE];
     */
-    /* output */
-    char stream_name[STREAM_NAME_SIZE];
-    size_t stream_name_len;
 } fev_header_t;
 
 
@@ -73,9 +74,9 @@ typedef struct {
 #define FMOD_FEV_VERSION_48_0   0x00300000  // ?
 #define FMOD_FEV_VERSION_49_0   0x00310000  // ?
 #define FMOD_FEV_VERSION_50_0   0x00320000  // Monster Jam: Urban Assault (PS2), Destroy All Humans: Path of the Furon (X360)
-//#define FMOD_FEV_VERSION_51_0 0x00330000  // ?
+#define FMOD_FEV_VERSION_51_0   0x00330000  // ?
 #define FMOD_FEV_VERSION_52_0   0x00340000  // Stoked (X360), Indianapolis 500 Evolution (X360)
-//#define FMOD_FEV_VERSION_53_0 0x00350000  // Bolt (PC/X360)
+#define FMOD_FEV_VERSION_53_0   0x00350000  // Bolt (PC/X360)
 //#define FMOD_FEV_VERSION_54_0 0x00360000  // ?
 //#define FMOD_FEV_VERSION_55_0 0x00370000  // AirRider CrazyRacing (PC)
 #define FMOD_FEV_VERSION_56_0   0x00380000  // ?
@@ -103,6 +104,14 @@ static size_t append_fev_string(char* buf, size_t buf_size, char* str, size_t st
 }
 
 
+// LE in v0x2F, BE in v0x30+ (official docs say the opposite)
+static inline uint32_t reader_fev_chunk_id(fev_header_t* fev, reader_t* r) {
+    uint32_t id = reader_u32(r);
+    if (fev->version >= FMOD_FEV_VERSION_48_0)
+        id = id >> 24 | id >> 8 & 0xFF00 | (id & 0xFF00) << 8 | (id & 0xFF) << 24;
+    return id;
+}
+
 // strings are probably the only "sane" thing in FEVs, so enforce stricter checks
 static bool reader_fev_string(char* buf, size_t buf_size, reader_t* r) {
     uint32_t str_size, read_size;
@@ -129,9 +138,7 @@ static bool reader_fev_bankname(char* buf, size_t buf_size, reader_t* r) {
 
     // TODO: posix path separator only(?)
     path = strrchr(tmp, '/');
-    if (path) path++;
-
-    snprintf(buf, buf_size, "%s", path ? path : tmp);
+    snprintf(buf, buf_size, "%s", path ? path + 1 : tmp);
 
     return true;
 }
@@ -500,6 +507,48 @@ static bool parse_fev_event_category(fev_header_t* fev, reader_t* r) {
     return true;
 }
 
+static bool parse_fev_reverb_def(fev_header_t* fev, reader_t* r) {
+
+    if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // reverb def name
+        return false;
+
+    // 0x00: room
+    // 0x04: room HF
+    // 0x08: DEPRECATED(?)
+    // 0x0C: decay time
+    // 0x10: decay HF ratio
+    // 0x14: reflections
+    // 0x18: reflections delay
+    // 0x1C: reverb
+    // 0x20: reverb delay
+    // 0x24: diffusion
+    // 0x28: density
+    // 0x2C: HF reference
+    // 0x30: (v0x1C+) room LF
+    // 0x34: (v0x1C+) LF reference
+    // 0x38: instance
+    // 0x3C: environment
+    // 0x40: DEPRECATED env size
+    // 0x44: env diffusion
+    // 0x48: room LF
+    // 0x4C: decay LF ratio
+    // 0x50: DEPRECATED reflections pan[3]
+    // 0x5C: DEPRECATED reverb pan[3]
+    // 0x68: DEPRECATED echo time
+    // 0x6C: DEPRECATED echo depth
+    // 0x70: modulation time
+    // 0x74: modulation depth
+    // 0x78: DEPRECATED air absorption HF
+    // 0x7C: LF reference
+    // 0x80: flags
+    reader_skip(r, 0x30);
+    if (fev->version >= FMOD_FEV_VERSION_28_0)
+        reader_skip(r, 0x08);
+    reader_skip(r, 0x4C);
+
+    return true;
+}
+
 static void parse_fev_sound_def_def(fev_header_t* fev, reader_t* r) {
 
     // 0x00: playlist settings
@@ -551,7 +600,7 @@ static void parse_fev_sound_def_def(fev_header_t* fev, reader_t* r) {
 
 }
 
-static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r, char* fsb_wavebank_name) {
+static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r) {
     uint32_t entries, entry_type, stream_index;
 
     if (fev->version >= FMOD_FEV_VERSION_65_0)
@@ -590,18 +639,19 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r, char* fsb_waveba
                     if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r)) // bank name
                         return false;
                     // case should match, but some games have all-upper or all-lower filenames
-                    if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0)
+                    if (strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0)
                         is_target_bank = true;
                 }
 
                 // 0x00: stream index
                 // 0x04: (v0x08+) length in ms
                 stream_index = reader_u32(r);
+                if (fev->version >= FMOD_FEV_VERSION_8_0)
+                    reader_skip(r, 0x04);
+
                 // can have multiple names pointing to the same stream, FSB only stores the last one
                 if (is_target_bank && stream_index == fev->target_subsong && !strstr(fev->stream_name, stream_name))
                     fev->stream_name_len += append_fev_string(fev->stream_name, STREAM_NAME_SIZE, stream_name, fev->stream_name_len);
-                if (fev->version >= FMOD_FEV_VERSION_8_0)
-                    reader_skip(r, 0x04);
 
                 break;
             }
@@ -627,13 +677,209 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r, char* fsb_waveba
     return true;
 }
 
+static bool parse_fev_composition_segment(fev_header_t* fev, reader_t* r, uint32_t sgms_size) {
+    uint32_t sgms_end, chunk_size, target_segment_id = -1, target_sample_idx = 0;
+    uint32_t samples, strings, str_offset;
+    uint16_t entries;
+
+    sgms_end = r->offset - 0x08 + sgms_size;
+    if (sgms_end > get_streamfile_size(r->sf))
+        return false;
+
+    chunk_size = reader_u32(r);
+    if (reader_fev_chunk_id(fev, r) != get_id32be("sgmh")) // segment container header
+        return false;
+
+    entries = reader_u16(r);
+    for (int i = 0; i < entries; i++) {
+        char wavebank_name[STREAM_NAME_SIZE];
+        uint32_t segment_id, stream_index;
+        bool is_target_bank = false;
+
+        chunk_size = reader_u32(r);
+        if (reader_fev_chunk_id(fev, r) != get_id32be("sgmd")) // segment container data
+            return false;
+
+        // 0x00: segment id
+        // 0x04: theme
+        // 0x08: (v0x35+) timeline
+        // 0x0C: upper (u8), (<v0x33) bank name/subsong
+        // 0x0D: lower (u8)
+        // 0x0E: bpm
+        // 0x12: length
+        // 0x16: step sequence
+        segment_id = reader_u32(r);
+        reader_skip(r, 0x04);
+        if (fev->version >= FMOD_FEV_VERSION_53_0)
+            reader_skip(r, 0x04);
+        if (fev->version <  FMOD_FEV_VERSION_51_0) {
+            // moved to the "smp " chunk in later versions
+            if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r))
+                return false;
+            stream_index = reader_u32(r);
+
+            if (stream_index == fev->target_subsong &&
+                strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
+                //if (target_segment_id != -1 && target_segment_id != segment_id)
+                //    vgm_logi("FEV: Multiple matching Segment IDs\n");
+                target_segment_id = segment_id;
+            }
+        }
+        reader_skip(r, 0x0E);
+
+
+        if (fev->version >= FMOD_FEV_VERSION_51_0) {
+            chunk_size = reader_u32(r);
+            if (reader_fev_chunk_id(fev, r) != get_id32be("smps")) // sample container
+                return false;
+
+            chunk_size = reader_u32(r);
+            if (reader_fev_chunk_id(fev, r) != get_id32be("smph")) // sample container header
+                return false;
+
+            reader_skip(r, 0x01); // play mode (u8)
+            
+            samples = reader_u32(r);
+            for (int j = 0; j < samples; j++) {
+                chunk_size = reader_u32(r);
+                if (reader_fev_chunk_id(fev, r) != get_id32be("smp ")) // sample
+                    return false;
+
+                if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r))
+                    return false;
+                stream_index = reader_u32(r);
+
+                if (stream_index == fev->target_subsong &&
+                    strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
+                    // rare but multiple matches can occur, however their corresponding smpm data still points
+                    // to the same str chunk index [When Vikings Attack! (PSV) - portalboss_bank00.fsb#1,2,3,8]
+                    // TODO: try and map all these in the rare case they have multiple different names here too
+                    //if (target_segment_id != -1 && (target_segment_id != segment_id || target_sample_idx != j))
+                    //    vgm_logi("FEV: Multiple matching Segment IDs\n");
+                    target_segment_id = segment_id;
+                    target_sample_idx = j;
+                }
+            }
+        }
+    }
+
+    // the stream name map may not always be present, return false if we're
+    // beyond the expected end offset [Critter Crunch (PS3), Bolt (PC/X360)]
+    // TODO: maybe instead use the "cues" chunk for these? (meh)
+    if (r->offset >= sgms_end)
+        return (r->offset == sgms_end);
+
+    // [When Vikings Attack! (PSV), Superbrothers: Sword & Sworcery (Android)]
+    chunk_size = reader_u32(r);
+    if (reader_fev_chunk_id(fev, r) != get_id32be("smpf")) // sample filenames
+        return false;
+
+    chunk_size = reader_u32(r);
+    if (reader_fev_chunk_id(fev, r) != get_id32be("str ")) // string data
+        return false;
+    // 0x00: string count
+    // 0x04: string pointers[]
+    strings = reader_u32(r);
+    str_offset = r->offset;
+    // 0x00: string buffer size
+    // 0x04: string buffer[]
+    reader_skip(r, chunk_size - 0x0C);
+
+    chunk_size = reader_u32(r);
+    if (reader_fev_chunk_id(fev, r) != get_id32be("smpm")) // sample map
+        return false;
+
+    samples = reader_u32(r);
+    for (int i = 0; i < samples; i++) {
+        uint32_t segment_id, sample_idx, string_idx;
+        char stream_name[STREAM_NAME_SIZE];
+        uint32_t name_offset;
+
+        // 0x00: segment id
+        // 0x04: sample idx
+        // 0x08: string idx
+        segment_id = reader_u32(r);
+        sample_idx = reader_u32(r);
+        string_idx = reader_u32(r);
+        if (string_idx > strings)
+            return false;
+
+        if (segment_id == target_segment_id && sample_idx == target_sample_idx) {
+            name_offset = str_offset + read_u32le(str_offset + string_idx * 0x04, r->sf) + strings * 0x04 + 0x04;
+            read_string(stream_name, STREAM_NAME_SIZE, name_offset, r->sf);
+
+            if (!strstr(fev->stream_name, stream_name))
+                fev->stream_name_len += append_fev_string(fev->stream_name, STREAM_NAME_SIZE, stream_name, fev->stream_name_len);
+        }
+    }
+
+    return true;
+}
+
+static bool parse_fev_composition(fev_header_t* fev, reader_t* r) {
+    uint32_t comp_end, chunk_size, chunk_id;
+
+    chunk_size = reader_u32(r);
+    chunk_id = reader_fev_chunk_id(fev, r);
+
+    // should just be until EOF
+    if (chunk_id != get_id32be("comp")) // composition container header
+        return false;
+    comp_end = r->offset - 0x08 + chunk_size;
+    if (comp_end > get_streamfile_size(r->sf))
+        return false;
+
+    // similar to RIFF but reversed size/id order and no chunk alignment
+    while (r->offset < comp_end) {
+        chunk_size = reader_u32(r);
+        chunk_id = reader_fev_chunk_id(fev, r);
+        if (r->offset - 0x08 + chunk_size > comp_end)
+            return false;
+
+        switch (chunk_id) {
+            case 0x73657474: // "sett" music settings
+                // 0x00: volume
+                // 0x04: reverb
+                reader_skip(r, 0x08);
+                break;
+
+            case 0x6C6E6B73: // "lnks" link container
+                // sub-chunks: "lnkh", "lnk ", "lnkd", "cond", "cprm", "cms ", "cc  ", "lfsh", "lfsd"
+            case 0x63756573: // "cues" cue container
+                // sub-chunks: "entl"
+            case 0x70726D73: // "prms" parameter container
+                // sub-chunks: "prmh", "prmd", "entl"
+            case 0x73636E73: // "scns" scene container
+                // sub-chunks: "scnh", "scnd"
+            case 0x74686D73: // "thms" theme container
+                // sub-chunks: "thmh", "thm ", "thmd", "cond", "cprm", "cms ", "cc  "
+            case 0x746C6E73: // "tlns" timeline container
+                // sub-chunks: "tlnh", "tlnd"
+                reader_skip(r, chunk_size - 0x08);
+                break;
+
+            case 0x73676D73: // "sgms" segment container
+                // sub-chunks: "sgmh", "sgmd", "smps", "smph", "smp ", "smpf", "str ", "smpm"
+                if (!parse_fev_composition_segment(fev, r, chunk_size))
+                    return false;
+                break;
+
+            default:
+                vgm_logi("FEV: Unknown composition chunk %08X at 0x%X\n", chunk_id, r->offset);
+                return false;
+        }
+    }
+
+    return true;
+}
+
 
 // initial research based on this which appears to be for FEV v0x34~v0x38
 // https://github.com/xoreos/xoreos/blob/master/src/sound/fmodeventfile.cpp
 // further research from FMOD::EventSystemI::load in Split/Second's fmod_event.dll
 // lastly also found this project by putting fmod_event.dll's func name in github search
 // https://github.com/barspinoff/bmod/blob/main/tools/fmod_event/src/fmod_eventsystemi.cpp
-static bool parse_fev_main(fev_header_t* fev, reader_t* r, char* fsb_wavebank_name, bool is_riff) {
+static bool parse_fev_main(fev_header_t* fev, reader_t* r, bool is_riff) {
     uint32_t wave_banks, event_groups, sound_defs, languages = 1;
 
     fev->bank_name_idx = -1;
@@ -685,9 +931,9 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r, char* fsb_wavebank_na
             return false;
         // v0x41+ just store indices later, but this one isn't in RIFF>LIST>STRR
         if (fev->version >= FMOD_FEV_VERSION_65_0) {
-            if (strncasecmp(wavebank_name, fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
+            if (strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
                 if (fev->bank_name_idx != -1)
-                    vgm_logi("FEV: Multiple identical bank names!\n");
+                    vgm_logi("FEV: Multiple identical bank names\n");
                 fev->bank_name_idx = i;
             }
         }
@@ -702,10 +948,6 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r, char* fsb_wavebank_na
             return false;
     }
 
-    // finally at the sound defs which contain stream names;
-    // the same stream entry can exist in multiple sounddefs
-    // but only look for the 1st occurrence, unless you want
-    // something along the lines of multiple cue names each.
     if (fev->version >= FMOD_FEV_VERSION_46_0) {
         uint32_t sound_def_defs;
 
@@ -714,124 +956,34 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r, char* fsb_wavebank_na
             parse_fev_sound_def_def(fev, r);
     }
 
+    // a majority of stream names are contained within here
     sound_defs = reader_u32(r);
     for (int i = 0; i < sound_defs; i++) {
-        if (!parse_fev_sound_def(fev, r, fsb_wavebank_name))
+        if (!parse_fev_sound_def(fev, r))
             return false;
     }
 
-    // TODO: some files store stream names exclusively in the comp chunks later,
-    // some also are mixed with parts still in sound defs and parts only in comp
-#if 0
     if (fev->version >= FMOD_FEV_VERSION_21_0) {
         uint32_t reverb_defs;
 
         reverb_defs = reader_u32(r);
         for (int i = 0; i < reverb_defs; i++) {
-            if (!reader_fev_string(NULL, STREAM_NAME_SIZE, r)) // reverb def name
+            if (!parse_fev_reverb_def(fev, r))
                 return false;
-
-            // 0x00: room
-            // 0x04: room HF
-            // 0x08: DEPRECATED(?)
-            // 0x0C: decay time
-            // 0x10: decay HF ratio
-            // 0x14: reflections
-            // 0x18: reflections delay
-            // 0x1C: reverb
-            // 0x20: reverb delay
-            // 0x24: diffusion
-            // 0x28: density
-            // 0x2C: HF reference
-            // 0x30: (v0x1C+) room LF
-            // 0x34: (v0x1C+) LF reference
-            // 0x38: instance
-            // 0x3C: environment
-            // 0x40: DEPRECATED env size
-            // 0x44: env diffusion
-            // 0x48: room LF
-            // 0x4C: decay LF ratio
-            // 0x50: DEPRECATED reflections pan[3]
-            // 0x5C: DEPRECATED reverb pan[3]
-            // 0x68: DEPRECATED echo time
-            // 0x6C: DEPRECATED echo depth
-            // 0x70: modulation time
-            // 0x74: modulation depth
-            // 0x78: DEPRECATED air absorption HF
-            // 0x7C: LF reference
-            // 0x80: flags
-            reader_skip(r, 0x30);
-            if (fev->version >= FMOD_FEV_VERSION_28_0)
-                reader_skip(r, 0x08);
-            reader_skip(r, 0x4C);
         }
     }
 
-    // composition data, similar to RIFF layout
-    // [Critter Crunch (PS3), Bolt (PC/X360)]
+    // later FEVs also contain stream names within here too
     if (fev->version >= FMOD_FEV_VERSION_47_0) {
-        uint32_t comp_end, chunk_size, chunk_id;
-
-        chunk_size = reader_u32(r);
-        chunk_id = reader_u32(r);
-        // LE in v0x2F, BE in v0x30+ (official docs say the opposite)
-        if (fev->version >= FMOD_FEV_VERSION_48_0)
-            chunk_id = (chunk_id >> 24 | chunk_id >> 8 & 0xFF00 | (chunk_id & 0xFF00) << 8 | (chunk_id & 0xFF) << 24);
-
-        // should just be until EOF
-        if (chunk_id != get_id32be("comp"))
+        if (!parse_fev_composition(fev, r))
             return false;
-        comp_end = r->offset - 0x08 + chunk_size;
-        if (comp_end > get_streamfile_size(r->sf))
-            return false;
-
-        while (r->offset < comp_end) {
-            chunk_size = reader_u32(r);
-            chunk_id = reader_u32(r);
-            if (fev->version >= FMOD_FEV_VERSION_48_0)
-                chunk_id = (chunk_id >> 24 | chunk_id >> 8 & 0xFF00 | (chunk_id & 0xFF00) << 8 | (chunk_id & 0xFF) << 24);
-
-            switch (chunk_size) {
-                case 0x636F6D70: // "comp" composition container header, parsed earlier
-                    vgm_logi("FEV: Multiple composition headers\n");
-                    return false;
-
-                case 0x73657474: // "sett" music settings
-                    // 0x00: volume
-                    // 0x04: reverb
-                    reader_skip(r, 0x08);
-                    break;
-
-                case 0x6C6E6B73: // "lnks" link container
-                    // sub-chunks: "lnkh", "lnk ", "lnkd", "cond", "cprm", "cms ", "cc  ", "lfsh", "lfsd"
-                case 0x63756573: // "cues" cue container
-                    // sub-chunks: "entl"
-                case 0x70726D73: // "prms" parameter container
-                    // sub-chunks: "prmh", "prmd", "entl"
-                case 0x73636E73: // "scns" scene container
-                    // sub-chunks: "scnh", "scnd"
-                case 0x74686D73: // "thms" theme container
-                    // sub-chunks: "thmh", "thm ", "thmd", "cond", "cprm", "cms ", "cc  "
-                case 0x746C6E73: // "tlns" timeline container
-                    // sub-chunks: "tlnh", "tlnd"
-                case 0x73676D73: // "sgms" segment container
-                    // sub-chunks: "sgmh", "sgmd", "smpf", "str ", "smpm"
-                    reader_skip(r, chunk_size - 0x08);
-                    break;
-
-                default:
-                    vgm_logi("FEV: Unknown composition header chunk %08X at 0x%X\n", chunk_id, r->offset);
-                    return false;
-            }
-        }
     }
-#endif
 
     // can rarely have no name in both FSB/FEV [Stoked (X360)]
     return true;
 }
 
-static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name) {
+static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
     reader_t r = {0};
     off_t fev_offset;
     bool is_riff;
@@ -867,7 +1019,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf, char* fsb_wavebank_name
         fev->version > FMOD_FEV_VERSION_69_0)
         return false;
 
-    if (!parse_fev_main(fev, &r, fsb_wavebank_name, is_riff))
+    if (!parse_fev_main(fev, &r, is_riff))
         return false;
 
     /*

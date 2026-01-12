@@ -202,6 +202,9 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                         case 0x07:  /* DSP coefs */
                             fsb5.extradata_offset = extraflag_offset + 0x04;
                             break;
+                        case 0x08:  /* ATRAC9(?) 4ch+ config(?) [Tearaway (Vita)] */
+                            /* appears for 4ch streams only, usually 1, rarely 0 */
+                            break;
                         case 0x09:  /* ATRAC9 config */
                             fsb5.extradata_offset = extraflag_offset + 0x04;
                             fsb5.extradata_size = extraflag_size;
@@ -672,11 +675,10 @@ static void get_name(char* buf, size_t buf_size, int target_subsong, fsb5_header
 
     sf_fev = open_fev_filename_pair(sf_fsb);
     if (sf_fev) {
-        char filename[STREAM_NAME_SIZE];
-        get_streamfile_basename(sf_fsb, filename, STREAM_NAME_SIZE);
+        get_streamfile_basename(sf_fsb, fev.fsb_wavebank_name, STREAM_NAME_SIZE);
 
         fev.target_subsong = target_subsong - 1;
-        fev_parsed = parse_fev(&fev, sf_fev, filename);
+        fev_parsed = parse_fev(&fev, sf_fev);
         // should be just RIFF FEV, which contain a LGCY chunk with FEV1 data
         // (does not include newer joined RIFF FEV .bank files)
         if (!fev_parsed)

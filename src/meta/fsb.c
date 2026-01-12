@@ -684,15 +684,14 @@ static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* 
 
     sf_fev = open_fev_filename_pair(sf_fsb);
     if (sf_fev) {
-        char filename[STREAM_NAME_SIZE];
-        get_streamfile_basename(sf_fsb, filename, STREAM_NAME_SIZE);
+        get_streamfile_basename(sf_fsb, fev.fsb_wavebank_name, STREAM_NAME_SIZE);
 
         fev.target_subsong = sf_fsb->stream_index;
         if (fev.target_subsong == 0) fev.target_subsong = 1;
         fev.target_subsong--;
         // usually FEV1, but RIFF FEV also seen rarely used with FSB4 (around 2011)
         // [Marvel Super Hero Squad: Comic Combat (X360), Green Lantern: Rise of the Manhunters (PS3)]
-        fev_parsed = parse_fev(&fev, sf_fev, filename);
+        fev_parsed = parse_fev(&fev, sf_fev);
         if (!fev_parsed)
             vgm_logi("FSB: Failed to parse FEV data\n");
     }
