@@ -12,8 +12,13 @@ typedef struct {
 
     /* state */
     uint32_t version;
-    //uint32_t languages;
     int bank_name_idx;
+    //int languages;
+
+    int strings;
+    off_t string_ofs;
+    int samples;
+    off_t sample_ofs;
 
     /* output */
     char stream_name[STREAM_NAME_SIZE];
@@ -549,6 +554,7 @@ static bool parse_fev_reverb_def(fev_header_t* fev, reader_t* r) {
     return true;
 }
 
+
 static void parse_fev_sound_def_def(fev_header_t* fev, reader_t* r) {
 
     // 0x00: playlist settings
@@ -677,9 +683,50 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r) {
     return true;
 }
 
+
+static bool get_fev_composition_segment_name(fev_header_t* fev, reader_t* r, uint32_t target_segment_id, uint32_t target_sample_idx) {
+    char wavebank_name[STREAM_NAME_SIZE];
+    uint32_t stream_index;
+
+    // using reader_t, still part of the "sgmd" chunk
+    if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r))
+        return false;
+    stream_index = reader_u32(r);
+
+    // using standard sf i/o to read from later chunks if it matches
+    if (stream_index == fev->target_subsong &&
+        strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
+        // rare but multiple matches can occur, however their corresponding smpm data still points
+        // to the same str chunk index [When Vikings Attack! (PSV) - portalboss_bank00.fsb#1,2,3,8]
+        uint32_t segment_id, sample_idx, string_idx, name_offset;
+        char stream_name[STREAM_NAME_SIZE];
+
+        for (int i = 0; i < fev->samples; i++) {
+            segment_id = read_u32le(fev->sample_ofs + i * 0x0C + 0x00, r->sf);
+            sample_idx = read_u32le(fev->sample_ofs + i * 0x0C + 0x04, r->sf);
+            string_idx = read_u32le(fev->sample_ofs + i * 0x0C + 0x08, r->sf);
+            if (string_idx > fev->strings)
+                return false;
+
+            // still append, could be possible to still point to different names for the same
+            // target subsong, either from an earlier comp>sgms check, or from the sound defs
+            if (segment_id == target_segment_id && sample_idx == target_sample_idx) {
+                name_offset = fev->string_ofs + read_u32le(fev->string_ofs + string_idx * 0x04, r->sf) + fev->strings * 0x04 + 0x04;
+                read_string(stream_name, STREAM_NAME_SIZE, name_offset, r->sf);
+
+                if (!strstr(fev->stream_name, stream_name))
+                    fev->stream_name_len += append_fev_string(fev->stream_name, STREAM_NAME_SIZE, stream_name, fev->stream_name_len);
+
+                //break; // likely no duplicates of the same target segment id+sample idx?
+            }
+        }
+    }
+
+    return true;
+}
+
 static bool parse_fev_composition_segment(fev_header_t* fev, reader_t* r, uint32_t sgms_size) {
-    uint32_t sgms_end, chunk_size, target_segment_id = -1, target_sample_idx = 0;
-    uint32_t samples, strings, str_offset;
+    uint32_t sgms_end, chunk_size, entry_ofs;
     uint16_t entries;
 
     sgms_end = r->offset - 0x08 + sgms_size;
@@ -690,11 +737,58 @@ static bool parse_fev_composition_segment(fev_header_t* fev, reader_t* r, uint32
     if (reader_fev_chunk_id(fev, r) != get_id32be("sgmh")) // segment container header
         return false;
 
+
     entries = reader_u16(r);
+    entry_ofs = r->offset;
+
+    // to simplify things later on, skip ahead all of the segment containers first
+    // and check for the presence of "smpf", "str ", "smpm" chunks and store their
+    // offsets - they aren't always present [Critter Crunch (PS3), Bolt (PC/X360)]
     for (int i = 0; i < entries; i++) {
-        char wavebank_name[STREAM_NAME_SIZE];
-        uint32_t segment_id, stream_index;
-        bool is_target_bank = false;
+        chunk_size = reader_u32(r);
+        if (reader_fev_chunk_id(fev, r) != get_id32be("sgmd")) // segment container data
+            return false;
+        reader_skip(r, chunk_size - 0x08);
+    }
+    // return false if we're beyond the expected end offset
+    // maybe instead use the "cues" chunk for these? (meh)
+    if (r->offset >= sgms_end)
+        return (r->offset == sgms_end);
+
+
+    // [Superbrothers: Sword & Sworcery (Android), When Vikings Attack! (PSV)
+    //  Marvel Super Hero Squad: Comic Combat (X360), Shank (PC)]
+    chunk_size = reader_u32(r);
+    if (reader_fev_chunk_id(fev, r) != get_id32be("smpf")) // sample filenames
+        return false;
+
+    chunk_size = reader_u32(r);
+    if (reader_fev_chunk_id(fev, r) != get_id32be("str ")) // string data
+        return false;
+    // 0x00: string count
+    // 0x04: string pointers[]
+    fev->strings = reader_u32(r);
+    fev->string_ofs = r->offset;
+    // 0x00: string buffer size
+    // 0x04: string buffer[]
+    reader_skip(r, chunk_size - 0x0C);
+
+    chunk_size = reader_u32(r);
+    if (reader_fev_chunk_id(fev, r) != get_id32be("smpm")) // sample map
+        return false;
+    // 0x00: sample count
+    // 0x04: samples[]
+    fev->samples = reader_u32(r);
+    // 0x00: segment id
+    // 0x04: sample idx
+    // 0x08: string idx
+    fev->sample_ofs = r->offset;
+
+
+    // now properly parse these chunks and assign stream names
+    r->offset = entry_ofs;
+    for (int i = 0; i < entries; i++) {
+        uint32_t segment_id, samples;
 
         chunk_size = reader_u32(r);
         if (reader_fev_chunk_id(fev, r) != get_id32be("sgmd")) // segment container data
@@ -714,19 +808,10 @@ static bool parse_fev_composition_segment(fev_header_t* fev, reader_t* r, uint32
             reader_skip(r, 0x04);
         if (fev->version <  FMOD_FEV_VERSION_51_0) {
             // moved to the "smp " chunk in later versions
-            if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r))
+            if (!get_fev_composition_segment_name(fev, r, segment_id, 0))
                 return false;
-            stream_index = reader_u32(r);
-
-            if (stream_index == fev->target_subsong &&
-                strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
-                //if (target_segment_id != -1 && target_segment_id != segment_id)
-                //    vgm_logi("FEV: Multiple matching Segment IDs\n");
-                target_segment_id = segment_id;
-            }
         }
         reader_skip(r, 0x0E);
-
 
         if (fev->version >= FMOD_FEV_VERSION_51_0) {
             chunk_size = reader_u32(r);
@@ -738,80 +823,23 @@ static bool parse_fev_composition_segment(fev_header_t* fev, reader_t* r, uint32
                 return false;
 
             reader_skip(r, 0x01); // play mode (u8)
-            
+
             samples = reader_u32(r);
             for (int j = 0; j < samples; j++) {
                 chunk_size = reader_u32(r);
                 if (reader_fev_chunk_id(fev, r) != get_id32be("smp ")) // sample
                     return false;
-
-                if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r))
+                if (!get_fev_composition_segment_name(fev, r, segment_id, j))
                     return false;
-                stream_index = reader_u32(r);
-
-                if (stream_index == fev->target_subsong &&
-                    strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
-                    // rare but multiple matches can occur, however their corresponding smpm data still points
-                    // to the same str chunk index [When Vikings Attack! (PSV) - portalboss_bank00.fsb#1,2,3,8]
-                    // TODO: try and map all these in the rare case they have multiple different names here too
-                    //if (target_segment_id != -1 && (target_segment_id != segment_id || target_sample_idx != j))
-                    //    vgm_logi("FEV: Multiple matching Segment IDs\n");
-                    target_segment_id = segment_id;
-                    target_sample_idx = j;
-                }
             }
         }
     }
 
-    // the stream name map may not always be present, return false if we're
-    // beyond the expected end offset [Critter Crunch (PS3), Bolt (PC/X360)]
-    // TODO: maybe instead use the "cues" chunk for these? (meh)
-    if (r->offset >= sgms_end)
-        return (r->offset == sgms_end);
-
-    // [When Vikings Attack! (PSV), Superbrothers: Sword & Sworcery (Android)]
+    // and jump over this to align with the start of the next "comp" chunk
     chunk_size = reader_u32(r);
     if (reader_fev_chunk_id(fev, r) != get_id32be("smpf")) // sample filenames
         return false;
-
-    chunk_size = reader_u32(r);
-    if (reader_fev_chunk_id(fev, r) != get_id32be("str ")) // string data
-        return false;
-    // 0x00: string count
-    // 0x04: string pointers[]
-    strings = reader_u32(r);
-    str_offset = r->offset;
-    // 0x00: string buffer size
-    // 0x04: string buffer[]
-    reader_skip(r, chunk_size - 0x0C);
-
-    chunk_size = reader_u32(r);
-    if (reader_fev_chunk_id(fev, r) != get_id32be("smpm")) // sample map
-        return false;
-
-    samples = reader_u32(r);
-    for (int i = 0; i < samples; i++) {
-        uint32_t segment_id, sample_idx, string_idx;
-        char stream_name[STREAM_NAME_SIZE];
-        uint32_t name_offset;
-
-        // 0x00: segment id
-        // 0x04: sample idx
-        // 0x08: string idx
-        segment_id = reader_u32(r);
-        sample_idx = reader_u32(r);
-        string_idx = reader_u32(r);
-        if (string_idx > strings)
-            return false;
-
-        if (segment_id == target_segment_id && sample_idx == target_sample_idx) {
-            name_offset = str_offset + read_u32le(str_offset + string_idx * 0x04, r->sf) + strings * 0x04 + 0x04;
-            read_string(stream_name, STREAM_NAME_SIZE, name_offset, r->sf);
-
-            if (!strstr(fev->stream_name, stream_name))
-                fev->stream_name_len += append_fev_string(fev->stream_name, STREAM_NAME_SIZE, stream_name, fev->stream_name_len);
-        }
-    }
+    reader_skip(r, chunk_size - 0x08);
 
     return true;
 }
