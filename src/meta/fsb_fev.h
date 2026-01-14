@@ -129,7 +129,10 @@ static bool reader_fev_string(char* buf, size_t buf_size, reader_t* r) {
     // string size includes null terminator
     str_size = reader_u32(r);
     if (str_size > buf_size) return false;
-    if (str_size == 0x00) return true;
+    if (str_size == 0x00) {
+        buf[0] = '\x00';
+        return true;
+    }
 
     read_size = read_string(buf, buf_size, r->offset, r->sf);
     if (read_size != str_size - 1) return false;
@@ -404,7 +407,7 @@ static bool parse_fev_event(fev_header_t* fev, reader_t* r) {
     // 0x00: volume
     // 0x04: pitch
     // 0x08: (v0x1B+) pitch randomisation
-    // 0x0C: (v0x20+) volume randomisation
+    // 0x0C: (v0x20+) volume randomisation (inverted before v0x21)
     // 0x10: (v0x0A+) priority
     // 0x14: max playbacks
     // 0x18: (v0x38+) steal priority
@@ -418,7 +421,7 @@ static bool parse_fev_event(fev_header_t* fev, reader_t* r) {
     // 0x54: (v0x09+) cone inside angle
     // 0x58: (v0x09+) cone outside angle
     // 0x5C: (v0x09+) cone outside volume
-    // 0x60: (v0x0B+) max playbacks flags
+    // 0x60: (v0x0B+) max playbacks flags (0 if >4 before v0x23)
     // 0x64: (v0x0B+) doppler factor 3D
     // 0x68: (v0x1C+) reverb dry level
     // 0x6C: (v0x0B+) reverb wet level
@@ -629,7 +632,7 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r) {
     entries = reader_u32(r);
     for (int i = 0; i < entries; i++) {
         // 0x00: entry type
-        // 0x04: (v0x0E+) weight
+        // 0x04: (v0x0E+) weight (actually used from v0x11+?)
         entry_type = reader_u32(r);
         if (fev->version >= FMOD_FEV_VERSION_14_0)
             reader_skip(r, 0x04);
@@ -689,7 +692,7 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r) {
 }
 
 
-static bool get_fev_composition_segment_name(fev_header_t* fev, reader_t* r, uint32_t target_segment_id, uint32_t target_sample_idx) {
+static bool parse_fev_composition_segment_sample(fev_header_t* fev, reader_t* r, uint32_t target_segment_id, uint32_t target_sample_idx) {
     char wavebank_name[STREAM_NAME_SIZE];
     uint32_t stream_index;
 
@@ -813,7 +816,7 @@ static bool parse_fev_composition_segment(fev_header_t* fev, reader_t* r, uint32
             reader_skip(r, 0x04);
         if (fev->version <  FMOD_FEV_VERSION_51_0) {
             // moved to the "smp " chunk in later versions
-            if (!get_fev_composition_segment_name(fev, r, segment_id, 0))
+            if (!parse_fev_composition_segment_sample(fev, r, segment_id, 0))
                 return false;
         }
         reader_skip(r, 0x0E);
@@ -834,7 +837,7 @@ static bool parse_fev_composition_segment(fev_header_t* fev, reader_t* r, uint32
                 chunk_size = reader_u32(r);
                 if (reader_fev_chunk_id(fev, r) != get_id32be("smp ")) // sample
                     return false;
-                if (!get_fev_composition_segment_name(fev, r, segment_id, j))
+                if (!parse_fev_composition_segment_sample(fev, r, segment_id, j))
                     return false;
             }
         }
@@ -903,7 +906,7 @@ static bool parse_fev_composition(fev_header_t* fev, reader_t* r) {
         }
     }
 
-    return true;
+    return (r->offset == comp_end);
 }
 
 
@@ -952,7 +955,7 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r, bool is_riff) {
         // 0x04: (v0x14+) max streams
         // 0x08: (v0x3D+) hash[langs] (u64)
         // 0x10: (v0x41+) fsb suffix[langs] (interleaved)
-        // 0x10: FSB bank name (should match filename)
+        // 0x14: FSB bank name (should match filename)
         reader_skip(r, 0x04);
         if (fev->version >= FMOD_FEV_VERSION_20_0)
             reader_skip(r, 0x04);
