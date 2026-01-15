@@ -130,7 +130,7 @@ static bool reader_fev_string(char* buf, size_t buf_size, reader_t* r) {
     str_size = reader_u32(r);
     if (str_size > buf_size) return false;
     if (str_size == 0x00) {
-        buf[0] = '\x00';
+        if (buf) buf[0] = '\0';
         return true;
     }
 
