@@ -90,9 +90,10 @@ typedef struct {
     /* extra info (may be 0 if not known or not relevant) */
     uint32_t channel_layout;                // standard WAVE bitflags, 0 if unset or non-standard
 
-    int subsong_index;                      // 0 = none, N = loaded subsong N (1=first)
+    int subsong_index;                      // 0 = none, N = loaded subsong N where 1=first
     int subsong_count;                      // 0 = format has no concept of subsongs, N = has N subsongs
                                             // ** 1 = format has subsongs, and only 1 for current file
+                                            // ** subsongs are separate streams with different config
 
     int input_channels;                     // original file's channels before downmixing (if any)
     //int interleave;                       // when file is interleaved
@@ -109,7 +110,8 @@ typedef struct {
                                             // ** true + undefined loops means the file loops in a way not representable by loop points
     //bool rough_samples;                   // signal cases where loop points or sample count can't exactly reflect actual behavior
 
-    bool play_forever;                      // if file loops forever based on current config (meaning _play never stops)
+    bool play_forever;                      // if file loops forever based on current config (meaning libvgmstream_render/fill never stops)
+
     int64_t play_samples;                   // totals after all calculations (after applying loop/fade/etc config)
                                             // ** may not be 100% accurate in some cases (check decoder's 'done' flag to stop)
                                             // ** if play_forever is set this is still provided for reference based on non-forever config

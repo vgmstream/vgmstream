@@ -1117,6 +1117,12 @@ int ffmpeg_get_sample_rate(ffmpeg_codec_data* data) {
     return data->codecCtx->sample_rate;
 }
 
+int ffmpeg_get_frame_samples(ffmpeg_codec_data* data) {
+    if (!data || !data->codecCtx)
+        return 0;
+    return data->codecCtx->frame_size;
+}
+
 int ffmpeg_get_channels(ffmpeg_codec_data* data) {
     if (!data || !data->codecCtx)
         return 0;
