@@ -1590,6 +1590,9 @@ static const hcakey_info hcakey_list[] = {
     // Towa and the Guardians of the Sacred Tree (multi)
     {2024060613531654235},      // 1C16E8677169D85B
 
+    // Gakuen Bungo Stray Dogs (Android)
+    {5954769908396182294},      // 52A397AE9523CB16
+
 };
 
 #endif
