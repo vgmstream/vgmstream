@@ -604,6 +604,7 @@ int32_t ffmpeg_get_samples(ffmpeg_codec_data* data);
 int ffmpeg_get_sample_rate(ffmpeg_codec_data* data);
 int ffmpeg_get_channels(ffmpeg_codec_data* data);
 int ffmpeg_get_subsong_count(ffmpeg_codec_data* data);
+int ffmpeg_get_frame_samples(ffmpeg_codec_data* data);
 
 STREAMFILE* ffmpeg_get_streamfile(ffmpeg_codec_data* data);
 
@@ -715,7 +716,8 @@ void xma_fix_raw_samples_ch(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t stream_o
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
 size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
-size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
+int32_t aac_get_samples(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes);
+int32_t aac_get_samples_fs(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes, int frame_samples);
 int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay);
 
 
