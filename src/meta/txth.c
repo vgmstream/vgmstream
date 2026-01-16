@@ -799,7 +799,7 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
     }
     //todo: other combos with subsongs + subfile?
 
-    if (txth->name_offset_set) {
+    if (txth->name_offset_set && txth->sf_head) {
         read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, txth->name_size, txth->name_offset, txth->sf_head);
     }
 
@@ -933,11 +933,11 @@ static void set_body_chunk(txth_header* txth) {
 }
 
 static int parse_keyval(STREAMFILE* sf, txth_header* txth, const char* key, char* val);
-static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value);
+static bool parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value);
 static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str, int str_len);
-static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size);
-static int parse_name_table(txth_header* txth, char* val);
-static int parse_multi_txth(txth_header* txth, char* val);
+static bool parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size);
+static bool parse_name_table(txth_header* txth, char* val);
+static bool parse_multi_txth(txth_header* txth, char* val);
 static int is_string(const char* val, const char* cmp);
 static int get_bytes_to_samples(txth_header* txth, uint32_t bytes);
 static int get_padding_size(txth_header* txth, int discard_empty);
@@ -1746,6 +1746,11 @@ static int is_string_match(const char* text, const char* pattern) {
 }
 
 static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str, int str_len) {
+    if (!sf) { //not needed but...
+        VGM_LOG("TXTH: wrong header SF\n");
+        return false;
+    }
+
     int n = 0;
 
     if (strlen(val) >= str_len)
@@ -1757,7 +1762,12 @@ static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char
     return n;
 }
 
-static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size) {
+static bool parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size) {
+    if (!sf) { //not needed but...
+        VGM_LOG("TXTH: wrong header SF\n");
+        return false;
+    }
+
     uint32_t byte;
     int done = 0;
 
@@ -1771,18 +1781,16 @@ static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, 
         if (val[0] == '0' && val[1] == 'x')  /* allow "0x" before values */
             val += 2;
         if (sscanf(val, " %2x", &byte) != 1)
-            goto fail;
+            return false;
         if (done + 1 >= out_size)
-            goto fail;
+            return false;
 
         out_value[done] = (uint8_t)byte;
         done++;
         val += 2;
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 static int read_name_table_keyval(txth_header* txth, const char* line, char* key, char* val) {
@@ -1851,7 +1859,7 @@ fail:
     return 0;
 }
 
-static int parse_name_table(txth_header* txth, char* set_name) {
+static bool parse_name_table(txth_header* txth, char* set_name) {
     STREAMFILE* sf_names = NULL;
     off_t txt_offset, file_size;
     char fullname[PATH_LIMIT];
@@ -1936,14 +1944,14 @@ static int parse_name_table(txth_header* txth, char* set_name) {
     /* ignore if name is not actually found (values will return 0) */
 
     close_streamfile(sf_names);
-    return 1;
+    return true;
 fail:
     close_streamfile(sf_names);
-    return 0;
+    return false;
 }
 
 
-static int parse_multi_txth(txth_header* txth, char* names) {
+static bool parse_multi_txth(txth_header* txth, char* names) {
     STREAMFILE* sf_text = NULL;
     char name[PATH_LIMIT];
     int n, ok;
@@ -1988,14 +1996,14 @@ static int parse_multi_txth(txth_header* txth, char* names) {
 
     txth->is_multi_txth--;
     txth->sf_text = sf_text;
-    return 1;
+    return true;
 fail:
     txth->is_multi_txth--;
     txth->sf_text = sf_text;
-    return 0;
+    return false;
 }
 
-static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value) {
+static bool parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value) {
     /* out_value can be these, save before modifying */
     uint32_t value_mul = txth->value_mul;
     uint32_t value_div = txth->value_div;
@@ -2042,7 +2050,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
 
             /* can happen when loading .txth and not setting body/head */
             if (!sf) {
-                VGM_LOG("TXTH: wrong header\n");
+                VGM_LOG("TXTH: wrong header SF\n");
                 goto fail;
             }
 
@@ -2198,14 +2206,20 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
     if (txth->debug)
         vgm_logi("TXTH:  final value: %u (0x%x)\n", result, result);
 
-    return 1;
+    return true;
 fail:
     if (txth->debug)
         vgm_logi("TXTH: error parsing num '%s'\n", val);
-    return 0;
+    return false;
 }
 
 static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
+    // not common but just in case
+    if (!txth->sf_body) {
+        VGM_LOG("TXTH: wrong body SF\n");
+        return 0;
+    }
+
     switch(txth->codec) {
         case MS_IMA:
             if (txth->interleave && txth->frame_size) /* mono mode */ //TODO maybe some helper instead
@@ -2326,6 +2340,11 @@ static uint32_t find_padding(STREAMFILE* sf, uint32_t start_offset, uint32_t dat
 }
 
 static int get_padding_size(txth_header* txth, int discard_empty) {
+    if (!txth->sf_body) {
+        VGM_LOG("TXTH: wrong body SF\n");
+        return 0;
+    }
+
     if (txth->data_size == 0 || txth->channels == 0)
         return 0;
 
