@@ -210,46 +210,23 @@ static libstreamfile_t* test_libsf_open() {
     return libsf;
 }
 
-
 static void test_libsf_read(libstreamfile_t* libsf) {
     VGM_STEP();
 
     int read;
     uint8_t buf[0x20];
 
-    read = libsf->read(libsf->user_data, buf, sizeof(buf));
+    read = libsf->read(libsf->user_data, buf, sizeof(buf), 0x00);
     assert(read == sizeof(buf));
     for (int  i = 0; i < sizeof(buf); i++) {
         assert(buf[i] == ((i + 0x00) & 0xFF));
     }
 
-    read = libsf->read(libsf->user_data, buf, sizeof(buf));
+    read = libsf->read(libsf->user_data, buf, sizeof(buf), 0x20);
     assert(read == sizeof(buf));
     for (int  i = 0; i < sizeof(buf); i++) {
         assert(buf[i] == ((i + 0x20) & 0xFF));
     }
-}
-
-static void test_libsf_seek_read(libstreamfile_t* libsf) {
-    VGM_STEP();
-
-    int read, res;
-    uint8_t buf[0x20];
-
-    res = libsf->seek(libsf->user_data, 0x19BC0, 0);
-    assert(res == 0);
-
-    read = libsf->read(libsf->user_data, buf, sizeof(buf));
-    assert(read == sizeof(buf));
-    for (int  i = 0; i < sizeof(buf); i++) {
-        assert(buf[i] == ((i + 0xC0) & 0xFF));
-    }
-
-    res = libsf->seek(libsf->user_data, 0x7FFFFF, 0);
-    assert(res == 0);
-
-    read = libsf->read(libsf->user_data, buf, sizeof(buf));
-    assert(read == 0);
 }
 
 static void test_libsf_size(libstreamfile_t* libsf) {
@@ -280,7 +257,7 @@ static void test_libsf_reopen(libstreamfile_t* libsf) {
     newsf = libsf->open(libsf->user_data, "api2.bin");
     assert(newsf != NULL);
 
-    read = newsf->read(newsf->user_data, buf, sizeof(buf));
+    read = newsf->read(newsf->user_data, buf, sizeof(buf), 0x00);
     assert(read == sizeof(buf));
     assert(buf[0x10] == 0x10);
 
@@ -315,7 +292,6 @@ static void test_lib_streamfile() {
 
     libstreamfile_t* libsf = test_libsf_open();
     test_libsf_read(libsf);
-    test_libsf_seek_read(libsf);
     test_libsf_size(libsf);
     test_libsf_name(libsf);
     test_libsf_reopen(libsf);
