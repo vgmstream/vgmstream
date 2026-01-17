@@ -148,6 +148,13 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
     priv->dec.buf_bytes = buf_copied * priv->buf.sample_size * priv->buf.channels;
     priv->dec.done = done;
 
+    // since _fill is used mainly for fixed bufs, blank samples after EOF in case caller only handles exactly buf_samples
+    if (done) {
+        int buf_left = buf_samples - buf_copied;
+        int bytes_bytes = buf_left * priv->buf.sample_size * priv->buf.channels;
+        memset( ((uint8_t*)buf) + (priv->dec.buf_bytes), 0, bytes_bytes);
+    }
+
     return 0;
 }
 
