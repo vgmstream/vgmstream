@@ -158,9 +158,9 @@
     <ClInclude Include="meta\encrypted_mc161_streamfile.h" />
     <ClInclude Include="meta\fsb5_streamfile.h" />
     <ClInclude Include="meta\fsb_encrypted_streamfile.h" />
+    <ClInclude Include="meta\fsb_fev.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb_keys.h" />
-    <ClInclude Include="meta\fsb_fev.h" />
     <ClInclude Include="meta\hca_bf.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\hca_keys_awb.h" />
@@ -488,6 +488,7 @@
     <ClCompile Include="meta\bsf.c" />
     <ClCompile Include="meta\btsnd.c" />
     <ClCompile Include="meta\bwav.c" />
+    <ClCompile Include="meta\bwav_warthog.c" />
     <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\caf.c" />
     <ClCompile Include="meta\cf_df.c" />
