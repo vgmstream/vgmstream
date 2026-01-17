@@ -93,6 +93,13 @@ void reset_acm(acm_codec_data* data) {
     acm_seek_pcm(data->handle, 0);
 }
 
+void seek_acm(acm_codec_data* data, int32_t seek_sample) {
+    if (!data || !data->handle)
+        return;
+
+    acm_seek_pcm(data->handle, seek_sample);
+}
+
 void free_acm(acm_codec_data* data) {
     if (!data)
         return;

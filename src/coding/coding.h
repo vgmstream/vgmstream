@@ -154,6 +154,7 @@ typedef struct acm_codec_data acm_codec_data;
 acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number);
 void decode_acm(acm_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channelspacing);
 void reset_acm(acm_codec_data* data);
+void seek_acm(acm_codec_data* data, int32_t sample);
 void free_acm(acm_codec_data* data);
 void get_info_acm(acm_codec_data* data, int* p_channels, int* p_sample_rate, int* p_samples);
 STREAMFILE* acm_get_streamfile(acm_codec_data* data);
