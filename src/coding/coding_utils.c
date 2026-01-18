@@ -648,6 +648,13 @@ int32_t aac_get_samples_fs(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes
         samples_per_frame = 1024;
     }
 
+    // apparently ID3 can be pasted on .aac, rarely (not really used in games but skip anyway)
+    uint32_t header = read_u32be(offset, sf);
+    size_t tag_size = mpeg_get_tag_size(sf, offset, header);
+    if (tag_size) {
+        offset += tag_size;
+    }
+
     /* AAC uses VBR so must read all frames */
     int frames = 0;
     while (offset < max_offset) {
