@@ -1813,6 +1813,9 @@
     <ClCompile Include="meta\ogv_3rdeye.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\omt.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\omu.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

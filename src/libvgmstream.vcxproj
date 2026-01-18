@@ -661,6 +661,7 @@
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\ogv_3rdeye.c" />
+    <ClCompile Include="meta\omt.c" />
     <ClCompile Include="meta\omu.c" />
     <ClCompile Include="meta\oor.c" />
     <ClCompile Include="meta\opus.c" />
