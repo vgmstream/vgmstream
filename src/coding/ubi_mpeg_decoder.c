@@ -172,13 +172,25 @@ static bool decode_frame_ubimpeg(VGMSTREAM* v) {
         return false;
     }
 
-    // should not happen as it's handled via surr_modes
+    int output_channels = data->info_main.channels;
     if (data->info_main.channels != v->channels) {
-        VGM_LOG_ONCE("UBI MPEG: mismatched channels %i vs %i\n", data->info_main.channels, v->channels);
-        return false;
+        if (data->info_main.channels == 1 && v->channels == 2 && data->surr_mode == UBIMPEG_SURR_NONE) {
+            // voice .bnm + Ubi-MPEG sets 2 channels but uses mono frames (no xRUS). Seemingly their MPEG
+            // engine only handles stereo and must dupe L, which internally is done during the synth phase.
+            // (without this sbuf will handle it as silent R)
+            for (int i = samples - 1; i >= 0; i--) {
+                data->fbuf[i * 2 + 1] = data->fbuf[i];
+                data->fbuf[i * 2 + 0] = data->fbuf[i];
+            }
+            output_channels = v->channels;
+        }
+        else {
+            VGM_LOG_ONCE("UBI MPEG: mismatched channels %i vs %i\n", data->info_main.channels, v->channels);
+            return false;
+        }
     }
 
-    sbuf_init_flt(&ds->sbuf, data->fbuf, samples, data->info_main.channels);
+    sbuf_init_flt(&ds->sbuf, data->fbuf, samples, output_channels);
     ds->sbuf.filled = samples;
 
     if (data->initial_discard) {

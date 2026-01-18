@@ -95,16 +95,6 @@ int mp3dec_decode_frame_ubimpeg(
             L12_apply_scf_384(sci_main, sci_main->scf + igr, scratch_main.grbuf[0]);
 
             // ubi-mpeg extra: apply surround coefs before synth
-            if (surr_mode == UBIMPEG_SURR_NONE) {
-                // voice .bnm + Ubi-MPEG sets 2 channels but uses mono frames (no xRUS). Seemingly their MPEG
-                // engine only handles stereo and must dupe L (without this sbuf would only output left)
-                // (could be done after synth for performance reasons, meh...)
-                for (int i = 0; i < 384; i++) {
-                    scratch_main.grbuf[1][i] -= scratch_main.grbuf[0][i]; // R = L
-                }
-                info_main->channels = 2;
-            }
-
             if (surr_mode == UBIMPEG_SURR_FAKE) {
                 for (int i = 0; i < 384; i++) {
                     scratch_main.grbuf[1][i] -= scratch_main.grbuf[0][i]; // R - L
