@@ -75,7 +75,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_kcey,
     init_vgmstream_rstm_rockstar,
     init_vgmstream_acm,
-    init_vgmstream_mus_acm,
     init_vgmstream_vig_kces,
     init_vgmstream_hxd,
     init_vgmstream_vsv,
@@ -512,6 +511,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_wd,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
+    init_vgmstream_mus_acm,
     init_vgmstream_afc,
     init_vgmstream_agsc,
     init_vgmstream_scd_pcm,

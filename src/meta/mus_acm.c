@@ -19,6 +19,9 @@ VGMSTREAM* init_vgmstream_mus_acm(STREAMFILE* sf) {
 
 
     /* checks */
+    uint64_t value = read_u64be(0x00,sf); // skip fourccs since .mus is generic
+    if (!is_text64(value))
+        return NULL;
     if (!check_extensions(sf, "mus"))
         return NULL;
 

@@ -129,3 +129,21 @@ size_t read_string_utf16le(char* buf, size_t buf_size, off_t offset, STREAMFILE*
 size_t read_string_utf16be(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf) {
     return read_string_utf16(buf, buf_size, offset, sf, 1);
 }
+
+/* simple text detection, mainly to reject formats that start with fourcc + size (which includes low bytes)
+ * Could be improved but allows high bits for UTF-8 and bytes after \r \n
+ */
+bool is_text32(uint32_t value) {
+    // naive approach, doesn't seem optimized by compilers
+    //if ((value & 0xFF000000) < 0x0A000000) return 1;
+    //if ((value & 0x00FF0000) < 0x000A0000) return 1;
+    //if ((value & 0x0000FF00) < 0x00000A00) return 1;
+    //if ((value & 0x000000FF) < 0x0000000A) return 1;
+
+    // remove bytes and check underflow bits, after removing original high bits
+    return (((value - 0x0A0A0A0A) & ~value) & 0x80808080) == 0;
+}
+
+bool is_text64(uint64_t value) {
+    return (((value - 0x0A0A0A0A0A0A0A0AUL) & ~value) & 0x8080808080808080UL) == 0;
+}

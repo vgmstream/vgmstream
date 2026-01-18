@@ -3,6 +3,7 @@
 #include "../layout/layout.h"
 #include "txth_streamfile.h"
 #include "../util/text_reader.h"
+#include "../util/reader_text.h"
 #include "../util/endianness.h"
 #include "../util/paths.h"
 #include "../util/companion_files.h"
@@ -184,7 +185,6 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     txth_header txth = {0};
     coding_t coding;
-    int i, j;
 
 
     /* accept .txth (should set body_file or will fail later) */
@@ -549,9 +549,9 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 read_s16_t read_s16 = txth.coef_big_endian ? read_s16be : read_s16le;
                 get_s16_t get_s16 =txth.coef_big_endian ? get_s16be : get_s16le;
 
-                for (i = 0; i < vgmstream->channels; i++) {
+                for (int i = 0; i < vgmstream->channels; i++) {
                     if (txth.coef_mode == 0) { /* normal coefs */
-                        for (j = 0; j < 16; j++) {
+                        for (int j = 0; j < 16; j++) {
                             int16_t coef;
                             if (txth.coef_table_set)
                                 coef =  get_s16(txth.coef_table  + i*txth.coef_spacing  + j*2);
@@ -561,7 +561,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                         }
                     }
                     else { /* split coefs (first all 8 positive, then all 8 negative [P.N.03 (GC), Viewtiful Joe (GC)] */
-                        for (j = 0; j < 8; j++) {
+                        for (int j = 0; j < 8; j++) {
                             vgmstream->ch[i].adpcm_coef[j*2+0] = read_s16(txth.coef_offset + i*txth.coef_spacing + j*2 + 0x00, txth.sf_head);
                             vgmstream->ch[i].adpcm_coef[j*2+1] = read_s16(txth.coef_offset + i*txth.coef_spacing + j*2 + 0x10, txth.sf_head);
                         }
@@ -573,7 +573,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             if (txth.hist_set) {
                 read_s16_t read_s16 = txth.hist_big_endian ? read_s16be : read_s16le;
 
-                for (i = 0; i < vgmstream->channels; i++) {
+                for (int i = 0; i < vgmstream->channels; i++) {
                     off_t offset = txth.hist_offset + i*txth.hist_spacing;
                     vgmstream->ch[i].adpcm_history1_16 = read_s16(offset + 0x00, txth.sf_head);
                     vgmstream->ch[i].adpcm_history2_16 = read_s16(offset + 0x02, txth.sf_head);
