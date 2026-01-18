@@ -194,6 +194,9 @@
     <ClInclude Include="coding\libs\minimp3.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\minimp3_vgmstream.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\mio_erisacontext.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -917,6 +920,9 @@
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\libacm_util.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\minimp3_vgmstream.c">
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\mio_erisacontext.c">
@@ -2455,10 +2461,10 @@
     <ClCompile Include="util\paths.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="util\reader.c">
+    <ClCompile Include="util\reader_put.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="util\reader_put.c">
+    <ClCompile Include="util\reader_text.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\sf_utils.c">

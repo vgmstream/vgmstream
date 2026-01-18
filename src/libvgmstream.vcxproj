@@ -120,6 +120,7 @@
     <ClInclude Include="coding\libs\ka1a_dec_data.h" />
     <ClInclude Include="coding\libs\libacm.h" />
     <ClInclude Include="coding\libs\minimp3.h" />
+    <ClInclude Include="coding\libs\minimp3_vgmstream.h" />
     <ClInclude Include="coding\libs\mio_erisacontext.h" />
     <ClInclude Include="coding\libs\mio_erisafile.h" />
     <ClInclude Include="coding\libs\mio_erisamatrix.h" />
@@ -363,6 +364,7 @@
     <ClCompile Include="coding\libs\ka1a_dec.c" />
     <ClCompile Include="coding\libs\libacm_decode.c" />
     <ClCompile Include="coding\libs\libacm_util.c" />
+    <ClCompile Include="coding\libs\minimp3_vgmstream.c" />
     <ClCompile Include="coding\libs\mio_erisacontext.c" />
     <ClCompile Include="coding\libs\mio_erisafile.c" />
     <ClCompile Include="coding\libs\mio_erisamatrix.c" />
@@ -875,8 +877,8 @@
     <ClCompile Include="util\meta_utils.c" />
     <ClCompile Include="util\miniz.c" />
     <ClCompile Include="util\paths.c" />
-    <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\reader_put.c" />
+    <ClCompile Include="util\reader_text.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\spu_utils.c" />
     <ClCompile Include="util\text_reader.c" />

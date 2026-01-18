@@ -2,7 +2,6 @@
 #include "reader_sf.h"
 #include "endianness.h"
 
-/* **************************************************** */
 
 size_t read_line(char* buf, int buf_size, off_t offset, STREAMFILE* sf, int* p_line_ok) {
     int i;
