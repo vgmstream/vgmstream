@@ -9,8 +9,20 @@ VGMSTREAM* init_vgmstream_txtp(STREAMFILE* sf) {
     bool ok;
 
     /* checks */
+    #if 0
+    if (!is_mini_txtp) {
+        uint32_t value1 = read_u32be(0x00,sf);
+        uint32_t value2 = read_u32be(0x04,sf); // first 2 value to skip fourccs
+        if (!is_text32(value1) || !is_text32(value2)) {
+            VGM_LOG("not text\n");
+            return NULL;
+        }
+    }
+    #endif
+
     if (!check_extensions(sf, "txtp"))
-        goto fail;
+        return NULL;
+    bool is_mini_txtp = get_streamfile_size(sf) == 0;
 
     /* read .txtp with all files and settings */
     txtp = txtp_parse(sf);
@@ -27,7 +39,7 @@ VGMSTREAM* init_vgmstream_txtp(STREAMFILE* sf) {
 
     /* flags for title config */
     vgmstream->config.is_txtp = true;
-    vgmstream->config.is_mini_txtp = (get_streamfile_size(sf) == 0);
+    vgmstream->config.is_mini_txtp = is_mini_txtp;
 
     txtp_clean(txtp);
     return vgmstream;

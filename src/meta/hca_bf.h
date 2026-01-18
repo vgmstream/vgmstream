@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/reader_text.h"
 
 #ifdef HCA_BRUTEFORCE
 #define HCA_BF_CHUNK 0x48000008 //~1GB (int), extra size for keys in between chunks

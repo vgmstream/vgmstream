@@ -1059,6 +1059,16 @@ const char* ffmpeg_get_codec_name(ffmpeg_codec_data* data) {
     return NULL;
 }
 
+const char* ffmpeg_get_format_name(ffmpeg_codec_data* data) {
+    if (!data || !data->formatCtx || !data->formatCtx->iformat)
+        return NULL;
+    if (data->formatCtx->iformat->long_name)
+        return data->formatCtx->iformat->long_name;
+    if (data->formatCtx->iformat->name)
+        return data->formatCtx->iformat->name;
+    return NULL;
+}
+
 void ffmpeg_set_force_seek(ffmpeg_codec_data* data) {
     if (!data)
         return;
@@ -1115,6 +1125,12 @@ int ffmpeg_get_sample_rate(ffmpeg_codec_data* data) {
     if (!data || !data->codecCtx)
         return 0;
     return data->codecCtx->sample_rate;
+}
+
+int ffmpeg_get_frame_samples(ffmpeg_codec_data* data) {
+    if (!data || !data->codecCtx)
+        return 0;
+    return data->codecCtx->frame_size;
 }
 
 int ffmpeg_get_channels(ffmpeg_codec_data* data) {

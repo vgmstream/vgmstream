@@ -120,6 +120,7 @@
     <ClInclude Include="coding\libs\ka1a_dec_data.h" />
     <ClInclude Include="coding\libs\libacm.h" />
     <ClInclude Include="coding\libs\minimp3.h" />
+    <ClInclude Include="coding\libs\minimp3_vgmstream.h" />
     <ClInclude Include="coding\libs\mio_erisacontext.h" />
     <ClInclude Include="coding\libs\mio_erisafile.h" />
     <ClInclude Include="coding\libs\mio_erisamatrix.h" />
@@ -158,9 +159,9 @@
     <ClInclude Include="meta\encrypted_mc161_streamfile.h" />
     <ClInclude Include="meta\fsb5_streamfile.h" />
     <ClInclude Include="meta\fsb_encrypted_streamfile.h" />
+    <ClInclude Include="meta\fsb_fev.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb_keys.h" />
-    <ClInclude Include="meta\fsb_fev.h" />
     <ClInclude Include="meta\hca_bf.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\hca_keys_awb.h" />
@@ -363,6 +364,7 @@
     <ClCompile Include="coding\libs\ka1a_dec.c" />
     <ClCompile Include="coding\libs\libacm_decode.c" />
     <ClCompile Include="coding\libs\libacm_util.c" />
+    <ClCompile Include="coding\libs\minimp3_vgmstream.c" />
     <ClCompile Include="coding\libs\mio_erisacontext.c" />
     <ClCompile Include="coding\libs\mio_erisafile.c" />
     <ClCompile Include="coding\libs\mio_erisamatrix.c" />
@@ -488,6 +490,7 @@
     <ClCompile Include="meta\bsf.c" />
     <ClCompile Include="meta\btsnd.c" />
     <ClCompile Include="meta\bwav.c" />
+    <ClCompile Include="meta\bwav_warthog.c" />
     <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\caf.c" />
     <ClCompile Include="meta\cf_df.c" />
@@ -874,8 +877,8 @@
     <ClCompile Include="util\meta_utils.c" />
     <ClCompile Include="util\miniz.c" />
     <ClCompile Include="util\paths.c" />
-    <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\reader_put.c" />
+    <ClCompile Include="util\reader_text.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\spu_utils.c" />
     <ClCompile Include="util\text_reader.c" />

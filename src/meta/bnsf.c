@@ -8,6 +8,7 @@
 #ifdef VGM_USE_G7221
 //#define BNSF_BRUTEFORCE
 #ifdef BNSF_BRUTEFORCE
+#include "../util/reader_text.h"
 static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, uint8_t* best_key);
 #endif
 static void find_bnsf_key(STREAMFILE *sf, off_t start, g7221_codec_data *data, uint8_t *best_key);

@@ -1548,9 +1548,6 @@ static const hcakey_info hcakey_list[] = {
     // NARUTO X BORUTO NINJA VOLTAGE (Android)
     {15607939238842976091u},    // D89A8A0B171DC75B
 
-    // Kingdom Hearts 3 (Steam)
-    {10095514444067761537u},    // 8C1A78E6077BED81
-
     // Muv-Luv Dimensions (Android)
     {8848},                     // 0000000000002290
 
@@ -1592,6 +1589,9 @@ static const hcakey_info hcakey_list[] = {
 
     // Towa and the Guardians of the Sacred Tree (multi)
     {2024060613531654235},      // 1C16E8677169D85B
+
+    // Gakuen Bungo Stray Dogs (Android)
+    {5954769908396182294},      // 52A397AE9523CB16
 
 };
 

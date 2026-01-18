@@ -134,6 +134,10 @@ void decode_seek(VGMSTREAM* vgmstream, int32_t sample) {
     }
 #endif
 
+    if (vgmstream->coding_type == coding_ACM) {
+        seek_acm(vgmstream->codec_data, sample);
+    }
+
     if (vgmstream->coding_type == coding_NWA) {
         seek_nwa(vgmstream->codec_data, sample);
     }

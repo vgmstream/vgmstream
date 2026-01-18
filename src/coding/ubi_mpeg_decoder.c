@@ -3,15 +3,11 @@
 #include "../base/decode_state.h"
 #include "../base/codec_info.h"
 #include "libs/ubi_mpeg_helpers.h"
-
-#define MINIMP3_FLOAT_OUTPUT
-#define MINIMP3_NO_SIMD
-#define MINIMP3_IMPLEMENTATION
-#include "libs/minimp3.h"
+#include "libs/minimp3_vgmstream.h"
 
 //TODO: needed for smoother segments, but not sure if block samples counts this
 // (usually blocks' frames have more samples than defined but not always; maybe should output delay's samples at EOF)
-#define UBIMPEG_INITIAL_DISCARD 480 //observed
+#define UBIMPEG_ENCODER_DELAY 480 //observed
 #define UBIMPEG_SAMPLES_PER_FRAME 1152
 #define UBIMPEG_MAX_CHANNELS 2
 #define UBIMPEG_INPUT_LIMIT 0x400 //enough for 2 stereo + mono frames
@@ -19,21 +15,37 @@
 
 /* opaque struct */
 typedef struct {
-    bool is_sur2;
-    bool is_sur1;
+    int surr_mode;
 
     bitstream_t is;
-    mp3dec_t mp3d;
-    mp3dec_frame_info_t info;
+    mp3dec_t mp3d_main;
+    mp3dec_t mp3d_surr;
+    mp3dec_frame_info_t info_main;
+    mp3dec_frame_info_t info_surr;
 
     uint8_t ibuf[0x2000];   // big enough to limit re-reading
-    uint8_t obuf[0x400];   // at least ~300
-    uint8_t rbuf[0x400];   // at least 300 * 2
+    uint8_t obuf_main[0x400];   // at least ~300
+    uint8_t obuf_surr[0x400];   // extra buf for surround frames
+    int obuf_main_size;
+    int obuf_surr_size;
     float fbuf[UBIMPEG_SAMPLES_PER_FRAME * UBIMPEG_MAX_CHANNELS];
 
     int initial_discard;
 } ubimpeg_codec_data;
 
+
+static void reset_ubimpeg(void* priv_data) {
+    ubimpeg_codec_data* data = priv_data;
+    if (!data) return;
+
+    data->initial_discard = UBIMPEG_ENCODER_DELAY;
+
+    bm_setup(&data->is, data->ibuf, 0);
+    mp3dec_init(&data->mp3d_main);
+    if (data->surr_mode == UBIMPEG_SURR_FULL) {
+        mp3dec_init(&data->mp3d_surr);
+    }
+}
 
 static void free_ubimpeg(void* priv_data) {
     ubimpeg_codec_data* data = priv_data;
@@ -50,10 +62,10 @@ void* init_ubimpeg(uint32_t mode) {
 
     // data may start with 'surround mode' flag, otherwise a regular frame with a Ubi-MPEG sync
     if (mode == get_id32be("2RUS")) {
-        data->is_sur2 = true;
+        data->surr_mode = UBIMPEG_SURR_FULL;
     }
     else if (mode == get_id32be("1RUS")) {
-        data->is_sur1 = true;
+        data->surr_mode = UBIMPEG_SURR_FAKE;
         VGM_LOG("UBI-MPEG: 1RUS found\n");
         goto fail;
     }
@@ -62,10 +74,9 @@ void* init_ubimpeg(uint32_t mode) {
         goto fail;
     }
 
-    data->initial_discard = UBIMPEG_INITIAL_DISCARD;
+    data->initial_discard = UBIMPEG_ENCODER_DELAY;
 
-    bm_setup(&data->is, data->ibuf, 0);
-    mp3dec_init(&data->mp3d);
+    reset_ubimpeg(data);
 
     return data;
 fail:
@@ -116,7 +127,7 @@ static bool setup_input_bitstream(VGMSTREAM* v) {
     return true;
 }
 
-static int read_frame_ubimpeg(VGMSTREAM* v) {
+static bool read_frame_ubimpeg(VGMSTREAM* v) {
     ubimpeg_codec_data* data = v->codec_data;
 
     // prepare and read data for the bitstream, if needed
@@ -124,47 +135,62 @@ static int read_frame_ubimpeg(VGMSTREAM* v) {
 
     // convert input data into 1 regular mpeg frame
     bitstream_t os = {0};
-    bm_setup(&os, data->obuf, sizeof(data->obuf));
 
-    int obuf_size = ubimpeg_transform_frame(&data->is, &os);
-    if (!obuf_size) return 0;
+    bm_setup(&os, data->obuf_main, sizeof(data->obuf_main));
+    data->obuf_main_size = ubimpeg_transform_frame(&data->is, &os);
+    if (!data->obuf_main_size) return false;
 
-    // TODO: handle correctly
-    // Ubi-MPEG (MP2) mixes 1 stereo frame + 1 mono frame coefs before synth to (presumably) emulate M/S stereo from MP3.
+    // Ubi-MPEG (MP2) mixes 1 stereo frame + 1 mono frame coefs before synth to (presumably) emulate 'surround' stereo.
     // Ignoring the mono frame usually sounds ok enough (as good as 160kbps JS MP2 by 1998 encoders can sound) but
-    // sometimes stereo frames only have data for left channel and need the mono frame to complete R.
-    if (data->is_sur1 || data->is_sur2) {
+    // seems to add extra SFX layers or audio details.
+    if (data->surr_mode == UBIMPEG_SURR_FULL) {
         // consume next frame (should be mono) in a separate buffer as otherwise confuses minimp3
-        bm_setup(&os, data->rbuf, sizeof(data->rbuf));
-        ubimpeg_transform_frame(&data->is, &os);
+        bm_setup(&os, data->obuf_surr, sizeof(data->obuf_surr));
+        data->obuf_surr_size = ubimpeg_transform_frame(&data->is, &os);
+        if (!data->obuf_surr_size) return false;
     }
 
-    return obuf_size;
+    return true;
 }
 
 static bool decode_frame_ubimpeg(VGMSTREAM* v) {
-    int obuf_size = read_frame_ubimpeg(v);
-    if (!obuf_size) {
+    bool ok = read_frame_ubimpeg(v);
+    if (!ok) {
         return false;
     }
 
     decode_state_t* ds = v->decode_state;
     ubimpeg_codec_data* data = v->codec_data;
 
-    int samples = mp3dec_decode_frame(&data->mp3d, data->obuf, obuf_size, data->fbuf, &data->info);
+    int samples = mp3dec_decode_frame_ubimpeg(
+            &data->mp3d_main, data->obuf_main, data->obuf_main_size, &data->info_main,
+            &data->mp3d_surr, data->obuf_surr, data->obuf_surr_size, &data->info_surr,
+            data->surr_mode,
+            data->fbuf);
     if (samples < 0) {
+        VGM_LOG_ONCE("UBI MPEG: error decoding samples");
         return false;
     }
 
-    // TODO: voice .bnm + Ubi-MPEG sets 2 channels but uses mono frames (no xRUS). Possibly the MPEG engine
-    // only handle stereo, maybe should dupe L>R. sbuf copying handles this correctly.
-    // todo fix
-    if (data->info.channels != v->channels) {
-        VGM_LOG_ONCE("UBI MPEG: mismatched channels %i vs %i\n", data->info.channels, v->channels);
-        //return false;
+    int output_channels = data->info_main.channels;
+    if (data->info_main.channels != v->channels) {
+        if (data->info_main.channels == 1 && v->channels == 2 && data->surr_mode == UBIMPEG_SURR_NONE) {
+            // voice .bnm + Ubi-MPEG sets 2 channels but uses mono frames (no xRUS). Seemingly their MPEG
+            // engine only handles stereo and must dupe L, which internally is done during the synth phase.
+            // (without this sbuf will handle it as silent R)
+            for (int i = samples - 1; i >= 0; i--) {
+                data->fbuf[i * 2 + 1] = data->fbuf[i];
+                data->fbuf[i * 2 + 0] = data->fbuf[i];
+            }
+            output_channels = v->channels;
+        }
+        else {
+            VGM_LOG_ONCE("UBI MPEG: mismatched channels %i vs %i\n", data->info_main.channels, v->channels);
+            return false;
+        }
     }
 
-    sbuf_init_flt(&ds->sbuf, data->fbuf, samples, data->info.channels);
+    sbuf_init_flt(&ds->sbuf, data->fbuf, samples, output_channels);
     ds->sbuf.filled = samples;
 
     if (data->initial_discard) {
@@ -173,16 +199,6 @@ static bool decode_frame_ubimpeg(VGMSTREAM* v) {
     }
 
     return true;
-}
-
-static void reset_ubimpeg(void* priv_data) {
-    ubimpeg_codec_data* data = priv_data;
-    if (!data) return;
-
-    data->initial_discard = UBIMPEG_INITIAL_DISCARD;
-
-    bm_setup(&data->is, data->ibuf, 0);
-    mp3dec_init(&data->mp3d);
 }
 
 static void seek_ubimpeg(VGMSTREAM* v, int32_t num_sample) {

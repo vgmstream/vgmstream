@@ -21,4 +21,7 @@ size_t read_string_utf16(char* buf, size_t buf_size, off_t offset, STREAMFILE* s
 size_t read_string_utf16le(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf);
 size_t read_string_utf16be(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf);
 
+bool is_text32(uint32_t value);
+bool is_text64(uint64_t value);
+
 #endif

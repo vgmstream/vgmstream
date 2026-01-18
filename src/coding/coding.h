@@ -154,6 +154,7 @@ typedef struct acm_codec_data acm_codec_data;
 acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number);
 void decode_acm(acm_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channelspacing);
 void reset_acm(acm_codec_data* data);
+void seek_acm(acm_codec_data* data, int32_t sample);
 void free_acm(acm_codec_data* data);
 void get_info_acm(acm_codec_data* data, int* p_channels, int* p_sample_rate, int* p_samples);
 STREAMFILE* acm_get_streamfile(acm_codec_data* data);
@@ -595,6 +596,7 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples);
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data);
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data* data, int* channels_remap);
 const char* ffmpeg_get_codec_name(ffmpeg_codec_data* data);
+const char* ffmpeg_get_format_name(ffmpeg_codec_data* data);
 void ffmpeg_set_force_seek(ffmpeg_codec_data* data);
 void ffmpeg_set_invert_floats(ffmpeg_codec_data* data);
 void ffmpeg_set_allow_pcm24(ffmpeg_codec_data* data);
@@ -604,6 +606,7 @@ int32_t ffmpeg_get_samples(ffmpeg_codec_data* data);
 int ffmpeg_get_sample_rate(ffmpeg_codec_data* data);
 int ffmpeg_get_channels(ffmpeg_codec_data* data);
 int ffmpeg_get_subsong_count(ffmpeg_codec_data* data);
+int ffmpeg_get_frame_samples(ffmpeg_codec_data* data);
 
 STREAMFILE* ffmpeg_get_streamfile(ffmpeg_codec_data* data);
 
@@ -715,7 +718,8 @@ void xma_fix_raw_samples_ch(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t stream_o
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
 size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
-size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
+int32_t aac_get_samples(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes);
+int32_t aac_get_samples_fs(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes, int frame_samples);
 int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay);
 
 

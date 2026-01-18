@@ -1,34 +1,29 @@
 #include "meta.h"
 #include "../layout/layout.h"
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifdef WIN32
-#define DIRSEP '\\'
-#else
-#define DIRSEP '/'
-#endif
-
+#include "../util/reader_text.h"
 
 static char** parse_mus(STREAMFILE* sf, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index);
 static void clean_mus(char** mus_filenames, int file_count);
 
 /* .MUS - playlist for InterPlay games [Planescape: Torment (PC), Baldur's Gate Enhanced Edition (PC)] */
 VGMSTREAM* init_vgmstream_mus_acm(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
-    segmented_layout_data *data = NULL;
+    VGMSTREAM* vgmstream = NULL;
+    segmented_layout_data* data = NULL;
 
-    int channel_count, loop_flag = 0, loop_start_index = -1, loop_end_index = -1;
+    int channels, loop_flag = 0, loop_start_index = -1, loop_end_index = -1;
     int32_t num_samples = 0, loop_start_samples = 0, loop_end_samples = 0;
+
 
     char** mus_filenames = NULL;
     int i, segment_count = 0;
 
 
     /* checks */
+    uint64_t value = read_u64be(0x00,sf); // skip fourccs since .mus is generic
+    if (!is_text64(value))
+        return NULL;
     if (!check_extensions(sf, "mus"))
-        goto fail;
+        return NULL;
 
     /* get file paths from the .MUS text file */
     mus_filenames = parse_mus(sf, &segment_count, &loop_flag, &loop_start_index, &loop_end_index);
@@ -40,7 +35,7 @@ VGMSTREAM* init_vgmstream_mus_acm(STREAMFILE* sf) {
 
     /* open each segment subfile */
     for (i = 0; i < segment_count; i++) {
-        STREAMFILE* temp_sf = sf->open(sf, mus_filenames[i], STREAMFILE_DEFAULT_BUFFER_SIZE);
+        STREAMFILE* temp_sf = open_streamfile(sf, mus_filenames[i]);
         if (!temp_sf) goto fail;
 
         /* find .ACM type */
@@ -60,15 +55,15 @@ VGMSTREAM* init_vgmstream_mus_acm(STREAMFILE* sf) {
         if (!data->segments[i]) goto fail;
 
 
-        if (i==loop_start_index)
+        if (i == loop_start_index)
             loop_start_samples = num_samples;
-        if (i==loop_end_index)
+        if (i == loop_end_index)
             loop_end_samples   = num_samples;
 
         num_samples += data->segments[i]->num_samples;
     }
 
-    if (i==loop_end_index)
+    if (i == loop_end_index)
         loop_end_samples = num_samples;
 
     /* setup segmented VGMSTREAMs */
@@ -76,11 +71,11 @@ VGMSTREAM* init_vgmstream_mus_acm(STREAMFILE* sf) {
         goto fail;
 
 
-    channel_count = data->output_channels;
+    channels = data->output_channels;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = data->segments[0]->sample_rate;
@@ -103,74 +98,65 @@ fail:
     return NULL;
 }
 
+//TODO improve
 /* .mus text file parsing */
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 #define NAME_LENGTH PATH_LIMIT
+#ifdef WIN32
+#define DIRSEP '\\'
+#else
+#define DIRSEP '/'
+#endif
 
-static int exists(char *filename, STREAMFILE *streamfile) {
-    STREAMFILE * temp = streamfile->open(streamfile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!temp) return 0;
+static bool exists_sf(const char* filename, STREAMFILE* sf) {
+    STREAMFILE* temp_sf = open_streamfile(sf, filename);
+    if (!temp_sf) return false;
 
-    close_streamfile(temp);
-    return 1;
+    close_streamfile(temp_sf);
+    return true;
 }
 
+
 /* needs the name of a file in the directory to test, as all we can do reliably is attempt to open a file */
-static int find_directory_name(char *name_base, char *dir_name, int subdir_name_size, char *subdir_name, char *name, char *file_name, STREAMFILE *streamfile) {
+static int find_directory_name(char *name_base, char *dir_name, int subdir_name_size, char *subdir_name, char *name, char *file_name, STREAMFILE *sf) {
     /* find directory name */
-    {
-        char temp_dir_name[NAME_LENGTH];
+    char temp_dir_name[NAME_LENGTH];
 
-        subdir_name[0]='\0';
-        concatn(subdir_name_size,subdir_name,name_base);
+    subdir_name[0]='\0';
+    concatn(subdir_name_size,subdir_name,name_base);
 
-        if (strlen(subdir_name) >= subdir_name_size-2) goto fail;
-        subdir_name[strlen(subdir_name)+1]='\0';
-        subdir_name[strlen(subdir_name)]=DIRSEP;
+    if (strlen(subdir_name) >= subdir_name_size-2) goto fail;
+    subdir_name[strlen(subdir_name)+1]='\0';
+    subdir_name[strlen(subdir_name)]=DIRSEP;
 
+    temp_dir_name[0]='\0';
+    snprintf(temp_dir_name, sizeof(temp_dir_name), "%s%s%s%s.ACM", dir_name, subdir_name, name_base, name);
+
+    if (!exists_sf(temp_dir_name, sf)) {
+        /* try all lowercase */
+        for (int i = strlen(subdir_name) - 1; i >=0; i--) {
+            subdir_name[i]=tolower(subdir_name[i]);
+        }
         temp_dir_name[0]='\0';
-        concatn(sizeof(temp_dir_name),temp_dir_name,dir_name);
-        concatn(sizeof(temp_dir_name),temp_dir_name,subdir_name);
-        concatn(sizeof(temp_dir_name),temp_dir_name,name_base);
-        concatn(sizeof(temp_dir_name),temp_dir_name,name);
-        concatn(sizeof(temp_dir_name),temp_dir_name,".ACM");
+        snprintf(temp_dir_name, sizeof(temp_dir_name), "%s%s%s%s.ACM", dir_name, subdir_name, name_base, name);
 
-        if (!exists(temp_dir_name,streamfile)) {
-            int i;
-            /* try all lowercase */
-            for (i=strlen(subdir_name)-1;i>=0;i--) {
-                subdir_name[i]=tolower(subdir_name[i]);
-            }
+        if (!exists_sf(temp_dir_name,sf)) {
+            /* try first uppercase */
+            subdir_name[0] = toupper(subdir_name[0]);
             temp_dir_name[0]='\0';
-            concatn(sizeof(temp_dir_name),temp_dir_name,dir_name);
-            concatn(sizeof(temp_dir_name),temp_dir_name,subdir_name);
-            concatn(sizeof(temp_dir_name),temp_dir_name,name_base);
-            concatn(sizeof(temp_dir_name),temp_dir_name,name);
-            concatn(sizeof(temp_dir_name),temp_dir_name,".ACM");
-
-            if (!exists(temp_dir_name,streamfile)) {
-                /* try first uppercase */
-                subdir_name[0]=toupper(subdir_name[0]);
+            snprintf(temp_dir_name, sizeof(temp_dir_name), "%s%s%s%s.ACM", dir_name, subdir_name, name_base, name);
+            if (!exists_sf(temp_dir_name,sf)) {
+                /* try also 3rd uppercase */
+                subdir_name[2] = toupper(subdir_name[2]);
                 temp_dir_name[0]='\0';
-                concatn(sizeof(temp_dir_name),temp_dir_name,dir_name);
-                concatn(sizeof(temp_dir_name),temp_dir_name,subdir_name);
-                concatn(sizeof(temp_dir_name),temp_dir_name,name_base);
-                concatn(sizeof(temp_dir_name),temp_dir_name,name);
-                concatn(sizeof(temp_dir_name),temp_dir_name,".ACM");
-                if (!exists(temp_dir_name,streamfile)) {
-                    /* try also 3rd uppercase */
-                    subdir_name[2]=toupper(subdir_name[2]);
-                    temp_dir_name[0]='\0';
-                    concatn(sizeof(temp_dir_name),temp_dir_name,dir_name);
-                    concatn(sizeof(temp_dir_name),temp_dir_name,subdir_name);
-                    concatn(sizeof(temp_dir_name),temp_dir_name,name_base);
-                    concatn(sizeof(temp_dir_name),temp_dir_name,name);
-                    concatn(sizeof(temp_dir_name),temp_dir_name,".ACM");
-                    
-                    if (!exists(temp_dir_name,streamfile)) {
-                        /* ah well, disaster has befallen your party */
-                        goto fail;
-                    }
+                snprintf(temp_dir_name, sizeof(temp_dir_name), "%s%s%s%s.ACM", dir_name, subdir_name, name_base, name);
+                
+                if (!exists_sf(temp_dir_name,sf)) {
+                    /* ah well, disaster has befallen your party */
+                    goto fail;
                 }
             }
         }
@@ -182,7 +168,7 @@ fail:
     return 1;
 }
 
-static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index) {
+static char** parse_mus(STREAMFILE* sf, int* p_file_count, int* p_loop_flag, int* p_loop_start_index, int* p_loop_end_index) {
     char** names = NULL;
 
     char filename[NAME_LENGTH];
@@ -197,7 +183,6 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
     int line_ok = 0;
     off_t mus_offset = 0;
 
-    int i;
     int loop_flag = 0, loop_start_index = -1, loop_end_index = -1;
 
 
@@ -209,8 +194,7 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
 
     /* uppercase name_base */
     {
-        int j;
-        for (j=0;name_base[j];j++)
+        for (int j=0;name_base[j];j++)
             name_base[j] = toupper(name_base[j]);
     }
 
@@ -227,18 +211,18 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
     names = calloc(file_count,sizeof(char*)); /* array of strings (size NAME_LENGTH) */
     if (!names) goto fail;
 
-    for (i = 0; i < file_count; i++) {
+    for (int i = 0; i < file_count; i++) {
         names[i] = calloc(1,sizeof(char)*NAME_LENGTH);
         if (!names[i]) goto fail;
     }
 
     dir_name[0]='\0';
-    sf->get_name(sf,filename,sizeof(filename));
+    get_streamfile_name(sf, filename, sizeof(filename));
     concatn(sizeof(dir_name),dir_name,filename);
 
     /* find directory name for the directory contianing the MUS */
     {
-        char * last_slash = strrchr(dir_name,DIRSEP);
+        char* last_slash = strrchr(dir_name,DIRSEP);
         if (last_slash != NULL) {
             last_slash[1]='\0'; /* trim off the file name */
         } else {
@@ -257,8 +241,7 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
         char loop_name_base[NAME_LENGTH];
         char loop_name[NAME_LENGTH];
 
-        for (i = 0; i < file_count; i++)
-        {
+        for (int i = 0; i < file_count; i++) {
             int fields_matched;
             bytes_read = read_line(line,sizeof(line), mus_offset, sf, &line_ok);
             if (!line_ok) goto fail;
@@ -267,46 +250,45 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
             fields_matched = sscanf(line,"%s %s %s",name,
                     loop_name_base_temp,loop_name_temp);
 
-            if (fields_matched < 1) goto fail;
-            if (fields_matched == 3 && loop_name_base_temp[0] != '@' && loop_name_temp[0] != '@')
-            {
-                int j;
+            if (fields_matched < 1)
+                goto fail;
+            if (fields_matched == 3 && loop_name_base_temp[0] != '@' && loop_name_temp[0] != '@') {
                 memcpy(loop_name,loop_name_temp,sizeof(loop_name));
                 memcpy(loop_name_base,loop_name_base_temp,sizeof(loop_name_base));
-                for (j=0;loop_name[j];j++) loop_name[j]=toupper(loop_name[j]);
-                for (j=0;loop_name_base[j];j++) loop_name_base[j]=toupper(loop_name_base[j]);
+                for (int j=0;loop_name[j];j++)
+                    loop_name[j]=toupper(loop_name[j]);
+                for (int j=0;loop_name_base[j];j++)
+                    loop_name_base[j]=toupper(loop_name_base[j]);
                 /* loop back entry */
                 loop_end_index = i;
             }
-            else if (fields_matched >= 2 && loop_name_base_temp[0] != '@')
-            {
-                int j;
+            else if (fields_matched >= 2 && loop_name_base_temp[0] != '@') {
                 memcpy(loop_name,loop_name_base_temp,sizeof(loop_name));
                 memcpy(loop_name_base,name_base,sizeof(loop_name_base));
-                for (j=0;loop_name[j];j++) loop_name[j]=toupper(loop_name[j]);
-                for (j=0;loop_name_base[j];j++) loop_name_base[j]=toupper(loop_name_base[j]);
+                for (int j=0;loop_name[j];j++) {
+                    loop_name[j]=toupper(loop_name[j]);
+                }
+                for (int j=0;loop_name_base[j];j++) {
+                    loop_name_base[j]=toupper(loop_name_base[j]);
+                }
                 /* loop back entry */
                 loop_end_index = i;
             }
-            else
-            {
+            else {
                 /* normal entry, ignoring the @TAG for now */
             }
 
             {
                 /* uppercase */
-                int j;
-                for (j=0;j<strlen(name);j++)
+                for (int j=0;j<strlen(name);j++)
                     name[j]=toupper(name[j]);
             }
 
             /* try looking in the common directory */
             names[i][0] = '\0';
-            concatn(NAME_LENGTH,names[i],dir_name);
-            concatn(NAME_LENGTH,names[i],name);
-            concatn(NAME_LENGTH,names[i],".ACM");
+            snprintf(names[i], NAME_LENGTH, "%s%s.ACM", dir_name, name);
 
-            if (!exists(names[i],sf)) {
+            if (!exists_sf(names[i],sf)) {
 
                 /* We can't test for the directory until we have a file name
                  * to look for, so we do it here with the first file that seems to
@@ -317,13 +299,9 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
                 }
 
                 names[i][0] = '\0';
-                concatn(NAME_LENGTH,names[i],dir_name);
-                concatn(NAME_LENGTH,names[i],subdir_name);
-                concatn(NAME_LENGTH,names[i],name_base);
-                concatn(NAME_LENGTH,names[i],name);
-                concatn(NAME_LENGTH,names[i],".ACM");
+                snprintf(names[i], NAME_LENGTH, "%s%s%s%s.ACM", dir_name, subdir_name, name_base, name);
 
-                if (!exists(names[i],sf)) goto fail;
+                if (!exists_sf(names[i],sf)) goto fail;
             }
         }
 
@@ -331,13 +309,9 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
             /* find the file to loop back to */
             char target_name[NAME_LENGTH];
             target_name[0]='\0';
-            concatn(sizeof(target_name),target_name,dir_name);
-            concatn(sizeof(target_name),target_name,subdir_name);
-            concatn(sizeof(target_name),target_name,loop_name_base);
-            concatn(sizeof(target_name),target_name,loop_name);
-            concatn(sizeof(target_name),target_name,".ACM");
+            snprintf(target_name, sizeof(target_name), "%s%s%s%s.ACM", dir_name, subdir_name, loop_name_base, loop_name);
 
-            for (i=0;i<file_count;i++) {
+            for (int i=0; i < file_count; i++) {
                 if (!strcmp(target_name,names[i])) {
                     loop_start_index = i;
                     break;
@@ -349,15 +323,13 @@ static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag,
                 loop_end_index++;
                 loop_flag = 1;
             }
-
         }
     }
 
-    *out_loop_start_index = loop_start_index;
-    *out_loop_end_index = loop_end_index;
-    *out_loop_flag = loop_flag;
-    *out_file_count = file_count;
-
+    *p_loop_start_index = loop_start_index;
+    *p_loop_end_index = loop_end_index;
+    *p_loop_flag = loop_flag;
+    *p_file_count = file_count;
 
     return names;
 fail:
@@ -366,11 +338,10 @@ fail:
 }
 
 static void clean_mus(char** mus_filenames, int file_count) {
-    int i;
+    if (!mus_filenames)
+        return;
 
-    if (!mus_filenames) return;
-
-    for (i = 0; i < file_count; i++) {
+    for (int i = 0; i < file_count; i++) {
         free(mus_filenames[i]);
     }
     free(mus_filenames);

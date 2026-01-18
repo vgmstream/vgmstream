@@ -118,7 +118,7 @@ static size_t append_fev_string(char* buf, size_t buf_size, char* str, size_t st
 static inline uint32_t reader_fev_chunk_id(fev_header_t* fev, reader_t* r) {
     uint32_t id = reader_u32(r);
     if (fev->version >= FMOD_FEV_VERSION_48_0)
-        id = id >> 24 | id >> 8 & 0xFF00 | (id & 0xFF00) << 8 | (id & 0xFF) << 24;
+        id = id >> 24 | (id >> 8 & 0xFF00) | (id & 0xFF00) << 8 | (id & 0xFF) << 24;
     return id;
 }
 

@@ -457,7 +457,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .adpcm: Angry Birds Transformers (Android)
      * .adw: Dead Rising 2 (PC)
      * .wd: Genma Onimusha (Xbox) voices
-     * (extensionless): Myst III (Xbox)
+     * (extensionless): Myst III (Xbox), Delta Force 2 (PC)
      * .sbv: Spongebob Squarepants - The Movie (PC)
      * .wvx: Godzilla - Destroy All Monsters Melee (Xbox)
      * .str: Harry Potter and the Philosopher's Stone (Xbox)
@@ -565,6 +565,8 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         else if (codec == 0x0011 && file_size - riff_size - 0x08 <= 0x900 && is_id32be(riff_size + 0x08, sf, "cont"))
             riff_size = file_size - 0x08; /* [Shin Megami Tensei: Imagine (PC)] (extra "cont" info 0x800/0x900 chunk) */
 
+        else if (codec == 0x0001 && riff_size % 0x02 && riff_size + 0x08 + 0x01 == file_size)
+            riff_size += 0x01; // padding byte, rarely seen (spec isn't too clear about RIFF's size) [Delta Force 2 (PC)]
     }
 
     /* check for truncated RIFF */

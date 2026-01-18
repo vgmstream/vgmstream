@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/reader_text.h"
 
 #include "nus3bank_streamfile.h"
 
@@ -17,26 +18,25 @@ VGMSTREAM* init_vgmstream_nus3bank(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "NUS3"))
+        return NULL;
+    if (!is_id32be(0x08,sf, "BANK"))
+        return NULL;
+    if (!is_id32be(0x0c,sf, "TOC "))
+        return NULL;
     /* .nub2: early [THE iDOLM@STER 2 (PS3/X360)]
      * .nus3bank: standard */
     if (!check_extensions(sf, "nub2,nus3bank"))
-        goto fail;
-    if (read_u32be(0x00,sf) != 0x4E555333) /* "NUS3" */
-        goto fail;
-    if (read_u32be(0x08,sf) != 0x42414E4B) /* "BANK" */
-        goto fail;
-    if (read_u32be(0x0c,sf) != 0x544F4320) /* "TOC\0" */
-        goto fail;
+        return NULL;
 
     /* header is always LE, while contained files may use another endianness */
 
     /* parse TOC with all existing chunks and sizes (offsets must be derived) */
     {
-        int i;
         off_t offset = 0x14 + read_u32le(0x10, sf); /* TOC size */
         size_t chunk_count = read_u32le(0x14, sf); /* rarely not 7 (ex. SMB U's snd_bgm_CRS12_Simple_Result_Final) */
 
-        for (i = 0; i < chunk_count; i++) {
+        for (int i = 0; i < chunk_count; i++) {
             uint32_t chunk_id  = read_u32be(0x18+(i*0x08)+0x00, sf);
             size_t chunk_size  = read_u32le(0x18+(i*0x08)+0x04, sf);
 
@@ -63,14 +63,13 @@ VGMSTREAM* init_vgmstream_nus3bank(STREAMFILE* sf) {
 
         if (tone_offset == 0 || pack_offset == 0) {
             VGM_LOG("NUS3BANK: chunks found\n");
-            goto fail;
+            return NULL;
         }
     }
 
 
     /* parse tones */
     {
-        int i;
         uint32_t codec_id = 0;
         size_t entries = read_u32le(tone_offset+0x00, sf);
 
@@ -78,7 +77,7 @@ VGMSTREAM* init_vgmstream_nus3bank(STREAMFILE* sf) {
         total_subsongs = 0;
         if (target_subsong == 0) target_subsong = 1;
 
-        for (i = 0; i < entries; i++) {
+        for (int i = 0; i < entries; i++) {
             off_t offset, tone_header_offset, stream_name_offset, stream_offset;
             size_t tone_header_size, stream_name_size, stream_size;
             uint8_t flags2;
@@ -262,10 +261,10 @@ VGMSTREAM* init_vgmstream_nus3bank_encrypted(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "nus3bank,xma"))
-        goto fail;
     if (read_u32be(0x00, sf) != 0x552AAF17) /* "RIFF" encrypted */
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf, "nus3bank,xma"))
+        return NULL;
 
     temp_sf = setup_nus3bank_streamfile(sf, 0x00);
     if (!temp_sf) goto fail;

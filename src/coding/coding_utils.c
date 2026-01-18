@@ -628,42 +628,66 @@ size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels) {
     return (bytes / full_block_align) * 256 * channels;
 }
 
-
-size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
-    const int samples_per_frame = 1024; /* theoretically 960 exists in .MP4 so may need a flag */
-    int frames = 0;
-    off_t offset = start_offset;
-    off_t max_offset = start_offset + bytes;
-
+/* Detects AAC samples by reading raw frames with "ADTS" header (similar to MPEG's).
+ * (see https://wiki.multimedia.cx/index.php/ADTS).
+ * AAC also sometimes comes with an "ADIF" header right before data but probably not in games */
+int32_t aac_get_samples_fs(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes, int samples_per_frame) {
     if (!sf)
         return 0;
 
+    uint32_t offset = start_offset;
+    uint32_t max_offset = start_offset + bytes;
     if (max_offset > get_streamfile_size(sf))
         max_offset = get_streamfile_size(sf);
 
-    /* AAC sometimes comes with an "ADIF" header right before data but probably not in games,
-     * while standard raw frame headers are called "ADTS" and are similar to MPEG's:
-     * (see https://wiki.multimedia.cx/index.php/ADTS) */
+    // Rarely AAC-LC may use Spectral Band Replication (SBR) which doubles samples-per-frame
+    // and halves internal sample rate (actually HE-AAC). It's not identified by the frame
+    // header, and to reliably detect it we'd need to read a frame's complex bitstream.
+    // For now depend on pre-calculated frame samples, usually 1024 but 2048 if SBR was detected.
+    if (samples_per_frame <= 0 || (samples_per_frame % 1024) != 0) {
+        samples_per_frame = 1024;
+    }
+
+    // apparently ID3 can be pasted on .aac, rarely (not really used in games but skip anyway)
+    uint32_t header = read_u32be(offset, sf);
+    size_t tag_size = mpeg_get_tag_size(sf, offset, header);
+    if (tag_size) {
+        offset += tag_size;
+    }
 
     /* AAC uses VBR so must read all frames */
+    int frames = 0;
     while (offset < max_offset) {
-        uint16_t frame_sync = read_u16be(offset+0x00, sf);
-        uint32_t frame_size = read_u32be(offset+0x02, sf);
+        uint16_t head1 = read_u16be(offset+0x00, sf);
+        uint32_t head2 = read_u32be(offset+0x02, sf);
+      //uint8_t  head3 = read_u8   (offset+0x06, sf);
 
-        frame_sync = (frame_sync >> 4) & 0x0FFF; /* 12b */
-        frame_size = (frame_size >> 5) & 0x1FFF; /* 13b */
+        int frame_sync  = ((head1 >>  4) & 0x0FFF);
+      //int no_crc_flag = ((head1 >>  0) & 0x1);
+        int frame_size  = ((head2 >>  5) & 0x1FFF);
+      //int srate_index = ((head2 >> 26) & 0x0F);
+      //int profile     = ((head3 >> 30) & 0x03) + 1;
+      //int frame_count = ((head3 >>  0) & 0x03) + 1; // always 1 for compatibility?
 
-        if (frame_sync != 0xFFF)
+        if (frame_sync != 0xFFF) {
+            VGM_LOG("AAC: invalid frame sync at 0x%x\n", offset);
             break;
-        if (frame_size <= 0x08)
+        }
+        if (frame_size <= 0x08) {
+            VGM_LOG("AAC: invalid frame size %x at %x\n", frame_size, offset);
             break;
+        }
 
-        //;VGM_LOG("AAC: %lx, %x\n", offset, frame_size);
         frames++;
         offset += frame_size;
     }
 
+    //;VGM_LOG("AAC: done %i frames\n");
     return frames * samples_per_frame;
+}
+
+int32_t aac_get_samples(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes) {
+    return aac_get_samples_fs(sf, start_offset, bytes, 0);
 }
 
 

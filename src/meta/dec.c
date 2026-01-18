@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../layout/layout.h"
+#include "../util/reader_text.h"
 
 #define TXT_LINE_MAX 0x1000
 static int get_falcom_looping(STREAMFILE* sf, int* p_loop_start, int* p_loop_end);
@@ -10,68 +11,72 @@ VGMSTREAM* init_vgmstream_dec(STREAMFILE* sf) {
     off_t start_offset;
     off_t riff_off = 0x00;
     size_t pcm_size = 0;
-    int loop_flag, channel_count, sample_rate, loop_start = 0, loop_end = 0;
+    int loop_flag, channels, sample_rate, loop_start = 0, loop_end = 0;
 
 
     /* checks
      * .dec: main,
      * .de2: Gurumin (PC) */
     if (!check_extensions(sf,"dec,de2"))
-        goto fail;
+        return NULL;
 
-    /* Gurumin has extra data, maybe related to rhythm (~0x50000) */
+    // Gurumin has extra data, maybe related to rhythm (~0x50000)
     if (check_extensions(sf,"de2")) {
         /* still not sure what this is for, but consistently 0xb */
-        if (read_32bitLE(0x04,sf) != 0x0b) goto fail;
+        if (read_u32le(0x04,sf) != 0x0B)
+            return NULL;
 
         /* legitimate! really! */
-        riff_off = 0x10 + (read_32bitLE(0x0c,sf) ^ read_32bitLE(0x04,sf));
+        riff_off = 0x10 + (read_u32le(0x0c,sf) ^ read_u32le(0x04,sf));
     }
 
 
     /* fake PCM RIFF header (the original WAV's) wrapping MS-ADPCM */
     if (!is_id32be(riff_off+0x00,sf, "RIFF") ||
         !is_id32be(riff_off+0x08,sf, "WAVE"))
-        goto fail;
+            return NULL;
 
-    if (is_id32be(riff_off+0x0c,sf, "PAD ")) { /* blank with wrong chunk size [Zwei!! ())PC)]*/
+    if (is_id32be(riff_off+0x0c,sf, "PAD ")) { // blank data with wrong chunk size [Zwei!! (PC)]
         sample_rate = 44100;
-        channel_count = 2;
-        pcm_size = read_32bitLE(riff_off+0x04,sf) - 0x24;
-        /* somehow there is garbage at the beginning of some tracks */
+        channels = 2;
+        pcm_size = read_u32le(riff_off+0x04,sf) - 0x24;
+        // somehow there is garbage at the beginning of some tracks
     }
     else if (is_id32be(riff_off+0x0c,sf, "fmt ")) {
-        //if (read_32bitLE(riff_off+0x10,sf) != 0x12) goto fail; /* 0x10 in some */
-        if (read_16bitLE(riff_off+0x14,sf) != 0x01) goto fail; /* PCM (actually MS-ADPCM) */
-        if (read_16bitLE(riff_off+0x20,sf) != 4 ||
-            read_16bitLE(riff_off+0x22,sf) != 16) goto fail; /* 16-bit */
+        // 0x10: chunk size (usually 0x12, 0x10 in some files)
+        if (read_u16le(riff_off+0x14,sf) != 0x01) // PCM (actually MS-ADPCM)
+            return NULL;
+        if (read_u16le(riff_off+0x20,sf) != 4 || read_u16le(riff_off+0x22,sf) != 16)
+            return NULL;
 
-        channel_count = read_16bitLE(riff_off+0x16,sf);
-        sample_rate = read_32bitLE(riff_off+0x18,sf);
-        if (read_32bitBE(riff_off+0x24,sf) == 0x64617461) { /* "data" size except in some Zwei!! */
-            pcm_size = read_32bitLE(riff_off+0x28,sf);
-        } else {
-            pcm_size = read_32bitLE(riff_off+0x04,sf) - 0x24;
+        channels = read_16bitLE(riff_off+0x16,sf);
+        sample_rate = read_s32le(riff_off+0x18,sf);
+
+        if (is_id32be(riff_off+0x24,sf, "data")) {
+            pcm_size = read_u32le(riff_off+0x28,sf);
+        }
+        else {
+            pcm_size = read_u32le(riff_off+0x04,sf) - 0x24; // some Zwei!! files don't keep "data" chunk
         }
     }
     else {
-        goto fail;
+        return NULL;
     }
 
-    if (channel_count != 2)
-        goto fail;
+    if (channels != 2)
+        return NULL;
 
     start_offset = riff_off + 0x2c;
     loop_flag = get_falcom_looping(sf, &loop_start, &loop_end);
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_DEC;
     vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = pcm_size / 2 / channel_count;
+    vgmstream->num_samples = pcm_size / 2 / channels;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
 
@@ -91,8 +96,8 @@ fail:
 
 /* Falcom loves loop points in external text files, here we parse them */
 typedef enum { XANADU_NEXT, ZWEI, DINOSAUR_RESURRECTION, GURUMIN } falcom_loop_t;
-static int get_falcom_looping(STREAMFILE *sf, int *out_loop_start, int *out_loop_end) {
-    STREAMFILE *streamText;
+static int get_falcom_looping(STREAMFILE* sf, int* p_loop_start, int* p_loop_end) {
+    STREAMFILE* sf_text;
     off_t txt_offset = 0x00;
     falcom_loop_t type;
     int loop_start = 0, loop_end = 0, loop_flag = 0;
@@ -100,31 +105,31 @@ static int get_falcom_looping(STREAMFILE *sf, int *out_loop_start, int *out_loop
 
 
     /* try one of the many loop files */
-    if ((streamText = open_streamfile_by_filename(sf,"bgm.tbl")) != NULL) {
+    if ((sf_text = open_streamfile_by_filename(sf,"bgm.tbl")) != NULL) {
         type = XANADU_NEXT;
     }
-    else if ((streamText = open_streamfile_by_filename(sf,"bgm.scr")) != NULL) {
+    else if ((sf_text = open_streamfile_by_filename(sf,"bgm.scr")) != NULL) {
         type = ZWEI;
     }
-    else if ((streamText = open_streamfile_by_filename(sf,"loop.txt")) != NULL) { /* actual name in Shift JIS, 0x838B815B8376 */
+    else if ((sf_text = open_streamfile_by_filename(sf,"loop.txt")) != NULL) { // actual name in Shift JIS, 0x838B815B8376
         type = DINOSAUR_RESURRECTION;
     }
-    else if ((streamText = open_streamfile_by_filename(sf,"map.itm")) != NULL) {
+    else if ((sf_text = open_streamfile_by_filename(sf,"map.itm")) != NULL) {
         type = GURUMIN;
     }
     else {
         goto end;
     }
 
-    get_streamfile_filename(sf,filename,TXT_LINE_MAX);
+    get_streamfile_filename(sf, filename, TXT_LINE_MAX);
 
     /* read line by line */
-    while (txt_offset < get_streamfile_size(streamText)) {
+    while (txt_offset < get_streamfile_size(sf_text)) {
         char line[TXT_LINE_MAX];
         char name[TXT_LINE_MAX];
         int ok, line_ok, loop, bytes_read;
 
-        bytes_read = read_line(line, TXT_LINE_MAX, txt_offset, streamText, &line_ok);
+        bytes_read = read_line(line, TXT_LINE_MAX, txt_offset, sf_text, &line_ok);
         if (!line_ok) goto end;
 
         txt_offset += bytes_read;
@@ -174,10 +179,10 @@ static int get_falcom_looping(STREAMFILE *sf, int *out_loop_start, int *out_loop
 
 end:
     if (loop_flag) {
-        *out_loop_start = loop_start;
-        *out_loop_end = loop_end;
+        *p_loop_start = loop_start;
+        *p_loop_end = loop_end;
     }
 
-    if (streamText) close_streamfile(streamText);
+    close_streamfile(sf_text);
     return loop_flag;
 }
