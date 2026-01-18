@@ -1059,6 +1059,16 @@ const char* ffmpeg_get_codec_name(ffmpeg_codec_data* data) {
     return NULL;
 }
 
+const char* ffmpeg_get_format_name(ffmpeg_codec_data* data) {
+    if (!data || !data->formatCtx || !data->formatCtx->iformat)
+        return NULL;
+    if (data->formatCtx->iformat->long_name)
+        return data->formatCtx->iformat->long_name;
+    if (data->formatCtx->iformat->name)
+        return data->formatCtx->iformat->name;
+    return NULL;
+}
+
 void ffmpeg_set_force_seek(ffmpeg_codec_data* data) {
     if (!data)
         return;

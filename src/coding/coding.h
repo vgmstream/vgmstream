@@ -596,6 +596,7 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples);
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data);
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data* data, int* channels_remap);
 const char* ffmpeg_get_codec_name(ffmpeg_codec_data* data);
+const char* ffmpeg_get_format_name(ffmpeg_codec_data* data);
 void ffmpeg_set_force_seek(ffmpeg_codec_data* data);
 void ffmpeg_set_invert_floats(ffmpeg_codec_data* data);
 void ffmpeg_set_allow_pcm24(ffmpeg_codec_data* data);

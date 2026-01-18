@@ -1311,8 +1311,8 @@ static const meta_info meta_info_list[] = {
         {meta_HCA,                  "CRI HCA header"},
         {meta_SVAG_SNK,             "SNK SVAG header"},
         {meta_VDS_VDM,              "Procyon Studio VDS/VDM header"},
-        {meta_FFMPEG,               "FFmpeg supported format"},
-        {meta_FFMPEG_faulty,        "FFmpeg supported format (check log)"},
+        {meta_FFMPEG,               "FFmpeg format"},
+        {meta_FFMPEG_faulty,        "FFmpeg format (check log)"},
         {meta_CXS,                  "tri-Crescendo CXS header"},
         {meta_AKB,                  "Square Enix AKB header"},
         {meta_PASX,                 "Premium Agency PASX header"},
@@ -1673,5 +1673,15 @@ void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_
             description = meta_info_list[i].description;
     }
 
-    strncpy(out, description, out_size);
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type ==  coding_FFmpeg) {
+        const char* description_ffmpeg = ffmpeg_get_format_name(vgmstream->codec_data);
+        if (description_ffmpeg != NULL) {
+            snprintf(out, out_size, "%s (%s)", description, description_ffmpeg);
+            return;
+        }
+    }
+#endif
+
+    snprintf(out, out_size, "%s", description);
 }
