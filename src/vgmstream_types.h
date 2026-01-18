@@ -732,6 +732,7 @@ typedef enum {
     meta_UEBA,
     meta_WD,
     meta_BWAV_WARTHOG,
+    meta_0MF2,
 } meta_t;
 
 #endif

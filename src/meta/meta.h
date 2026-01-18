@@ -1055,4 +1055,6 @@ VGMSTREAM* init_vgmstream_wd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bwav_warthog(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_0MF2(STREAMFILE* sf);
+
 #endif

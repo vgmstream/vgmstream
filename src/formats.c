@@ -433,6 +433,7 @@ static const char* extension_list[] = {
     "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
+    "omt",
     "oor",
     "opu",
     //"opus", //common
@@ -1519,6 +1520,7 @@ static const meta_info meta_info_list[] = {
         {meta_UEBA,                 "Epic Games UEBA header"},
         {meta_WD,                   "Square WD header"},
         {meta_BWAV_WARTHOG,         "Warthog .BWAV header"},
+        {meta_0MF2,                 "AWE Productions 0MF2 header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
