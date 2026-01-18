@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/chunks.h"
+#include "../util/reader_text.h"
 
 enum { 
     CHUNK_RIFF = 0x52494646, /* "RIFF" */
@@ -11,23 +12,19 @@ enum {
 /* DMSG - DirectMusic Segment with streams [Nightcaster II: Equinox (Xbox), Wildfire (PC)] */
 VGMSTREAM* init_vgmstream_dmsg(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    //int loop_flag, channels, sample_rate;
-    //int found_data = 0;
-    //int32_t num_samples, loop_start, loop_end;
-    //off_t start_offset;
     off_t offset = 0, name_offset = 0, name_size = 0;
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "RIFF"))
+        return NULL;
+    if (!is_id32be(0x08,sf, "DMSG"))
+        return NULL;
+
     /* .sgt: common
      * .dmsg: header id */
     if (!check_extensions(sf, "sgt,dmsg"))
-        goto fail;
-
-    if (!is_id32be(0x00,sf, "RIFF"))
-        goto fail;
-    if (!is_id32be(0x08,sf, "DMSG"))
-        goto fail;
+        return NULL;
 
     /* A DirectMusic segment usually has lots of chunks then data pointing to .dls soundbank.
      * This accepts .sgt with a RIFF WAVE inside (less common). */
@@ -86,7 +83,7 @@ VGMSTREAM* init_vgmstream_dmsg(STREAMFILE* sf) {
     }
 
     if (!offset)
-        goto fail;
+        return NULL;
 
 
     /* subfile has a few extra chunks (guid, wavh) but otherwise standard (seen PCM and MS-ADPCM, with fact chunks) */

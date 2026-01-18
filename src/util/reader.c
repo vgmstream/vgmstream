@@ -12,9 +12,9 @@ size_t read_line(char* buf, int buf_size, off_t offset, STREAMFILE* sf, int* p_l
     if (p_line_ok) *p_line_ok = 0;
 
     for (i = 0; i < buf_size-1 && offset+i < file_size; i++) {
-        char in_char = read_8bit(offset+i, sf);
+        char in_char = read_u8(offset+i, sf);
         /* check for end of line */
-        if (in_char == 0x0d && read_8bit(offset+i+1, sf) == 0x0a) { /* CRLF */
+        if (in_char == 0x0d && read_u8(offset+i+1, sf) == 0x0a) { /* CRLF */
             extra_bytes = 2;
             if (p_line_ok) *p_line_ok = 1;
             break;

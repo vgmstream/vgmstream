@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../util/reader_text.h"
 #include <ctype.h>
 #include <stdbool.h>
 

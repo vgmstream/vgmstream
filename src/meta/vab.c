@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/spu_utils.h"
+#include "../util/reader_text.h"
 
 
 #define VAB_MIN(x,y) ((x)<(y)?(x):(y))
