@@ -1870,6 +1870,9 @@
     <ClCompile Include="meta\ps2_vbk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\thq_aus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\psb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
