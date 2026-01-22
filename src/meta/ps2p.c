@@ -1,15 +1,15 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-#define THQ_AUS_PS2P_ALIGNMENT_OFFSET   0x0C
-#define THQ_AUS_PS2P_COUNT_OFFSET       0x14
-#define THQ_AUS_PS2P_AUX_COUNT_OFFSET   0x18
-#define THQ_AUS_PS2P_TABLE_OFFSET       0x20
-#define THQ_AUS_PS2P_ENTRY_SIZE         0x0C
-#define THQ_AUS_PS2P_AUX_ENTRY_SIZE     0x1C
+#define PS2P_ALIGNMENT_OFFSET   0x0C
+#define PS2P_COUNT_OFFSET       0x14
+#define PS2P_AUX_COUNT_OFFSET   0x18
+#define PS2P_TABLE_OFFSET       0x20
+#define PS2P_ENTRY_SIZE         0x0C
+#define PS2P_AUX_ENTRY_SIZE     0x1C
 
 /* THQ Australia - PS2P [Jimmy Neutron: Attack of the Twonkies (PS2), SpongeBob: Lights, Camera, Pants! (PS2)] */
-VGMSTREAM* init_vgmstream_thq_aus_ps2p(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ps2p(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     uint32_t subfile_offset, subfile_size, file_count, aux_count;
@@ -22,8 +22,8 @@ VGMSTREAM* init_vgmstream_thq_aus_ps2p(STREAMFILE* sf) {
         return NULL;
 
     /* Header Values */
-    file_count = read_u32le(THQ_AUS_PS2P_COUNT_OFFSET, sf);
-    aux_count = read_u32le(THQ_AUS_PS2P_AUX_COUNT_OFFSET, sf);
+    file_count = read_u32le(PS2P_COUNT_OFFSET, sf);
+    aux_count = read_u32le(PS2P_AUX_COUNT_OFFSET, sf);
 
     if (file_count < 1) return NULL;
 
@@ -41,8 +41,8 @@ VGMSTREAM* init_vgmstream_thq_aus_ps2p(STREAMFILE* sf) {
      */
 
     if (target_subsong == 1) {
-        subfile_offset = read_u32le(THQ_AUS_PS2P_ALIGNMENT_OFFSET, sf);
-        subfile_size = read_u32le(THQ_AUS_PS2P_TABLE_OFFSET, sf);
+        subfile_offset = read_u32le(PS2P_ALIGNMENT_OFFSET, sf);
+        subfile_size = read_u32le(PS2P_TABLE_OFFSET, sf);
     }
     else {
         /* Files 1..N */
@@ -51,10 +51,10 @@ VGMSTREAM* init_vgmstream_thq_aus_ps2p(STREAMFILE* sf) {
         int entry_idx = target_subsong - 2; // Map Subsong 2 -> Entry 0
 
         /* Offset is at 0x08 in the previous entry */
-        subfile_offset = read_u32le(THQ_AUS_PS2P_TABLE_OFFSET + (entry_idx * THQ_AUS_PS2P_ENTRY_SIZE) + 0x08, sf);
+        subfile_offset = read_u32le(PS2P_TABLE_OFFSET + (entry_idx * PS2P_ENTRY_SIZE) + 0x08, sf);
 
         /* Size is at 0x00 in the current entry */
-        subfile_size = read_u32le(THQ_AUS_PS2P_TABLE_OFFSET + ((entry_idx + 1) * THQ_AUS_PS2P_ENTRY_SIZE), sf);
+        subfile_size = read_u32le(PS2P_TABLE_OFFSET + ((entry_idx + 1) * PS2P_ENTRY_SIZE), sf);
     }
 
     if (subfile_offset == 0) return NULL;
@@ -66,16 +66,16 @@ VGMSTREAM* init_vgmstream_thq_aus_ps2p(STREAMFILE* sf) {
 
     if (vgmstream) {
         vgmstream->num_streams = file_count;
-        vgmstream->meta_type = meta_THQ_AUS_PS2P;
+        vgmstream->meta_type = meta_PS2P;
 
         /* --- NAME MAPPING --- */
         /* Table 2 (Aux/Mapping) maps Strings to File IDs.
          * Structure: [FileID (4)] [Unk (24)].
          * If mapping found for our current File ID, look up the string. */
 
-        uint32_t table1_size = file_count * THQ_AUS_PS2P_ENTRY_SIZE;
-        uint32_t table2_offset = THQ_AUS_PS2P_TABLE_OFFSET + table1_size;
-        uint32_t table2_size = aux_count * THQ_AUS_PS2P_AUX_ENTRY_SIZE;
+        uint32_t table1_size = file_count * PS2P_ENTRY_SIZE;
+        uint32_t table2_offset = PS2P_TABLE_OFFSET + table1_size;
+        uint32_t table2_size = aux_count * PS2P_AUX_ENTRY_SIZE;
 
         /* String table starts 4 bytes before the calculated end of Table 2. */
         uint32_t string_table_offset = table2_offset + table2_size - 4;
@@ -86,7 +86,7 @@ VGMSTREAM* init_vgmstream_thq_aus_ps2p(STREAMFILE* sf) {
 
         /* Scan Mapping Table to find which String Index maps to this File ID */
         for (int i = 0; i < aux_count; i++) {
-            uint32_t mapped_id = read_u32le(table2_offset + (i * THQ_AUS_PS2P_AUX_ENTRY_SIZE), sf);
+            uint32_t mapped_id = read_u32le(table2_offset + (i * PS2P_AUX_ENTRY_SIZE), sf);
             if (mapped_id == current_file_id) {
                 mapping_idx = i;
                 break;

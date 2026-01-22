@@ -680,7 +680,7 @@
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
-    <ClCompile Include="meta\thq_aus.c" />
+    <ClCompile Include="meta\ps2p.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />

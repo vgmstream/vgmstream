@@ -1520,7 +1520,7 @@ static const meta_info meta_info_list[] = {
         {meta_UEBA,                 "Epic Games UEBA header"},
         {meta_WD,                   "Square WD header"},
         {meta_BWAV_WARTHOG,         "Warthog .BWAV header"},
-        {meta_THQ_AUS_PS2P,         "THQ Australia PS2P header"},
+        {meta_PS2P,                 "THQ Australia PS2P header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
