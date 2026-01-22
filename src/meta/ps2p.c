@@ -8,7 +8,7 @@
 #define PS2P_ENTRY_SIZE         0x0C
 #define PS2P_AUX_ENTRY_SIZE     0x1C
 
-/* THQ Australia - PS2P [Jimmy Neutron: Attack of the Twonkies (PS2), SpongeBob: Lights, Camera, Pants! (PS2)] */
+/* THQ Australia (Studio Oz) - PS2P [Jimmy Neutron: Attack of the Twonkies (PS2), SpongeBob: Lights, Camera, Pants! (PS2)] */
 VGMSTREAM* init_vgmstream_ps2p(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
