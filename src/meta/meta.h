@@ -1057,4 +1057,6 @@ VGMSTREAM* init_vgmstream_bwav_warthog(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ps2p(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_gcsp(STREAMFILE* sf);
+
 #endif

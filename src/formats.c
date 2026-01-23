@@ -1521,6 +1521,7 @@ static const meta_info meta_info_list[] = {
         {meta_WD,                   "Square WD header"},
         {meta_BWAV_WARTHOG,         "Warthog .BWAV header"},
         {meta_PS2P,                 "THQ Australia PS2P header"},
+        {meta_GCSP,                 "THQ Australia GCSP header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
