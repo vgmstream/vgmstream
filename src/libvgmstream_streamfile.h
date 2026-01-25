@@ -45,12 +45,8 @@ typedef struct libstreamfile_t {
 } libstreamfile_t;
 
 
-/* helpers */
-static inline void libstreamfile_close(libstreamfile_t* libsf) {
-    if (!libsf || !libsf->close)
-        return;
-    libsf->close(libsf);
-}
+/* helper (same as libsf->close(libsf)) */
+LIBVGMSTREAM_API void libstreamfile_close(libstreamfile_t* libsf);
 
 /* base libstreamfile using STDIO (cached) */
 LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_stdio(const char* filename);
