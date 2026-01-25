@@ -55,7 +55,7 @@
  * - vgmstream's features are mostly stable, but this API may be tweaked from time to time
  */
 #define LIBVGMSTREAM_API_VERSION_MAJOR 0x01    // breaking API/ABI changes
-#define LIBVGMSTREAM_API_VERSION_MINOR 0x00    // compatible API/ABI changes
+#define LIBVGMSTREAM_API_VERSION_MINOR 0x01    // compatible API/ABI changes
 #define LIBVGMSTREAM_API_VERSION_PATCH 0x00    // fixes
 
 /* Current API version, for dynamic checks. returns hex value: 0xMMmmpppp = MM-major, mm-minor, pppp-patch
@@ -65,6 +65,7 @@ LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void);
 
 /* CHANGELOG:
  * - 1.0.0: initial version
+ * - 1.1.0: add libstreamfile_close helper as part of the API
  */
 
 

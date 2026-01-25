@@ -4,11 +4,11 @@
 /* XA ADPCM gain values */
 //#define XA_FLOAT 1
 #if XA_FLOAT
-/* floats as defined by the spec, but PS1's SPU would use int math */
+// floats as defined by the spec, but PS1's SPU would use int math
 static const float K0[4+12] = { 0.0, 0.9375, 1.796875, 1.53125 };
 static const float K1[4+12] = { 0.0,    0.0,  -0.8125, -0.859375 };
 #else
-/* K0/1 floats to int with N=6: K*2^6 = K*(1<<6) = K*64 (upper ranges are supposedly 0)*/
+// K0/1 floats to int with N=6: K*2^6 = K*(1<<6) = K*64 (upper ranges are supposedly 0, but some emus also add 122/-60)
 static const int K0[4+12] = {  0,   60,  115,  98 };
 static const int K1[4+12] = {  0,    0,  -52, -55 };
 #endif
@@ -47,8 +47,8 @@ typedef struct {
     int32_t hist1;
     int32_t hist2;
     int subframes;
-    int is_xa8;
-    int is_ea;
+    bool is_xa8;
+    bool is_ea;
 } xa_t;
 
 static void decode_xa_frame(xa_t* xa, int32_t first_sample, int32_t samples_to_do, int channel) {
@@ -84,7 +84,7 @@ static void decode_xa_frame(xa_t* xa, int32_t first_sample, int32_t samples_to_d
             coef2 = EA_TABLE[index][1];
         }
         else {
-            VGM_ASSERT_ONCE(index > 4, "XA: incorrect coefs %x\n", sp);
+            VGM_ASSERT_ONCE(index >= 4, "XA: incorrect coefs %x\n", sp);
             coef1 = K0[index];
             coef2 = K1[index];
         }
@@ -222,10 +222,11 @@ size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_fo
  *     ...
  *   (rounding differences should be inaudible)
  *
- * There isn't an official implementation, but supposedly CD-ROM controller (which reads CD-XA) pushes
+ * There isn't an official implementation, but supposedly the CD-ROM controller (which reads CD-XA) pushes
  * audio data to the SPU directly (http://wiki.psxdev.ru/index.php/SPU), so probably the same as PS-ADPCM.
  * Emus all seem to use approximations:
- * - duckstation: N=6, "s + ((h1 * K0) + (h2 * K1) + 32) / 64"; no hist clamp; s clamp;
+ * - xebra: N=8, "s + ((h1 * K0) + (h2 * K1)) >> 8"; hist / s clamp;
+ * - duckstation: N=6, "s + ((h1 * K0) >> 6 + ((h2 * K1) >> 6)"; hist / s clamp;
  * - mednafen: N=6, "s + ((h1 * K0) >> 6) + ((h2 * K1) >> 6)"; hist / s clamp;
  * - mame: N=6, "s + ((h1 * K0) + (h2 * K1) + 32) >> 6)"; no hist / s clamp;
  * - peops: N=10, "s + ((h1 * K0) + (h2 * K1) + 32) >> 10)"; no hist / s clamp;

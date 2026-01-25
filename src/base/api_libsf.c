@@ -117,3 +117,9 @@ LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_file(void* file_, cons
 
     return libsf;
 }
+
+LIBVGMSTREAM_API void libstreamfile_close(libstreamfile_t* libsf) {
+    if (!libsf || !libsf->close)
+        return;
+    libsf->close(libsf);
+}

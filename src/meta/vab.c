@@ -83,7 +83,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     size_t data_size;
     bool is_vh = false;
     int target_subsong = sf->stream_index, program_num, tone_num, total_subsongs,
-        note, fine, uselimits,
+        note, fine, uselimits, programs_done,
         channels, loop_flag, loop_start = 0, loop_end = 0;
     STREAMFILE* sf_data = NULL;
     VGMSTREAM* vgmstream = NULL;
@@ -117,26 +117,32 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0)
         goto fail;
-
     total_subsongs = 0;
+
     program_num = -1;
     tone_num = -1;
-    for (int i = 0; i < programs; i++) {
-        uint8_t program_tones;
-        int local_target;
-
-        local_target = target_subsong - total_subsongs - 1;
+    programs_done = 0;
+    for (int i = 0; i < 128; i++) {
         entry_off = programs_off + i * 0x10;
-        program_tones = read_u8(entry_off + 0x00, sf);
-        total_subsongs += program_tones;
 
+        uint8_t program_tones = read_u8(entry_off + 0x00, sf);
+        if (program_tones == 0)
+            continue;
+
+        int local_target = target_subsong - total_subsongs - 1;
         if (local_target >= 0 && local_target < program_tones) {
-            program_num = i;
+            program_num = programs_done;
             tone_num = local_target;
         }
+        total_subsongs += program_tones;
+
+        // rarely banks start with N empty programs [Simple 1500 Series Vol. 92: The Tozan RPG (PS1)]
+        programs_done++;
+        if (programs_done > programs)
+            break;
     }
 
-    if (program_num == -1)
+    if (program_num == -1 || programs_done == 0)
         goto fail;
 
     entry_off = tones_off + program_num * 16 * 0x20 + tone_num * 0x20;

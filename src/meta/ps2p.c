@@ -14,10 +14,10 @@ VGMSTREAM* init_vgmstream_ps2p(STREAMFILE* sf) {
     uint32_t subfile_offset, subfile_size, file_count, aux_count, alignment;
     int target_subsong = sf->stream_index;
 
-    if (!check_extensions(sf, "sounds"))
+    if (!is_id32be(0x00, sf, "ps2p"))
         return NULL;
 
-    if (!is_id32be(0x00, sf, "ps2p"))
+    if (!check_extensions(sf, "sounds"))
         return NULL;
 
     /* Header Values */
