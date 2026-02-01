@@ -1,11 +1,10 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-#define PS2P_COUNT_OFFSET       0x14
-#define PS2P_AUX_COUNT_OFFSET   0x18
 #define PS2P_TABLE_OFFSET       0x20
 #define PS2P_ENTRY_SIZE         0x0C
 #define PS2P_AUX_ENTRY_SIZE     0x1C
+#define PS2P_AUX_OFF_END_PTR    0x18
 
 /* THQ Australia (Studio Oz) - PS2P [Jimmy Neutron: Attack of the Twonkies (PS2), SpongeBob: Lights, Camera, Pants! (PS2)] */
 VGMSTREAM* init_vgmstream_ps2p(STREAMFILE* sf) {
@@ -22,8 +21,8 @@ VGMSTREAM* init_vgmstream_ps2p(STREAMFILE* sf) {
 
     /* Header Values */
     alignment = read_u32le(0x0C, sf);
-    file_count = read_u32le(PS2P_COUNT_OFFSET, sf);
-    aux_count = read_u32le(PS2P_AUX_COUNT_OFFSET, sf);
+    file_count = read_u32le(0x14, sf);
+    aux_count = read_u32le(0x18, sf);
 
     if (file_count < 1) return NULL;
 
@@ -82,21 +81,17 @@ VGMSTREAM* init_vgmstream_ps2p(STREAMFILE* sf) {
             }
         }
 
-        /* If a mapping exists, overwrite the VAG internal name with the Mapped Name */
         if (mapping_idx >= 0) {
-            off_t name_offset = string_table_offset;
-            int strings_to_skip = mapping_idx;
+            uint32_t name_rel_offset = 0;
 
-            while (strings_to_skip > 0 && name_offset < (off_t)alignment) {
-                char c = read_u8(name_offset, sf);
-                if (c == '\0') {
-                    strings_to_skip--;
-                }
-                name_offset++;
+            /* The Start Offset for string N is the End Offset of string N-1 */
+            if (mapping_idx > 0) {
+                uint32_t prev_name_ent = table2_offset + ((mapping_idx - 1) * PS2P_AUX_ENTRY_SIZE);
+                name_rel_offset = read_u32le(prev_name_ent + PS2P_AUX_OFF_END_PTR, sf);
             }
 
-            if (name_offset < (off_t)alignment) {
-                read_string(vgmstream->stream_name, STREAM_NAME_SIZE, name_offset, sf);
+            if ((string_table_offset + name_rel_offset) < get_streamfile_size(sf)) {
+                read_string(vgmstream->stream_name, STREAM_NAME_SIZE, string_table_offset + name_rel_offset, sf);
             }
         }
     }
