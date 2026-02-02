@@ -2,7 +2,27 @@
 
 name: macOS build
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'doc/**'          # Documentation folder
+      - '**.md'           # README, SECURITY.md, etc.
+      - 'COPYING'         # License
+      - '.gitignore'
+      - 'cli/tools/**'    # Standalone python scripts (txtp_dumper, etc.)
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - 'COPYING'
+      - '.gitignore'
+      - 'cli/tools/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)

@@ -37,16 +37,29 @@ URL_UPDATE = 'https://api.github.com/repos/vgmstream/vgmstream-releases/releases
 # gives info about last vgmstream tag
 URL_VGMSTREAM = 'https://api.github.com/repos/vgmstream/vgmstream/releases?per_page=1'
 
+# Toggle to force anonymous requests (avoids using token even if present).
+DISABLE_AUTHENTICATION = False
+
 #------------------------------------------------------------------------------
 
-def get_release():
-    contents = urllib.request.urlopen(URL_RELEASE).read()
+def create_request(url, token):
+    req = urllib.request.Request(url)
+    if token and not DISABLE_AUTHENTICATION:
+        req.add_header("Authorization", "Bearer %s" % (token))
+        req.add_header("X-GitHub-Api-Version", "2022-11-28")
+        req.add_header("Accept", "application/vnd.github+json")
+    return req
+
+def get_release(token):
+    req = create_request(URL_RELEASE, token)
+    contents = urllib.request.urlopen(req).read()
     data = json.loads(contents)
     return data
 
-def get_vgmstream_tag():
+def get_vgmstream_tag(token):
     # TODO could use local git tag
-    contents = urllib.request.urlopen(URL_VGMSTREAM).read()
+    req = create_request(URL_VGMSTREAM, token)
+    contents = urllib.request.urlopen(req).read()
     data = json.loads(contents)
     return data[0]['tag_name']
 
@@ -127,7 +140,7 @@ def generate_changelog(release, token, debug):
         # writes in work dir and gets lines
         lines = changelog.main() 
 
-        current_tag = get_vgmstream_tag()
+        current_tag = get_vgmstream_tag(token)
         body = [
             'Automated releases ([full diffs here](https://github.com/vgmstream/vgmstream/compare/%s...master)).' % (current_tag),
             '',
@@ -183,7 +196,7 @@ def main(args):
 
     print("handling %s files" % (len(files)))
     try:
-        release = get_release()
+        release = get_release(token)
         for file in files:
             delete_asset(release, token, args.debug, file)
             upload_asset(release, token, args.debug, file)
