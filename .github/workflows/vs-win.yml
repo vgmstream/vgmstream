@@ -2,9 +2,27 @@
 
 name: Windows build
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'doc/**'          # Documentation folder
+      - '**.md'           # README, SECURITY.md, etc.
+      - 'COPYING'         # License
+      - '.gitignore'
+      - 'cli/tools/**'    # Standalone python scripts (txtp_dumper, etc.)
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - 'COPYING'
+      - '.gitignore'
+      - 'cli/tools/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
