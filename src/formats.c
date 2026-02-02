@@ -110,6 +110,7 @@ static const char* extension_list[] = {
     "bcstm",
     "bcwav",
     "bcv", //txth/reserved [The Bigs (PSP)]
+    "bdm", //txth/reserved [Ore to Imouto no Kounai Play (BD-J)]
     "bfstm",
     "bfwav",
     "bg00",
