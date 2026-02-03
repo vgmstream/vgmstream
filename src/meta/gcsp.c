@@ -49,7 +49,7 @@ VGMSTREAM* init_vgmstream_gcsp(STREAMFILE* sf) {
     int channels = 1;
     int target_subsong = sf->stream_index;
 
-    if (!is_id32be(0x00, sf, "gcsp"))
+    if (is_id32be(0x00, sf, "gcsp"))
         return NULL;
 
     if (!check_extensions(sf, "sounds"))
