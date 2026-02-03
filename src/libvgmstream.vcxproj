@@ -552,6 +552,7 @@
     <ClCompile Include="meta\g1l.c" />
     <ClCompile Include="meta\gbts.c" />
     <ClCompile Include="meta\gca.c" />
+    <ClCompile Include="meta\gcsp.c" />
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\gcub.c" />
     <ClCompile Include="meta\genh.c" />

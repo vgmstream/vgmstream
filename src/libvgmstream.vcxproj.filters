@@ -1486,6 +1486,9 @@
     <ClCompile Include="meta\gca.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\gcsp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\gcsw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
