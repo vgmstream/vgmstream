@@ -2,7 +2,27 @@
 
 name: WebAssembly build
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - 'COPYING'
+      - '.gitignore'
+      - 'cli/tools/**'
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - 'COPYING'
+      - '.gitignore'
+      - 'cli/tools/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
