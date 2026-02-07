@@ -48,7 +48,8 @@ typedef struct libstreamfile_t {
 /* helper (same as libsf->close(libsf)) */
 LIBVGMSTREAM_API void libstreamfile_close(libstreamfile_t* libsf);
 
-/* base libstreamfile using STDIO (cached) */
+/* base libstreamfile using STDIO (cached). 
+ * Note that this must be closed with libstreamfile_close(...) */
 LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_stdio(const char* filename);
 
 /* base libstreamfile using a FILE (cached); the filename is needed as metadata */

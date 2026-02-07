@@ -5,12 +5,22 @@
 /* libvgmstream: vgmstream's public API
  *
  * Basic usage (also see api_example.c):
+ *   - libstreamfile_open_*(...)        // fopen FILE wrapper
+ *   - libvgmstream_create(...)         // init + setup + open format
+ *   - libvgmstream_render(...)         // main decode
+ *   - output samples + repeat libvgmstream_render until 'done' flag is set
+ *   - libvgmstream_free(...)           // lib cleanup
+ *   - libstreamfile_close(...)         // fclose FILE wrapper
+ * 
+ * This can be used instead of the libvgmstream_create(...) wrapper:
  *   - libvgmstream_init(...)           // create context
  *   - libvgmstream_setup(...)          // setup config (if needed)
- *   - libvgmstream_open_stream(...)    // open format
- *   - libvgmstream_render(...)         // main decode
- *   - output samples + repeat libvgmstream_render until 'done' is set
- *   - libvgmstream_free(...)           // cleanup
+ *   - libvgmstream_open_stream(...)    // open subsong
+ *   - ...
+ *   - libvgmstream_close_stream(...)   // close subsong (optional)
+ * 
+ * Note that the 'libstreamfile' must be opened and closed separately from libvgmstream.
+ * This is by design, to behave similarly to a FILE.
  *
  * By default vgmstream behaves like a decoder (returns samples until stream end), but you can configure
  * it to loop N times or even downmix. In other words, it also behaves a bit like a player.
@@ -208,7 +218,7 @@ LIBVGMSTREAM_API void libvgmstream_setup(libvgmstream_t* lib, libvgmstream_confi
  * - will close currently loaded song if needed
  * - libsf (custom IO) is not needed after _open and should be closed, as vgmstream re-opens as needed
  * - subsong can be 1..N or 0 = default/first
- *   ** to check if a file has subsongs, _open default + check format->total_subsongs (then _open Nth)
+ *   ** to check if a file has subsongs, _open_stream default + check format->subsong_count (then _open_stream Nth)
  */
 LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libstreamfile_t* libsf, int subsong);
 
