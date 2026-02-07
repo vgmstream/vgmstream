@@ -16,18 +16,17 @@ VGMSTREAM* init_vgmstream_aax(STREAMFILE* sf) {
     int segment_count, loop_segment = 0, is_hca;
     off_t segment_offset[MAX_SEGMENTS];
     size_t segment_size[MAX_SEGMENTS];
-    int i;
     utf_context* utf = NULL;
 
 
     /* checks */
     if (!is_id32be(0x00,sf, "@UTF"))
-        goto fail;
+        return NULL;
 
     /* .aax: often with extension (with either HCA or AAX tables)
      * (extensionless): sometimes without [PES 2013 (PC)] */
     if (!check_extensions(sf, "aax,"))
-        goto fail;
+        return NULL;
 
     /* .aax contains a simple UTF table, each row being a segment pointing to a CRI audio format */
     {
@@ -40,9 +39,9 @@ VGMSTREAM* init_vgmstream_aax(STREAMFILE* sf) {
         if (!utf) goto fail;
 
         if (strcmp(name, "AAX") == 0)
-            is_hca = 0;
+            is_hca = false;
         else if (strcmp(name, "HCA") == 0)
-            is_hca = 1;
+            is_hca = true;
         else
             goto fail;
 
@@ -51,7 +50,7 @@ VGMSTREAM* init_vgmstream_aax(STREAMFILE* sf) {
 
 
         /* get offsets of constituent segments */
-        for (i = 0; i < segment_count; i++) {
+        for (int i = 0; i < segment_count; i++) {
             uint32_t offset, size;
             uint8_t segment_loop_flag = 0;
 
@@ -69,12 +68,17 @@ VGMSTREAM* init_vgmstream_aax(STREAMFILE* sf) {
         }
     }
 
+    // seen in Anarchy Reign's .csb in .sdx (named '..._dummy')
+    if (segment_count == 1 && segment_size[0] == 0 && segment_offset[0] == get_streamfile_size(sf)) {
+        return init_vgmstream_silence(0, 0, 0);
+    }
+
     /* init layout */
     data = init_layout_segmented(segment_count);
     if (!data) goto fail;
 
     /* open each segment subfile */
-    for (i = 0; i < segment_count; i++) {
+    for (int i = 0; i < segment_count; i++) {
         STREAMFILE* temp_sf = setup_subfile_streamfile(sf, segment_offset[i],segment_size[i], (is_hca ? "hca" : "adx"));
         if (!temp_sf) goto fail;
 
@@ -93,7 +97,7 @@ VGMSTREAM* init_vgmstream_aax(STREAMFILE* sf) {
 
     /* get looping and samples */
     sample_count = 0;
-    for (i = 0; i < segment_count; i++) {
+    for (int i = 0; i < segment_count; i++) {
 
         if (loop_flag && loop_segment == i) {
             loop_start_sample = sample_count;
