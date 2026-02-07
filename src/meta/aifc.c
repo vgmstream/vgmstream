@@ -246,7 +246,14 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                             case 0x76696D61: {  /* "vima" [Star Wars Anakin's Speedway (PC), Star Wars Early Learning Activity Center (PC)] */
                                 /* "Variable IMA 16 bit" */
                                 coding_type = coding_IMUSE;
-                                sample_rate = 22050; // field has garbage (like part of the name) consistently
+
+                                // sample rate has garbage (part of text) consistently
+                                if (sample_size != 16) {
+                                    // supposedly, from decomp: 12 = 11025, 14 = 44100, other = 22050
+                                    VGM_LOG("AIFC: unknown VIMA sample rate\n");
+                                    goto fail;
+                                }
+                                sample_rate = 22050;
                                 break;
                             }
 

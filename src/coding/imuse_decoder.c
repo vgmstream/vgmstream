@@ -164,6 +164,7 @@ typedef struct {
     /* config */
     imuse_type_t type;
     int channels;
+    bool is_pcm8;
 
     size_t block_count;
     block_entry_t* block_table;
@@ -178,6 +179,8 @@ typedef struct {
     uint8_t adpcm_step_index[MAX_CHANNELS];
 
     short pbuf[MAX_BLOCK_SIZE / sizeof(short) * MAX_CHANNELS];
+
+    bool overread;
 } imuse_codec_data;
 
 
@@ -194,6 +197,7 @@ static void reset_imuse(void* priv_data) {
     if (!data) return;
 
     data->current_block = 0;
+    data->overread = false;
 }
 
 static imuse_codec_data* init_imuse_internal(int channels, int blocks) {
@@ -327,13 +331,15 @@ fail:
     return NULL;
 }
 
+static bool detect_pcm8_aifc(STREAMFILE* sf, imuse_codec_data* data);
+
 void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels) {
     imuse_codec_data* data = NULL;
 
     // mini header in AIFC's SSND chunk:
-    // 00: flags? (fixed)
+    // 00: id? (fixed)
     // 04: crc-like value (may be shared between different files)
-    // 08: small number (ex. 0x20, 0x2C)
+    // 08: small number (ex. 0x20, 0x2C, 0x3E)
 
     // doesn't seem there is a block count (nor in AIFC fields), for now so use a known max and recalculate later
     int block_count = BLOCK_COUNT_AIFC;
@@ -384,7 +390,6 @@ void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels) {
     }
 
     data->block_count = block_num;
-    data->type = AIFC;
 
     {
         // make offsets absolute to unify with other iMUSEs
@@ -396,6 +401,9 @@ void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels) {
         }
     }
 
+    data->type = AIFC;
+    data->is_pcm8 = detect_pcm8_aifc(sf, data);
+VGM_LOG("pcm8=%i\n",data->is_pcm8 );
     return data;
 fail:
     free_imuse(data);
@@ -423,7 +431,13 @@ static void expand_vima(imuse_codec_data* data, bitstream_t* is, int ch, int s) 
 
     // all bits set means 'keyframe' = read next BE sample
     if (!is_v1 && code_base == data_mask) {
-        sample = (short)bm_read(is, 16);
+        if (data->is_pcm8) {
+            sample = (int8_t)bm_read(is, 8);
+            sample = (sample << 8) | 0x80;
+        }
+        else {
+            sample = (int16_t)bm_read(is, 16);
+        }
     }
     else {
         int adpcm_index = (code_base << code_shift);
@@ -618,6 +632,10 @@ static int decode_vima_aifc(imuse_codec_data* data, block_entry_t* entry) {
         }
     }
 
+    if (is.error) {
+        data->overread = true;
+    }
+
     filled += data_left / sizeof(short) / chs;
     return filled;
 }
@@ -726,6 +744,31 @@ static bool decode_frame_imuse(VGMSTREAM* v) {
     ds->sbuf.filled = ds->sbuf.samples;
 
     return true;
+}
+
+// Detect variation with PCM8 keyframes instead of PCM16 [Star Wars Episode I: The Gungan Frontier (PC)]
+// No apparent flags in AIFC or VIMA mini-header and hardcoded into the exe, plus earlier and later games
+// don't use this. Sizes don't seem useful either so, ugly as it, test it doesn't over-read after decoding.
+static bool detect_pcm8_aifc(STREAMFILE* sf, imuse_codec_data* data) {
+    int max = 3; // 1 block should be enough but just in case
+    if (max > data->block_count)
+        max = data->block_count;
+    
+    for (int i = 0; i < max; i++) {
+        bool ok = read_block(sf, data);
+        if (!ok)  break;
+
+        int samples = decode_block(data);
+        if (samples < 0) break;
+
+        if (data->overread)
+            break;
+    }
+        VGM_LOG("test=%i\n", data->overread);
+    bool is_pcm8 = data->overread;
+    reset_imuse(data);
+
+    return is_pcm8;
 }
 
 static void seek_imuse(VGMSTREAM* v, int32_t num_sample) {
