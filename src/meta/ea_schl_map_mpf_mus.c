@@ -22,13 +22,13 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
     off_t section_offset;
     int target_stream = sf->stream_index;
 
-    /* check extension */
+    /* checks */
+    if (!is_id32be(0x00, sf, "PFDx"))
+        return NULL;
+
     if (!check_extensions(sf, "map,lin,mpf"))
         return NULL;
 
-    /* always big endian */
-    if (!is_id32be(0x00, sf, "PFDx"))
-        return NULL;
 
     version = read_u8(0x04, sf);
     if (version > 1) goto fail;

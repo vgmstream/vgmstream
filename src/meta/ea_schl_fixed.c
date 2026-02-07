@@ -42,8 +42,9 @@ VGMSTREAM* init_vgmstream_ea_schl_fixed(STREAMFILE* sf) {
 
     /* .asf: original [NHK 97 (PC)]
      * .lasf: fake for plugins
-     * .cnk/dct: ps1 [NBA Live 97 (PS1)] */
-    if (!check_extensions(sf, "asf,lasf,cnk,dct"))
+     * .cnk/dct: ps1 [NBA Live 97 (PS1)]
+     * .tgv/uv: PC videos [NBA Live 97 (PC)] */
+    if (!check_extensions(sf, "asf,lasf,cnk,dct,tgv,uv"))
         return NULL;
 
     /* see ea_schl.c for more info about blocks */

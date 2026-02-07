@@ -15,6 +15,7 @@ typedef struct {
     uint32_t bufsize;       // max size
     uint32_t b_max;         // max size in bits
     uint32_t b_off;         // current offset in bits inside buffer
+    bool error;             // attempted to read/write past max data
 } bitstream_t;
 
 /* convenience util */
@@ -23,6 +24,7 @@ static inline void bm_setup(bitstream_t* bs, uint8_t* buf, uint32_t bufsize) {
     bs->bufsize = bufsize;
     bs->b_max = bufsize * 8;
     bs->b_off = 0;
+    bs->error = false;
 }
 
 static inline int bm_set(bitstream_t* bs, uint32_t b_off) {
@@ -45,8 +47,10 @@ static inline int bm_fill(bitstream_t* bs, uint32_t bytes) {
 }
 
 static inline int bm_skip(bitstream_t* bs, uint32_t bits) {
-    if (bs->b_off + bits > bs->b_max)
+    if (bs->b_off + bits > bs->b_max) {
+        bs->error = true;
         return 0;
+    }
 
     bs->b_off += bits;
 
@@ -74,6 +78,7 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 
     if (bits > 32 || ib->b_off + bits > ib->b_max) {
         *value = 0;
+        ib->error = true;
         return 0;
     }
 
@@ -143,8 +148,10 @@ static inline int bm_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, pos;
     int i, bit_val, bit_buf;
 
-    if (bits > 32 || ob->b_off + bits > ob->b_max)
+    if (bits > 32 || ob->b_off + bits > ob->b_max) {
+        ob->error = true;
         return 0;
+    }
 
     pos = ob->b_off / 8;                        // byte offset
     shift = ob->b_off % 8;                      // bit sub-offset

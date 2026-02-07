@@ -366,10 +366,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - InterPlay ACM header [*ACM*]
   - *acm*: `.acm .tun .wavc`
   - Codecs: ACM
-- **mus_acm.c**
-  - InterPlay MUS ACM header [*MUS_ACM*]
-  - *mus_acm*: `.mus`
-    - Subfiles: *acm ogg_vorbis*
 - **vig_kces.c**
   - Konami .VIG header [*VIG_KCES*]
   - *vig_kces*: `.vig`
@@ -986,7 +982,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ea_schl_fixed.c**
   - Electronic Arts BNK header (fixed) [*EA_BNK_fixed*]
   - Electronic Arts SCHl header (fixed) [*EA_SCHL_fixed*]
-  - *ea_schl_fixed*: `.asf .lasf .cnk .dct`
+  - *ea_schl_fixed*: `.asf .lasf .cnk .dct .tgv .uv`
   - *ea_bnk_fixed*: `.bkh .vh + .bkd .vb`
   - *ea_patl*: `.pth + .ptd`
   - Codecs: PCM8 PCM16BE PCM16LE DVI_IMA PSX
@@ -1817,6 +1813,18 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Square WD header [*WD*]
   - *wd*: `.wd`
   - Codecs: NGC_DSP PSX
+- **ps2p.c**
+  - THQ Australia PS2P header [*PS2P*]
+  - *ps2p*: `.sounds`
+    - Subfiles: *vag*
+- **gcsp.c**
+  - THQ Australia GCSP header [*GCSP*]
+  - *gcsp*: `.sounds`
+  - Codecs: NGC_DSP
+- **mus_acm.c**
+  - InterPlay MUS ACM header [*MUS_ACM*]
+  - *mus_acm*: `.mus`
+    - Subfiles: *acm ogg_vorbis*
 - **afc.c**
   - Nintendo .AFC header [*AFC*]
   - *afc*: `.afc .stx`
@@ -1949,6 +1957,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *jaudio_bx*: `.bx`
   - *jaudio_baa*: `.baa`
   - Codecs: AFC AFC_2bit PCM8 PCM16BE
+- **bwav_warthog.c**
+  - Warthog .BWAV header [*BWAV_WARTHOG*]
+  - *bwav_warthog*: `.bwav`
+  - Codecs: PSX XBOX_IMA NGC_DSP
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
@@ -2024,8 +2036,8 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *rwsd*: `.brwsd .rwsd`
   - Codecs: PCM8 PCM16BE NGC_DSP
 - **ffmpeg.c**
-  - FFmpeg supported format (check log) [*FFMPEG_faulty*]
-  - FFmpeg supported format [*FFMPEG*]
+  - FFmpeg format (check log) [*FFMPEG_faulty*]
+  - FFmpeg format [*FFMPEG*]
   - *ffmpeg*: `.(any) .sbao .bao`
   - Codecs: FFmpeg(various)
 - **ea_eaac.c**

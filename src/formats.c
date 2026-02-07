@@ -536,6 +536,7 @@ static const char* extension_list[] = {
     "sdp", //txth/reserved [Metal Gear Arcade (AC)]
     "sdf",
     "sdt",
+    "sdx", //txth/reserved [Anarchy Reigns (multi)]
     "se",
     "se3", //txth/reserved (.nub container) [Tales of Vesperia (X360/PS3), Tales of Graces f (PS3)]
     "seb",
@@ -1678,7 +1679,8 @@ void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_
     }
 
 #ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type ==  coding_FFmpeg) {
+    // include FFmpeg's format description for the generic ffmpeg.c parser
+    if (vgmstream->coding_type == coding_FFmpeg && vgmstream->meta_type == meta_FFMPEG) {
         const char* description_ffmpeg = ffmpeg_get_format_name(vgmstream->codec_data);
         if (description_ffmpeg != NULL) {
             snprintf(out, out_size, "%s (%s)", description, description_ffmpeg);

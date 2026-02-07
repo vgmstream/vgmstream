@@ -17,19 +17,19 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "@UTF"))
-        goto fail;
+        return NULL;
     /* .csb: standard
      * .cxb: Dariusburst - Another Chronicle (AC) */
     if (!check_extensions(sf, "csb,cxb"))
-        goto fail;
+        return NULL;
 
     /* .csb is an early, simpler version of .acb+awk (see acb.c) used until ~2013?
      * Can stream from .cpk but this only loads memory data. */
     {
         int rows, sdl_rows, sdl_row, i;
-        const char *name;
-        const char *row_name;
-        const char *sdl_name;
+        const char* name;
+        const char* row_name;
+        const char* sdl_name;
         uint32_t sdl_offset, sdl_size, offset, size;
         uint32_t table_offset = 0x00;
         uint8_t ttype;
@@ -171,12 +171,12 @@ VGMSTREAM* init_vgmstream_utf_dsp(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "@UTF"))
-        goto fail;
+        return NULL;
 
     /* .aax: assumed
      * (extensionless): extracted names inside csb/cpk often don't have extensions */
     if (!check_extensions(sf, "aax,"))
-        goto fail;
+        return NULL;
 
     /* contains a simple UTF table with one row and various columns being header info */
     {
@@ -258,12 +258,12 @@ VGMSTREAM* init_vgmstream_utf_ahx(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "@UTF"))
-        goto fail;
+        return NULL;
 
     /* .aax: assumed
      * (extensionless): extracted names inside csb/cpk often don't have extensions */
     if (!check_extensions(sf, "aax,"))
-        goto fail;
+        return NULL;
 
     /* contains a simple UTF table with one row and offset+size info */
     {
