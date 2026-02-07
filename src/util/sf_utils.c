@@ -5,10 +5,42 @@
 #include "log.h"
 
 
+static bool is_uppercase(const char* str) {
+    if (str == NULL || str[0] == '\0')
+        return false;
+
+    while (str[0] != '\0') {
+        char c = str[0];
+        if (c < 'A' || c > 'Z')
+            return false;
+        str++;
+    }
+
+    return true;
+}
+
+static void make_uppercase(char* str) {
+    if (str == NULL)
+        return;
+
+    while (str[0] != '\0') {
+        char c = str[0];
+        if (c >= 'a' && c <= 'z') {
+            str[0] = c - 0x20;
+        }
+        str++;
+    }
+}
+
+
 /* change pathname's extension to another (or add it if extensionless) */
 static void swap_extension(char* pathname, /*size_t*/ int pathname_len, const char* swap) {
     char* extension = (char*)filename_extension(pathname);
-    //todo safeops
+    if (!extension)
+        return;
+    bool ext_upper = is_uppercase(extension);
+
+    //TODO: safeops
     if (extension[0] == '\0') {
         if (swap[0] != '\0') {
             strcat(pathname, ".");
@@ -22,6 +54,11 @@ static void swap_extension(char* pathname, /*size_t*/ int pathname_len, const ch
             extension--;
             extension[0] = '\0';
         }
+    }
+
+    // try to match original case so Linux/Mac may work
+    if (ext_upper) {
+        make_uppercase(extension);
     }
 }
 
