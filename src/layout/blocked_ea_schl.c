@@ -111,11 +111,13 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
             /* id, size, samples, IMA hist, stereo/mono data */
             case coding_DVI_IMA:
-                for(i = 0; i < vgmstream->channels; i++) {
+                for (i = 0; i < vgmstream->channels; i++) {
                     off_t header_offset = block_offset + 0xc + i*4;
                     vgmstream->ch[i].adpcm_history1_32 = read_16bitLE(header_offset+0x00, vgmstream->ch[i].streamfile);
                     vgmstream->ch[i].adpcm_step_index  = read_16bitLE(header_offset+0x02, vgmstream->ch[i].streamfile);
-                    vgmstream->ch[i].offset = block_offset + 0xc + (4*vgmstream->channels);
+
+                    // mono in schl_fixed .asf, rare [Triple Play 97 (PC)]
+                    vgmstream->ch[i].offset = block_offset + 0x0c + 0x04*2;
                 }
 
                 break;
@@ -135,7 +137,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                     interleave = is_interleaved ? (block_samples / 28 * 0x0f) : 0;
 
                     /* NOT channels*0x04, as seen in Superbike 2000 (PC) EA-XA v1 mono vids */
-                    vgmstream->ch[i].offset = block_offset + 0x0c + 2*0x04 + i*interleave;
+                    vgmstream->ch[i].offset = block_offset + 0x0c + 0x04*2 + i*interleave;
                 }
 
                 break;
@@ -146,7 +148,8 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                 vgmstream->current_block_samples = -1;
                 break;
         }
-    } else {
+    }
+    else {
         switch(vgmstream->coding_type) {
             /* id, size, samples, offsets-per-channel, flag (0x01 = data start), data */
             case coding_EA_MT:
