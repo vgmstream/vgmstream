@@ -16,7 +16,7 @@ VGMSTREAM* init_vgmstream_srcd(STREAMFILE* sf) {
     if (!is_id32be(0x00, sf, "srcd"))
         return NULL;
 
-    if (!check_extensions(sf, "srcd,asrc,14,21,26,31"))
+    if (!check_extensions(sf, "srcd,asrc,14,21,26,31,de,en,fr,ja,ko"))
         return NULL;
 
     container_type = read_u32be(0x0C, sf);
