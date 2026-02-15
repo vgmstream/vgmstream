@@ -6,7 +6,7 @@
 #define COLUMN_BITMASK_FLAG       0xf0
 #define COLUMN_BITMASK_TYPE       0x0f
 
-enum columna_flag_t {
+enum column_flag_t {
     COLUMN_FLAG_NAME            = 0x10,     /* column has name (may be empty) */
     COLUMN_FLAG_DEFAULT         = 0x20,     /* data is found relative to schema start (typically constant value for all rows) */
     COLUMN_FLAG_ROW             = 0x40,     /* data is found relative to row start */
