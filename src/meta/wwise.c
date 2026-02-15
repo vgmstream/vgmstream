@@ -56,8 +56,8 @@ typedef struct {
     int32_t loop_end_sample;
 } wwise_header;
 
-static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
-static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection);
+static bool parse_wwise(STREAMFILE* sf, wwise_header* ww);
+static bool is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection);
 static void read_vorbis_seek_new(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset);
 static void read_vorbis_seek_old(VGMSTREAM* v, STREAMFILE* sf, wwise_header* ww, uint32_t seek_offset, uint32_t seek_size, uint32_t base_offset);
 
@@ -79,7 +79,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
     /* checks */
     if (!is_id32be(0x00,sf, "RIFF") &&  /* LE */
         !is_id32be(0x00,sf, "RIFX"))    /* BE */
-        goto fail;
+        return NULL;
 
     /* note that Wwise allows those extensions only, so custom engine exts shouldn't be added
      * .wem: newer "Wwise Encoded Media" used after the 2011.2 SDK (~july 2011)
@@ -88,11 +88,11 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
      * .ogg: older Vorbis files [The King of Fighters XII (X360)]
      * .bnk: Wwise banks for memory .wem detection (hack) */
     if (!check_extensions(sf,"wem,wav,lwav,ogg,logg,xma,bnk"))
-        goto fail;
+        return NULL;
 
     ww.is_bnk = (p_prefetch != NULL);
     if (!parse_wwise(sf, &ww))
-        goto fail;
+        return NULL;
 
     if (p_prefetch)
         *p_prefetch = ww.prefetch;
@@ -696,7 +696,7 @@ fail:
     return NULL;
 }
 
-static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection) {
+static bool is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection) {
     /* older (bank ~v48) Wwise use full interleave for memory (in .bnk) files, but
      * detection from the .wem side is problematic [Punch Out!! (Wii)-old, Luigi's Mansion 2 (3DS)-new]
      * - prefetch point to streams = normal
@@ -707,16 +707,16 @@ static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_o
      * (but since memory wem aren't that used this shouldn't be too common) */
 
     if (ww->prefetch)
-        return 0;
+        return false;
 
     if (ww->channels == 1)
-        return 0;
+        return false;
 
     if (ww->is_bnk)
-        return 1;
+        return true;
 
     if (ww->data_size > 0x30000)
-        return 0;
+        return false;
 
     /* skip reading data if possible */
     if (full_detection) {
@@ -725,20 +725,20 @@ static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_o
         uint16_t half_ps2 = read_u8(ww->data_offset + ww->data_size / 2, sf); /* at full interleave */
         //;VGM_LOG("WWISE: DSP head2=%x, init2=%x, half2=%x\n", head_ps2, init_ps2, half_ps2);
         if (head_ps2 != init_ps2 && head_ps2 == half_ps2) {
-            return 1;
+            return true;
         }
     }
 
-    return 0;
+    return false;
 }
 
 
-static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
+static bool parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     read_u32_t read_u32;
     read_u16_t read_u16;
 
     /* Wwise honors machine's endianness (PC=RIFF, X360=RIFX --unlike XMA) */
-    ww->big_endian = is_id32be(0x00,sf, "RIFX"); /* RIFF size not useful to detect, see below */
+    ww->big_endian = is_id32be(0x00,sf, "RIFX"); // some RIFX have LE size
     if (ww->big_endian) {
         read_u32 = read_u32be;
         read_u16 = read_u16be;
@@ -749,7 +749,6 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
 
     ww->file_size = get_streamfile_size(sf);
 
-#if 0
     /* Wwise's RIFF size is often wonky, seemingly depending on codec:
      * - PCM, IMA/PTADPCM, VORBIS, AAC, OPUSNX/OPUS: correct
      * - DSP, XWMA, ATRAC9: almost always slightly smaller (around 0x50)
@@ -757,17 +756,13 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
      * - XMA2: exact file size
      * - some RIFX have LE size
      * Value is ignored by AK's parser (set to -1).
-     * (later we'll validate "data" which fortunately is correct)
+     * Fortunately data_size is correct, but riff_size can be used for ambiguous cases later.
      */
-    if (read_u32(0x04,sf) + 0x04 + 0x04 != ww->file_size) {
-        VGM_LOG("WWISE: bad riff size\n");
-        goto fail;
-    }
-#endif
+    uint32_t riff_size = read_u32(0x04,sf);
 
     if (!is_id32be(0x08,sf, "WAVE") &&
         !is_id32be(0x08,sf, "XWMA"))
-        goto fail;
+        return false;
 
 
     /* parse chunks (reads once linearly) */
@@ -816,9 +811,9 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
 
                 case 0x66616374: /* "fact" */
                     /* Wwise never uses fact, but if somehow some file does uncomment the following: */
-                    //if (size == 0x10 && read_u32be(offset + 0x04, sf) == 0x4C794E20) /* "LyN " */
-                    //    goto fail; /* ignore LyN RIFF */
-                    goto fail;
+                    //if (size == 0x10 && is_id32be(offset + 0x04, sf, "LyN "))
+                    //    return false; // ignore LyN RIFF
+                    return false;
 
                 /* "XMAc": rare XMA2 physical loop regions (loop_start_b, loop_end_b, loop_subframe_data)
                  *         Can appear even in the file doesn't loop, maybe it's meant to be the playable physical region */
@@ -830,7 +825,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
                      * (could also check that fourcc is ASCII)  */
                     if (rc.offset + rc.size > file_size) {
                         vgm_logi("WWISE: broken .wem (bad extract?)\n");
-                        goto fail;
+                        return false;
                     }
 
                     break;
@@ -852,7 +847,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     else {
         /* pseudo-WAVEFORMATEX */
         if (ww->fmt_size < 0x10)
-            goto fail;
+            return false;
         ww->format           = read_u16(ww->fmt_offset + 0x00,sf);
         ww->channels         = read_u16(ww->fmt_offset + 0x02,sf);
         ww->sample_rate      = read_u32(ww->fmt_offset + 0x04,sf);
@@ -892,7 +887,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     }
 
     if (!ww->data_offset)
-        goto fail;
+        return false;
 
 
     /* format to codec */
@@ -918,7 +913,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
             /* some .wav may end up here, only report in .wem cases (newer codecs) */
             if (ww->is_wem)
                 vgm_logi("WWISE: unknown codec 0x%04x (report)\n", ww->format);
-            goto fail;
+            return false;
     }
 
     /* identify system's ADPCM */
@@ -948,16 +943,23 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
          * but it's possible to pre-fetch small files too [Punch Out!! (Wii)] */
         if (ww->data_offset + ww->data_size - ww->file_size < 0x5000 && ww->file_size > 0x10000) {
             vgm_logi("WWISE: wrong expected size (re-rip?)\n");
-            goto fail;
+            return false;
         }
 
         if (ww->codec == PCM || ww->codec == IMA || ww->codec == VORBIS || ww->codec == DSP || ww->codec == XMA2 ||
             ww->codec == OPUSNX || ww->codec == OPUS || ww->codec == OPUSWW || ww->codec == PTADPCM || ww->codec == XWMA || ww->codec == ATRAC9) {
-            ww->prefetch = 1; /* only seen those, probably all exist (missing XWMA, AAC, HEVAG) */
-        } else {
-            vgm_logi("WWISE: wrong expected size, maybe prefetch (report)\n");
-            goto fail;
+            ww->prefetch = true; /* only seen those, probably all exist (missing XWMA, AAC, HEVAG) */
         }
+        else {
+            vgm_logi("WWISE: wrong expected size, maybe prefetch (report)\n");
+            return false;
+        }
+    }
+
+    /* reject standard PCM .wav with bad sizes (old Wwise .wav should always have correct sizes) */
+    if (ww->format == 0x0001 && !ww->is_wem && !ww->prefetch && riff_size + 0x04 + 0x04 != ww->file_size) {
+        VGM_LOG("WWISE: ignored file bad PCM RIFF size\n");
+        return false;
     }
 
 
@@ -970,9 +972,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         }
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 
