@@ -673,15 +673,16 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                 loop_start = atol(strrchr(comment,'=')+1);
                 loop_flag = (loop_start >= 0);
             }
-            else if (strstr(comment,"LOOPLENGTH=") == comment) {            /* (LOOPSTART pair) */
+            else if (strstr(comment,"LOOPLENGTH=") == comment) {            // (LOOPSTART pair) [Ys VI (PC), Zwei II, Steins;Gate 0 (PC)]
                 loop_length = atol(strrchr(comment,'=')+1);
                 loop_length_found = 1;
             }
-            else if (  strstr(comment,"loop_end=") == comment               /* (not seen but in case loop_start is used, to avoid full loops) */
-                    || strstr(comment,"LOOP_END=") == comment               /* (LOOP_START/LOOP_BEGIN pair) */
-                    || strstr(comment,"LoopEnd=") == comment                /* (LoopStart pair) */
-                    || strstr(comment, "XIPH_CUE_LOOPEND=") == comment      /* (XIPH_CUE_LOOPSTART pair) */
-                    || strstr(comment, "LOOPE=") == comment                 /* (LOOPS pair) */
+            else if (  strstr(comment,"loop_end=") == comment               // (not seen but in case loop_start is used, to avoid full loops)
+                    || strstr(comment,"LOOP_END=") == comment               // (LOOP_START/LOOP_BEGIN pair)
+                    || strstr(comment,"LoopEnd=") == comment                // (LoopStart pair)
+                  //|| strstr(comment,"LOOPEND=") == comment                // (LOOPSTART pair) [Siralim (PC)-incorrect end]
+                    || strstr(comment, "XIPH_CUE_LOOPEND=") == comment      // (XIPH_CUE_LOOPSTART pair)
+                    || strstr(comment, "LOOPE=") == comment                 // (LOOPS pair)
                     ) {
                 loop_end = atol(strrchr(comment, '=') + 1);
                 loop_end_found = 1;
@@ -701,7 +702,7 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                 loop_end_found = 1;
                 loop_flag = 1;
             }
-            else if (strstr(comment,"LOOPDEFS=") == comment) {              /* Fairy Fencer F: Advent Dark Force */
+            else if (strstr(comment,"LOOPDEFS=") == comment) {              // Fairy Fencer F: Advent Dark Force (PC), Lost Dimension (PC), Tokyo Xanadu (PC)
                 sscanf(strrchr(comment,'=')+1,"%d,%d", &loop_start,&loop_end);
                 loop_end_found = 1;
                 loop_flag = 1;

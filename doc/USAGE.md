@@ -423,12 +423,11 @@ split audio like that, though.
 
 #### OS case sensitiveness
 When using OS with case sensitive filesystem (mainly Linux), a known issue with
-companion files is that vgmstream generally tries to find them using lowercase
-extension.
+companion files is that vgmstream generally tries to find them matching case.
 
-This means that if the developer used uppercase instead (e.g. `bgm.ABK`+`bgm.AST`)
-loading will fail. It's technically complex to fix this, so for the time being
-the only option is renaming the companion extension to lowercase.
+This means that if the developer mixed cases (e.g. `bgm.abk`+`bgm.AST`) loading
+will fail. It's technically complex to fix this, so for the time being the only option
+is renaming the companion extension to match case.
 
 A particularly nasty variation of that is that some formats load files by full
 name (e.g. `STREAM.SS0`), but sometimes the actual filename is in other case

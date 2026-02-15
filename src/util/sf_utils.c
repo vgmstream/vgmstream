@@ -56,7 +56,7 @@ static void swap_extension(char* pathname, /*size_t*/ int pathname_len, const ch
         }
     }
 
-    // try to match original case so Linux/Mac may work
+    // try to match original case so Linux may work
     if (ext_upper) {
         make_uppercase(extension);
     }

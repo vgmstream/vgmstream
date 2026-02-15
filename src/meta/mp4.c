@@ -22,6 +22,7 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
     mp4_header mp4 = {0};
     size_t file_size;
     ffmpeg_codec_data* ffmpeg_data = NULL;
+    int target_subsong = sf->stream_index;
 
 
     /* checks */
@@ -35,9 +36,11 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
     if (!check_extensions(sf,"mp4,m4a,m4v,lmp4,bin,lbin,msd"))
         return NULL;
 
+    if (target_subsong == 0) target_subsong = 1;
+
     file_size = get_streamfile_size(sf);
 
-    ffmpeg_data = init_ffmpeg_offset(sf, start_offset, file_size);
+    ffmpeg_data = init_ffmpeg_header_offset_subsong(sf, NULL, 0, start_offset, file_size, target_subsong);
     if (!ffmpeg_data) goto fail;
 
     parse_mp4(sf, &mp4);

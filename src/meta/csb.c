@@ -23,7 +23,7 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
     if (!check_extensions(sf, "csb,cxb"))
         return NULL;
 
-    /* .csb is an early, simpler version of .acb+awk (see acb.c) used until ~2013?
+    /* .csb is an early, simpler version of .acb+awb (see acb.c) used until ~2013?
      * Can stream from .cpk but this only loads memory data. */
     {
         int rows, sdl_rows, sdl_row, i;
