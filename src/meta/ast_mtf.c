@@ -27,7 +27,7 @@ VGMSTREAM* init_vgmstream_ast_mtf(STREAMFILE* sf) {
     else {
         return NULL;
     }
-    
+
     /* .ast: early/dev builds
      * (extensionless): names in .arc
      * .rSoundAst: fake/added by tools */
@@ -57,7 +57,7 @@ VGMSTREAM* init_vgmstream_ast_mtf(STREAMFILE* sf) {
     fmt_offset = 0x30;
     format = read_u16(fmt_offset + 0x00, sf);
 
-    if (format == 0x0165) {
+    if (format == 0x0165) { // XMA1/2
         // 32: xma info size
         // 34: xma config
         xma_streams = read_u16(fmt_offset + 0x08, sf);
@@ -79,14 +79,14 @@ VGMSTREAM* init_vgmstream_ast_mtf(STREAMFILE* sf) {
             }
 
             if (read_u8 (fmt_offset + 0x01, sf) != xma_streams ||
-                read_u32(fmt_offset + 0x0c, sf) != sample_rate ||
+                read_s32(fmt_offset + 0x0c, sf) != sample_rate ||
                 channels != temp_channels) {
-                vgm_logi("ASTB: XMA data mismatch (report)\n");
+                VGM_LOG("ASTB: XMA2 data mismatch\n");
                 goto fail;
             }
         }
     }
-    else {
+    else { // PCM/xWMA
         channels    = read_u16(0x30 + 0x02, sf);
         sample_rate = read_s32(0x30 + 0x04, sf);
         // 08: avg bitrate

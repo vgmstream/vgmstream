@@ -57,7 +57,6 @@ VGMSTREAM* init_vgmstream_snd_mtf(STREAMFILE* sf) {
     entry_offset   = read_u32(csb_offset + 0x0c, sf) + csb_offset; // 0x20
     stream_offset  = read_u32(csb_offset + 0x10, sf) + csb_offset; // usually aligned to 0x800
     // 14: sound data size
-    format         = read_u32(csb_offset + 0x18, sf);
     // 18: format (also repeated for each entry)
     // 1c: -1?
 
@@ -97,14 +96,14 @@ VGMSTREAM* init_vgmstream_snd_mtf(STREAMFILE* sf) {
             // 40: xma2 fmt
             // 64: -1 x3?
             if (read_u8 (entry_offset + 0x41, sf) != streams ||
-                read_u32(entry_offset + 0x4c, sf) != sample_rate ||
+                read_s32(entry_offset + 0x4c, sf) != sample_rate ||
                 read_u8 (entry_offset + 0x60, sf) != channels) {
-                vgm_logi("SNDB: XMA data mismatch (report)\n");
+                VGM_LOG("SNDB: XMA2 data mismatch\n");
                 goto fail;
             }
         }
     }
-    else { // PCM (and WMA9 in ast_mtf?)
+    else { // PCM (and xWMA in ast_mtf?)
         channels    = read_u16(entry_offset + 0x22, sf);
         sample_rate = read_s32(entry_offset + 0x24, sf);
         // 28: avg bitrate
@@ -134,6 +133,9 @@ VGMSTREAM* init_vgmstream_snd_mtf(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0165: { // XMA1/2
+            off_t fmt_offset;
+            size_t fmt_size;
+
             if (version < 0x0300) {
                 /* manually find sample offsets (XMA1 nonsense again) */
                 ms_sample_data msd = {0};
@@ -152,21 +154,15 @@ VGMSTREAM* init_vgmstream_snd_mtf(STREAMFILE* sf) {
                 vgmstream->num_samples = msd.num_samples;
                 vgmstream->loop_start_sample = msd.loop_start_sample;
                 vgmstream->loop_end_sample = msd.loop_end_sample;
+
+                fmt_offset = entry_offset + 0x20;
+                fmt_size = 0x20;
             }
             else {
                 vgmstream->loop_start_sample = read_u32(entry_offset + 0x44, sf);
                 vgmstream->loop_end_sample   = read_u32(entry_offset + 0x48, sf);
                 vgmstream->num_samples       = read_u32(entry_offset + 0x58, sf);
-            }
 
-            off_t fmt_offset;
-            size_t fmt_size;
-
-            if (version < 0x0300) {
-                fmt_offset = entry_offset + 0x20;
-                fmt_size = 0x20;
-            }
-            else {
                 fmt_offset = entry_offset + 0x40;
                 fmt_size = 0x24;
             }
