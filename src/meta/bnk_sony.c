@@ -17,6 +17,14 @@ typedef struct {
     uint32_t data_size;
     uint32_t zlsd_offset;
     uint32_t zlsd_size;
+    /*union {
+        uint32_t mmid_offset;
+        uint32_t zlsd_offset;
+    };
+    union {
+        uint32_t mmid_size;
+        uint32_t zlsd_size;
+    };*/
 
     uint32_t table1_offset; // usually sounds/cues (point to grains)
     uint32_t table2_offset; // usually grains/materials (point to waves)
@@ -63,7 +71,7 @@ typedef struct {
     uint32_t subtype;
 } bnk_header_t;
 
-static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h);
+static bool parse_bnk(STREAMFILE* sf, bnk_header_t* h);
 
 
 /* .BNK - Sony's 989SND/SCREAM bank format - SCRiptable Engine for Audio Manipulation
@@ -71,13 +79,10 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h);
 VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     char file_name[STREAM_NAME_SIZE];
+    bnk_header_t h = {0};
 
     /* checks */
-    if (!check_extensions(sf, "bnk"))
-        return NULL;
-
-    bnk_header_t h = {0};
-    if (!parse_bnk_v3(sf, &h))
+    if (!parse_bnk(sf, &h))
         return NULL;
 
     /* build the VGMSTREAM */
@@ -273,27 +278,6 @@ fail:
 }
 
 
-#if 0
-/* .BNK - Sony's bank, earlier version [Jak and Daxter (PS2), NCAA Gamebreaker 2001 (PS2)] */
-VGMSTREAM * init_vgmstream_bnk_sony_v2(STREAMFILE *sf) {
-    /* 0x00: 0x00000001
-     * 0x04: sections (2 or 3)
-     * 0x08+: similar as above (start, size) but with "SBv2"
-     *
-     * 0x2C/2E=entries?
-     * 0x34: table offsets (from sbv2 start)
-     * - table1: 0x1c entries
-     * - table2: 0x08 entries, possibly point to table3
-     * - table3: 0x18 entries, same format as early SBlk (pitch/flags/offset, no size)
-     */
-
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
-}
-#endif
-
-
 /* base part: read section info */
 static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
     read_u16_t read_u16 = h->big_endian ? read_u16be : read_u16le;
@@ -321,6 +305,24 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             h->table2_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x20,sf);
             h->table3_offset    = h->table2_offset; /* mixed table in this version */
             h->table4_offset    = 0; /* not included */
+
+            h->table1_entry_size = 0; /* not used */
+            h->table1_suboffset = 0;
+            h->table2_suboffset = 0;
+            break;
+
+        case 0x02: /* Jak and Daxter (PS2), Neopets (PSP) */
+            /* technically sounds/grains/streams are in the same place as v1/v3+, but table layouts are different instead */
+            h->sounds_entries   = read_u16(h->sblk_offset+0x14,sf); /* entry size: ~0x1c */
+            h->grains_entries   = read_u16(h->sblk_offset+0x16,sf); /* entry size: ~0x08 */
+          //h->waves_entries    = read_u16(h->sblk_offset+0x18,sf); /* entry size: ~0x18 */
+            h->stream_entries   = read_u16(h->sblk_offset+0x1a,sf); /* entry size: none (count) */
+            h->table1_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x1c,sf); /* null values(?) use the fourcc bankname defined at 0x0c */
+            h->table2_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x20,sf);
+            h->table3_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x24,sf);
+            h->table4_offset    = 0; /* not included */
+            /* 0x28: SPU address? */
+            /* 0x2c: data size */
 
             h->table1_entry_size = 0; /* not used */
             h->table1_suboffset = 0;
@@ -372,9 +374,9 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
         case 0x1a: /* Demon's Souls (PS5) */
         case 0x1c: /* The Last of Us Part II */
         case 0x23: { /* The Last of Us (PC) */
-            uint32_t bank_name_offset = h->sblk_offset + (h->sblk_version <= 0x1c ? 0x1c : 0x20);
-            uint32_t tables_offset = h->sblk_offset + (h->sblk_version <= 0x1c ? 0x120 : 0x128);
-            uint32_t counts_offset = tables_offset + (h->sblk_version <= 0x1c ? 0x98 : 0xb0);
+            uint32_t bank_name_offset = h->sblk_offset + (h->sblk_version <= 0x1c ? 0x1c  : 0x20);
+            uint32_t tables_offset    = h->sblk_offset + (h->sblk_version <= 0x1c ? 0x120 : 0x128);
+            uint32_t counts_offset    = tables_offset  + (h->sblk_version <= 0x1c ? 0x98  : 0xb0);
 
           //h->table1_offset    = h->sblk_offset + read_u32(tables_offset+0x00,sf); /* sounds/cues */
           //h->table2_offset    = 0;
@@ -422,7 +424,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
              */
 
             for (int i = 0; i < h->grains_entries; i++) {
-                uint32_t table2_type = read_u32(h->table2_offset + (i*0x28) + 0x00, sf);
+                uint32_t table2_type = read_u32(h->table2_offset + (i * 0x28) + 0x00, sf);
 
                 if (table2_type != 0x01)
                     continue;
@@ -433,19 +435,46 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
                     h->table3_entry_offset = (i * 0x28) + 0x08;
                     /* continue to count all subsongs */
                 }
-
             }
 
             break;
 
-        case 0x1a:
-        case 0x1c:
-        case 0x23:
-            h->total_subsongs = h->stream_entries;
-            h->table3_entry_offset = (h->target_subsong - 1) * 0x08;
+        case 0x02:
+            for (int i = 0; i < h->grains_entries; i++) {
+                uint32_t table2_value, table3_subsongs, table3_suboffset;
+
+                table2_value     = read_u32(h->table2_offset + (i * 0x08) + 0x00, sf);
+                table3_suboffset = read_u32(h->table2_offset + (i * 0x08) + 0x04, sf);
+                table3_subsongs  = (table2_value >> 0) & 0x000000FF; /* subsongs */
+              //table2_subinfo   = (table2_value >> 8) & 0x00FFFFFF; /* volume? */
+
+                /* if table3_subsongs is 0, table3_suboffset is a
+                 * pointer index of -1, pointing back into table2 */
+                for (int j = 0; j < table3_subsongs; j++) {
+                    h->total_subsongs++;
+
+                    if (h->total_subsongs == h->target_subsong) {
+                        h->table2_entry_offset = 0;
+                        /* uses a table3 pointer relative to SBv2 (SBlk), not table3 itself
+                         * unlike all newer versions, so subtract to simplify things later */
+                        h->table3_entry_offset = table3_suboffset - (h->table3_offset - h->sblk_offset) + (j * 0x18);
+                        /* continue to count all subsongs */
+                    }
+                }
+            }
+
             break;
 
-        default:
+        case 0x03:
+        case 0x04:
+        case 0x05:
+        case 0x08:
+        case 0x09:
+        case 0x0c:
+        case 0x0d:
+        case 0x0e:
+        case 0x0f:
+        case 0x10:
             for (int i = 0; i < h->grains_entries; i++) {
                 uint32_t table2_value, table2_subinfo, table2_subtype;
 
@@ -464,6 +493,17 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             }
 
             break;
+
+        case 0x1a:
+        case 0x1c:
+        case 0x23:
+            h->total_subsongs = h->stream_entries;
+            h->table3_entry_offset = (h->target_subsong - 1) * 0x08;
+            break;
+
+        default:
+            VGM_LOG("BNK: missing version\n");
+            return false;
     }
 
 
@@ -487,6 +527,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
     /* parse sounds */
     switch(h->sblk_version) {
         case 0x01:
+        case 0x02:
         case 0x03:
         case 0x04:
         case 0x05:
@@ -506,7 +547,8 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             // 0x0c: ADSR2
             h->stream_flags     = read_u16(sndh_offset + 0x0e,sf);
             h->stream_offset    = read_u32(sndh_offset + 0x10,sf);
-            h->stream_size      = read_u32(sndh_offset + 0x14,sf);
+            if (h->sblk_version >= 0x03) /* stream index or uninitialised in SBv2 */
+                h->stream_size  = read_u32(sndh_offset + 0x14,sf);
 
             int16_t note = 60; // always defaults to middle C?
             int16_t fine = 0;
@@ -586,7 +628,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
         case 0x03:
             for (i = 0; i < h->sounds_entries; i++) {
                 entry_offset = read_u32(h->table1_offset + (i * h->table1_entry_size) + 0x08, sf);
-                entry_count = read_u8(h->table1_offset + (i * h->table1_entry_size) + 0x04, sf);
+                entry_count  = read_u8 (h->table1_offset + (i * h->table1_entry_size) + 0x04, sf);
 
                 /* is table2_entry_offset in the range of the expected section */
                 if (h->table2_entry_offset >= entry_offset && h->table2_entry_offset < entry_offset + (entry_count * 0x08)) {
@@ -605,7 +647,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             /* Name chunks are organised as
              *  (name[0] + name[4] + name[8] + name[12]) % 32;
              * and using that as the index for the chunk offsets
-             *  name_sect_offset + (chunk_idx[result] * 0x14);
+             *  name_sect_offset + (chunk_arr[result] * 0x14);
              */
             read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
@@ -616,7 +658,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
                 table4_entry_idx = read_u16(table4_entries_offset + (i * 2), sf);
                 stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
                 /* searches the chunk until it finds the target name/index, or breaks at empty name */
-                while (read_u8(stream_name_offset, sf)) {
+                while (read_u8(stream_name_offset + 0x00, sf)) {
                     /* in case it goes somewhere out of bounds unexpectedly */
                     if (((read_u8(stream_name_offset + 0x00, sf)
                         + read_u8(stream_name_offset + 0x04, sf)
@@ -640,7 +682,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             /* a mix of v3 table1 parsing + v8-v16 table4 parsing */
             for (i = 0; i < h->sounds_entries; i++) {
                 entry_offset = read_u32(h->table1_offset + (i * h->table1_entry_size) + 0x08, sf);
-                entry_count = read_u8(h->table1_offset + (i * h->table1_entry_size) + 0x04, sf);
+                entry_count  = read_u8 (h->table1_offset + (i * h->table1_entry_size) + 0x04, sf);
 
                 if (h->table2_entry_offset >= entry_offset && h->table2_entry_offset < entry_offset + (entry_count * 0x08)) {
                     table4_entry_id = i;
@@ -815,6 +857,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
     switch(h->sblk_version) {
         case 0x01:
+        case 0x02:
         case 0x03:
         case 0x04:
         case 0x05:
@@ -836,8 +879,10 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
                     h->stream_size += 0x10;
 
-                    /* end frame */
-                    if (read_u32be(offset + 0x00, sf) == 0x00077777 && read_u32be(offset + 0x04, sf) == 0x77777777)
+                    /* end frame with 0x77 padding is most common, SPU end
+                     * flag only is rare [Jak and Daxter Collection (PS3)] */
+                    if ((read_u32be(offset + 0x00, sf) == 0x00077777 && read_u32be(offset + 0x04, sf) == 0x77777777) ||
+                        (read_u32be(offset + 0x00, sf) == 0x00070000 && read_u32be(offset + 0x04, sf) == 0x00000000))
                         break;
                 }
 
@@ -845,7 +890,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             }
 
 
-            /* hack for PS3 files that use dual subsongs as stereo */
+            /* hack for files that use dual subsongs as stereo [ATV Offroad Fury (PS2)-v2, Fat Princess (PS3)-v3] */
             if (h->total_subsongs == 2 && h->stream_size * 2 == h->data_size) {
                 h->channels = 2;
                 h->stream_size = h->stream_size * h->channels;
@@ -868,11 +913,11 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
              *  200 = send LFE
              *  400 = send center
              */
-            if ((h->stream_flags & 0x80) && h->sblk_version <= 4) {
+            if ((h->stream_flags & 0x80) && h->sblk_version <= 0x04) {
                 /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4] */
                 h->codec = PCM16;
             }
-            else if ((h->stream_flags & 0x1000) && h->sblk_version == 5) {
+            else if ((h->stream_flags & 0x1000) && h->sblk_version >= 0x05) {
                 /* Uncharted (PS3) */
                 process_extradata_0x80_mpeg(sf, h, h->start_offset + 0x00);
                 h->extradata_size = 0x80;
@@ -1007,7 +1052,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                     process_extradata_0x80_atrac9(sf, h, h->start_offset);
                     h->codec = RIFF_ATRAC9;
                     break;
-    
+
                 default:
                     vgm_logi("BNK: unknown v0d+ subtype %08x (report)\n", h->subtype);
                     goto fail;
@@ -1086,7 +1131,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     if (h->loop_start < 0) {
         h->loop_start = 0;
         h->loop_length = 0;
-    } 
+    }
 
     if (h->loop_length) {
         h->loop_end = h->loop_start + h->loop_length;
@@ -1114,7 +1159,7 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     uint32_t zlsd_table_offset, zlsd_table_entry_offset, stream_name_hash;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
 
-    if (read_u32(h->zlsd_offset + 0x00, sf) != get_id32be("DSLZ"))
+    if (read_u32(h->zlsd_offset + 0x00, sf) != get_id32le("ZLSD"))
         return false;
 
     /* 0x04: version? (1) */
@@ -1174,50 +1219,67 @@ fail:
 }
 
 
-/* parse SCREAM bnk (usually SFX but also used for music) */
-static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
+/* mostly sequenced music banks, but rarely also streamed music and SFX */
+static bool parse_bnk_v1(STREAMFILE* sf, bnk_header_t* h) {
 
-    /* bnk/SCREAM tool version (v2 is a bit different, not seen v1) */
-    if (read_u32be(0x00,sf) == 0x03) { /* PS3 */
-        h->big_endian = 1;
-    }
-    else if (read_u32le(0x00,sf) == 0x03) { /* PS2/PSP/Vita/PS4/PS5 */
-        h->big_endian = 0;
-    }
-    else {
-        return false;
-    }
-
-    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
-
-    int sections = read_u32(0x04,sf); /* SBlk, data, ZLSD */
-    if (sections < 2 || sections > 3)
-        return false;
-    /* in theory a bank can contain multiple blocks but only those are used */
-
-    /* file is sometimes aligned to 0x10/0x800, so this can't be used for total size checks */
-    h->sblk_offset = read_u32(0x08,sf);
-    //h->sblk_size = read_u32(0x0c,sf);
-    h->data_offset = read_u32(0x10,sf);
-    h->data_size   = read_u32(0x14,sf);
-    /* ZLSD footer, rare in earlier versions and common later (often empty) [Yakuza 6's Puyo Puyo (PS4)] */
-    if (sections >= 3) {
-        h->zlsd_offset = read_u32(0x18,sf);
-        h->zlsd_size   = read_u32(0x1c,sf);
-    }
-
-    if (h->sblk_offset > 0x20)
-        return false;
-
-    /* Most table fields seems reserved/defaults and don't change much between subsongs or files,
-     * so they aren't described in detail. Entry sizes are variable (usually flag + extra size xN)
-     * so table offsets are needed. */
-
+    if (h->big_endian) return false;
 
     /* SBlk part: parse header */
-    if (read_u32(h->sblk_offset+0x00,sf) != get_id32be("klBS")) /* SBlk = SFX block */
+    /* rarely also found as standalone SBv2 at 0x00 with just table1 and MMID data
+     * [Jak and Daxter Collection (PS3) - has BE data but ID isn't flipped to 2vBS] */
+    if (!is_id32be(h->sblk_offset + 0x00, sf, "SBv2"))
         return false;
-    h->sblk_version = read_u32(h->sblk_offset+0x04,sf);
+
+    /* .bnk: standard
+     * .mus: Jak and Daxter, Jak II (PS2) */
+    if (!check_extensions(sf, "bnk,mus"))
+        return false;
+
+    h->sblk_version = read_u32le(h->sblk_offset + 0x04, sf);
+
+    /* version is sometimes in BE, even on LE platforms:
+     * ATV Offroad Fury (PS2)
+     * NBA ShootOut 2001/2003 (PS2)
+     * NCAA Final Four 2001 (PS2)
+     * NHL FaceOff 2001 (PS2)
+     * SOCOM: U.S. Navy SEALs (PS2) */
+    if (h->sblk_version == 0x02000000)
+        h->sblk_version = 0x02;
+    /* otherwise should just be v2 in LE:
+     * Jak and Daxter, Jak II (PS2)
+     * My Street (PS2)
+     * Neopets (PS2/PSP)
+     * Rise of the Kasai (PS2)
+     * Sly Cooper (PS2) */
+    else if (h->sblk_version != 0x02)
+        return false;
+    /* and the rest have both ver endian variants:
+     * The Mark of Kri (PS2)
+     * Twisted Metal: Black (PS2) */
+
+    if (!process_tables(sf, h))
+        return false;
+    if (!process_headers(sf, h))
+        return false;
+    if (!process_data(sf, h))
+        return false;
+
+    return true;
+}
+
+static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
+    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+
+    /* SBlk part: parse header */
+    if (read_u32(h->sblk_offset + 0x00, sf) != get_id32le("SBlk")) /* SBlk = SFX block */
+        return false;
+
+    /* .bnk: standard
+     * .sbk: Jak II, Jak 3, Jak X (PS2) */
+    if (!check_extensions(sf, "bnk,sbk"))
+        return false;
+
+    h->sblk_version = read_u32(h->sblk_offset + 0x04, sf);
     /* 0x08: flags? (h->sblk_version>=0x0d?, 0x03=Vita, 0x06=PS4, 0x05=PS5, 0x07=PS5)
      * - 04: non-fixed bank?
      * - 100: 'has names'
@@ -1238,17 +1300,57 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
     //TODO handle, in rare cases may contain subsongs (unsure how are referenced but has its own number)
 
     if (!process_tables(sf, h))
-        goto fail;
+        return false;
     if (!process_headers(sf, h))
-        goto fail;
+        return false;
     if (!process_names(sf, h))
-        goto fail;
+        return false;
     if (!process_data(sf, h))
-        goto fail;
+        return false;
     if (!process_zlsd(sf, h))
-        goto fail;
+        return false;
 
     return true;
-fail:
-    return false;
+}
+
+/* parse SCREAM bnk (usually SFX but also used for music) */
+static bool parse_bnk(STREAMFILE* sf, bnk_header_t* h) {
+
+    h->big_endian = guess_endian32(0x00, sf);
+    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+
+    /* bnk/SCREAM tool version (SBv2 for v1, SBlk for v3, not seen v2) */
+    int version = read_u32(0x00,sf);
+    if (version != 1 && version != 3)
+        return false;
+
+    int sections = read_u32(0x04,sf); /* SBv2/SBlk, data, MMID/ZLSD */
+    if (sections < 2 || sections > 3)
+        return false;
+    /* in theory a bank can contain multiple blocks but only those are used */
+
+    /* file is sometimes aligned to 0x10/0x800, so this can't be used for total size checks */
+    h->sblk_offset = read_u32(0x08,sf);
+    //h->sblk_size = read_u32(0x0c,sf);
+    h->data_offset = read_u32(0x10,sf);
+    h->data_size   = read_u32(0x14,sf);
+    /* MMID sequence data for v1, ZLSD prefetch data for v3 */
+    if (sections >= 3) {
+        /* rare in earlier versions and common later (often empty) [Yakuza 6's Puyo Puyo (PS4)] */
+        h->zlsd_offset = read_u32(0x18,sf);
+        h->zlsd_size   = read_u32(0x1c,sf);
+    }
+
+    if (h->sblk_offset > 0x20)
+        return false;
+
+    /* Most table fields seems reserved/defaults and don't change much between subsongs or files,
+     * so they aren't described in detail. Entry sizes are variable (usually flag + extra size xN)
+     * so table offsets are needed. */
+
+    switch (version) {
+        case 0x01: return parse_bnk_v1(sf, h);
+        case 0x03: return parse_bnk_v3(sf, h);
+        default:   return false;
+    }
 }

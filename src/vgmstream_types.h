@@ -530,7 +530,8 @@ typedef enum {
     meta_AKB,
     meta_PASX,
     meta_XMA_RIFF,
-    meta_ASTB,
+    meta_AST_MTF,
+    meta_SND_MTF,
     meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
     meta_SNDX,
@@ -549,7 +550,6 @@ typedef enum {
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
     meta_OPUS,              /* Nintendo Opus [Lego City Undercover (Switch)] */
-    meta_ASTL,
     meta_NAAC,
     meta_UBI_SB,
     meta_UBI_APM,

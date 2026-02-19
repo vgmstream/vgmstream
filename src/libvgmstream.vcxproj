@@ -458,9 +458,8 @@
     <ClCompile Include="meta\asd_naxat.c" />
     <ClCompile Include="meta\asf.c" />
     <ClCompile Include="meta\ast.c" />
-    <ClCompile Include="meta\astb.c" />
-    <ClCompile Include="meta\astl.c" />
     <ClCompile Include="meta\ast_mmv.c" />
+    <ClCompile Include="meta\ast_mtf.c" />
     <ClCompile Include="meta\ast_mv.c" />
     <ClCompile Include="meta\atsl.c" />
     <ClCompile Include="meta\audiopkg.c" />
@@ -744,6 +743,7 @@
     <ClCompile Include="meta\snds.c" />
     <ClCompile Include="meta\sndx.c" />
     <ClCompile Include="meta\sndz.c" />
+    <ClCompile Include="meta\snd_mtf.c" />
     <ClCompile Include="meta\song_monster.c" />
     <ClCompile Include="meta\spm.c" />
     <ClCompile Include="meta\spsd.c" />

@@ -485,6 +485,8 @@ static const char* extension_list[] = {
     "rsf",
     "rsm",
     "rsnd", //txth/reserved [Birushana: Ichijuu no Kaze (Switch)]
+    "rsoundast",
+    "rsoundsnd",
     "rsp",
     "rstm", //fake extension/header id for .rstm (in bigfiles)
     "rvw", //txth/reserved [Half-Minute Hero (PC)]
@@ -1320,7 +1322,8 @@ static const meta_info meta_info_list[] = {
         {meta_AKB,                  "Square Enix AKB header"},
         {meta_PASX,                 "Premium Agency PASX header"},
         {meta_XMA_RIFF,             "Microsoft XMA RIFF header"},
-        {meta_ASTB,                 "Capcom ASTB header"},
+        {meta_AST_MTF,              "Capcom AST header"},
+        {meta_SND_MTF,              "Capcom SND header"},
         {meta_WWISE_RIFF,           "Audiokinetic Wwise RIFF header"},
         {meta_UBI_RAKI,             "Ubisoft RAKI header"},
         {meta_SNDX,                 "Sony SNDX header"},
@@ -1341,7 +1344,6 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
         {meta_OPUS,                 "Nintendo Switch OPUS header"},
-        {meta_ASTL,                 "Capcom ASTL header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_UBI_APM,              "Ubisoft APM header"},
         {meta_NAAC,                 "Namco NAAC header"},

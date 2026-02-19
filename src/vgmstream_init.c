@@ -231,7 +231,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mp4_aac_ffmpeg,
 #endif
     init_vgmstream_bik,
-    init_vgmstream_astb,
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
     init_vgmstream_pasx,
@@ -269,7 +268,8 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_opus_shinen,
     init_vgmstream_opus_nus3,
     init_vgmstream_opus_sps_n1,
-    init_vgmstream_astl,
+    init_vgmstream_ast_mtf,
+    init_vgmstream_snd_mtf,
     init_vgmstream_naac,
     init_vgmstream_ubi_sb,
     init_vgmstream_ubi_sm,

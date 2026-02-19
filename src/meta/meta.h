@@ -542,7 +542,8 @@ VGMSTREAM* init_vgmstream_adx_monster(STREAMFILE* sf);
 VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile);
 
-VGMSTREAM* init_vgmstream_astb(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_ast_mtf(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_snd_mtf(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch);
@@ -612,8 +613,6 @@ VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf);
-
-VGMSTREAM* init_vgmstream_astl(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_naac(STREAMFILE * streamFile);
 

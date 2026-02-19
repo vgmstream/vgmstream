@@ -1204,13 +1204,10 @@
     <ClCompile Include="meta\ast.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\astb.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\astl.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ast_mmv.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ast_mtf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ast_mv.c">
@@ -2060,6 +2057,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sndz.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\snd_mtf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\song_monster.c">

@@ -698,7 +698,7 @@ static void get_name(char* buf, size_t buf_size, fsb_header_t* fsb, STREAMFILE* 
 
     // prioritise FEV stream names, usually the same as the FSB name just not truncated
     // (benefits games where base names are all identical [Split/Second (PS3/X360/PC)])
-    if (fev_parsed && fev.stream_name[0])
+    if (fev_parsed && fev.stream_name_size)
         snprintf(buf, buf_size, "%s", fev.stream_name);
     else if (fsb->name_offset)
         read_string(buf, fsb->name_size + 1, fsb->name_offset, sf_fsb);
