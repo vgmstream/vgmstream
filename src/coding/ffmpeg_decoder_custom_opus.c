@@ -17,7 +17,7 @@
  *   https://github.com/hcs64/ww2ogg
  */
 
-typedef enum { OPUS_SWITCH, OPUS_UE4_v1, OPUS_UE4_v2, OPUS_EA, OPUS_EA_M, OPUS_X, OPUS_FSB, OPUS_WWISE, OPUS_FIXED } opus_type_t;
+typedef enum { OPUS_SWITCH, OPUS_UE4_v1, OPUS_UE4_v2, OPUS_UE5, OPUS_EA, OPUS_EA_M, OPUS_X, OPUS_FSB, OPUS_WWISE, OPUS_FIXED } opus_type_t;
 
 static size_t make_oggs_first(uint8_t *buf, int buf_size, opus_config *cfg);
 static size_t make_oggs_page(uint8_t *buf, int buf_size, size_t data_size, int page_sequence, int granule);
@@ -58,6 +58,7 @@ typedef struct {
 
 static size_t get_table_frame_size(opus_io_data* data, int packet);
 
+static size_t get_ueopus_chunk_skip(STREAMFILE* sf, off_t offset);
 
 /* Convers custom Opus packets to Ogg Opus, so the resulting data is larger than physical data. */
 static size_t opus_io_read(STREAMFILE* sf, uint8_t *dest, off_t offset, size_t length, opus_io_data* data) {
@@ -123,6 +124,11 @@ static size_t opus_io_read(STREAMFILE* sf, uint8_t *dest, off_t offset, size_t l
                     data_size       = read_u16le(data->physical_offset + 0x00, sf);
                     packet_samples  = read_u16le(data->physical_offset + 0x02, sf);
                     skip_size       = 0x02 + 0x02;
+                    break;
+                case OPUS_UE5:
+                    size_t skip_seek = get_ueopus_chunk_skip(sf, data->physical_offset);
+                    data_size = read_u16le(data->physical_offset + skip_seek, sf);
+                    skip_size = skip_seek + 0x02;
                     break;
                 case OPUS_EA:
                     data_size = read_u16be(data->physical_offset, sf);
@@ -239,6 +245,11 @@ static size_t opus_io_size(STREAMFILE* sf, opus_io_data* data) {
             case OPUS_UE4_v2:
                 data_size = read_u16le(offset, sf);
                 skip_size = 0x02 + 0x02;
+                break;
+            case OPUS_UE5:
+                size_t skip_seek = get_ueopus_chunk_skip(sf, offset);
+                data_size = read_u16le(offset + skip_seek, sf);
+                skip_size = skip_seek + 0x02;
                 break;
             case OPUS_EA:
                 data_size = read_u16be(offset, sf);
@@ -833,6 +844,9 @@ ffmpeg_codec_data* init_ffmpeg_switch_opus(STREAMFILE* sf, off_t start_offset, s
 ffmpeg_codec_data* init_ffmpeg_ue4_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
     return init_ffmpeg_custom_opus(sf, start_offset, data_size, channels, skip, sample_rate, get_ue4opus_version(sf, start_offset));
 }
+ffmpeg_codec_data* init_ffmpeg_ue_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
+    return init_ffmpeg_custom_opus(sf, start_offset, data_size, channels, skip, sample_rate, OPUS_UE5);
+}
 ffmpeg_codec_data* init_ffmpeg_ea_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
     return init_ffmpeg_custom_opus(sf, start_offset, data_size, channels, skip, sample_rate, OPUS_EA);
 }
@@ -862,6 +876,14 @@ static opus_type_t get_ue4opus_version(STREAMFILE* sf, off_t offset) {
         return OPUS_UE4_v2;
     else
         return OPUS_UE4_v1;
+}
+
+static size_t get_ueopus_chunk_skip(STREAMFILE* sf, off_t offset) {
+    if (read_u32be(offset, sf) == get_id32be("SEEK")) {
+        uint32_t seek_count = read_u32le(offset + 0x0B, sf);
+        return 0x0F + (seek_count * 2);
+    }
+    return 0;
 }
 
 #endif
