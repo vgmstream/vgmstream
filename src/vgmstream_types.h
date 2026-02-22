@@ -8,6 +8,7 @@ typedef enum {
 
     /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
+    coding_PCM16LE_U,       /* little endian 16-bit PCM, unsigned */
     coding_PCM16BE,         /* big endian 16-bit PCM */
     coding_PCM16_int,       /* 16-bit PCM with sample-level interleave (for blocks) */
 

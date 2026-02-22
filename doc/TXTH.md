@@ -96,6 +96,8 @@ as explained below, but often will use default values. Accepted codec strings:
 # - PCM16LE        PCM 16-bit little endian
 #   * For many games (usually on PC)
 #   * Interleave is multiple of 0x2 (default)
+# - PCM16LE        PCM 16-bit little endian unsigned
+#   * Variation for very rare games
 # - PCM16BE        PCM 16-bit big endian
 #   * Variation for certain consoles (GC/Wii/PS3/X360)
 # - PCM8           PCM 8-bit signed

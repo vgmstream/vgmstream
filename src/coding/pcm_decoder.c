@@ -14,6 +14,16 @@ void decode_pcm16le(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspaci
     }
 }
 
+void decode_pcm16le_unsigned(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i;
+    int32_t sample_count;
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        int32_t v=(uint16_t)read_16bitLE(stream->offset+i*2,stream->streamfile);
+        outbuf[sample_count]=v-0x8000;
+    }
+}
+
 void decode_pcm16be(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i;
     int32_t sample_count;

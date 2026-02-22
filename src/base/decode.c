@@ -239,6 +239,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 1;
 
         case coding_PCM16LE:
+        case coding_PCM16LE_U:
         case coding_PCM16BE:
         case coding_PCM16_int:
         case coding_PCM8:
@@ -438,6 +439,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return 0;
 
         case coding_PCM16LE:
+        case coding_PCM16LE_U:
         case coding_PCM16BE:
         case coding_PCM16_int:
             return 0x02;
@@ -780,6 +782,12 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_PCM16LE:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_pcm16le(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
+            }
+            break;
+        case coding_PCM16LE_U:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm16le_unsigned(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
