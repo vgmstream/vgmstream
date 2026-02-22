@@ -795,6 +795,7 @@
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\ubi_sb.c" />
     <ClCompile Include="meta\ue4opus.c" />
+    <ClCompile Include="meta\ueopus.c" />
     <ClCompile Include="meta\ueba.c" />
     <ClCompile Include="meta\undefind.c" />
     <ClCompile Include="meta\utk.c" />

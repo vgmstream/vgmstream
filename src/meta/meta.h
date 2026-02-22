@@ -613,6 +613,7 @@ VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_ueopus(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_naac(STREAMFILE * streamFile);
 
