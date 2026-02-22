@@ -2215,6 +2215,9 @@
     <ClCompile Include="meta\ue4opus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ueopus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ueba.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
