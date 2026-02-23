@@ -787,6 +787,11 @@ static const hcakey_info hcakey_list[] = {
     {0xf7c51ef55106e4a0},       // music_0910010
     {0xcd35d39900ebaedc},       // music_0910011
     {0x9016ad7c792423d4},       // music_0910012
+    {0xb349394b777f44d6},       // music_0910013
+    {0xccaf12d7171bde1c},       // music_0910014
+    {0xfeeb6fbb13e7d8e7},       // music_0910015
+    {0x7327e6e84f35a60e},       // music_0910016
+    {0x564c9efdae90c8fa},       // music_0910017
     {0x4683c57919dbdeee},       // music_0920001
     {0x126d0d20ad7f0401},       // music_0920002
     {0x1652eb8bf3cea8f5},       // music_0920003
