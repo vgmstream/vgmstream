@@ -638,6 +638,7 @@ static const char* extension_list[] = {
 
     "u0",
     "ue4opus",
+    "ueopus",
     "ueba",
     "ulw", //txth/raw [Burnout (GC)]
     "um3",
