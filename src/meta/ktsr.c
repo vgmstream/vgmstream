@@ -695,11 +695,12 @@ static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf) {
     ktsr->platform = read_u8   (ktsr->as_offset + 0x0b,sf);
     ktsr->audio_id = read_u32le(ktsr->as_offset + 0x0c,sf);
 
-    if (read_u32le(ktsr->as_offset + 0x18, sf) != read_u32le(ktsr->as_offset + 0x1c, sf))
-        goto fail;
-    if (read_u32le(ktsr->as_offset + 0x1c, sf) != ktsr->as_size) {
-        vgm_logi("KTSR: incorrect file size (bad rip?)\n");
-        goto fail;
+    uint32_t file_size1 = read_u32le(ktsr->as_offset + 0x18, sf);
+    uint32_t file_size2 = read_u32le(ktsr->as_offset + 0x1c, sf);
+
+    if (file_size1 != file_size2 || file_size2 != ktsr->as_size) {
+        vgm_logi("KTSR: incorrect file size (bad rip?), %x vs %x\n", file_size2, ktsr->as_size);
+        return false;
     }
 
     offset = 0x40 + ktsr->as_offset;

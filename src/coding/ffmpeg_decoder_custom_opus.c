@@ -125,11 +125,12 @@ static size_t opus_io_read(STREAMFILE* sf, uint8_t *dest, off_t offset, size_t l
                     packet_samples  = read_u16le(data->physical_offset + 0x02, sf);
                     skip_size       = 0x02 + 0x02;
                     break;
-                case OPUS_UE5:
+                case OPUS_UE5: {
                     size_t skip_seek = get_ueopus_chunk_skip(sf, data->physical_offset);
                     data_size = read_u16le(data->physical_offset + skip_seek, sf);
                     skip_size = skip_seek + 0x02;
                     break;
+                }
                 case OPUS_EA:
                     data_size = read_u16be(data->physical_offset, sf);
                     skip_size = 0x02;
@@ -246,11 +247,12 @@ static size_t opus_io_size(STREAMFILE* sf, opus_io_data* data) {
                 data_size = read_u16le(offset, sf);
                 skip_size = 0x02 + 0x02;
                 break;
-            case OPUS_UE5:
+            case OPUS_UE5: {
                 size_t skip_seek = get_ueopus_chunk_skip(sf, offset);
                 data_size = read_u16le(offset + skip_seek, sf);
                 skip_size = skip_seek + 0x02;
                 break;
+            }
             case OPUS_EA:
                 data_size = read_u16be(offset, sf);
                 skip_size = 0x02;

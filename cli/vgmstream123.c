@@ -914,3 +914,14 @@ done:
 
     return error;
 }
+
+#if defined(VGM_STDIO_UNICODE) && defined(WIN32)
+
+#include "windows_utils.h"
+
+// needed for 'unicode' parameters on windows converts wchar_t to char and calls main()
+int wmain(int argc, wchar_t** argv_w) {
+    return wmain_process(argc, argv_w);
+}
+
+#endif

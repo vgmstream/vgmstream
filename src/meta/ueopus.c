@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* Unreal Engine 5 Opus */
+/* Unreal Engine 5 Opus [Poppy Playtime: Chapter 5 (PC)] */
 VGMSTREAM* init_vgmstream_ueopus(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
@@ -10,8 +10,9 @@ VGMSTREAM* init_vgmstream_ueopus(STREAMFILE* sf) {
 
     if (!is_id64be(0x00, sf, "UEOPUS\0\0"))
         return NULL;
-
-    if (!check_extensions(sf, "opus"))
+    /* .opus/lopus: possible real extension
+     * .ueopus: header id */
+    if (!check_extensions(sf, "opus,lopus,ueopus"))
         return NULL;
 
     channels = read_u8(0x09, sf);

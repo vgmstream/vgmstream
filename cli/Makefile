@@ -40,7 +40,7 @@ LDFLAGS += $(LIBS_LDFLAGS)
 TARGET_EXT_LIBS += $(LIBS_TARGET_EXT_LIBS)
 
 CLI_SRCS = vgmstream_cli.c vgmstream_cli_utils.c wav_utils.c windows_utils.c
-V123_SRCS = vgmstream123.c wav_utils.c
+V123_SRCS = vgmstream123.c wav_utils.c windows_utils.c
 
 export CFLAGS LDFLAGS
 

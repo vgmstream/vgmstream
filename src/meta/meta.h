@@ -539,10 +539,11 @@ VGMSTREAM * init_vgmstream_cxs(STREAMFILE* streamFile);
 
 VGMSTREAM* init_vgmstream_adx_monster(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_akb2(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ast_mtf(STREAMFILE* sf);
+
 VGMSTREAM* init_vgmstream_snd_mtf(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf);

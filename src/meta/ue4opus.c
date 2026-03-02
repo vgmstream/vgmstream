@@ -2,27 +2,27 @@
 #include "../coding/coding.h"
 
 
-/* UE4OPUS - from Unreal Engine 4 games [ARK: Survival Evolved (PC), Fortnite (PC)] */
-VGMSTREAM * init_vgmstream_ue4opus(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+/* UE4OPUS - from Unreal Engine 4 games [ARK: Survival Evolved (PC), Travis Strikes Again (PC)] */
+VGMSTREAM* init_vgmstream_ue4opus(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channels, sample_rate, num_samples, skip;
     size_t data_size;
 
 
     /* checks*/
+    if (!is_id64be(0x00, sf, "UE4OPUS\0"))
+        return NULL;
     /* .opus/lopus: possible real extension
      * .ue4opus: header id */
     if (!check_extensions(sf, "opus,lopus,ue4opus"))
-        goto fail;
-    if (!is_id64be(0x00, sf, "UE4OPUS\0"))
-        goto fail;
+        return NULL;
 
 
     sample_rate = read_u16le(0x08, sf);
-    num_samples = read_s32le(0x0a, sf); /* may be less or equal to file num_samples */
+    num_samples = read_s32le(0x0a, sf); // may be less or equal to file num_samples
     channels = read_u8(0x0e, sf);
-    /* 0x0f(2): frame count */
+    // 0x0f(2): frame count
     loop_flag = 0;
 
     start_offset = 0x11;

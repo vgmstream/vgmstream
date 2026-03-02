@@ -396,8 +396,8 @@ Similarly some formats split header+body data in separate files, examples:
 - `.wbh`+`.wbd`
 
 Both are needed to play and must be together. The usual rule is you open the
-bigger file (body), save a few formats where the smaller (header) file is opened
-instead for technical reasons (mainly some bank formats).
+smaller file (header), save a few formats where the bigger file (body) is opened
+instead for technical reasons.
 
 Generally companion files are named the same (`bgm.awb`+`bgm.acb`), or internally
 point to another file `sfx.sb0`+`STREAM.sb0`. A few formats may have different names

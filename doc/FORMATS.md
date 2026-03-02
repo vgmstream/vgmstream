@@ -915,10 +915,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RAD Game Tools Bink header [*BINK*]
   - *bik*: `.bik .bk2 .ps3 .xmv .xen .vid .bika`
   - Codecs: FFmpeg(various)
-- **astb.c**
-  - Capcom ASTB header [*ASTB*]
-  - *astb*: `.ast`
-  - Codecs: XMA
 - **wwise.c**
   - Audiokinetic Wwise RIFF header [*WWISE_RIFF*]
   - *wwise*
@@ -1038,10 +1034,14 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *opus_sqex*: `.wav .lwav`
   - *opus_rsnd*: `.rsnd`
   - Codecs: Opus
-- **astl.c**
-  - Capcom ASTL header [*ASTL*]
-  - *astl*: `.ast`
-  - Codecs: PCM16LE XWMA
+- **ast_mtf.c**
+  - Capcom AST header [*AST_MTF*]
+  - *ast_mtf*: `.ast .(extensionless) .rsoundast`
+  - Codecs: PCM16LE XMA XWMA
+- **snd_mtf.c**
+  - Capcom SND header [*SND_MTF*]
+  - *snd_mtf*: `.snd .(extensionless) .rsoundsnd`
+  - Codecs: PCM16LE XMA
 - **naac.c**
   - Namco NAAC header [*NAAC*]
   - *naac*: `.naac`
@@ -1222,7 +1222,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **bnk_sony.c**
   - Sony BNK header [*BNK_SONY*]
-  - *bnk_sony*: `.bnk + .(external)`
+  - *bnk_sony*: `.bnk .mus .sbk + .(external)`
     - Subfiles: *xvag riff*
   - Codecs: ATRAC9 MPEG PCM16BE PCM16LE PSX HEVAG
 - **nus3bank.c**
@@ -1791,7 +1791,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **srcd.c**
   - Capcom SRCD header [*SRCD*]
-  - *srcd*: `.srcd .asrc .14 .21 .26 .31`
+  - *srcd*: `.srcd .asrc .14 .21 .26 .31 .de .en .fr .ja .ko`
     - Subfiles: *riff ogg_vorbis function*
 - **mhwk.c**
   - Broderbund MHWK header [*MHWK*]
@@ -1821,6 +1821,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - THQ Australia GCSP header [*GCSP*]
   - *gcsp*: `.sounds`
   - Codecs: NGC_DSP
+- **ueopus.c**
+  - Epic Games UEOPUS header [*UEOPUS*]
+  - *ueopus*: `.opus .lopus .ueopus`
+  - Codecs: Opus
 - **mus_acm.c**
   - InterPlay MUS ACM header [*MUS_ACM*]
   - *mus_acm*: `.mus`

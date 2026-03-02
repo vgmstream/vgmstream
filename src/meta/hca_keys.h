@@ -1655,6 +1655,9 @@ static const hcakey_info hcakey_list[] = {
     // Gakuen Bungo Stray Dogs (Android)
     {5954769908396182294},      // 52A397AE9523CB16
 
+    // Outrankers (Android)
+    {8681634889512614279},      // 787B5CEF4B097987
+
 };
 
 #endif
