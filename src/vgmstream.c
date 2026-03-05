@@ -122,7 +122,7 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
         vgmstream->loop_end_sample = 0;
     }
 
-
+VGM_LOG("final setup\n");
     setup_vgmstream(vgmstream); /* final setup */
 
     return true;
@@ -154,6 +154,11 @@ void setup_vgmstream(VGMSTREAM* vgmstream) {
         vgmstream->loop_end_sample = 0;
     }
 #endif
+
+    // TODO: check that this isn't called when active, as resets become unrealiable
+    if (vgmstream->current_sample > 0) {
+        VGM_LOG("VGMSTREAM: called setup_vgmstream when decoder is active\n");
+    }
 
     /* save start things so we can restart when seeking */
     memcpy(vgmstream->start_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
@@ -339,7 +344,7 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
     }
 
     /* segmented layout loops with standard loop start/end values and works ok */
-
+VGM_LOG("new setup\n");
     /* notify of new initial state */
     setup_vgmstream(vgmstream);
 }
@@ -358,7 +363,7 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
             vgmstream_set_loop_target(data->layers[i], loop_target);
         }
     }
-
+VGM_LOG("set vgmstream_set_loop_target\n");
     /* notify of new initial state */
     setup_vgmstream(vgmstream);
 }

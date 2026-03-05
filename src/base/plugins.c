@@ -159,7 +159,10 @@ void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int
     mixing_setup(vgmstream, max_sample_count);
     mixing_info(vgmstream, input_channels, output_channels);
 
-    setup_vgmstream(vgmstream);
+    // don't update on query
+    if (max_sample_count) {
+        setup_vgmstream(vgmstream);
+    }
 }
 
 void vgmstream_mixing_autodownmix(VGMSTREAM* vgmstream, int max_channels) {
