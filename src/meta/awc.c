@@ -8,8 +8,9 @@
 typedef struct {
     bool big_endian;
     bool is_encrypted;
-    bool is_streamed; /* implicit: streams=music, sfx=memory */
-    bool is_alt;
+    bool is_streamed; // implicit: streams=music, sfx=memory
+
+    bool is_new_mpeg; // alt MPEG skip behavior
 
     int total_subsongs;
 
@@ -338,9 +339,9 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
     //if (flags & 0x00020000)
     //  awc->is_unordered = true;
 
-    /* stream/multichannel flag? (GTA5, some RDR2), can be used to detect some odd behavior in GTA5 vs RDR1 */
-    if (flags & 0x00040000)
-        awc->is_alt = true;
+    /* stream/multichannel flag? (Max Payne 3, GTA5, some RDR2) */
+    //if (flags & 0x00040000)
+    //    awc->is_multichannel = true;
 
     /* encrypted data chunk (most of GTA5 PC for licensed audio) */
     if (flags & 0x00080000)
@@ -607,7 +608,7 @@ static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, awc_header* awc, int ch
 
 
     /* setup custom IO streamfile that removes AWC's odd blocks (not perfect but serviceable) */
-    temp_sf = setup_awc_streamfile(sf, awc->stream_offset, awc->stream_size, awc->block_chunk, awc->channels, channel, awc->codec, awc->big_endian, awc->is_alt);
+    temp_sf = setup_awc_streamfile(sf, awc->stream_offset, awc->stream_size, awc->block_chunk, awc->channels, channel, awc->codec, awc->big_endian, awc->is_new_mpeg);
     if (!temp_sf) goto fail;
 
     substream_offset = 0x00;
@@ -729,6 +730,9 @@ fail:
 static layered_layout_data* build_layered_awc(STREAMFILE* sf, awc_header* awc) {
     layered_layout_data* data = NULL;
 
+    // ugly trash to detect AWC's vile MPEG behaviors
+    awc->is_new_mpeg = is_mpeg_new_skip(sf, awc->stream_offset, awc->stream_size, awc->block_chunk, awc->channels, awc->codec, awc->big_endian);
+    //;VGM_LOG("AWC: detected MPEG type %s\n", awc->is_new_mpeg ? "new skip" : "old skip");
 
     /* init layout */
     data = init_layout_layered(awc->channels);

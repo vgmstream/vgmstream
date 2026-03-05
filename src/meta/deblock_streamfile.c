@@ -141,6 +141,18 @@ static size_t deblock_io_size(STREAMFILE* sf, deblock_io_data* data) {
     return data->logical_size;
 }
 
+
+static int deblock_io_init(STREAMFILE* sf, deblock_io_data* data) {
+    data->logical_offset = -1;
+
+    return data->cfg.init_callback(sf, data);
+}
+
+static void deblock_io_close(STREAMFILE* sf, deblock_io_data* data) {
+    data->cfg.close_callback(sf, data);
+}
+
+
 /* generic "de-blocker" helper for streams divided in blocks that have weird interleaves, their
  * decoder can't easily use blocked layout, or some other weird feature. It "filters" data so
  * reader only sees clean data without blocks. Must pass setup config and a callback that sets
@@ -177,7 +189,8 @@ STREAMFILE* open_io_deblock_streamfile_f(STREAMFILE* sf, deblock_config_t *cfg) 
     //TODO: other validations
 
     /* setup subfile */
-    new_sf = open_io_streamfile_f(sf, &io_data, sizeof(deblock_io_data), deblock_io_read, deblock_io_size);
+    new_sf = open_io_streamfile_ex_f(sf, &io_data, sizeof(deblock_io_data), deblock_io_read, deblock_io_size, 
+        cfg->init_callback ? deblock_io_init : NULL, cfg->close_callback ? deblock_io_close : NULL);
     return new_sf;
 fail:
     VGM_LOG("DEBLOCK: bad init\n");

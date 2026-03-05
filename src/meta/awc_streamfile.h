@@ -3,23 +3,24 @@
 #include "deblock_streamfile.h"
 #include "../util/endianness.h"
 
-#define AWC_MAX_MUSIC_CHANNELS 32 /* seen ~24 */
+#define AWC_MAX_MUSIC_CHANNELS 32 // seen ~24
 #define AWC_FRAME_SIZE 0x800
 
 /* ************************************************************************* */
 
 typedef struct {
-    int start_entry;          /* inaccurate! */
+    int start_entry;            // inaccurate!
     int entries;
     int32_t channel_skip;
     int32_t channel_samples;
-    uint32_t channel_size;      /* size of this channel's data (not including padding) */
+    int frame_count;
+    uint32_t channel_size;      // size of this channel's data (not including padding)
 
     uint32_t frame_size;
 
     /* derived */
-    uint32_t chunk_start;       /* relative to block offset */
-    uint32_t chunk_size;        /* size of this channel's data (may include padding) */
+    uint32_t chunk_start;       // relative to block offset
+    uint32_t chunk_size;        // size of this channel's data (may include padding) */
 } awc_block_t;
 
 typedef struct {
@@ -35,7 +36,7 @@ typedef struct {
  * - frames from channel 1
  * - ...
  * - frames from channel N
- * - usually there is padding between channels or blocks (usually 0s but seen 0x97 in AT9)
+ * - usually there is padding between channels or blocks (0x00s or 0x97 in AT9)
  *
  * Header format:
  * - channel info (per channel)
@@ -68,8 +69,9 @@ typedef struct {
  * - padding up to data start, depending on codec (DSP/ATRAC9: none, others: aligned to 0x800)
  */
 static bool read_awc_block(STREAMFILE* sf, awc_block_info_t* bi) {
-    read_s32_t read_s32 = bi->big_endian ? read_s32be : read_s32le;
-    read_u16_t read_u16 = bi->big_endian ? read_u16be : read_u16le;
+    read_s32_t read_s32 = get_read_s32(bi->big_endian);
+    read_u32_t read_u32 = get_read_u32(bi->big_endian);
+    read_u16_t read_u16 = get_read_u16(bi->big_endian);
 
     uint32_t channel_entry_size, seek_entry_size, extra_entry_size, header_padding;
     uint32_t offset = bi->block_offset;
@@ -109,7 +111,8 @@ static bool read_awc_block(STREAMFILE* sf, awc_block_info_t* bi) {
         bi->blk[ch].channel_skip       = read_s32(offset + 0x08, sf);
         bi->blk[ch].channel_samples    = read_s32(offset + 0x0c, sf);
         if (bi->codec == 0x07) { /* MPEG */
-            bi->blk[ch].channel_size   = read_s32(offset + 0x14, sf);
+            bi->blk[ch].frame_count    = read_s32(offset + 0x10, sf);
+            bi->blk[ch].channel_size   = read_u32(offset + 0x14, sf);
         }
 
         offset += channel_entry_size;
@@ -167,10 +170,122 @@ static bool read_awc_block(STREAMFILE* sf, awc_block_info_t* bi) {
     return true;
 }
 
+/* Detect skips by comparing from current channel's data start with prev block end.
+ * This trashes the buffers (jumping blocks around) a bit, maybe could save last frames from each block.
+ */
+static bool is_mpeg_new_skip_channel(STREAMFILE* sf, awc_block_info_t* bi, uint32_t prev_offset, int channel) {
+    if (!prev_offset) //shouldn't be possible
+        return false;
+
+    uint8_t curr_frame[AWC_FRAME_SIZE];
+    uint32_t curr_offset = bi->block_offset + bi->blk[channel].chunk_start;
+    read_streamfile(curr_frame, curr_offset, sizeof(curr_frame), sf);
+
+    int frames = 0;
+    int old_max_frames = 99;
+    int new_max_frames = bi->blk[channel].channel_skip / 1152;
+    uint32_t new_skip = 0;
+    uint32_t old_skip = 0;
+
+    /* read sub-frames until padding or end */
+    int pos = 0x00;
+    while (pos < sizeof(curr_frame) - 0x04) {
+        if (frames == old_max_frames) // ???
+            break;
+
+        if (frames == new_max_frames) {
+            // found new_skip but keep going to detect old_skip too
+            new_skip = pos;
+        }
+
+        mpeg_frame_info info = {0};
+        uint32_t header = get_u32be(curr_frame + pos);
+        if (!mpeg_get_frame_info_h(header, &info)) // ???
+            break;
+
+        if (pos + info.frame_size > sizeof(curr_frame)) { // would cross over 0x800, so this frame doesn't count
+            old_skip = pos;
+            break;
+        }
+
+        pos += info.frame_size;
+        frames++;
+    }
+
+    if (new_skip == 0 || old_skip == 0) // ???
+        return false;
+
+    // repeat_offset is where data ends so go back a bit (new_skip would be smaller but not sure about comparing blank frames)
+    uint8_t prev_frame[AWC_FRAME_SIZE];
+    read_streamfile(prev_frame, prev_offset - old_skip, old_skip, sf);
+
+    bool is_old = memcmp(curr_frame, prev_frame, old_skip) == 0;
+
+    return !is_old;
+}
+
+/* Detect newer skip seen in GTA5 (see get_block_repeated_size). Seemingly not detectable by header, sizes or MPEG data,
+ * so compare channel starts with prev block. Some blocks have blank frames, so it can't be reliably detected block by block.
+ */
+static bool is_mpeg_new_skip(STREAMFILE* sf, uint32_t stream_offset, uint32_t stream_size, uint32_t block_size, int channels, uint8_t codec, bool big_endian) {
+    int old_tests = 0;
+    int max_tests = 5;
+
+    // MPEG only
+    if (codec != 0x07)
+        return false;
+    if (channels >= AWC_MAX_MUSIC_CHANNELS)
+        return false;
+
+    // RDR (oldest) doesn't set flag, but probably not reliable
+    //if (!is_multichannel)
+    //    return false;
+
+    awc_block_info_t bi = {0};
+
+    bi.big_endian = big_endian;
+    bi.channels = channels;
+    bi.codec = codec;
+    bi.block_offset = stream_offset;
+
+    uint32_t prev_offsets[AWC_MAX_MUSIC_CHANNELS] = {0};
+    while (bi.block_offset < stream_offset + stream_size) {
+        if (!read_awc_block(sf, &bi)) {
+            VGM_LOG("AWC: wrong block\n");
+            return false;
+        }
+
+        for (int ch = 0; ch < channels; ch++) {
+            if (bi.blk[ch].channel_skip == 0)
+                continue;
+            bool is_new = is_mpeg_new_skip_channel(sf, &bi, prev_offsets[ch], ch);
+
+            // new style found: trustable so no need to check more
+            if (is_new)
+                return true;
+
+            // old style found: due to potential blank frames do some more tests
+            old_tests++;
+            if (old_tests >= max_tests)
+                return false;
+        }
+
+        // store where data from prev channel ends to test repeats
+        for (int ch = 0; ch < channels; ch++) {
+            prev_offsets[ch] = bi.block_offset + bi.blk[ch].chunk_start + bi.blk[ch].channel_size;
+        }
+
+        bi.block_offset += block_size;
+    }
+
+    // EOF reached (small old file or no skips)
+    return false;
+}
+
 /* Find data that repeats in the beginning of a new block at the end of last block.
  * When a new block starts there is some repeated data + channel_skip (for seeking + encoder delay?).
  * Detect it so decoder may ignore it. */
-static uint32_t get_block_repeated_size(STREAMFILE* sf, awc_block_info_t* bi, int channel, bool is_alt) {
+static uint32_t get_block_repeated_size(STREAMFILE* sf, awc_block_info_t* bi, int channel, bool is_new_mpeg) {
 
     if (bi->blk[channel].channel_skip == 0)
         return 0;
@@ -181,45 +296,43 @@ static uint32_t get_block_repeated_size(STREAMFILE* sf, awc_block_info_t* bi, in
             /* when data repeats seems to clone the last (super-)frame */
             return bi->blk[channel].frame_size;
 
-#ifdef VGM_USE_MPEG
         case 0x07: { /* MPEG */
-            /* first super-frame will repeat N VBR old sub-frames, without crossing frame_size.
-             * In GTA5 repeated sub-frames seems to match exactly repeated samples, while RDR seems to match 1 full frame (like RAGE-aud).
-             * ex.  RDR: repeated frames' size could be set to 0x774 (7 sub-frames) if adding 1 more would take >0x800.
-             * ex. GTA5: repeated frames' samples could be set to 3456 = 3 * 1152 = size 0x420
-             * This behavior may be hardcoded but seems detectable by a flag set in every(?) streamed GTA5 file (all platforms though). */
+            /* First super-frame will repeat N VBR old sub-frames, without crossing frame_size.
+             * - RDR/MaxP3 (older): N frames up to 0x800 (often 0x708 = 5 frames, as adding 1 more would make it >0x800).
+             * - GTA5 (newer): matches 'skip' samples could be samples (3456 samples / 1152 = 3 frames = size 0x420)
+             * Older versions behave like rage_aud and do set 'skip', but value doesn't match frames. */
             uint8_t frame[AWC_FRAME_SIZE];
             uint32_t offset = bi->block_offset + bi->blk[channel].chunk_start;
 
             read_streamfile(frame, offset, sizeof(frame), sf);
 
             int frames = 0;
-            int max_frames = is_alt ? bi->blk[channel].channel_skip / 1152 : 999;
+            int max_frames = is_new_mpeg ? bi->blk[channel].channel_skip / 1152 : 99;
 
             /* read sub-frames until padding or end */
             int skip_size = 0x00;
             while (skip_size < sizeof(frame) - 0x04) {
                 if (frames == max_frames)
-                    return skip_size;
+                    break;
 
-                if (frame[skip_size] == 0x00) /* possible? */
-                    return AWC_FRAME_SIZE;
+                if (frame[skip_size] == 0x00) // possible?
+                    break;
 
                 mpeg_frame_info info = {0};
                 uint32_t header = get_u32be(frame + skip_size);
-                if (!mpeg_get_frame_info_h(header, &info)) /* ? */
-                    return AWC_FRAME_SIZE;
+                if (!mpeg_get_frame_info_h(header, &info)) // ?
+                    break;
 
-                if (skip_size + info.frame_size > sizeof(frame)) /* not a repeated frame */
-                    return skip_size;
+                if (skip_size + info.frame_size > sizeof(frame)) // would be bigger than 0x800
+                    break;
                 skip_size += info.frame_size;
 
                 frames++;
             }
 
-            return skip_size; /* skip_size fills frame size */
+            return skip_size;
         }
-#endif
+
         case 0x0D: /* OPUS */
         case 0x0F: /* ATRAC9 */
         default: 
@@ -253,7 +366,7 @@ static void block_callback(STREAMFILE *sf, deblock_io_data* data) {
 }
 
 /* deblocks AWC blocks */
-static STREAMFILE* setup_awc_streamfile(STREAMFILE* sf, uint32_t stream_offset, uint32_t stream_size, uint32_t block_size, int channels, int channel, uint8_t codec, bool big_endian, bool is_alt) {
+static STREAMFILE* setup_awc_streamfile(STREAMFILE* sf, uint32_t stream_offset, uint32_t stream_size, uint32_t block_size, int channels, int channel, uint8_t codec, bool big_endian, bool is_mpeg_new) {
     STREAMFILE* new_sf = NULL;
     deblock_config_t cfg = {0};
 
@@ -267,7 +380,8 @@ static STREAMFILE* setup_awc_streamfile(STREAMFILE* sf, uint32_t stream_offset, 
     cfg.chunk_size = block_size;
     cfg.track_type = codec;
     cfg.big_endian = big_endian;
-    cfg.config = is_alt;
+    cfg.config = is_mpeg_new;
+
     //cfg.physical_offset = stream_offset;
     //cfg.logical_size = awc_io_size(sf, &cfg); /* force init */
     cfg.block_callback = block_callback;
