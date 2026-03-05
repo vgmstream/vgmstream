@@ -37,11 +37,17 @@ struct deblock_config_t {
     void (*block_callback)(STREAMFILE* sf, deblock_io_data* data);
     /* callback that alters block, with the current position into the block (0=beginning) */
     void (*read_callback)(uint8_t* dst, deblock_io_data* data, size_t block_pos, size_t read_size);
+    /* setup data */
+    int (*init_callback)(STREAMFILE*, deblock_io_data* data);
+    /* close the data struct members somehow */
+    void (*close_callback)(STREAMFILE*, deblock_io_data* data);
+
 } ;
 
 struct deblock_io_data {
     /* initial config */
     deblock_config_t cfg;
+    void* priv;             // for custom data (may contain copied garbage, always setup on init_callback)
 
     /* state */
     off_t logical_offset;   /* fake deblocked offset */
