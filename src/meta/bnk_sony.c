@@ -921,16 +921,16 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
              *  20 = no steal
              *  40 = loop VAG
              *  80 = PCM
-             *  100 = has advanced packets
-             *  200 = send LFE
-             *  400 = send center
+             *  0100 = has advanced packets
+             *  0200 = send LFE
+             *  0400 = send center
              */
-            if ((h->stream_flags & 0x80) && h->sblk_version <= 0x04) {
-                /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4] */
+            if (h->stream_flags & 0x80) {
+                /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4, Jak and Daxter Collection (PSV)-v5] */
                 h->codec = PCM16;
             }
-            else if ((h->stream_flags & 0x1000) && h->sblk_version >= 0x05) {
-                /* Uncharted (PS3) */
+            else if (h->stream_flags & 0x1000) {
+                /* v5 only? [Uncharted (PS3), Carnival Island (PS3), MAG (PS3)] */
                 process_extradata_0x80_mpeg(sf, h, h->start_offset + 0x00);
                 h->extradata_size = 0x80;
 
