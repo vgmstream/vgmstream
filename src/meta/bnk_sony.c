@@ -930,7 +930,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                 h->codec = PCM16;
             }
             else if (h->stream_flags & 0x1000) {
-                /* v5 only? [Uncharted (PS3), Carnival Island (PS3), MAG (PS3)] */
+                /* v5 only? [Uncharted (PS3), Carnival Island (PS3), Twisted Metal (PS3)] */
                 process_extradata_0x80_mpeg(sf, h, h->start_offset + 0x00);
                 h->extradata_size = 0x80;
 
