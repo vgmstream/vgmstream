@@ -74,6 +74,7 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
      * - 0x0c: entries */
 
     /* typical chunks (with some entry info):
+     * some info by Nezogoku: https://github.com/Nezogoku/sgd_extractor
      * - WAVE: wave data (see below)
      * - RGND: programs info, notably:
      *   - 0x18: min note range
@@ -169,13 +170,19 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
             vgmstream->layout_type = layout_interleave;
             if (!is_sgd) {
                 vgmstream->interleave_block_size = 0x10;
-            } else { /* this only seems to happen with SFX */
+            }
+            else { // this only seems to happen with SFX
                 vgmstream->interleave_block_size = stream_size;
             }
 
-            /* a few files in LocoRoco set 0 stream size/samples, use an empty file for now */
+            // a few files in LocoRoco set 0 stream size/samples, use an empty file for now
             if (vgmstream->num_samples == 0)
                 vgmstream->num_samples = 28;
+
+            // rare case for seq samples? [Ape Academy (PSP)]
+            if (vgmstream->num_samples == -1)
+                vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
+
             break;
 
 #ifdef VGM_USE_FFMPEG
