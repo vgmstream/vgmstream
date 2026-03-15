@@ -814,7 +814,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: QD_IMA
 - **mtaf.c**
   - Konami MTAF header [*MTAF*]
-  - *mtaf*: `.mtaf`
+  - *mtaf*: `.mta .mtaf`
   - Codecs: MTAF
 - **alp.c**
   - High Voltage ALP header [*ALP*]
@@ -838,7 +838,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **2pfs.c**
   - Konami 2PFS header [*2PFS*]
-  - *2pfs*: `.sap`
+  - *2pfs*: `.sap .iap`
   - Codecs: PSX
 - **xnb.c**
   - Microsoft XNA Game Studio header [*XNB*]
