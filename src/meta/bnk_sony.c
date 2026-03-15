@@ -85,6 +85,12 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     if (!parse_bnk(sf, &h))
         return NULL;
 
+    /* .bnk: standard
+     * .mus: Jak and Daxter, Jak II (PS2)
+     * .sbk: Jak II, Jak 3, Jak X (PS2) */
+    if (!check_extensions(sf, "bnk,mus,sbk"))
+        return false;
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(h.channels, h.loop_flag);
     if (!vgmstream) goto fail;
@@ -220,7 +226,12 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             vgmstream->codec_data = init_mpeg_custom(sf, h.start_offset, &vgmstream->coding_type, h.channels, MPEG_STANDARD, &cfg);
             if (!vgmstream->codec_data) goto fail;
 
-            vgmstream->num_samples = h.num_samples;
+            // rare buggy cases where encoder_delay and num_samples are set to 0
+            // [Wonderbook: Diggs Nightcrawler (PS3) - 1_3_sfx_edl.bnk #224~231]
+            if (!h.encoder_delay && !h.num_samples)
+                vgmstream->num_samples = mpeg_bytes_to_samples(h.stream_size, vgmstream->codec_data);
+            else
+                vgmstream->num_samples = h.num_samples;
             break;
         }
 #endif
@@ -441,16 +452,17 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
         case 0x02:
             for (int i = 0; i < h->grains_entries; i++) {
-                uint32_t table2_value, table3_subsongs, table3_suboffset;
+                uint8_t table2_subsongs;
+                uint32_t table3_suboffset;
 
-                table2_value     = read_u32(h->table2_offset + (i * 0x08) + 0x00, sf);
+                table2_subsongs  = read_u8 (h->table2_offset + (i * 0x08) + 0x00, sf);
+                // 01: master volume (individual subsongs have their own volume too)
+                // 02: unused (inits a for-loop without a body)
                 table3_suboffset = read_u32(h->table2_offset + (i * 0x08) + 0x04, sf);
-                table3_subsongs  = (table2_value >> 0) & 0x000000FF; /* subsongs */
-              //table2_subinfo   = (table2_value >> 8) & 0x00FFFFFF; /* volume? */
 
-                /* if table3_subsongs is 0, table3_suboffset is a
+                /* if table2_subsongs is 0, table3_suboffset is a
                  * pointer index of -1, pointing back into table2 */
-                for (int j = 0; j < table3_subsongs; j++) {
+                for (int j = 0; j < table2_subsongs; j++) {
                     h->total_subsongs++;
 
                     if (h->total_subsongs == h->target_subsong) {
@@ -704,7 +716,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
             table4_entries_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
-            table4_names_offset = h->table4_offset + read_u32(h->table4_offset + 0x0C, sf);
+            table4_names_offset   = h->table4_offset + read_u32(h->table4_offset + 0x0C, sf);
 
             for (i = 0; i < h->sounds_entries; i++) {
                 if (read_u16(table4_entries_offset + (i * 0x10) + 0x0C, sf) == table4_entry_id) {
@@ -909,16 +921,16 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
              *  20 = no steal
              *  40 = loop VAG
              *  80 = PCM
-             *  100 = has advanced packets
-             *  200 = send LFE
-             *  400 = send center
+             *  0100 = has advanced packets
+             *  0200 = send LFE
+             *  0400 = send center
              */
-            if ((h->stream_flags & 0x80) && h->sblk_version <= 0x04) {
-                /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4] */
+            if (h->stream_flags & 0x80) {
+                /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4, Jak and Daxter Collection (PSV)-v5] */
                 h->codec = PCM16;
             }
-            else if ((h->stream_flags & 0x1000) && h->sblk_version >= 0x05) {
-                /* Uncharted (PS3) */
+            else if (h->stream_flags & 0x1000) {
+                /* v5 only? [Uncharted (PS3), Carnival Island (PS3), Twisted Metal (PS3)] */
                 process_extradata_0x80_mpeg(sf, h, h->start_offset + 0x00);
                 h->extradata_size = 0x80;
 
@@ -953,6 +965,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                     break;
 
                 case 0x00000002: /* ATRAC9 / MPEG 1ch */
+                case 0x00000003: /* MPEG 2ch [Wonderbook: Diggs Nightcrawler (PS3)-v9] */
                 case 0x00000005: /* ATRAC9 / MPEG 2ch */
                     h->channels = (h->subtype == 0x02) ? 1 : 2;
 
@@ -1230,11 +1243,6 @@ static bool parse_bnk_v1(STREAMFILE* sf, bnk_header_t* h) {
     if (!is_id32be(h->sblk_offset + 0x00, sf, "SBv2"))
         return false;
 
-    /* .bnk: standard
-     * .mus: Jak and Daxter, Jak II (PS2) */
-    if (!check_extensions(sf, "bnk,mus"))
-        return false;
-
     h->sblk_version = read_u32le(h->sblk_offset + 0x04, sf);
 
     /* version is sometimes in BE, even on LE platforms:
@@ -1272,11 +1280,6 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
 
     /* SBlk part: parse header */
     if (read_u32(h->sblk_offset + 0x00, sf) != get_id32le("SBlk")) /* SBlk = SFX block */
-        return false;
-
-    /* .bnk: standard
-     * .sbk: Jak II, Jak 3, Jak X (PS2) */
-    if (!check_extensions(sf, "bnk,sbk"))
         return false;
 
     h->sblk_version = read_u32(h->sblk_offset + 0x04, sf);

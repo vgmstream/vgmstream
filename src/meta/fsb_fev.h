@@ -60,49 +60,49 @@ typedef struct {
 #define FMOD_FEV_VERSION_24_0   0x00180000  // ?
 #define FMOD_FEV_VERSION_25_0   0x00190000  // ?
 #define FMOD_FEV_VERSION_26_0   0x001A0000  // ?
-#define FMOD_FEV_VERSION_27_0   0x001B0000  // Paragraph 78 (PC), Ratatouille (PS3, MG1Ds;MG1Cs)
+#define FMOD_FEV_VERSION_27_0   0x001B0000  // MotoGP '07 (X360), Paragraph 78 (PC), Ratatouille (PS3, MG1Ds;MG1Cs)
 #define FMOD_FEV_VERSION_28_0   0x001C0000  // ?
-#define FMOD_FEV_VERSION_29_0   0x001D0000  // ?
+#define FMOD_FEV_VERSION_29_0   0x001D0000  // Spider-Man 3 (X360/PC)
 #define FMOD_FEV_VERSION_30_0   0x001E0000  // ?
 #define FMOD_FEV_VERSION_31_0   0x001F0000  // ?
 #define FMOD_FEV_VERSION_32_0   0x00200000  // ?
-//#define FMOD_FEV_VERSION_33_0 0x00210000  // Spider-Man 3 (PS2)
-#define FMOD_FEV_VERSION_34_0   0x00220000  // Ys Online: The Call of Solum (PC), Ratatouille (PS3)
+//#define FMOD_FEV_VERSION_33_0 0x00210000  // MotoGP '07 (X360), Spider-Man 3 (PS2/PS3), Forza Motorsport 2 (X360), Heavenly Sword (PS3)
+#define FMOD_FEV_VERSION_34_0   0x00220000  // Ys Online: The Call of Solum (PC), Ratatouille (PS3/X360), Up (PS3/X360, PLYEs)
 //#define FMOD_FEV_VERSION_35_0 0x00230000  // ?
 #define FMOD_FEV_VERSION_36_0   0x00240000  // ?
-#define FMOD_FEV_VERSION_37_0   0x00250000  // Conan (X360), Manhunt 2 (Wii), Wall-E (PS3, WT01s;WT02s;WT40s)
-#define FMOD_FEV_VERSION_38_0   0x00260000  // SpongeBob: Attack of the Toybots (PS2) WWE SmackDown vs. Raw 2008 (PS3)
+#define FMOD_FEV_VERSION_37_0   0x00250000  // Conan (PS3/X360), Manhunt 2 (Wii), Up (PS3/X360, PLYWs), Wall-E (PS3, WT01s;WT02s;WT40s)
+#define FMOD_FEV_VERSION_38_0   0x00260000  // SpongeBob: Attack of the Toybots (PS2), WWE SmackDown vs. Raw 2008 (PS3/X360), TimeShift (X360)
 #define FMOD_FEV_VERSION_39_0   0x00270000  // ?
 #define FMOD_FEV_VERSION_40_0   0x00280000  // ?
 #define FMOD_FEV_VERSION_41_0   0x00290000  // ?
-#define FMOD_FEV_VERSION_42_0   0x002A0000  // Kung Fu Panda (PS3)
+#define FMOD_FEV_VERSION_42_0   0x002A0000  // Kung Fu Panda (PS3/X360)
 #define FMOD_FEV_VERSION_43_0   0x002B0000  // Wall-E (PS3, ED01s;FANBs)
-#define FMOD_FEV_VERSION_44_0   0x002C0000  // Monster Jam (PS2), Manhunt 2 (PC)
-#define FMOD_FEV_VERSION_45_0   0x002D0000  // Iron Man (PS3)
+#define FMOD_FEV_VERSION_44_0   0x002C0000  // Monster Jam (PS2/X360), Manhunt 2 (PC), Rock Revolution (PS3/X360), The Incredible Hulk (PS3/X360)
+#define FMOD_FEV_VERSION_45_0   0x002D0000  // Iron Man (PS3), Pure (PS3/X360)
 #define FMOD_FEV_VERSION_46_0   0x002E0000  // ?
-#define FMOD_FEV_VERSION_47_0   0x002F0000  // ?
+#define FMOD_FEV_VERSION_47_0   0x002F0000  // Indianapolis 500 Evolution (X360), Stoked: Big Air Edition (X360)
 #define FMOD_FEV_VERSION_48_0   0x00300000  // ?
-#define FMOD_FEV_VERSION_49_0   0x00310000  // ?
-#define FMOD_FEV_VERSION_50_0   0x00320000  // Monster Jam: Urban Assault (PS2/PSP), Destroy All Humans! Path of the Furon (X360), Wall-E (PS3)
+//#define FMOD_FEV_VERSION_49_0 0x00310000  // ?
+#define FMOD_FEV_VERSION_50_0   0x00320000  // Monster Jam: Urban Assault (PS2/PSP), Destroy All Humans! Path of the Furon (PS3/X360), Wall-E (PS3)
 #define FMOD_FEV_VERSION_51_0   0x00330000  // ?
-#define FMOD_FEV_VERSION_52_0   0x00340000  // Stoked (X360), Indianapolis 500 Evolution (X360)
-#define FMOD_FEV_VERSION_53_0   0x00350000  // Bolt (PC/X360), LittleBigPlanet 1/2/3 (PS3), SpongeBob: Globs of Doom (PS2)
-//#define FMOD_FEV_VERSION_54_0 0x00360000  // The Fight (PS3, BoxoMusic), Move Fitness (PS3, BoxoMusic), Bolt (PS2)
+#define FMOD_FEV_VERSION_52_0   0x00340000  // Indianapolis 500 Evolution (X360), Stoked (X360), Rock Revolution (PS3)
+#define FMOD_FEV_VERSION_53_0   0x00350000  // Bolt (PS3/X360/PC), LittleBigPlanet 1/2/3 (PS3), SpongeBob: Globs of Doom (PS2), Wheelman (PS3/X360)
+//#define FMOD_FEV_VERSION_54_0 0x00360000  // The Fight, Move Fitness (PS3, BoxoMusic), Bolt (PS2), Ski-Doo Snowmobile Challenge (PS3/X360)
 //#define FMOD_FEV_VERSION_55_0 0x00370000  // AirRider CrazyRacing (PC), Cars: Race-O-Rama (PSP), MX vs. ATV Reflex (PSP), Coraline (PS2)
-#define FMOD_FEV_VERSION_56_0   0x00380000  // Assassin's Creed: Bloodlines (PSP), X-Men Origins: Wolverine (PS2/PSP)
-#define FMOD_FEV_VERSION_57_0   0x00390000  // Birthday Party Bash (Wii)
-#define FMOD_FEV_VERSION_58_0   0x003A0000  // Silent Hill: Shattered Memories (PS2/PSP), Rocket Knight (PS3), G.I. Joe: The Rise of Cobra (PS2/PSP)
-//#define FMOD_FEV_VERSION_59_0 0x003B0000  // Just Cause 2 (PC), Renegade Ops (PS3)
+#define FMOD_FEV_VERSION_56_0   0x00380000  // Assassin's Creed: Bloodlines (PSP), X-Men Origins: Wolverine (PS2/PSP), Up (PS3/X360)
+#define FMOD_FEV_VERSION_57_0   0x00390000  // Birthday Party Bash (Wii), Hannah Montana: The Movie (PS3/X360), Raven Squad (X360)
+#define FMOD_FEV_VERSION_58_0   0x003A0000  // Silent Hill: Shattered Memories (PS2/PSP), Rocket Knight (PS3), G.I. Joe (PS2/PSP/PS3/X360)
+//#define FMOD_FEV_VERSION_59_0 0x003B0000  // Just Cause 2 (PS3/X360/PC), Renegade Ops (PS3), BioShock 2 (PS3/X360)
 #define FMOD_FEV_VERSION_60_0   0x003C0000  // ?
-#define FMOD_FEV_VERSION_61_0   0x003D0000  // Split/Second (PS3/X360/PC), Armored Core V (PS3), NFS Shift (PS3), Supreme Commander 2 (PC)
-#define FMOD_FEV_VERSION_62_0   0x003E0000  // Shank (PS3/X360/PC), Stacking (X360), Kung Fu Panda 2 (PS3), Ben 10: Cosmic Destruction (PS3/PSP)
-#define FMOD_FEV_VERSION_63_0   0x003F0000  // ?
-#define FMOD_FEV_VERSION_64_0   0x00400000  // Brutal Legend (PC), UFC Personal Trainer (X360), Rugby Challenge (PS3), NFS Shift 2 (PS3)
-#define FMOD_FEV_VERSION_65_0   0x00410000  // ?
+#define FMOD_FEV_VERSION_61_0   0x003D0000  // Split/Second (PS3/X360/PC), Armored Core V (PS3/X360), NFS Shift (PS3/X360), Supreme Commander 2 (PC)
+#define FMOD_FEV_VERSION_62_0   0x003E0000  // Shank (PS3/X360/PC), Stacking (X360), Kung Fu Panda 2 (PS3), Ben 10: Cosmic Destruction (PSP/PS3/X360)
+#define FMOD_FEV_VERSION_63_0   0x003F0000  // Blood Drive (PS3/X360), UFC Personal Trainer (X360), Zumba Fitness (X360)
+#define FMOD_FEV_VERSION_64_0   0x00400000  // Brutal Legend (PC), UFC Personal Trainer (X360), Rugby Challenge (PS3), NFS Shift 2 (PS3/X360)
+#define FMOD_FEV_VERSION_65_0   0x00410000  // Carnival Games: Monkey See, Monkey Do (X360)
 //#define FMOD_FEV_VERSION_66_0 0x00420000  // ?
-//#define FMOD_FEV_VERSION_67_0 0x00430000  // Green Lantern: Rise of the Manhunters (PS3), Orcs Must Die! 2 (PC), Move Fitness (PS3)
-#define FMOD_FEV_VERSION_68_0   0x00440000  // ?
-#define FMOD_FEV_VERSION_69_0   0x00450000  // Cars 2 (PSP), Brave (PS3), Badland (PSV), Dark Souls III (PC), Stronghold: Warlords (PC)
+//#define FMOD_FEV_VERSION_67_0 0x00430000  // Green Lantern: Rise of the Manhunters (PS3/X360), Orcs Must Die! 2 (PC), Move Fitness (PS3)
+#define FMOD_FEV_VERSION_68_0   0x00440000  // Family Guy: Back to the Multiverse (PS3/X360), Harley Pasternak's Hollywood Workout (X360)
+#define FMOD_FEV_VERSION_69_0   0x00450000  // Cars 2 (PSP), Brave (PS3/X360), Badland (PSV), Dark Souls III (PC), Stronghold: Warlords (PC)
 
 
 static size_t append_fev_string(char* buf, size_t buf_size, char* str, size_t str_size) {
@@ -118,7 +118,7 @@ static size_t append_fev_string(char* buf, size_t buf_size, char* str, size_t st
 static inline uint32_t reader_fev_chunk_id(fev_header_t* fev, reader_t* r) {
     uint32_t id = reader_u32(r);
     if (fev->version >= FMOD_FEV_VERSION_48_0)
-        id = id >> 24 | (id >> 8 & 0xFF00) | (id & 0xFF00) << 8 | (id & 0xFF) << 24;
+        id = id >> 24 | (id >> 8 & 0xFF00) | (id & 0xFF00) << 8 | id << 24;
     return id;
 }
 
@@ -144,13 +144,16 @@ static bool reader_fev_string(char* buf, size_t buf_size, reader_t* r) {
 // bank names rarely include a directory name to be stripped [Manhunt 2 (Wii/PC)]
 static bool reader_fev_bankname(char* buf, size_t buf_size, reader_t* r) {
     char full[STREAM_NAME_SIZE];
-    char* base;
+    char* base, *posix, *windows;
 
     if (!reader_fev_string(full, STREAM_NAME_SIZE, r))
         return false;
 
-    // TODO: posix path separator only(?)
-    base = strrchr(full, '/');
+    // Manhunt 2 uses a posix separator
+    // but checking windows too in case
+    posix = strrchr(full, '/');
+    windows = strrchr(full, '\\');
+    base = (posix > windows) ? posix : windows; // MAX()
     snprintf(buf, buf_size, "%s", base ? base + 1 : full);
 
     return true;
@@ -614,6 +617,7 @@ static void parse_fev_sound_def_def(fev_header_t* fev, reader_t* r) {
 
 }
 
+// a majority of the full stream names are contained within these sound defs
 static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r) {
     uint32_t entries, entry_type, stream_index;
 
@@ -692,6 +696,7 @@ static bool parse_fev_sound_def(fev_header_t* fev, reader_t* r) {
 }
 
 
+// newer FEVs also contain full stream names within here (sometimes exclusively)
 static bool parse_fev_composition_segment_sample(fev_header_t* fev, reader_t* r, uint32_t target_segment_id, uint32_t target_sample_idx) {
     char wavebank_name[STREAM_NAME_SIZE];
     uint32_t stream_index;
@@ -900,7 +905,7 @@ static bool parse_fev_composition(fev_header_t* fev, reader_t* r) {
                 break;
 
             default:
-                vgm_logi("FEV: Unknown composition chunk %08X at 0x%X\n", chunk_id, r->offset);
+                vgm_logi("FEV: Unknown composition chunk %08X at 0x%X\n", chunk_id, r->offset - 0x08);
                 return false;
         }
     }
@@ -962,10 +967,10 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r) {
             reader_skip(r, 0x08 * fev->languages);
         if (fev->version >= FMOD_FEV_VERSION_65_0)
             reader_skip(r, 0x04 * fev->languages);
+        // v0x41+ just store indices, but this one isn't in RIFF>LIST>STRR
         if (!reader_fev_bankname(wavebank_name, STREAM_NAME_SIZE, r)) // wave bank name
             return false;
 
-        // v0x41+ just store indices later, but this one isn't in RIFF>LIST>STRR
         if (fev->version >= FMOD_FEV_VERSION_65_0) {
             char full_wavebank_name[STREAM_NAME_SIZE];
             char fsb_suffix[STREAM_NAME_SIZE];
@@ -979,6 +984,7 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r) {
                 string_idx = read_u32le(wavebank_offset + 0x08 + j * 0x0C + 0x08, r->sf);
                 if (string_idx >= fev->riff_strings)
                     return false;
+
                 name_offset = fev->riff_string_buf + read_u32le(fev->riff_string_ofs + string_idx * 0x04, r->sf);
                 read_string(fsb_suffix, STREAM_NAME_SIZE, name_offset, r->sf); // not a size-prefixed FEV string
                 snprintf(full_wavebank_name, STREAM_NAME_SIZE, "%s%s", wavebank_name, fsb_suffix);
@@ -986,11 +992,21 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r) {
                 if (strncasecmp(full_wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
                     if (fev->bank_name_idx != -1)
                         vgm_logi("FEV: Multiple identical bank names\n");
-                    fev->bank_name_idx = i;
+                    fev->bank_name_idx = i; // is used for matching later
                     break;
                 }
             }
         }
+        else if (strncasecmp(wavebank_name, fev->fsb_wavebank_name, STREAM_NAME_SIZE) == 0) {
+            if (fev->bank_name_idx != -1)
+                vgm_logi("FEV: Multiple identical bank names\n");
+            fev->bank_name_idx = i; // only used to exit early, not for matching later
+        }
+    }
+
+    if (fev->bank_name_idx == -1) {
+        vgm_logi("FEV: No valid wave bank found for %s\n", fev->fsb_wavebank_name);
+        return true; // not false because parsing didn't fail, but likely bad txtm
     }
 
     if (!parse_fev_category(fev, r))
@@ -1029,7 +1045,7 @@ static bool parse_fev_main(fev_header_t* fev, reader_t* r) {
             return false;
     }
 
-    // can rarely have no name in both FSB/FEV [Stoked (X360)]
+    // can have no name in both FSB/FEV if using FSOUND_DUPLICATE
     return true;
 }
 
@@ -1061,7 +1077,7 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         // many strings in RIFF FEV are indexed from the STRR chunk
         if (!find_aligned_chunk_le(sf, get_id32be("STRR"), chunk_offset - 0x08, false, &chunk_offset, NULL))
             return false;
-        fev->riff_strings = read_u32le(chunk_offset, sf);
+        fev->riff_strings = read_u32le(chunk_offset + 0x00, sf);
         fev->riff_string_ofs = chunk_offset + 0x04;
         fev->riff_string_buf = fev->riff_string_ofs + fev->riff_strings * 0x04;
 
@@ -1072,8 +1088,8 @@ static bool parse_fev(fev_header_t* fev, STREAMFILE* sf) {
         return false;
 
     if ((fev->version & 0xFF00FFFF) ||
-        fev->version < min_fev_ver ||
-        fev->version > max_fev_ver)
+         fev->version < min_fev_ver ||
+         fev->version > max_fev_ver)
         return false;
 
     reader_setup(&r, sf, fev_offset, false);

@@ -34,6 +34,7 @@ typedef struct {
 
     int mpeg_padding;
     bool non_interleaved;
+    int32_t decode_sample_rate; /* XMA nonsense */
 
     bool loop_flag;
 
@@ -116,15 +117,18 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case XMA1:      /* FSB3: The Bourne Conspiracy 2008 (X360), Forza Motorsport 23 (X360) */
+        case XMA1:      /* FSB3: The Bourne Conspiracy 2008 (X360), Forza Motorsport 2/3 (X360) */
         case XMA2: {    /* FSB4: Armored Core V (X360), Hard Corps (X360) */
+            if (!fsb.decode_sample_rate) /* FSOUND_DUPLICATE hack [Monster Jam (X360)-XMA1, Stoked (X360)-XMA2] */
+                fsb.decode_sample_rate = fsb.sample_rate;
+
             if (fsb.codec == XMA1) {
                 /* 3.x, though no actual output changes [Guitar Hero III (X360), The Bourne Conspiracy (X360)] */
-                vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, fsb.stream_offset, fsb.stream_size, fsb.channels, fsb.sample_rate, 0);
+                vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, fsb.stream_offset, fsb.stream_size, fsb.channels, fsb.decode_sample_rate, 0);
             }
             else {
                 int block_size = 0x8000; /* FSB default */
-                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, fsb.stream_offset, fsb.stream_size, fsb.num_samples, fsb.channels, fsb.sample_rate, block_size, 0);
+                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, fsb.stream_offset, fsb.stream_size, fsb.num_samples, fsb.channels, fsb.decode_sample_rate, block_size, 0);
             }
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -182,7 +186,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
                 vgmstream->layout_type = layout_layered;
             }
             else {
-                vgmstream->codec_data = is_new_lib ? 
+                vgmstream->codec_data = is_new_lib ?
                     init_celt_fsb_v2(vgmstream->channels) :
                     init_celt_fsb_v1(vgmstream->channels);
                 if (!vgmstream->codec_data) goto fail;
@@ -253,8 +257,8 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header_t*
         data->layers[i]->loop_end_sample = fsb->loop_end;
 
 #ifdef VGM_USE_CELT
-        data->layers[i]->codec_data = is_new_lib ? 
-            init_celt_fsb_v2(layer_channels) : 
+        data->layers[i]->codec_data = is_new_lib ?
+            init_celt_fsb_v2(layer_channels) :
             init_celt_fsb_v1(layer_channels);
         if (!data->layers[i]->codec_data) goto fail;
         data->layers[i]->coding_type = coding_CELT_FSB;
@@ -406,7 +410,7 @@ static void load_codec(fsb_header_t* fsb) {
 
         fsb->mpeg_padding = (fsb->channels > 2 ? 0x10 :
             (fsb->flags & FMOD_FSB_SOURCE_MPEG_PADDED4 ? 0x04 :
-            (fsb->flags & FMOD_FSB_SOURCE_MPEG_PADDED ? 0x02 : 0x000)));
+            (fsb->flags & FMOD_FSB_SOURCE_MPEG_PADDED ? 0x02 : 0x00)));
     }
 
     if (fsb->codec == XBOX_IMA) {
@@ -416,7 +420,7 @@ static void load_codec(fsb_header_t* fsb) {
             fsb->codec = FSB_IMA;
 
         /* FSOUND_IMAADPCMSTEREO is "noninterleaved, true stereo IMA", but doesn't seem to be any different
-            * (found in FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3)) */
+         * (found in FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3)) */
     }
 
 
@@ -530,11 +534,16 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
             int i;
             uint32_t header_offset = fsb->base_header_size;
             uint32_t data_offset = fsb->base_header_size + fsb->sample_headers_size;
+            uint32_t prev_data_offset = data_offset;
+            int32_t  prev_sample_rate = -1;
 
             /* find target_stream header (variable sized) */
             for (i = 0; i < fsb->total_subsongs; i++) {
                 uint32_t stream_header_size;
-                bool null_name = false;
+
+                /* XMA decoding nonsense... */
+                if (!(fsb->mode & FSOUND_DUPLICATE))
+                    prev_sample_rate = fsb->sample_rate;
 
                 if ((fsb->flags & FMOD_FSB_SOURCE_BASICHEADERS) && i > 0) {
                     /* miniheader, all subsongs reuse first header (rare) [Biker Mice from Mars (PS2)] */
@@ -549,9 +558,8 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
                         fsb->extradata_offset = header_offset + stream_header_size;
                         stream_header_size += 0x2e * fsb->channels;
                     }
-
                     /* XMA basic headers have extra data [Forza Motorsport 3 (X360)] */
-                    if (fsb->mode & FSOUND_XMA) {
+                    else if (fsb->mode & FSOUND_XMA) {
                         // 0x08: flags? (0x00=none?, 0x20=standard)
                         // 0x0c: sample related? (may be 0 with no seek table)
                         // 0x10: low number (may be 0 with no seek table)
@@ -594,42 +602,44 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
                         if (fsb->first_extradata_offset == 0)
                             fsb->first_extradata_offset = fsb->extradata_offset;
                     }
-
-                    // Inversion (PC)-ru has some null names with garbage offsets from prev streams (not in X360/PS3)
-                    // seen in MPEG and CPM16
-                    if (fsb->version == FMOD_FSB_VERSION_4_0 && 
-                            ((fsb->mode & FSOUND_MPEG) || (fsb->mode & FSOUND_16BITS))) {
-                        null_name = read_u32le(fsb->name_offset, sf) == 0x00;
-                    }
                 }
 
                 // target found
                 if (i + 1 == target_subsong) {
-                    if (null_name) {
-                        fsb->codec = SILENCE;
-                        fsb->num_samples = fsb->sample_rate;
+                    // Inversion (PC)-ru MPEG/PCM16, Disney/Pixar Up (PS3/X360) IMA,
+                    // Monster Jam (X360) XMA1, Stoked (X360) XMA2 use dupe entries
+                    if (fsb->mode & FSOUND_DUPLICATE) {
+                        // duplicate entries in Monster Jam and Stoked also change
+                        // the sample rate which otherwise breaks XMA decoding due
+                        // to subframe sizes/offsets being dependent on it
+                        // TODO: does that even work on real hardware?
+                        fsb->decode_sample_rate = prev_sample_rate;
+                        fsb->stream_offset = prev_data_offset;
+                    }
+                    else {
+                        fsb->stream_offset = data_offset;
                     }
                     break;
                 }
 
                 // must calculate final offsets
                 header_offset += stream_header_size;
-                if (!null_name)
+                if (!(fsb->mode & FSOUND_DUPLICATE)) {
+                    prev_data_offset = data_offset;
                     data_offset += fsb->stream_size;
 
-                // some subsongs offsets need padding (most FSOUND_IMAADPCM, few MPEG too [Hard Reset (PC) subsong 5])
-                // other codecs may set PADDED4 (ex. XMA) but don't seem to need it and work fine
-                if (fsb->flags & FMOD_FSB_SOURCE_MPEG_PADDED4) {
-                    if (data_offset % 0x20)
-                        data_offset += 0x20 - (data_offset % 0x20);
+                    // some subsongs offsets need padding (most FSOUND_IMAADPCM, few MPEG too [Hard Reset (PC) subsong 5])
+                    // other codecs may set PADDED4 (ex. XMA) but don't seem to need it and work fine
+                    if (fsb->flags & FMOD_FSB_SOURCE_MPEG_PADDED4) {
+                        if (data_offset % 0x20)
+                            data_offset += 0x20 - (data_offset % 0x20);
+                    }
                 }
             }
 
             // target not found
-            if (i > fsb->total_subsongs)
+            if (i >= fsb->total_subsongs)
                 goto fail;
-
-            fsb->stream_offset = data_offset;
         }
     }
 
