@@ -259,6 +259,7 @@ static const char* extension_list[] = {
 
     "iab",
     "iadp",
+    "iap",
     "idmsf",
     "idsp",
     "idvi", //fake extension/header id for .pcm (renamed, to be removed)
