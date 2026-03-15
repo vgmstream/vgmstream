@@ -6,8 +6,6 @@
 
 static bool reset_buf(libvgmstream_priv_t* priv) {
     // state reset
-    priv->buf.samples = 0;
-    priv->buf.bytes = 0;
     priv->buf.consumed = 0;
 
     if (priv->buf.initialized)
@@ -42,26 +40,20 @@ static bool reset_buf(libvgmstream_priv_t* priv) {
     return true;
 }
 
-static void update_buf(libvgmstream_priv_t* priv, int samples_done) {
-    priv->buf.samples = samples_done;
-    priv->buf.bytes = samples_done * priv->buf.sample_size * priv->buf.channels;
-    //priv->buf.consumed = 0; //external
-
-    // mark done if this buf reached EOF
-    if (!priv->pos.play_forever) {
-        priv->pos.current += samples_done;
-        priv->decode_done = (priv->pos.current >= priv->pos.play_samples);
-    }
-}
-
-
-// update decoder info based on last render, though at the moment it's all fixed
+// update info based on last render
 static void update_decoder_info(libvgmstream_priv_t* priv) {
 
-    // output copy
-    priv->dec.buf = priv->buf.data;
-    priv->dec.buf_bytes = priv->buf.bytes;
-    priv->dec.buf_samples = priv->buf.samples;
+    // mark done if buf reaches EOF (may also happen after seek)
+    if (!priv->pos.play_forever) {
+        priv->pos.current += priv->sbuf.filled;
+        priv->decode_done = (priv->pos.current >= priv->pos.play_samples);
+    }
+
+    sbuf_t* sbuf = &priv->sbuf;
+    int sample_size = sfmt_get_sample_size(sbuf->fmt);
+    priv->dec.buf = sbuf->buf;
+    priv->dec.buf_samples = sbuf->filled;
+    priv->dec.buf_bytes = priv->dec.buf_samples * sample_size * sbuf->channels;
     priv->dec.done = priv->decode_done;
 }
 
@@ -83,16 +75,17 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
     if (!reset_buf(priv))
         return LIBVGMSTREAM_ERROR_GENERIC;
 
+    // requested samples, may return different max
     int to_get = priv->buf.max_samples;
     if (!priv->pos.play_forever && to_get + priv->pos.current > priv->pos.play_samples)
         to_get = priv->pos.play_samples - priv->pos.current;
 
-    sbuf_t ssrc;
+    // default sbuf, may change during render
     sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);
-    sbuf_init(&ssrc, sfmt, priv->buf.data, to_get, priv->vgmstream->channels);
+    sbuf_init(&priv->sbuf, sfmt, priv->buf.data, to_get, priv->vgmstream->channels);
 
-    int decoded = render_main(&ssrc, priv->vgmstream);
-    update_buf(priv, decoded);
+    render_main(&priv->sbuf, priv->vgmstream);
+
     update_decoder_info(priv);
 
     return LIBVGMSTREAM_OK;
@@ -111,7 +104,7 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
     while (buf_copied < buf_samples) {
 
         // decode if no samples in internal buf
-        if (priv->buf.consumed >= priv->buf.samples) {
+        if (priv->buf.consumed >= priv->sbuf.filled) {
             if (priv->decode_done) {
                 done = true;
                 break;
@@ -123,7 +116,7 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
 
         // copy from partial decode src to partial dst
         int buf_left = buf_samples - buf_copied;
-        int copy_samples = priv->buf.samples - priv->buf.consumed;
+        int copy_samples = priv->sbuf.filled - priv->buf.consumed;
         if (copy_samples > buf_left)
             copy_samples = buf_left;
 
@@ -131,14 +124,14 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
         int skip_bytes = priv->buf.sample_size * priv->buf.channels * priv->buf.consumed;
         int copied_bytes = priv->buf.sample_size * priv->buf.channels * buf_copied;
 
-        memcpy( ((uint8_t*)buf) + copied_bytes, ((uint8_t*)priv->buf.data) + skip_bytes, copy_bytes);
+        memcpy( ((uint8_t*)buf) + copied_bytes, ((uint8_t*)priv->sbuf.buf) + skip_bytes, copy_bytes);
         priv->buf.consumed += copy_samples;
 
         buf_copied += copy_samples;
     }
 
     // detect EOF, to avoid another call to _fill that returns with 0 samples
-    if (!done && priv->decode_done && priv->buf.consumed >= priv->buf.samples) {
+    if (!done && priv->decode_done && priv->buf.consumed >= priv->sbuf.filled) {
         done = true;
     }
 
@@ -184,7 +177,9 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample) {
     priv->pos.current = priv->vgmstream->pstate.play_position;
 
     // update flags just in case
-    update_buf(priv, 0);
+    sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);
+    sbuf_init(&priv->sbuf, sfmt, priv->buf.data, 0, priv->vgmstream->channels);
+
     update_decoder_info(priv);
 }
 

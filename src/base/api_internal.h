@@ -4,6 +4,7 @@
 #include "../util/log.h"
 #include "../vgmstream.h"
 #include "plugins.h"
+#include "sbuf.h"
 
 
 #define LIBVGMSTREAM_OK  0
@@ -19,16 +20,14 @@
 
 typedef struct {
     bool initialized;
-    void* data;
+    void* data;         //default buf, output may be different
 
     /* config (output values channels/size after mixing, though buf may be as big as input size) */
     int max_samples;
-    int channels;       /* */
+    int channels;
     int sample_size;    
 
     /* state */
-    int samples;
-    int bytes;
     int consumed;
 
 } libvgmstream_priv_buf_t;
@@ -52,6 +51,7 @@ typedef struct {
     VGMSTREAM* vgmstream;
     libvgmstream_priv_buf_t buf;
     libvgmstream_priv_position_t pos;
+    sbuf_t sbuf; // from last decode
 
     bool config_loaded;
     bool setup_done;
