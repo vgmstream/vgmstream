@@ -98,6 +98,7 @@
     <ClInclude Include="base\mixing.h" />
     <ClInclude Include="base\plugins.h" />
     <ClInclude Include="base\render.h" />
+    <ClInclude Include="base\resampler.h" />
     <ClInclude Include="base\sbuf.h" />
     <ClInclude Include="base\seek_table.h" />
     <ClInclude Include="coding\coding.h" />
@@ -261,6 +262,7 @@
     <ClCompile Include="base\play_state.c" />
     <ClCompile Include="base\plugins.c" />
     <ClCompile Include="base\render.c" />
+    <ClCompile Include="base\resampler.c" />
     <ClCompile Include="base\sbuf.c" />
     <ClCompile Include="base\seek.c" />
     <ClCompile Include="base\seek_table.c" />
@@ -676,11 +678,11 @@
     <ClCompile Include="meta\pos.c" />
     <ClCompile Include="meta\pphd.c" />
     <ClCompile Include="meta\ppst.c" />
+    <ClCompile Include="meta\ps2p.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
-    <ClCompile Include="meta\ps2p.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />
@@ -795,8 +797,8 @@
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\ubi_sb.c" />
     <ClCompile Include="meta\ue4opus.c" />
-    <ClCompile Include="meta\ueopus.c" />
     <ClCompile Include="meta\ueba.c" />
+    <ClCompile Include="meta\ueopus.c" />
     <ClCompile Include="meta\undefind.c" />
     <ClCompile Include="meta\utk.c" />
     <ClCompile Include="meta\va3.c" />

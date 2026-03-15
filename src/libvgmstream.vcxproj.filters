@@ -128,6 +128,9 @@
     <ClInclude Include="base\render.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\resampler.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\sbuf.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
@@ -611,6 +614,9 @@
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\render.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\resampler.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\sbuf.c">
@@ -1858,6 +1864,9 @@
     <ClCompile Include="meta\ppst.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ps2p.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ps2_adm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1868,9 +1877,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_vbk.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2p.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\psb.c">
@@ -2215,10 +2221,10 @@
     <ClCompile Include="meta\ue4opus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ueopus.c">
+    <ClCompile Include="meta\ueba.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ueba.c">
+    <ClCompile Include="meta\ueopus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\undefind.c">
