@@ -688,7 +688,7 @@ int TCompressWaveData_Rendering(TCompressWaveData* self, int16_t* buf, uint32_t 
     buf1 = buf;
     for (i = 0; i < PressLength; i++) {
 
-        //crossed over？
+        //crossed over?
         if (self->FWavePosition > self->FWaveLength) {
             if (self->FEndLoop == CW_TRUE) { //playback with loop?
                 TCompressWaveData_Previous(self);
