@@ -3,6 +3,7 @@
 #include "txtp.h"
 #include "../util/text_reader.h"
 #include "../util/paths.h"
+#include "../base/resampler.h"
 
 #define TXT_LINE_MAX 2048 /* some wwise .txtp get wordy */
 #define TXT_LINE_KEY_MAX 128
@@ -335,6 +336,46 @@ fail:
     return 0;
 }
 
+static int get_resample_type(const char* params, int* value) {
+    int n,m;
+    char temp[16];
+
+    *value = RESAMPLER_TYPE_DEFAULT; // default if not specified or unrecognized
+
+    // must specify max chars
+    m = sscanf(params, " %15s%n", temp, &n);
+    if (m != 1 || temp[0] == '\0')
+        return 0;
+
+    if (strcmp(temp, "linear") == 0) {
+        *value = RESAMPLER_TYPE_LINEAR;
+    }
+    //else if (strcmp(temp, "spu") == 0) {
+    //    *value = RESAMPLER_TYPE_SPU;
+    //}
+    //else if (strcmp(temp, "xa") == 0) {
+    //    *value = RESAMPLER_TYPE_XA;
+    //}
+    else if (strcmp(temp, "hermite4") == 0) {
+        *value = RESAMPLER_TYPE_HERMITE4;
+    }
+    else if (strcmp(temp, "lagrange4") == 0) {
+        *value = RESAMPLER_TYPE_LAGRANGE4;
+    }
+    else if (strcmp(temp, "lagrange6") == 0) {
+        *value = RESAMPLER_TYPE_LAGRANGE6;
+    }
+    else if (strcmp(temp, "sinc") == 0) {
+        *value = RESAMPLER_TYPE_SINC;
+    }
+    else {
+        *value = RESAMPLER_TYPE_DEFAULT;
+    }
+
+    return n;
+}
+
+
 /*******************************************************************************/
 /* PARSER - MAIN                                                               */
 /*******************************************************************************/
@@ -357,6 +398,11 @@ static void add_settings(txtp_entry_t* current, txtp_entry_t* entry, const char*
 
     if (entry->sample_rate > 0)
         current->sample_rate = entry->sample_rate;
+
+    if (entry->resample_rate > 0) {
+        current->resample_rate = entry->resample_rate;
+        current->resample_type = entry->resample_type;        
+    }
 
     if (entry->channel_mask)
         current->channel_mask = entry->channel_mask;
@@ -609,6 +655,11 @@ static void parse_params(txtp_entry_t* entry, char* params) {
         else if (strcmp(command,"h") == 0) {
             params += get_int(params, &entry->sample_rate);
             //;VGM_LOG("TXTP:   sample_rate %i\n", cfg->sample_rate);
+        }
+        else if (strcmp(command,"H") == 0) {
+            params += get_int(params, &entry->resample_rate);
+            params += get_resample_type(params, &entry->resample_type);
+            //;VGM_LOG("TXTP:   resample_rate %i %i\n", entry->resample_rate, entry->resample_type);
         }
         else if (strcmp(command,"I") == 0) {
             n = get_time(params,  &entry->loop_start_second, &entry->loop_start_sample);

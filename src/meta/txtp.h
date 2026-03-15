@@ -94,6 +94,8 @@ typedef struct {
     play_config_t config;
 
     int sample_rate;
+    int resample_rate;
+    int resample_type;
 
     int loop_install_set;
     int loop_end_max;

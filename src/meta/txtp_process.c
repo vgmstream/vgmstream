@@ -58,7 +58,7 @@ static void apply_settings_body(VGMSTREAM* vgmstream, txtp_entry_t* entry) {
 
 static void apply_settings(VGMSTREAM* vgmstream, txtp_entry_t* current) {
 
-    /* base settings */
+    /* some codecs need original sample rate, but should have been init'd at this point */
     if (current->sample_rate > 0) {
         vgmstream->sample_rate = current->sample_rate;
     }
@@ -172,6 +172,11 @@ static void apply_settings(VGMSTREAM* vgmstream, txtp_entry_t* current) {
             default:
                 break;
         }
+    }
+
+    // add after mixing ops (output channels may change), will change vgmstream's sample rate
+    if (current->resample_rate > 0) {
+        mixing_set_resample(vgmstream, current->resample_rate, current->resample_type);
     }
 
     /* save final config */

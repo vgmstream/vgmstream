@@ -574,8 +574,9 @@ void mixing_macro_output_sample_format(VGMSTREAM* vgmstream, sfmt_t type) {
 
     // optimization (may skip initializing mixer)
     sfmt_t input_fmt = mixing_get_input_sample_type(vgmstream);
-    if (input_fmt == type)
+    if (input_fmt == type && !mixer->resampler)
         return;
+
     mixer->force_type = type;
     mixer->has_non_fade = true;
 }

@@ -20,6 +20,9 @@ void mixing_info(VGMSTREAM* vgmstream, int* input_channels, int* output_channels
 sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream);
 sfmt_t mixing_get_output_sample_type(VGMSTREAM* vgmstream);
 
+void mixing_set_resample(VGMSTREAM* vgmstream, int resample_rate, int type);
+double mixing_get_resample_ratio(VGMSTREAM* vgmstream);
+
 /* adds mixes filtering and optimizing if needed */
 void mixing_push_swap(VGMSTREAM* vgmstream, int ch_dst, int ch_src);
 void mixing_push_add(VGMSTREAM* vgmstream, int ch_dst, int ch_src, double volume);

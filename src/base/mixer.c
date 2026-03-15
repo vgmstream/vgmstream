@@ -4,6 +4,7 @@
 #include "mixer_priv.h"
 #include "mixer.h"
 #include "sbuf.h"
+#include "resampler.h"
 #include <math.h>
 #include <limits.h>
 
@@ -45,6 +46,7 @@ void mixer_free(mixer_t* mixer) {
     if (!mixer) return;
 
     free(mixer->mixbuf);
+    free(mixer->mixbuf_dst.buf);
     free(mixer);
 }
 
@@ -65,6 +67,9 @@ bool mixer_is_active(mixer_t* mixer) {
         return true;
 
     if (mixer->force_type != SFMT_NONE)
+        return true;
+
+    if (mixer->resampler)
         return true;
 
     return false;
@@ -99,7 +104,7 @@ static void setup_outbuf(mixer_t* mixer, sbuf_t* sbuf) {
     sbuf_copy_segments(sbuf, smix, smix->filled);
 }
 
-void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
+static void mixer_chain(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
 
     // external
     //if (!mixer_is_active(mixer))
@@ -147,4 +152,71 @@ void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
     }
 
     setup_outbuf(mixer, sbuf);
+}
+
+static bool sbuf_reserve_buf(sbuf_t* sdst, sfmt_t fmt, sbuf_t* ssrc) {
+    sdst->filled = 0;
+
+    if (ssrc->filled == 0 || ssrc->fmt == SFMT_NONE)
+        return true;
+
+    bool needs_realloc = false;
+
+    if (ssrc->samples > sdst->samples || ssrc->channels > sdst->channels) {
+        needs_realloc = true;
+    }
+    if (sdst->fmt != fmt)
+        needs_realloc = true;
+
+    if (needs_realloc) {
+        int dst_sample_size = sfmt_get_sample_size(fmt);
+        int samples = ssrc->samples + 256;
+        sdst->buf = realloc(sdst->buf, samples * ssrc->channels * dst_sample_size);
+        if (!sdst->buf)
+            return false;
+        sbuf_init(sdst, fmt, sdst->buf, samples, ssrc->channels);
+    }
+
+    return true;
+}
+
+// Resample sbuf samples into internal resampler buffer, and get resampled samples back into sbuf.
+// Note that resampler outputs float, and as many samples as possible from input
+// (could get partial samples but would need to avoid decoding if there are still samples in resampler).
+static void mixer_resample(mixer_t* mixer, sbuf_t* sbuf) {
+
+    if (!mixer->resampler)
+        return;
+
+    int res;
+
+    res = resampler_push_samples(mixer->resampler, sbuf);
+    if (res != RESAMPLER_RES_OK) {
+        VGM_LOG("MIX: resample push error: %i\n", res);
+        return;
+    }
+
+    res = resampler_get_samples(mixer->resampler, sbuf);
+    if (res != RESAMPLER_RES_OK) {
+        VGM_LOG("MIX: resample get error: %i\n", res);
+        return;
+    }
+
+    // convert if needed
+    if (mixer->force_type && mixer->force_type != sbuf->fmt) {
+        bool reserve_ok = sbuf_reserve_buf(&mixer->mixbuf_dst, mixer->force_type, sbuf);
+        if (!reserve_ok) {
+            VGM_LOG("MIX: resample reserve error\n");
+            return;
+        }
+
+        sbuf_copy_segments(&mixer->mixbuf_dst, sbuf, sbuf->filled);
+        sbuf_init(sbuf, mixer->mixbuf_dst.fmt, mixer->mixbuf_dst.buf, mixer->mixbuf_dst.samples, mixer->mixbuf_dst.channels);
+        sbuf->filled = mixer->mixbuf_dst.filled;
+    }
+}
+
+void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
+    mixer_chain(mixer, sbuf, current_pos);
+    mixer_resample(mixer, sbuf);
 }

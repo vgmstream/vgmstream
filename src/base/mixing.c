@@ -183,5 +183,43 @@ sfmt_t mixing_get_output_sample_type(VGMSTREAM* vgmstream) {
     if (mixer->force_type)
         return mixer->force_type;
 
+    if (mixer->resampler)
+        return SFMT_FLT;
+    
     return input_fmt;
+}
+
+
+void mixing_set_resample(VGMSTREAM* vgmstream, int resample_rate, int resample_type) {
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
+        return;
+
+    if (mixer->active) {
+        VGM_LOG("MIX: ignoring new ops when mixer is active\n");
+        return; /* to avoid down/upmixing after activation */
+    }
+
+    resampler_cfg_t cfg = {
+        .ratio = (double)vgmstream->sample_rate / (double)resample_rate,
+        .type = resample_type,
+        .channels = mixer->output_channels, //resampler goes after mixing chain
+    };
+
+
+    mixer->resampler = resampler_init(&cfg);
+    if (!mixer->resampler) {
+        VGM_LOG("MIX: couldn't init resampler\n");
+        return;
+    }
+
+    mixer->resampler_ratio = cfg.ratio;
+    vgmstream->sample_rate = resample_rate;
+}
+
+double mixing_get_resample_ratio(VGMSTREAM* vgmstream) {
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
+        return 0;
+    return mixer->resampler_ratio;
 }
