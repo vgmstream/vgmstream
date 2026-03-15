@@ -403,7 +403,7 @@ void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels) {
 
     data->type = AIFC;
     data->is_pcm8 = detect_pcm8_aifc(sf, data);
-VGM_LOG("pcm8=%i\n",data->is_pcm8 );
+
     return data;
 fail:
     free_imuse(data);
@@ -764,7 +764,7 @@ static bool detect_pcm8_aifc(STREAMFILE* sf, imuse_codec_data* data) {
         if (data->overread)
             break;
     }
-        VGM_LOG("test=%i\n", data->overread);
+
     bool is_pcm8 = data->overread;
     reset_imuse(data);
 

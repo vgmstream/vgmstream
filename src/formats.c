@@ -259,6 +259,7 @@ static const char* extension_list[] = {
 
     "iab",
     "iadp",
+    "iap",
     "idmsf",
     "idsp",
     "idvi", //fake extension/header id for .pcm (renamed, to be removed)
@@ -390,6 +391,7 @@ static const char* extension_list[] = {
     "msv",
     "msvp", //fake extension/header id for .msv
     "msx",
+    "mta",
     "mta2",
     "mtaf",
     "mtt", //txth/reserved [Splinter Cell: Pandora Tomorrow (PS2)]

@@ -112,6 +112,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0x00;
 
+    // rarely bao->stream_size is not accurate (and may not include prefetch)
+    uint32_t stream_size = get_streamfile_size(sf_data);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(bao->channels, bao->loop_flag);
@@ -120,7 +122,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
     vgmstream->meta_type = meta_UBI_BAO;
     vgmstream->sample_rate = bao->sample_rate;
     vgmstream->num_streams = bao->total_subsongs;
-    vgmstream->stream_size = bao->prefetch_size + bao->stream_size;
+    vgmstream->stream_size = stream_size;
 
     vgmstream->num_samples = bao->num_samples;
     vgmstream->loop_start_sample = bao->loop_start;
@@ -152,13 +154,13 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
         case RAW_PSX_new:
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = bao->stream_size / bao->channels;
+            vgmstream->interleave_block_size = stream_size / bao->channels;
             break;
 
         case RAW_DSP:
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = bao->stream_size / bao->channels;
+            vgmstream->interleave_block_size = stream_size / bao->channels;
 
             /* mini DSP header (first 0x10 seem to contain DSP header fields like nibbles and format) */
             dsp_read_coefs_be(vgmstream, sf_head, bao->header_offset + bao->header_size + bao->extra_size + 0x10, 0x40);
@@ -270,7 +272,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
                     chunk_offset = bao->header_offset + bao->header_size + bao->extra_size;
                 }
                 start_offset = 0x00;
-                data_size = bao->stream_size;
+                data_size = stream_size;
             }
 
             vgmstream->codec_data = init_ffmpeg_xma_chunk_split(sf_xmah, sf_xmad, start_offset, data_size, chunk_offset, chunk_size);
@@ -289,8 +291,8 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             }
             else {
                 xma_fix_raw_samples(vgmstream, sf_data, start_offset, data_size,0, false, false);
-
             }
+
             break;
         }
 
@@ -307,7 +309,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             block_align = block_types[bao->stream_subtype] * vgmstream->channels;
             encoder_delay = 0; // num_samples is full bytes-to-samples (unlike FMT_AT3) and comparing X360 vs PS3 games seems ok
 
-            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf_data, start_offset, vgmstream->stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_align, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf_data, start_offset, stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -324,7 +326,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
 #endif
 #ifdef VGM_USE_VORBIS
         case FMT_OGG: {
-            vgmstream->codec_data = init_ogg_vorbis(sf_data, start_offset, bao->stream_size, NULL);
+            vgmstream->codec_data = init_ogg_vorbis(sf_data, start_offset, stream_size, NULL);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
@@ -339,7 +341,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header_t* bao, STREAMFILE*
             mpeg_custom_config cfg = {0};
             // has extradata in v29 (size 0x2c), seem to be some kind of config per channel?
 
-            cfg.data_size = bao->stream_size;
+            cfg.data_size = stream_size;
 
             vgmstream->codec_data = init_mpeg_custom(sf_data, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -1311,7 +1313,21 @@ static STREAMFILE* open_memory_bao_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
         goto fail;
     }
 
+
     memory_offset += resource_offset;
+
+    // happens with some FC4 small Oggs, where stream size is smaller than actual data
+    if (!bao->is_prefetch && bao->stream_size != resource_size - bao->memory_skip) {
+        VGM_LOG("UBI BAO: bad stream size found: %x + %x vs %x\n", bao->stream_size, bao->memory_skip, resource_size);
+
+        // too big is usually bad config
+        if (bao->stream_size > resource_size + bao->header_size) {
+            VGM_LOG("UBI BAO: bad stream config at %x\n", bao->header_offset);
+            return false;
+        }
+
+        memory_size = resource_size - bao->memory_skip;
+    }
 
     temp_sf = open_clamp_streamfile_f(temp_sf, memory_offset, memory_size);
     if (!temp_sf) goto fail;

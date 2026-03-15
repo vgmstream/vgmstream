@@ -3,6 +3,7 @@
 #include "../streamtypes.h"
 #include "mixer.h"
 #include "sbuf.h"
+#include "resampler.h"
 
 #define VGMSTREAM_MAX_MIXING 512
 
@@ -49,11 +50,16 @@ struct mixer_t {
     bool has_non_fade;
     bool has_fade;
 
+    sbuf_t mixbuf_dst;      // used if final output is different than mixing buffer (ex. resampling)
+
     float* mixbuf;          // internal mixing buffer
     sbuf_t smix;            // temp sbuf
     int32_t current_subpos; // state: current sample pos in the stream
 
     sfmt_t force_type;      // mixer output is original buffer's by default, unless forced
+
+    resampler_ctx_t* resampler;
+    double resampler_ratio; // 0 = not set
 };
 
 void mixer_op_swap(mixer_t* mixer, mix_op_t* op);

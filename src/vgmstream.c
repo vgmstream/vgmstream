@@ -122,7 +122,6 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
         vgmstream->loop_end_sample = 0;
     }
 
-VGM_LOG("final setup\n");
     setup_vgmstream(vgmstream); /* final setup */
 
     return true;

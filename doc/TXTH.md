@@ -382,6 +382,14 @@ loop_start_sample   = (value)
 loop_end_sample     = (value)|data_size
 ```
 
+If values are in bytes, you can use these instead. They will convert bytes-to-samples automatically (equivalent to `sample_type = bytes`)
+```
+num_samples_bytes   = (value)
+loop_start_bytes    = (value)
+loop_end_bytes      = (value)
+```
+
+
 #### LOOP SETTINGS
 Force loop on or off, as loop start/end may be defined but not used. If not set, by default it loops when loop_end_sample is defined and not bigger than num_samples.
 

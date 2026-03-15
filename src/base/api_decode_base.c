@@ -105,7 +105,7 @@ void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool full) {
         memset(&priv->fmt, 0, sizeof(libvgmstream_format_t));
     }
     else {
-        priv->buf.consumed = priv->buf.samples;
+        priv->buf.consumed = priv->sbuf.filled;
     }
 
     priv->pos.current = 0;

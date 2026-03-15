@@ -2,7 +2,7 @@
 //#include "../layout/layout.h"
 //#include "render.h"
 //#include "decode.h"
-//#include "mixing.h"
+#include "mixing.h"
 #include "plugins.h"
 
 
@@ -22,7 +22,14 @@ void vgmstream_set_play_forever(VGMSTREAM* vgmstream, int enabled) {
 int32_t vgmstream_get_samples(VGMSTREAM* vgmstream) {
     if (!vgmstream->config_enabled || !vgmstream->config.config_set)
         return vgmstream->num_samples;
-    return vgmstream->pstate.play_duration;
+    int play_samples = vgmstream->pstate.play_duration;
+
+    double ratio = mixing_get_resample_ratio(vgmstream);
+    if (ratio > 0) {
+        play_samples = play_samples / ratio;
+    }
+
+    return play_samples;
 }
 
 /*****************************************************************************/

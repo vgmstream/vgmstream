@@ -3,70 +3,77 @@
 
 
 /* MTA2 - found in Metal Gear Solid 4 (PS3) */
-VGMSTREAM * init_vgmstream_mta2(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_mta2(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, sample_rate;
+    int loop_flag, channels, sample_rate;
     int32_t loop_start, loop_end;
 
 
     /* checks */
-    if ( !check_extensions(streamFile,"mta2"))
-        goto fail;
+    if (!is_id32be(0x00, sf, "MTA2"))
+        return NULL;
+    if (!check_extensions(sf,"mta2"))
+        return NULL;
+    // 0x04: file size
+    // 0x08: version? (1)
+    // 0x0c-0x20: null
+    // 0x20-0x40: null (no name unlike .mta?)
 
-    if (read_32bitBE(0x00,streamFile) != 0x4d544132) /* "MTA2" */
-        goto fail;
-    /* allow truncated files for now? */
-    //if (read_32bitBE(0x04, streamFile) + 0x08 != get_streamfile_size(streamFile))
-    //    goto fail;
+    /* everything is very similar to MGS3's MTAF but BE */
 
-    /* base header (everything is very similar to MGS3's MTAF but BE) */
-    /* 0x08(4): version? (1),  0x0c(52): null */
-
-    /* HEAD chunk */
-    if (read_32bitBE(0x40, streamFile) != 0x48454144) /* "HEAD" */
-        goto fail;
-    if (read_32bitBE(0x44, streamFile) != 0xB0) /* HEAD size */
-        goto fail;
-
-    /* 0x48(4): null,  0x4c: ? (0x10),   0x50(4): 0x7F (vol?),  0x54(2): 0x40 (pan?) */
-    channel_count = read_16bitBE(0x56, streamFile); /* counting all tracks */
-    /* 0x60(4): full block size (0x110 * channels), indirectly channels_per_track = channels / (block_size / 0x110) */
+    if (!is_id32be(0x40, sf, "HEAD"))
+        return NULL;
+    if (read_u32be(0x44, sf) != 0xB0)
+        return NULL;
+    // 0x48: null
+    // 0x4c: related to channels? (16 or 2)
+    // 0x50: 127 (volume?)
+    // 0x54: 64 (pan?)
+    // 0x56: channels (counting all tracks)
+    // 0x58: loop start sample
+    // 0x5c: loop end
+    // 0x60: full block size (0x110 * channels)
+    // 0x64: loop start frame?
+    // 0x68: loop end frame?
+    // 0x6c: null
+    // 0x70: flags (00/05/07)
+    // 0x7c: null?
+    // 0x78: null
+    // 0x7c: sample rate in 32b float (WHY?) typically 48000.0
     /* 0x80 .. 0xf8: null */
 
-    loop_start = read_32bitBE(0x58, streamFile);
-    loop_end   = read_32bitBE(0x5c, streamFile);
-    loop_flag = (loop_start != loop_end); /* also flag possibly @ 0x73 */
-#if 0
-    /* those values look like some kind of loop offsets */
-    if (loop_start/0x100 != read_32bitBE(0x68, streamFile) ||
-        loop_end  /0x100 != read_32bitBE(0x6C, streamFile) ) {
-        VGM_LOG("MTA2: wrong loop points\n");
-        goto fail;
-    }
-#endif
+    channels   = read_u16be(0x56, sf);
+    loop_start = read_s32be(0x58, sf);
+    loop_end   = read_s32be(0x5c, sf);
+    loop_flag = (loop_start != loop_end); // also flags like .mta?
 
-    sample_rate = (int)read_f32be(0x7c, streamFile); /* sample rate in 32b float (WHY?) typically 48000.0 */
+    sample_rate = (int)read_f32be(0x7c, sf);
     if (sample_rate == 0)
         sample_rate = 48000; /* default when not specified (most of the time) */
 
 
-    /* TRKP chunks (x16) */
-    /* just seem to contain pan/vol stuff (0x7f/0x40), TRKP per track (sometimes +1 main track?) */
-    /* there is channel layout bitmask at 0x0f (ex. 1ch = 0x04, 3ch = 0x07, 4ch = 0x33, 6ch = 0x3f), surely:
-     * FL 0x01, FR 0x02, FC = 0x04, BL = 0x08, BR = 0x10, BC = 0x20 */
+    /* TRKP chunks (x16, per max channels) */
+    // 0x00: -1=unused, 0x00 or others (0x20) if used
+    // 0x04: 127 (volume?)
+    // 0x05: sometimes 127 (volume?)
+    // 0x06: 64 (pan?)
+    // 0x07: channel layout (ex. 1ch = 0x04, 3ch = 0x07, 4ch = 0x33, 6ch = 0x3f)
+    // 0x2c: always 1
+    // 0x30: x24 16-bit (volumes or ADPCM related?)
+    // 0x60: -1 x4
+
+
+    /* DATA chunk */
+    if (!is_id32be(0x7f8, sf, "DATA"))
+        return NULL;
+    // 0x7fc: data size (without blocks in case of blocked layout)
 
     start_offset = 0x800;
 
-    /* DATA chunk */
-    if (read_32bitBE(0x7f8, streamFile) != 0x44415441) // "DATA"
-        goto fail;
-    //if (read_32bitBE(0x7fc, streamFile) + start_offset != get_streamfile_size(streamFile))
-    //    goto fail;
-
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
@@ -79,7 +86,7 @@ VGMSTREAM * init_vgmstream_mta2(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_MTA2;
 
     /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, sf, start_offset) )
         goto fail;
     return vgmstream;
 
@@ -91,38 +98,38 @@ fail:
 /* ****************************************************************************** */
 
 /* MTA2 in containers */
-VGMSTREAM * init_vgmstream_mta2_container(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+VGMSTREAM* init_vgmstream_mta2_container(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t subfile_offset;
 
 
     /* checks */
     /* .dbm: iPod metadata + mta2 with KCEJ blocks, .bgm: mta2 with KCEJ blocks (fake?) */
-    if ( !check_extensions(streamFile,"dbm,bgm,mta2"))
-        goto fail;
+    if (!check_extensions(sf,"dbm,bgm,mta2"))
+        return NULL;
 
-    if (read_32bitBE(0x00,streamFile) == 0x444C424D) { /* "DLBM" */
+    if (is_id32be(0x00,sf, "DLBM")) {
         subfile_offset = 0x800;
     }
-    else if (read_32bitBE(0x00,streamFile) == 0x00000010) {
+    else if (read_32bitBE(0x00,sf) == 0x00000010) {
         subfile_offset = 0x00;
     }
     else {
-        goto fail;
+        return NULL;
     }
     /* subfile size is implicit in KCEJ blocks */
 
-    temp_streamFile = setup_mta2_streamfile(streamFile, subfile_offset, 1, "mta2");
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_mta2_streamfile(sf, subfile_offset, 1, "mta2");
+    if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_mta2(temp_streamFile);
-    close_streamfile(temp_streamFile);
+    vgmstream = init_vgmstream_mta2(temp_sf);
+    close_streamfile(temp_sf);
 
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
