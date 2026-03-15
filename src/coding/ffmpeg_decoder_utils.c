@@ -433,7 +433,7 @@ static int ffmpeg_make_riff_xma1(uint8_t* buf, size_t buf_size, size_t data_size
         }
 
         put_u32le(buf+off+0x00, sample_rate*stream_channels / sizeof(int16_t)); /* average bytes per second (wrong, unneeded) */
-        put_u32le(buf+off+0x04, sample_rate);
+        put_u32le(buf+off+0x04, sample_rate); // does matter for XMA decoding
         put_u32le(buf+off+0x08, 0); /* loop start */
         put_u32le(buf+off+0x0c, 0); /* loop end */
         put_u8   (buf+off+0x10, 0); /* loop subframe */
@@ -502,7 +502,7 @@ static int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t data_size
     put_u32le(buf+0x10, 0x34); /* fmt size */
     put_u16le(buf+0x14, 0x0166); /* XMA2 */
     put_u16le(buf+0x16, channels);
-    put_u32le(buf+0x18, sample_rate);
+    put_u32le(buf+0x18, sample_rate); // does matter for XMA decoding
     put_u32le(buf+0x1c, sample_rate * channels / sizeof(int16_t)); /* average bytes per second (wrong, unneeded) */
     put_u16le(buf+0x20, (uint16_t)(channels * sizeof(int16_t))); /* block align */
     put_u16le(buf+0x22, 16); /* bits per sample */

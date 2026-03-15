@@ -103,7 +103,7 @@ fail:
  * Page format:
  *  0x00(4): capture pattern ("OggS")
  *  0x01(1): stream structure version
- *  0x05(1): header type flag
+ *  0x05(1): header type flag (0x01: continued packet, 0x02: first page, 0x04: last page)
  *  0x06(8): absolute granule position
  *  0x0e(4): stream serial number
  *  0x12(4): page sequence number
