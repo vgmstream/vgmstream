@@ -1270,6 +1270,10 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
                 txth->num_samples = get_bytes_to_samples(txth, txth->num_samples * (txth->interleave*txth->channels));
         }
     }
+    else if (is_string(key,"num_samples_bytes")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->num_samples)) goto fail;
+        txth->num_samples = get_bytes_to_samples(txth, txth->num_samples);
+    }
     else if (is_string(key,"loop_start_sample") || is_string(key,"loop_start")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->loop_start_sample)) goto fail;
         if (txth->sample_type==1)
@@ -1278,6 +1282,10 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->loop_start_sample = get_bytes_to_samples(txth, txth->loop_start_sample * (txth->interleave*txth->channels));
         if (txth->loop_adjust)
             txth->loop_start_sample += txth->loop_adjust;
+    }
+    else if (is_string(key,"loop_start_bytes")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->loop_start_sample)) goto fail;
+        txth->loop_start_sample = get_bytes_to_samples(txth, txth->loop_start_sample);
     }
     else if (is_string(key,"loop_end_sample") || is_string(key,"loop_end")) {
         if (is_string(val,"data_size")) {
@@ -1292,6 +1300,10 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         }
         if (txth->loop_adjust)
             txth->loop_end_sample += txth->loop_adjust;
+    }
+    else if (is_string(key,"loop_end_bytes")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->loop_end_sample)) goto fail;
+        txth->loop_end_sample = get_bytes_to_samples(txth, txth->loop_end_sample);
     }
     else if (is_string(key,"skip_samples")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->skip_samples)) goto fail;
