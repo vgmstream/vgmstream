@@ -1096,14 +1096,14 @@ __declspec(dllexport) void* winampGetExtendedRead_openW(const wchar_t *fn, int *
 /* decode len to dest buffer, called multiple times until file done or decoding is aborted */
 __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *dest, size_t len, int *killswitch) {
     const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
-    unsigned copied = 0;
+    unsigned bytes_copied = 0;
 
     libvgmstream_t* xvgmstream = handle;
     if (!xvgmstream)
         return 0;
     int channels = xvgmstream->format->channels;
 
-    while (copied < len) {
+    while (bytes_copied < len) {
 
         /* check decoding cancelled */
         if (killswitch && *killswitch) {
@@ -1122,23 +1122,25 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
         }
 
         /* decode */
-        int samples_left = (len - copied) / channels * sizeof(short);
+        int samples_left = (len - bytes_copied) / channels * sizeof(short);
         int samples_to_do = max_buffer_samples;
         if (samples_to_do > samples_left)
             samples_to_do = samples_left;
 
-        int samples_done = libvgmstream_fill(xvgmstream, xsample_buffer, samples_to_do);
-        if (samples_done == 0)
+        int err = libvgmstream_fill(xvgmstream, xsample_buffer, samples_to_do);
+        if (err < 0)
             continue;
+
         // ReplayGain is automatically applied in this API
+        int buf_bytes = vgmstream->decoder->buf_bytes;
+        int buf_samples = vgmstream->decoder->buf_samples;
+        memcpy(&dest[bytes_copied], xsample_buffer, buf_bytes);
+        bytes_copied += buf_bytes;
 
-        memcpy(&dest[copied], xsample_buffer, samples_done * channels * sizeof(short));
-        copied += samples_done * channels * sizeof(short);
-
-        xstate.decode_pos_samples += samples_done;
+        xstate.decode_pos_samples += buf_samples;
     }
 
-    return copied; /* return 0 to signal file done */
+    return bytes_copied; /* return 0 to signal file done */
 }
 
 /* seek in the file (possibly unused) */

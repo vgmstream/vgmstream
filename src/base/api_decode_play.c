@@ -148,6 +148,8 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
         memset( ((uint8_t*)buf) + (priv->dec.buf_bytes), 0, bytes_bytes);
     }
 
+    // the return value is meant to be a result code where >= 0 is ok (returned samples in decoder->buf_samples)
+    // but maybe returning samples is more intuitive
     return 0;
 }
 
