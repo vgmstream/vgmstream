@@ -152,6 +152,7 @@
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\bgw_streamfile.h" />
     <ClInclude Include="meta\bnsf_keys.h" />
+    <ClInclude Include="meta\crid_streamfile.h" />
     <ClInclude Include="meta\deblock_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_opus_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
@@ -500,6 +501,7 @@
     <ClCompile Include="meta\compresswave.c" />
     <ClCompile Include="meta\cpk.c" />
     <ClCompile Include="meta\cps.c" />
+    <ClCompile Include="meta\crid.c" />
     <ClCompile Include="meta\csb.c" />
     <ClCompile Include="meta\csmp.c" />
     <ClCompile Include="meta\cstr.c" />
