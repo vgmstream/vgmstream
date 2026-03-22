@@ -1,5 +1,6 @@
 #include "cri_keys.h"
 #include <string.h>
+#include <stdlib.h>
 
 
 /* preloaded list used to derive keystrings from ADX_Decoder, found in executables (see VGAudio for how to calculate) */
@@ -150,4 +151,9 @@ bool cri_key9_valid_keystring(uint8_t* buf, int buf_size) {
     }
 
     return true;
+}
+
+uint64_t cri_keystring_to_keycode(uint8_t* keybuf) {
+    const char* keystring = (const char*)keybuf;
+    return strtoull(keystring, NULL, 10);
 }

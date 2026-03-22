@@ -245,8 +245,7 @@ static uint64_t load_keycode(STREAMFILE* sf) {
     uint64_t keycode = 0;
     bool is_keystring = cri_key9_valid_keystring(keybuf, key_size);
     if (is_keystring) { /* number */
-        const char* keystring = (const char*)keybuf;
-        keycode = strtoull(keystring, NULL, 10);
+        keycode = cri_keystring_to_keycode(keybuf);
     }
     else if (key_size == 0x08) { /* hex */
         keycode = get_u64be(keybuf+0x00);
