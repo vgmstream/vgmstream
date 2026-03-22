@@ -182,6 +182,8 @@ void reset_vgmstream(VGMSTREAM* vgmstream) {
 
     render_reset(vgmstream);
 
+    mixer_reset(vgmstream->mixer);
+
     /* note that this does not reset the constituent STREAMFILES
      * (vgmstream->ch[N].streamfiles' internal state, like internal offset, though shouldn't matter) */
 }
