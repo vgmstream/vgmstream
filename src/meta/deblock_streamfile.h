@@ -42,7 +42,7 @@ struct deblock_config_t {
     /* close the data struct members somehow */
     void (*close_callback)(STREAMFILE*, deblock_io_data* data);
 
-} ;
+};
 
 struct deblock_io_data {
     /* initial config */

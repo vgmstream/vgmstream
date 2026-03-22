@@ -327,8 +327,8 @@ DWORD WINAPI xmplay_Process(float* buf, DWORD bufsize) {
     if (samples_to_do > bufsize)
         samples_to_do = bufsize;
 
-    int res = libvgmstream_fill(vgmstream, buf, samples_to_do);
-    if (res < 0) return 0;
+    int err = libvgmstream_fill(vgmstream, buf, samples_to_do);
+    if (err < 0) return 0;
 
     int32_t done = vgmstream->decoder->buf_samples;
 
