@@ -60,7 +60,7 @@ static size_t get_table_frame_size(opus_io_data* data, int packet);
 
 static size_t get_ueopus_chunk_skip(STREAMFILE* sf, off_t offset);
 
-/* Convers custom Opus packets to Ogg Opus, so the resulting data is larger than physical data. */
+/* Converts custom Opus packets to Ogg Opus, so the resulting data is larger than physical data. */
 static size_t opus_io_read(STREAMFILE* sf, uint8_t *dest, off_t offset, size_t length, opus_io_data* data) {
     size_t total_read = 0;
 

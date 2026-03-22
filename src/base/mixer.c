@@ -50,6 +50,12 @@ void mixer_free(mixer_t* mixer) {
     free(mixer);
 }
 
+void mixer_reset(mixer_t* mixer) {
+    if (!mixer) return;
+    
+    resampler_reset(mixer->resampler);
+}
+
 void mixer_update_channel(mixer_t* mixer) {
     if (!mixer) return;
 

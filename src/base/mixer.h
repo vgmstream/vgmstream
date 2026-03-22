@@ -10,6 +10,7 @@ typedef struct mixer_t mixer_t;
  * If init somehow fails next calls are ignored. */
 mixer_t* mixer_init(int channels);
 void mixer_free(mixer_t* mixer);
+void mixer_reset(mixer_t* mixer);
 void mixer_update_channel(mixer_t* mixer);
 void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos);
 bool mixer_is_active(mixer_t* mixer);

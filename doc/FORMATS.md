@@ -1825,6 +1825,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Epic Games UEOPUS header [*UEOPUS*]
   - *ueopus*: `.opus .lopus .ueopus`
   - Codecs: Opus
+- **crid.c**
+  - (container)
+  - *crid*: `.usm`
+    - Subfiles: *adx hca*
 - **mus_acm.c**
   - InterPlay MUS ACM header [*MUS_ACM*]
   - *mus_acm*: `.mus`

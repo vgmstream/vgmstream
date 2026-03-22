@@ -11,5 +11,6 @@ void cri_key9_derive(uint64_t key9, uint16_t subkey, uint16_t* p_key1, uint16_t*
 
 bool cri_key8_valid_keystring(uint8_t* buf, int buf_size);
 bool cri_key9_valid_keystring(uint8_t* buf, int buf_size);
+uint64_t cri_keystring_to_keycode(uint8_t* buf);
 
-#endif /* _CRI_KEYS_H_ */
+#endif

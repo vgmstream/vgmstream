@@ -447,6 +447,7 @@ a companion file:
 - `.hca`: `.hcakey` (keystring, or 8-byte keycode, a 64-bit number)
   - May set 8-byte key followed a 2-byte AWB subkey for newer HCA
   - `.awb`/`.acb` also may use `.adxkey`/`.hcakey`, and will combine with an internal AWB subkey
+- `.usm`: `.usmkey` (keystring, or 8-byte keycode, a 64-bit number)
 - `.fsb`: `.fsbkey` (decryption key in hex, usually between 8-32 bytes) 
 - `.bnsf`: `.bnsfkey` (decryption key, a string up to 24 chars)
 - `.awc`: `.awckey` (decryption key, 0x10 bytes divided into 4 BE ints)

@@ -46,21 +46,20 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     /* find decryption key in external file or preloaded list */
     if (hca_info->encryptionEnabled) {
         uint64_t keycode = 0;
-        uint8_t keybuf[20+1] = {0}; /* max keystring 20, +1 extra null */
+        uint8_t keybuf[20+1] = {0}; // max keystring 20, +1 extra null
         size_t key_size;
 
         key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
 
         bool is_keystring = cri_key9_valid_keystring(keybuf, key_size);
 
-        if (is_keystring) { /* number */
-            const char* keystring = (const char*)keybuf;
-            keycode = strtoull(keystring, NULL, 10);
+        if (is_keystring) { // number
+            keycode = cri_keystring_to_keycode(keybuf);
         }
-        else if (key_size == 0x08) { /* hex */
+        else if (key_size == 0x08) { // hex
             keycode = get_u64be(keybuf+0x00);
         }
-        else if (key_size == 0x08+0x02) { /* seed key + AWB subkey */
+        else if (key_size == 0x08+0x02) { // seed key + AWB subkey
             keycode = get_u64be(keybuf+0x00);
             subkey  = get_u16be(keybuf+0x08);
         }
