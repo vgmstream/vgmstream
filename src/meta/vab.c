@@ -138,7 +138,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
 
         // rarely banks start with N empty programs [Simple 1500 Series Vol. 92: The Tozan RPG (PS1)]
         programs_done++;
-        if (programs_done > programs)
+        if (programs_done >= programs)
             break;
     }
 
