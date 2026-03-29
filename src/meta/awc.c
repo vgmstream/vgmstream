@@ -293,8 +293,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
     read_u64_t read_u64 = NULL;
     read_u32_t read_u32 = NULL;
     read_u16_t read_u16 = NULL;
-    int entries;
-    uint32_t flags, tag_count = 0, tags_skip = 0;
+    uint32_t tag_count = 0, tags_skip = 0;
     uint32_t offset;
     int target_subsong = sf->stream_index;
 
@@ -319,8 +318,8 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
         read_u16 = read_u16le;
     }
 
-    flags = read_u32(0x04,sf);
-    entries = read_u32(0x08,sf);
+    uint32_t flags = read_u32(0x04,sf);
+    int entries = read_u32(0x08,sf);
     //header_size = read_u32(0x0c,sf); /* after stream id+tags */
 
     offset = 0x10;
@@ -382,13 +381,15 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
         awc->total_subsongs = 1;
         target_subsong = 1;
         /* array access below */
-        if (entries > AWC_MAX_MUSIC_CHANNELS)
-            goto fail;
+        if (entries > AWC_MAX_MUSIC_CHANNELS) {
+            VGM_LOG("AWC: too many entries\n");
+            return false;
+        }
     }
     else { /* sfx pack, each stream is a sound */
         awc->total_subsongs = entries;
         if (target_subsong == 0) target_subsong = 1;
-        if (target_subsong < 0 || target_subsong > awc->total_subsongs || awc->total_subsongs < 1) goto fail;
+        if (target_subsong < 0 || target_subsong > awc->total_subsongs || awc->total_subsongs < 1) return false;
     }
 
 
@@ -433,17 +434,22 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
             case 0x48: /* music header */
                 if (!awc->is_streamed) {
                     VGM_LOG("AWC: music header found but not streamed\n");
-                    goto fail;
+                    return false;
                 }
 
                 awc->block_count = read_u32(tag_offset + 0x00,sf);
                 awc->block_chunk = read_u32(tag_offset + 0x04,sf);
                 awc->channels    = read_u32(tag_offset + 0x08,sf);
 
+                if (awc->channels > AWC_MAX_MUSIC_CHANNELS) {
+                    VGM_LOG("AWC: too many music channels\n");
+                    return false;
+                }
+
                 if (awc->channels != entries - 1) { /* not counting id-0 */
                     VGM_LOG("AWC: number of music channels doesn't match entries\n");
                     /* extremely rare but doesn't seem to matter, some streams are dummies (RDR2 STREAMS/ABIGAIL_HUMMING_*) */ 
-                    //goto fail;
+                    //return false;
                 }
 
                 for (int ch = 0; ch < awc->channels; ch++) {
@@ -468,7 +474,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
 
                     if ((awc->codec && awc->codec != codec)) {
                         VGM_LOG("AWC: found header diffs in channel %i, c=%i vs %i\n", ch, awc->codec, codec);
-                        goto fail;
+                        return false;
                     }
 
                     if (awc->num_samples < num_samples) /* use biggest channel */
@@ -482,7 +488,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
             case 0xFA: /* sfx header */
                 if (awc->is_streamed) {
                     VGM_LOG("AWC: sfx header found but streamed\n");
-                    break; //goto fail; /* rare (RDR PC/Switch) */
+                    break; //return false; // rare (RDR PC/Switch)
                 }
 
                 awc->num_samples = read_u32(tag_offset + 0x00,sf);
@@ -502,7 +508,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
             case 0x76: /* sfx header for vorbis */
                 if (awc->is_streamed) {
                     VGM_LOG("AWC: sfx header found but streamed\n");
-                    goto fail;
+                    return false;
                 }
 
                 awc->num_samples = read_u32(tag_offset + 0x00,sf);
@@ -524,7 +530,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
                 if (awc->is_streamed) {
                     /* music stream doesn't have this (instead every channel-strem have one, parsed later) */
                     VGM_LOG("AWC: vorbis setup found but streamed\n");
-                    goto fail;
+                    return false;
                 }
 
                 /* very rarely used for sfx: SS_AM/GESTURE01.awc */
@@ -590,12 +596,10 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
 
     if (!awc->stream_offset) {
         VGM_LOG("AWC: stream offset not found\n");
-        goto fail;
+        return false;
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 /* ************************************************************************* */
