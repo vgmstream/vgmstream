@@ -96,11 +96,14 @@
     <ClInclude Include="base\mixer.h" />
     <ClInclude Include="base\mixer_priv.h" />
     <ClInclude Include="base\mixing.h" />
+    <ClInclude Include="base\play_config.h" />
+    <ClInclude Include="base\play_state.h" />
     <ClInclude Include="base\plugins.h" />
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\resampler.h" />
     <ClInclude Include="base\sbuf.h" />
     <ClInclude Include="base\seek_table.h" />
+    <ClInclude Include="base\tags.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />

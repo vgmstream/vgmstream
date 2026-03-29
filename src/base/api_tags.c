@@ -1,4 +1,5 @@
 #include "api_internal.h"
+#include "tags.h"
 
 typedef struct {
     VGMSTREAM_TAGS* vtags;

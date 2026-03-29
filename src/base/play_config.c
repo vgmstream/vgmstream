@@ -1,6 +1,6 @@
 #include "../vgmstream.h"
 #include "../util/log.h"
-#include "plugins.h"
+#include "play_config.h"
 #include "mixing.h"
 
 

@@ -2,6 +2,8 @@
 #include "sbuf.h"
 #include "mixing.h"
 #include "info.h"
+#include "play_config.h"
+#include "play_state.h"
 
 
 static void apply_config(libvgmstream_priv_t* priv) {
