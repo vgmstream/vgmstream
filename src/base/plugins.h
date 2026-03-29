@@ -32,32 +32,6 @@ typedef struct {
 int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg);
 
 
-typedef struct {
-    int allow_play_forever;
-    int disable_config_override;
-
-    /* song mofidiers */
-    int play_forever;           /* keeps looping forever (needs loop points) */
-    int ignore_loop;            /* ignores loops points */
-    int force_loop;             /* enables full loops (0..samples) if file doesn't have loop points */
-    int really_force_loop;      /* forces full loops even if file has loop points */
-    int ignore_fade;            /*  don't fade after N loops */
-
-    /* song processing */
-    double loop_count;          /* target loops */
-    double fade_delay;          /* fade delay after target loops */
-    double fade_time;           /* fade period after target loops */
-
-  //int downmix;                /* max number of channels allowed (0=disable downmix) */
-
-} vgmstream_cfg_t;
-
-// WARNING: these are not stable and may change anytime without notice
-void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* pcfg);
-int32_t vgmstream_get_samples(VGMSTREAM* vgmstream);
-int vgmstream_get_play_forever(VGMSTREAM* vgmstream);
-void vgmstream_set_play_forever(VGMSTREAM* vgmstream, int enabled);
-
 
 typedef struct {
     int force_title;
@@ -77,31 +51,6 @@ enum {
 // CB: void (*callback)(int level, const char* str)
 void vgmstream_set_log_callback(int level, void* callback);
 void vgmstream_set_log_stdout(int level);
-
-
-/* ****************************************** */
-/* TAGS: loads key=val tags from a file       */
-/* ****************************************** */
-
-/* opaque tag state */
-typedef struct VGMSTREAM_TAGS VGMSTREAM_TAGS;
-
-/* Initializes TAGS and returns pointers to extracted strings (always valid but change
- * on every vgmstream_tags_next_tag call). Next functions are safe to call even if this fails (validate NULL).
- * ex.: const char *tag_key, *tag_val; tags=vgmstream_tags_init(&tag_key, &tag_val); */
-VGMSTREAM_TAGS* vgmstream_tags_init(const char* *tag_key, const char* *tag_val);
-
-/* Resets tagfile to restart reading from the beginning for a new filename.
- * Must be called first before extracting tags. */
-void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename);
-
-
-/* Extracts next valid tag in tagfile to *tag. Returns 0 if no more tags are found (meant to be
- * called repeatedly until 0). Key/values are trimmed and values can be in UTF-8. */
-int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile);
-
-/* Closes tag file */
-void vgmstream_tags_close(VGMSTREAM_TAGS* tags);
 
 
 /* ****************************************** */

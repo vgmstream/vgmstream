@@ -3,7 +3,7 @@
 #include "../vgmstream.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "../base/plugins.h"
+#include "../base/play_state.h"
 
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);

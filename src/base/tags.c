@@ -2,9 +2,9 @@
 #include "../util/log.h"
 #include "../util/reader_sf.h"
 #include "../util/reader_text.h"
-#include "plugins.h"
+#include "tags.h"
 
-/* TAGS: loads key=val tags from a file       */
+/* TAGS: loads key=val tags from a file */
 
 #define VGMSTREAM_TAGS_LINE_MAX 2048
 

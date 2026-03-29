@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 #include "../base/decode.h"
 #include "../base/mixing.h"
-#include "../base/plugins.h"
+#include "../base/play_state.h"
 #include "../base/sbuf.h"
 #include "../base/render.h"
 

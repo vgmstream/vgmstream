@@ -3,6 +3,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "mixing.h"
+#include "play_state.h"
 #include "../util/channel_mappings.h"
 #include "../util/sf_utils.h"
 
@@ -33,6 +34,13 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
         concatn(length,desc,temp);
         return;
     }
+
+    int time_sample_rate = vgmstream->sample_rate;
+    double ratio = mixing_get_resample_ratio(vgmstream);
+    if (ratio > 0) {
+        time_sample_rate = time_sample_rate * ratio;
+    }
+
 
     snprintf(temp,TEMPSIZE, "sample rate: %d Hz\n", vgmstream->sample_rate);
     concatn(length,desc,temp);
@@ -85,16 +93,16 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
             concatn(length,desc,"looping: disabled\n");
         }
 
-        describe_get_time(vgmstream->loop_start_sample, vgmstream->sample_rate, &time_mm, &time_ss);
+        describe_get_time(vgmstream->loop_start_sample, time_sample_rate, &time_mm, &time_ss);
         snprintf(temp,TEMPSIZE, "loop start: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_start_sample, time_mm, time_ss);
         concatn(length,desc,temp);
 
-        describe_get_time(vgmstream->loop_end_sample, vgmstream->sample_rate, &time_mm, &time_ss);
+        describe_get_time(vgmstream->loop_end_sample, time_sample_rate, &time_mm, &time_ss);
         snprintf(temp,TEMPSIZE, "loop end: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_end_sample, time_mm, time_ss);
         concatn(length,desc,temp);
     }
 
-    describe_get_time(vgmstream->num_samples, vgmstream->sample_rate, &time_mm, &time_ss);
+    describe_get_time(vgmstream->num_samples, time_sample_rate, &time_mm, &time_ss);
     snprintf(temp,TEMPSIZE, "stream total samples: %d (%1.0f:%06.3f seconds)\n", vgmstream->num_samples, time_mm, time_ss);
     concatn(length,desc,temp);
 
@@ -190,7 +198,7 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
 
 
     if (vgmstream->config_enabled) {
-        int32_t samples = vgmstream->pstate.play_duration;
+        int32_t samples = vgmstream_get_samples(vgmstream);
 
         describe_get_time(samples, vgmstream->sample_rate, &time_mm, &time_ss);
         snprintf(temp,TEMPSIZE, "play duration: %d samples (%1.0f:%06.3f seconds)\n", samples, time_mm, time_ss);
