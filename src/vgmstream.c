@@ -345,7 +345,7 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
     }
 
     /* segmented layout loops with standard loop start/end values and works ok */
-VGM_LOG("new setup\n");
+
     /* notify of new initial state */
     setup_vgmstream(vgmstream);
 }
