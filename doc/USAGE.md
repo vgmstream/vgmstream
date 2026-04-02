@@ -891,7 +891,7 @@ When tags change behavior varies depending on player:
 
 Currently there is no tool to aid in the creation of these tags, but you can create
 a base `.m3u` and edit as a text file. You may try this python script to make the
-base file: https://raw.githubusercontent.com/bnnm/vgm-tools/master/py/tags-maker.py
+base file: https://raw.githubusercontent.com/bnnm/vgm-tools/master/py/vgm/tags-maker.py
 
 vgmstream's "m3u tagging" is meant to be simple to make and share (just a text
 file), easier to support in multiple players (rather than needing a custom plugin),
