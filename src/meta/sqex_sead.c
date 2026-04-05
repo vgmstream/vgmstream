@@ -5,22 +5,24 @@
 
 
 typedef struct {
-    int big_endian;
+    bool big_endian;
 
-    int is_sab;
-    int is_mab;
+    bool is_sab;
+    bool is_mab;
 
     int total_subsongs;
     int target_subsong;
 
-    uint16_t mtrl_index;
-    uint16_t mtrl_number;
     int loop_flag;
     int channels;
     int codec;
     int sample_rate;
-    int loop_start;
-    int loop_end;
+    int32_t loop_start;
+    int32_t loop_end;
+
+    uint16_t mtrl_index;
+    uint16_t mtrl_number;
+
     uint32_t mtrl_offset;
     uint32_t extradata_offset;
     uint32_t extradata_size;
@@ -48,6 +50,8 @@ typedef struct {
     uint32_t inst_section_offset;
     uint32_t mtrl_section_offset;
 
+    uint32_t file_size;
+
     char readable_name[STREAM_NAME_SIZE];
 
 } sead_header_t;
@@ -58,29 +62,18 @@ static int parse_sead(sead_header_t* sead, STREAMFILE* sf);
 /* SABF/MABF - Square Enix's "sead" audio games [Dragon Quest Builders (PS3), Dissidia Opera Omnia (mobile), FF XV (PS4)] */
 VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    sead_header_t sead = {0};
     off_t start_offset;
-    int target_subsong = sf->stream_index;
-    read_u32_t read_u32 = NULL;
-    read_u16_t read_u16 = NULL;
 
 
     /* checks */
-    if (is_id32be(0x00, sf, "sabf")) {
-        sead.is_sab = 1;
-    }
-    else if (is_id32be(0x00, sf, "mabf")) {
-        sead.is_mab = 1;
-    }
-    else {
-        goto fail;
-    }
+    if (!is_id32be(0x00, sf, "sabf") && !is_id32be(0x00, sf, "mabf"))
+        return NULL;
 
     /* .sab: sound/bgm
      * .mab: music
      * .sbin: Dissidia Opera Omnia .sab */
     if (!check_extensions(sf,"sab,mab,sbin"))
-        goto fail;
+        return NULL;
 
     /* SEAD handles both sab/mab in the same lib (libsead), and other similar files (config, engine, etc).
      * Has some chunks pointing to sections, and each section entry (usually starting with section
@@ -91,20 +84,18 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
      * with other engines it's hard to say if "libsead" is the whole engine but trimmed with only audio functions,
      * or is a separate audio lib derived from this "SEAD Engine". */
 
+    sead_header_t sead = {0};
 
     sead.big_endian = guess_endian16(0x06, sf); /* no flag, use size */
-    if (sead.big_endian) {
-        read_u32 = read_u32be;
-        read_u16 = read_u16be;
-    } else {
-        read_u32 = read_u32le;
-        read_u16 = read_u16le;
-    }
-
-    sead.target_subsong = target_subsong;
+    sead.is_sab = is_id32be(0x00, sf, "sabf");
+    sead.is_mab = !sead.is_sab;
+    sead.target_subsong = sf->stream_index;
 
     if (!parse_sead(&sead, sf))
-        goto fail;
+        return NULL;
+
+    read_u32_t read_u32 = get_read_u32(sead.big_endian);
+    read_u16_t read_u16 = get_read_u16(sead.big_endian);
 
 
     /* build the VGMSTREAM */
@@ -421,31 +412,30 @@ static void build_readable_mab_name(sead_header_t* sead, STREAMFILE* sf) {
         snprintf(buf,buf_size, "%s/%s/%s", descriptor, name, mode);
 }
 
+/* find names referencing to our material stream, usually:
+ * - music > sections > layers (<> meters) > material index
+ * - instruments > instrument materials > material index
+ */
 static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
-    read_u32_t read_u32 = sead->big_endian ? read_u32be : read_u32le;
-    read_u16_t read_u16 = sead->big_endian ? read_u16be : read_u16le;
-    int i, j, k, entries;
+    read_u32_t read_u32 = get_read_u32(sead->big_endian);
+    read_u16_t read_u16 = get_read_u16(sead->big_endian);
     uint32_t target_muscname_offset = 0, target_sectname_offset = 0;
     uint32_t target_muscname_size = 0, target_sectname_size = 0;
 
-    /* find names referencing to our material stream, usually:
-     * - music > sections > layers (<> meters) > material index
-     * - instruments > instrument materials > material index */
-
 
     /* parse musics */
-    entries = read_u16(sead->musc_section_offset + 0x04, sf);
-    for (i = 0; i < entries; i++) {
-        off_t musc_offset = sead->musc_section_offset + read_u32(sead->musc_section_offset + 0x10 + i*0x04, sf);
-        off_t muscname_offset, table_offset;
-        size_t musc_size, muscname_size;
-        int musc_version, sect_count, mode_count;
+    uint16_t musc_entries = read_u16(sead->musc_section_offset + 0x04, sf);
+    for (int i = 0; i < musc_entries; i++) {
+        uint32_t musc_offset = read_u32(sead->musc_section_offset + 0x10 + i*0x04, sf);
+        if (musc_offset >= sead->file_size)
+            continue;
+        musc_offset += sead->musc_section_offset;
 
-        musc_version = read_u8 (musc_offset + 0x00, sf);
+        uint8_t musc_version    = read_u8 (musc_offset + 0x00, sf);
         /* 0x01: "output"? */
-        musc_size    = read_u16(musc_offset + 0x02, sf);
-        sect_count   = read_u8 (musc_offset + 0x04, sf);
-        mode_count   = read_u8 (musc_offset + 0x05, sf);
+        uint16_t musc_size      = read_u16(musc_offset + 0x02, sf);
+        uint8_t sect_count      = read_u8 (musc_offset + 0x04, sf);
+        uint8_t mode_count      = read_u8 (musc_offset + 0x05, sf);
         /* 0x06: category? */
         /* 0x07: priority (default 0x80) */
         /* 0x08: number */
@@ -459,12 +449,13 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
         /* 0x2c: send busses x4 / send volumes (f32) x4 */
         /* 0x40: counts: aux sends/end methods/start methods/zero-ones */
         /* 0x44: sample rate */
-        muscname_size  = read_u8(musc_offset + 0x48, sf);
+        uint8_t muscname_size   = read_u8(musc_offset + 0x48, sf);
         /* 0x49: port? */
         /* 0x4a: reserved */
         /* 0x4c: audio length (float) */
         /* 0x50+: extra data in later versions */
 
+        uint32_t muscname_offset;
         if (musc_version <= 8) {
             muscname_offset = musc_offset + 0x10;
             muscname_size = 0x0f;
@@ -473,19 +464,21 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
             muscname_offset = musc_offset + musc_size;
         }
 
-        table_offset = align_size_to_block(muscname_offset + muscname_size + 0x01, 0x10);
+        uint32_t table_offset = align_size_to_block(muscname_offset + muscname_size + 0x01, 0x10);
 
         /* parse sections (layered parts that possibly transition into others using "meter" info) */
-        for (j = 0; j < sect_count; j++) {
-            off_t sect_offset = musc_offset + read_u32(table_offset + j*0x04, sf);
-            off_t sectname_offset, subtable_offset;
-            size_t sect_size, sectname_size;
-            int sect_version, layr_count;
+        for (int j = 0; j < sect_count; j++) {
+            uint32_t sect_offset = read_u32(table_offset + j*0x04, sf);
+            if (sect_offset >= sead->file_size)
+                continue;
+            sect_offset += musc_offset;
 
-            sect_version = read_u8 (sect_offset + 0x00, sf);
+            uint8_t sect_version    = read_u8 (sect_offset + 0x00, sf);
             /* 0x01: number */
-            sect_size    = read_u16(sect_offset + 0x02, sf);
+            uint16_t sect_size      = read_u16(sect_offset + 0x02, sf);
 
+            uint32_t sectname_offset, subtable_offset;
+            uint8_t layr_count, sectname_size;
             if (sect_version <= 7) {
                 /* 0x04: meter count */
                 layr_count = read_u8(sect_offset + 0x05, sf);
@@ -516,7 +509,7 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
             }
 
 
-            if (j + 1== sead->target_subsong) {
+            if (j + 1 == sead->target_subsong) {
                 target_muscname_offset = muscname_offset;
                 target_muscname_size = muscname_size;
                 target_sectname_offset = sectname_offset;
@@ -524,14 +517,16 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
             }
 
             /* parse layers */
-            for (k = 0; k < layr_count; k++) {
-                off_t layr_offset = sect_offset + read_u32(subtable_offset + k*0x04, sf);
-                int mtrl_index;
+            for (int k = 0; k < layr_count; k++) {
+                uint32_t layr_offset = read_u32(subtable_offset + k*0x04, sf);
+                if (layr_offset >= sead->file_size)
+                    continue;
+                layr_offset += sect_offset;
 
                 /* 0x00: version */
                 /* 0x01: flags */
                 /* 0x02: size */
-                mtrl_index = read_u16(layr_offset + 0x04, sf);
+                uint16_t mtrl_index = read_u16(layr_offset + 0x04, sf);
                 /* 0x06: loop count */
                 /* 0x08: offset */
                 /* 0x0c: end point (sample) */
@@ -575,16 +570,16 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
             i = 0;
 
         { //for (i = 0; i < mode_count; i++) {
-            off_t mode_offset = musc_offset + read_u32(table_offset + sect_count*0x04 + i*0x04, sf);
-            off_t modename_offset;
-            size_t mode_size, modename_size;
-            int mode_version;
+            uint32_t mode_offset = read_u32(table_offset + sect_count*0x04 + i*0x04, sf);
+            if (mode_offset >= sead->file_size)
+                continue;
+            mode_offset += musc_offset;
 
-            mode_version  = read_u8 (mode_offset + 0x00, sf);
+            uint8_t mode_version    = read_u8 (mode_offset + 0x00, sf);
             /* 0x01: flags */
-            mode_size     = read_u16(mode_offset + 0x02, sf);
+            uint16_t mode_size      = read_u16(mode_offset + 0x02, sf);
             /* 0x04: number */
-            modename_size = read_u8 (mode_offset + 0x06, sf);
+            uint8_t modename_size   = read_u8 (mode_offset + 0x06, sf);
             /* 0x07: reserved */
             /* 0x08: transition param offset */
             /* 0x0c: reserved */
@@ -594,6 +589,7 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
             /* 0x1c: speed */
             /* 0x20: name <=v2 (otherwise null) */
 
+            uint32_t modename_offset;
             if (mode_version <= 2) {
                 modename_offset = mode_offset + 0x20;
                 modename_size = 0x0f;
@@ -609,18 +605,18 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
 
 
     /* parse instruments (very rare, ex. KH3 tut) */
-    entries = read_u16(sead->inst_section_offset + 0x04, sf);
-    for (i = 0; i < entries; i++) {
-        off_t inst_offset = sead->inst_section_offset + read_u32(sead->inst_section_offset + 0x10 + i*0x04, sf);
-        off_t instname_offset, mtrl_offset;
-        size_t instname_size;
-        int mtrl_count;
+    uint16_t inst_entries = read_u16(sead->inst_section_offset + 0x04, sf);
+    for (int i = 0; i < inst_entries; i++) {
+        uint32_t inst_offset = read_u32(sead->inst_section_offset + 0x10 + i*0x04, sf);
+        if (inst_offset >= sead->file_size)
+            continue;
+        inst_offset += sead->inst_section_offset;
 
         /* 0x00: version */
         /* 0x01: "output"? */
         /* 0x02: size */
         /* 0x04: type (normal, random, switch, etc) */
-        mtrl_count = read_u8(inst_offset + 0x05, sf);
+        uint8_t mtrl_count = read_u8(inst_offset + 0x05, sf);
         /* 0x06: category */
         /* 0x07: priority */
         /* 0x08: number */
@@ -634,20 +630,16 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
         /* 0x20: ? (f32) */
         /* 0x30: name */
 
-        instname_offset = inst_offset + 0x30;
-        instname_size = 0x0F;
-
-        mtrl_offset = instname_offset + instname_size + 0x01;
+        uint32_t instname_offset = inst_offset + 0x30;
+        uint8_t instname_size = 0x0F;
 
         /* parse instrument materials */
-        for (j = 0; j < mtrl_count; j++) {
-            size_t mtrl_size;
-            int mtrl_index;
-
+        uint32_t mtrl_offset = instname_offset + instname_size + 0x01;
+        for (int j = 0; j < mtrl_count; j++) {
             /* 0x00: version */
             /* 0x01: value (meaning depends on type) */
-            mtrl_size  = read_u16(mtrl_offset + 0x02, sf);
-            mtrl_index = read_u16(mtrl_offset + 0x04, sf);
+            uint16_t mtrl_size  = read_u16(mtrl_offset + 0x02, sf);
+            uint16_t mtrl_index = read_u16(mtrl_offset + 0x04, sf);
             /* 0x06: number */
             /* 0x08: volume */
             /* 0x0c: sync point */
@@ -668,35 +660,36 @@ static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {
     }
 }
 
+/* find names referencing to our material stream, usually:
+ * - sound > sequence index
+ * - sequence > command > track index
+ * - track > material index
+ *
+ * most of the time sounds<>materials go 1:1 but there are exceptions
+ * (ex. DQB se_break_soil, FFXV aircraftzeroone, FFXV 03bt100031pc00)
+ *
+ * some configs (mainly zero-ones, that seem to be a kind of random sound) have a name too,
+ * but it's usually "Default" "(name)ZeroOne" and other uninteresting stuff
+ */
 static void parse_sead_sab_name(sead_header_t* sead, STREAMFILE* sf) {
-    read_u32_t read_u32 = sead->big_endian ? read_u32be : read_u32le;
-    read_u16_t read_u16 = sead->big_endian ? read_u16be : read_u16le;
-    int i, j, entries;
+    read_u32_t read_u32 = get_read_u32(sead->big_endian);
+    read_u16_t read_u16 = get_read_u16(sead->big_endian);
 
-    /* find names referencing to our material stream, usually:
-     * - sound > sequence index
-     * - sequence > command > track index
-     * - track > material index
-     *
-     * most of the time sounds<>materials go 1:1 but there are exceptions
-     * (ex. DQB se_break_soil, FFXV aircraftzeroone, FFXV 03bt100031pc00)
-     *
-     * some configs (mainly zero-ones, that seem to be a kind of random sound) have a name too,
-     * but it's usually "Default" "(name)ZeroOne" and other uninteresting stuff */
 
     /* parse sounds */
-    entries = read_u16(sead->snd_section_offset + 0x04, sf);
-    for (i = 0; i < entries; i++) {
-        uint32_t snd_offset = sead->snd_section_offset + read_u32(sead->snd_section_offset + 0x10 + i*0x04, sf);
-        uint32_t snd_size, sndname_size;
-        uint32_t seqi_start, seqi_offset, sndname_offset;
-        int snd_version, seqi_count;
+    uint16_t snd_entries = read_u16(sead->snd_section_offset + 0x04, sf);
+    for (int i = 0; i < snd_entries; i++) {
+        uint32_t snd_offset = read_u32(sead->snd_section_offset + 0x10 + i*0x04, sf);
+        // -1 for dummy entries (later versions only?) [Final Fantasy Tactics (PC)]
+        if (snd_offset >= sead->file_size) 
+            continue;
+        snd_offset += sead->snd_section_offset;
 
-        snd_version = read_u8(snd_offset + 0x00, sf);
+        uint8_t snd_version = read_u8 (snd_offset + 0x00, sf);
         /* 0x01: work? */
-        snd_size = read_u16(snd_offset + 0x02, sf);
+        uint16_t snd_size   = read_u16(snd_offset + 0x02, sf);
         /* 0x04: type */
-        seqi_count = read_u8(snd_offset + 0x05, sf); /* may be 0 */
+        uint8_t seqi_count  = read_u8 (snd_offset + 0x05, sf); /* may be 0 */
         /* 0x06: category */
         /* 0x07: priority (default 0x80) */
         /* 0x08: number */
@@ -704,13 +697,15 @@ static void parse_sead_sab_name(sead_header_t* sead, STREAMFILE* sf) {
         /* 0x0c: volume */
         /* 0x10: cycle config */
         /* 0x1a: header size? */
-        seqi_start = read_u16(snd_offset + 0x1a, sf);
+        uint16_t seqi_start = read_u16(snd_offset + 0x1a, sf);
         /* 0x1c: audible range */
         /* 0x20: output/curve/port */
         /* 0x23: reserved/name size */
         /* 0x24: play length */
         /* 0x28+: more config params */
 
+        uint32_t sndname_offset;
+        uint8_t sndname_size;
         if (snd_version <= 8) {
             sndname_size = 0x0F;
             sndname_offset = snd_offset + 0x50;
@@ -721,121 +716,114 @@ static void parse_sead_sab_name(sead_header_t* sead, STREAMFILE* sf) {
         }
 
         /* parse sequence info */
-        seqi_offset = snd_offset + seqi_start;
-        for (j = 0; j < seqi_count; j++) {
-            size_t seqi_size;
-            int seq_index;
-
+        uint32_t seqi_offset = snd_offset + seqi_start;
+        for (int j = 0; j < seqi_count; j++) {
             /* 0x00: version */
             /* 0x01: reserved */
-            seqi_size = read_u16(seqi_offset + 0x02, sf);
-            seq_index = read_u16(seqi_offset + 0x04, sf);
+            uint16_t seqi_size  = read_u16(seqi_offset + 0x02, sf);
+            uint16_t seq_index  = read_u16(seqi_offset + 0x04, sf);
             /* 0x06: sequence ID */
             /* 0x08: reserved x2 */
 
             seqi_offset += seqi_size;
 
             /* parse sequence */
-            {
-                uint32_t seq_offset = sead->seq_section_offset + read_u32(sead->seq_section_offset + 0x10 + seq_index*0x04, sf);
-                uint32_t cmnd_start, cmnd_offset;
-                int seq_version;
+            uint32_t seq_offset = read_u32(sead->seq_section_offset + 0x10 + seq_index*0x04, sf);
+            if (seq_offset >= sead->file_size)
+                continue;
+            seq_offset += sead->seq_section_offset;
 
-                seq_version = read_u8(seq_offset + 0x00, sf);
-                /* 0x01: reserved */
-                /* 0x02: size */
+            uint8_t seq_version = read_u8(seq_offset + 0x00, sf);
+            /* 0x01: reserved */
+            /* 0x02: size */
 
-                if (seq_version <= 2) {
-                    /* 0x04: config depending on type */
-                    /* 0x10: number */
-                    /* 0x12: volume zero-one offsets */
-                    /* 0x12: pitch zero-one offsets */
-                    cmnd_start = read_u16(seq_offset + 0x16, sf);
-                    /* 0x18: reserved x2 */
-                }
-                else {
-                    /* 0x04: id */
-                    cmnd_start = read_u16(seq_offset + 0x06, sf);
-                    /* 0x08: zero-ones count */
-                    /* 0x09: reserved */
-                    /* 0x10: config depending on type */
-                }
-
-
-                /* parse sequence commands (breaks once an end command is found) */
-                cmnd_offset = seq_offset + cmnd_start;
-                while (cmnd_offset < sead->trk_section_offset) {
-                    uint8_t cmnd_size, cmnd_type, cmnd_body;
-
-                    /* 0x00: version (each command may have a different version) */
-                    cmnd_size = read_u8(cmnd_offset + 0x01, sf); /* doesn't include body */
-                    cmnd_type = read_u8(cmnd_offset + 0x02, sf);
-                    cmnd_body = read_u8(cmnd_offset + 0x03, sf);
-
-                    /* 0=none, 1=end, 2=key on, 3=interval, 4=keyoff, 5=wat, 6=loop start, 7=loop end, 8=trigger */
-                    if (cmnd_type == 0x02) {
-                        uint32_t trk_index;
-
-                        trk_index = read_u32(cmnd_offset + cmnd_size + 0x00, sf);
-                        /* 0x04: is loop */
-                        /* 0x05: reserved */
-                        /* 0x06: track id */
-                        /* 0x08: play length (f32) */
-
-                        /* parse track */
-                        {
-                            uint32_t trk_offset = sead->trk_section_offset + read_u32(sead->trk_section_offset + 0x10 + trk_index*0x04, sf);
-                            uint8_t trk_type;
-                            uint16_t mtrl_index;
-
-                            /* 0x00: version */
-                            trk_type = read_u8(trk_offset + 0x01, sf);
-                            /* 0x02: size */
-                            /* 0x04: config depending on type */
-                            /* 0x08: id */
-                            /* 0x0a: child id */
-                            /* 0x0c: reserved */
-
-                            /* 0=none, 1=material, 2=sound */
-                            if (trk_type == 0x01) {
-                                mtrl_index = read_u16(trk_offset + 0x04, sf);
-                                /* 0x02: bank */
-
-                                /* assumes same bank, not sure if bank info is even inside .sab */
-                                if (mtrl_index == sead->mtrl_index) {
-                                    build_readable_sab_name(sead, sf, sndname_offset, sndname_size);
-                                    //sead->sndname_offset = sndname_offset;
-                                    //sead->sndname_size = sndname_size;
-                                }
-                            }
-                            else if (trk_type == 0x02) {
-                                /* 0x00: index */
-                                /* 0x02: reserved */
-                                /* parse sound again? */
-                            }
-                        }
-                    }
-
-                    cmnd_offset += cmnd_size + cmnd_body;
-
-                    /* commands normally end when a type 0=none is found */
-                    if (cmnd_type <= 0x00 || cmnd_type > 0x08)
-                        break;
-
-                    /* keep reading names as N sounds may point to current material */
-                    //if (sead->sndname_offset > 0)
-                    //    break;
-                }
+            uint16_t cmnd_start;
+            if (seq_version <= 2) {
+                /* 0x04: config depending on type */
+                /* 0x10: number */
+                /* 0x12: volume zero-one offsets */
+                /* 0x12: pitch zero-one offsets */
+                cmnd_start = read_u16(seq_offset + 0x16, sf);
+                /* 0x18: reserved x2 */
+            }
+            else {
+                /* 0x04: id */
+                cmnd_start = read_u16(seq_offset + 0x06, sf);
+                /* 0x08: zero-ones count */
+                /* 0x09: reserved */
+                /* 0x10: config depending on type */
             }
 
+
+            /* parse sequence commands (breaks once an end command is found) */
+            uint32_t cmnd_offset = seq_offset + cmnd_start;
+            while (cmnd_offset < sead->trk_section_offset) {
+                /* 0x00: version (each command may have a different version) */
+                uint8_t cmnd_size = read_u8(cmnd_offset + 0x01, sf); /* doesn't include body */
+                uint8_t cmnd_type = read_u8(cmnd_offset + 0x02, sf);
+                uint8_t cmnd_body = read_u8(cmnd_offset + 0x03, sf);
+                if (cmnd_size + cmnd_body == 0) //?
+                    break;
+
+                /* 0=none, 1=end, 2=key on, 3=interval, 4=keyoff, 5=wat, 6=loop start, 7=loop end, 8=trigger */
+                if (cmnd_type == 0x02) {
+                    uint32_t trk_index = read_u32(cmnd_offset + cmnd_size + 0x00, sf);
+                    /* 0x04: is loop */
+                    /* 0x05: reserved */
+                    /* 0x06: track id */
+                    /* 0x08: play length (f32) */
+
+                    /* parse track */
+                    uint32_t trk_offset = read_u32(sead->trk_section_offset + 0x10 + trk_index*0x04, sf);
+                    if (trk_offset >= sead->file_size)
+                        break;
+                    trk_offset += sead->trk_section_offset;
+
+                    /* 0x00: version */
+                    uint8_t trk_type = read_u8(trk_offset + 0x01, sf);
+                    /* 0x02: size */
+                    /* 0x04: config depending on type */
+                    /* 0x08: id */
+                    /* 0x0a: child id */
+                    /* 0x0c: reserved */
+
+                    /* 0=none, 1=material, 2=sound */
+                    if (trk_type == 0x01) {
+                        uint16_t mtrl_index = read_u16(trk_offset + 0x04, sf);
+                        /* 0x02: bank */
+
+                        /* assumes same bank, not sure if bank info is even inside .sab */
+                        if (mtrl_index == sead->mtrl_index) {
+                            build_readable_sab_name(sead, sf, sndname_offset, sndname_size);
+                            //sead->sndname_offset = sndname_offset;
+                            //sead->sndname_size = sndname_size;
+                        }
+                    }
+                    else if (trk_type == 0x02) {
+                        /* 0x00: index */
+                        /* 0x02: reserved */
+                        /* parse sound again? */
+                    }
+                }
+
+                cmnd_offset += cmnd_size + cmnd_body;
+
+                /* commands normally end when a type 0=none is found */
+                if (cmnd_type <= 0x00 || cmnd_type > 0x08)
+                    break;
+
+                /* keep reading names as N sounds may point to current material */
+                //if (sead->sndname_offset > 0)
+                //    break;
+            }
         }
     }
 }
 
 
 static int parse_sead(sead_header_t* sead, STREAMFILE* sf) {
-    read_u32_t read_u32 = sead->big_endian ? read_u32be : read_u32le;
-    read_u16_t read_u16 = sead->big_endian ? read_u16be : read_u16le;
+    read_u32_t read_u32 = get_read_u32(sead->big_endian);
+    read_u16_t read_u16 = get_read_u16(sead->big_endian);
 
     /** base header **/
     /* 0x00: id */
@@ -845,8 +833,10 @@ static int parse_sead(sead_header_t* sead, STREAMFILE* sf) {
     /* 0x08: chunk count (in practice mab=3, sab=4) */
     sead->filename_size = read_u8(0x09, sf);
     /* 0x0a: number (shared between multiple sab/mab though) */
-    if (read_u32(0x0c, sf) != get_streamfile_size(sf))
-        goto fail;
+    sead->file_size = read_u32(0x0c, sf);
+
+    if (sead->file_size != get_streamfile_size(sf))
+        return false;
 
     /* not set/reserved when version == 1 (name is part of size) */
     if (sead->filename_size == 0)
@@ -867,25 +857,25 @@ static int parse_sead(sead_header_t* sead, STREAMFILE* sf) {
     /* 0x08: offset */
     /* 0x0c: reserved */
     if (sead->is_sab) {
-        if (read_u32be(sead->sections_offset + 0x00, sf) != 0x736E6420) goto fail; /* "snd " (sounds) */
-        if (read_u32be(sead->sections_offset + 0x10, sf) != 0x73657120) goto fail; /* "seq " (sequences) */
-        if (read_u32be(sead->sections_offset + 0x20, sf) != 0x74726B20) goto fail; /* "trk " (tracks) */
-        if (read_u32be(sead->sections_offset + 0x30, sf) != 0x6D74726C) goto fail; /* "mtrl" (material headers/streams) */
+        if (!is_id32be(sead->sections_offset + 0x00, sf, "snd ")) return false;
         sead->snd_section_offset  = read_u32(sead->sections_offset + 0x08, sf);
+        if (!is_id32be(sead->sections_offset + 0x10, sf, "seq ")) return false;
         sead->seq_section_offset  = read_u32(sead->sections_offset + 0x18, sf);
+        if (!is_id32be(sead->sections_offset + 0x20, sf, "trk ")) return false;
         sead->trk_section_offset  = read_u32(sead->sections_offset + 0x28, sf);
+        if (!is_id32be(sead->sections_offset + 0x30, sf, "mtrl")) return false;
         sead->mtrl_section_offset = read_u32(sead->sections_offset + 0x38, sf);
     }
     else if (sead->is_mab) {
-        if (read_u32be(sead->sections_offset + 0x00, sf) != 0x6D757363) goto fail; /* "musc" (musics) */
-        if (read_u32be(sead->sections_offset + 0x10, sf) != 0x696E7374) goto fail; /* "inst" (instruments) */
-        if (read_u32be(sead->sections_offset + 0x20, sf) != 0x6D74726C) goto fail; /* "mtrl" (material headers/streams) */
+        if (!is_id32be(sead->sections_offset + 0x00, sf, "musc")) return false;
         sead->musc_section_offset = read_u32(sead->sections_offset + 0x08, sf);
+        if (!is_id32be(sead->sections_offset + 0x10, sf, "inst")) return false;
         sead->inst_section_offset = read_u32(sead->sections_offset + 0x18, sf);
+        if (!is_id32be(sead->sections_offset + 0x20, sf, "mtrl")) return false;
         sead->mtrl_section_offset = read_u32(sead->sections_offset + 0x28, sf);
     }
     else {
-        goto fail;
+        return false;
     }
 
 
@@ -899,35 +889,33 @@ static int parse_sead(sead_header_t* sead, STREAMFILE* sf) {
 
 
     /* find target material offset */
-    {
-        int i, entries;
+    if (sead->target_subsong == 0) sead->target_subsong = 1;
+    sead->total_subsongs = 0;
+    sead->mtrl_offset = 0;
 
-        entries = read_u16(sead->mtrl_section_offset + 0x04, sf);
+    /* manually find subsongs as entries can be dummy (ex. sfx banks in Dissidia Opera Omnia) */
+    uint16_t mtrl_entries = read_u16(sead->mtrl_section_offset + 0x04, sf);
+    for (int i = 0; i < mtrl_entries; i++) {
+        uint32_t mtrl_offset = read_u32(sead->mtrl_section_offset + 0x10 + i*0x04, sf);
+        if (mtrl_offset >= sead->file_size)
+            continue;
+        mtrl_offset += sead->mtrl_section_offset;
 
-        if (sead->target_subsong == 0) sead->target_subsong = 1;
-        sead->total_subsongs = 0;
-        sead->mtrl_offset = 0;
+        //if (read_u8(entry_offset + 0x05, sf) == 0) {
+        //    continue; /* codec 0 when dummy (see stream header) */
+        //}
 
-        /* manually find subsongs as entries can be dummy (ex. sfx banks in Dissidia Opera Omnia) */
-        for (i = 0; i < entries; i++) {
-            off_t entry_offset = sead->mtrl_section_offset + read_u32(sead->mtrl_section_offset + 0x10 + i*0x04, sf);
-
-            //if (read_u8(entry_offset + 0x05, sf) == 0) {
-            //    continue; /* codec 0 when dummy (see stream header) */
-            //}
-
-            sead->total_subsongs++;
-            if (!sead->mtrl_offset && sead->total_subsongs == sead->target_subsong) {
-                sead->mtrl_offset = entry_offset;
-                sead->mtrl_index = i;
-            }
+        sead->total_subsongs++;
+        if (!sead->mtrl_offset && sead->total_subsongs == sead->target_subsong) {
+            sead->mtrl_offset = mtrl_offset;
+            sead->mtrl_index = i;
         }
+    }
 
-        /* SAB can contain 0 entries too */
-        if (sead->mtrl_offset == 0) {
-            vgm_logi("SQEX SEAD: bank has no subsongs (ignore)\n");
-            goto fail;
-        }
+    /* SAB can contain 0 entries too */
+    if (sead->mtrl_offset == 0) {
+        vgm_logi("SQEX SEAD: bank has no subsongs (ignore)\n");
+        return false;
     }
 
     /** stream header **/
@@ -963,8 +951,5 @@ static int parse_sead(sead_header_t* sead, STREAMFILE* sf) {
         build_readable_mab_name(sead, sf);
     }
 
-
-    return 1;
-fail:
-    return 0;
+    return true;
 }
