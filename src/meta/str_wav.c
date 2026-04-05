@@ -59,20 +59,20 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
         else {
             /* header must have known extensions */
             if (!check_extensions(sf_h, "wav,wma,"))
-                return NULL;
+                goto fail;
         }
     }
 
     /* detect version */
     if (!parse_header(sf_h, sf, &strwav))
-        return NULL;
+        goto fail;
 
     if (strwav.flags == 0)
-        return NULL;
+        goto fail;
     /* &0x01: loop, &0x02: stereo tracks, &0x04: stream?, &0x200: has named cues? */
     if (strwav.flags & 0xFFFFFDF8) {
         VGM_LOG("STR+WAV: unknown flags %x\n", strwav.flags);
-        return NULL;
+        goto fail;
     }
 
     strwav.loop_flag   = strwav.flags & 0x01;
@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
     if (!strwav.channels)
         strwav.channels = strwav.tracks * (strwav.flags & 0x02 ? 2 : 1);
     if (strwav.channels > 8)
-        return NULL;
+        goto fail;
 
     start_offset = 0x00;
 
