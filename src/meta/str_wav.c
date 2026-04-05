@@ -36,7 +36,7 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "str,data"))
-        goto fail;
+        return NULL;
 
     /* get external header (extracted with filenames from bigfiles) */
     {
@@ -59,20 +59,20 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
         else {
             /* header must have known extensions */
             if (!check_extensions(sf_h, "wav,wma,"))
-                goto fail;
+                return NULL;
         }
     }
 
     /* detect version */
     if (!parse_header(sf_h, sf, &strwav))
-        goto fail;
+        return NULL;
 
     if (strwav.flags == 0)
-        goto fail;
+        return NULL;
     /* &0x01: loop, &0x02: stereo tracks, &0x04: stream?, &0x200: has named cues? */
     if (strwav.flags & 0xFFFFFDF8) {
         VGM_LOG("STR+WAV: unknown flags %x\n", strwav.flags);
-        goto fail;
+        return NULL;
     }
 
     strwav.loop_flag   = strwav.flags & 0x01;
@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
     if (!strwav.channels)
         strwav.channels = strwav.tracks * (strwav.flags & 0x02 ? 2 : 1);
     if (strwav.channels > 8)
-        goto fail;
+        return NULL;
 
     start_offset = 0x00;
 
@@ -458,6 +458,36 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
 
         ;VGM_LOG("STR+WAV: header ZP (GC)\n");
         return 1;
+    }
+
+    /* The Mummy Returns (PS2)[2001] */
+    if ( read_u32be(0x04,sf_h) == 0x00000900 &&
+         read_u32le(0x00,sf_h) == 0x00000000 &&
+         read_u32le(0x0c,sf_h) != 0x00000000 && // some ID
+         read_u32le(0x2c,sf_h) == 44100 && // sample rate
+         header_size == 0x50) {
+        // 0x08: null
+        // 0x0C: hashname
+        // 0x28: loop start?
+        strwav->sample_rate = read_s32le(0x2C,sf_h);
+        // 0x30: number of 0x800 sectors
+        strwav->flags       = read_u32le(0x34,sf_h);
+        strwav->num_samples = read_s32le(0x44,sf_h);
+        strwav->tracks      = read_s32le(0x48,sf_h);
+
+        strwav->loop_start  = 0;
+        strwav->loop_end    = 0;
+
+        strwav->codec = PSX;
+        strwav->interleave  = strwav->tracks > 1 ? 0x8000 : 0x8000;
+        //if (strwav->tracks > 1) // not seen
+        //    strwav->codec = PSX_chunked;
+
+        // on new block some nibbles are a bit odd and cause audibly glitches,
+        // but  based on gameplay videos it also sounds off in-game.
+
+        ;VGM_LOG("STR+WAV: header The Mummy Returns (PS2)\n");
+        return true;
     }
 
     /* Zapper: One Wicked Cricket! Beta (PS2)[2002] */
