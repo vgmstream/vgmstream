@@ -17,17 +17,17 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "P3D\xFF") &&   /* LE: PC */
         !is_id32le(0x00,sf, "P3D\xFF"))     /* BE: PS3, X360 */
-        goto fail;
+        return NULL;
     if (!check_extensions(sf,"p3d"))
-        goto fail;
+        return NULL;
 
     read_u32 = guess_endian32(0x04,sf) ? read_u32be : read_u32le;
     file_size = get_streamfile_size(sf);
 
     /* base header */
     header_size = read_u32(0x04,sf);
-    if (header_size != 0x0c) goto fail;
-    if (read_u32(0x08,sf) != file_size) goto fail;
+    if (header_size != 0x0c) return NULL;
+    if (read_u32(0x08,sf) != file_size) return NULL;
     offset = 0x0c; 
 
     /* P3D is just a generic container used in Radical's games, so we only want "AudioFile".
@@ -85,7 +85,7 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
     switch(codec) {
         case 0x72616470:    /* "radp" (PC) */
             if (!is_id32be(offset,sf, "RADP"))
-                goto fail;
+                return NULL;
             offset += 0x04;
 
             channels        = read_u32(offset+0x00,sf);
@@ -94,13 +94,15 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
             data_size       = read_u32(offset+0x0c,sf);
             block_size      = 0x14;
 
+            if (channels == 0)
+                return NULL;
             num_samples     = data_size / block_size / channels * 32;
             start_offset    = offset + 0x10;
             break;
 
         case 0x6D703300:    /* "mp3\0" (PS3) */
             if ((read_u32be(offset,sf) & 0xFFFFFF00) != get_id32be("mp3\0"))
-                goto fail;
+                return NULL;
             offset += 0x03;
 
             /* all fields LE even though the prev parts were BE */
@@ -111,6 +113,8 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
             channels        = read_s32le(offset+0x10,sf);
             block_size      = read_u32le(offset+0x14,sf);
 
+            if (channels == 0)
+                return NULL;
             num_samples     = num_samples / channels; /* total samples */
             start_offset    = offset + 0x18;
             break;
@@ -119,7 +123,7 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
             uint32_t seek_size;
 
             if (!is_id32be(offset,sf, "XMA2"))
-                goto fail;
+                return NULL;
             offset += 0x04;
 
             xma2_size       = read_u32be(offset+0x00,sf);
@@ -128,7 +132,7 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
             /* 0x0c: ? */
             xma2_offset = offset+0x10;
             if (!read_u8(xma2_offset+0x00, sf))  /* needs "xma2" chunk (Spider-Man 4 beta has multi-streams) */
-                goto fail;
+                return NULL;
 
             /* loops never set */
             xma2_parse_xma2_chunk(sf, xma2_offset, &channels, &sample_rate, &loop_flag, &num_samples, NULL, NULL);
@@ -139,11 +143,11 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
 
         default:
             vgm_logi("P3D: unknown codec 0x%04x\n", codec);
-            goto fail;
+            return NULL;
     }
 
     if (start_offset + data_size != file_size)
-        goto fail;
+        return NULL;
 
 
     /* build the VGMSTREAM */

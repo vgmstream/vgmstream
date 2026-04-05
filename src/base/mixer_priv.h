@@ -60,6 +60,7 @@ struct mixer_t {
 
     resampler_ctx_t* resampler;
     double resampler_ratio; // 0 = not set
+    int resample_rate;
 };
 
 void mixer_op_swap(mixer_t* mixer, mix_op_t* op);

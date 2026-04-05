@@ -73,7 +73,7 @@ static VGMSTREAM* init_vgmstream_rfrm_mpr(STREAMFILE* sf) {
         channels = read_8bit(fmta_offset + 0x02, sf);
         channel_layout = read_16bitLE(fmta_offset, sf);
     }
-    if (channels == 0) return NULL; /* div by zero */
+    if (channels == 0) return NULL;
 
     header_offset = data_offset;
     start_offset = header_offset + 0x80 * channels;
@@ -211,6 +211,7 @@ VGMSTREAM* init_vgmstream_rfrm(STREAMFILE* sf) {
 
     /* parse FMTA / DATA (fully interleaved standard DSPs) */
     channels = read_8bit(fmta_offset+0x00, sf);
+    if (channels == 0) return NULL;
     /* FMTA 0x08: channel mapping */
 
     header_offset = data_offset;

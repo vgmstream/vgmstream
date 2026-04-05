@@ -156,8 +156,6 @@ int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         decoded = sample_count - excess;
 
         sbuf_silence_part(sbuf, decoded, sample_count - decoded);
-
-        return sample_count;
     }
 
     return sample_count;
@@ -295,11 +293,12 @@ static void play_adjust_totals(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
     if (ps->play_position <= ps->play_duration)
         return;
 
-    /* usually only happens when mixing layers of different lengths (where decoder keeps calling render) */
-    int excess = ps->play_position - ps->play_duration;
-    if (excess > sbuf->samples)
-        excess = sbuf->samples;
-    sbuf->filled = (sbuf->samples - excess);
+    // usually only happens when mixing layers of different lengths (where decoder keeps calling render)
+    //TODO: excess affectings resampling, check layers
+    //int excess = ps->play_position - ps->play_duration;
+    //if (excess > sbuf->samples)
+    //    excess = sbuf->samples;
+    //sbuf->filled = (sbuf->samples - excess);
 
     /* clamp */
     ps->play_position = ps->play_duration;
@@ -357,6 +356,11 @@ int render_main(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
 
     play_adjust_totals(vgmstream, sbuf);
+
+    // should be part of main mixer process, but txtp calcs and render ops assume original sample rate,
+    // making it a bit hard to plug in resampling without potentially buggy changes around
+    resample_vgmstream(sbuf, vgmstream);
+
     return sbuf->filled;
 }
 

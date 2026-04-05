@@ -25,14 +25,14 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
         head_offset += 0x02 + read_u16be(head_offset, sf); /* + mini text header */
     }
     else {
-        goto fail;
+        return NULL;
     }
 
     /* .imx: The Curse of Monkey Island (PC) 
      * .imc: Grim Fandango (multi)
      * .wav: Grim Fandango (multi) RIFF sfx */
     if (!check_extensions(sf, "imx,imc,wav,lwav"))
-        goto fail;
+        return NULL;
 
 
     /* "offsets" below seem to count decoded data. Data is divided into variable-sized blocks that usually
@@ -45,7 +45,7 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
 
         /* 0x04: decompressed size (header size + pcm bytes) */
         if (!is_id32be(head_offset + 0x08, sf, "MAP "))
-            goto fail;
+            return NULL;
         map_size = read_u32be(head_offset + 0x0c, sf);
         map_offset = head_offset + 0x10;
 
@@ -97,29 +97,30 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
         }
 
         if (!header_found)
-            goto fail;
+            return NULL;
 
         if (!is_id32be(head_offset + 0x10 + map_size + 0x00, sf, "DATA"))
-            goto fail;
+            return NULL;
         data_bytes = read_u32be(head_offset + 0x10 + map_size + 0x04, sf);
-        num_samples = data_bytes / channels / sizeof(int16_t);
+        num_samples = pcm16_bytes_to_samples(data_bytes, channels);
     }
     else if (is_id32be(head_offset, sf, "RIFF")) { /* MCMP voices */
         /* standard (LE), with fake codec 1 and sizes also in decoded bytes (see above),
          * has standard RIFF chunks (may include extra), start offset in MCSC */
 
-        if (!find_chunk_le(sf, 0x666D7420, head_offset + 0x0c, 0, &offset, NULL)) /* "fmt " */
-            goto fail;
+        if (!find_chunk_le(sf, get_id32be("fmt "), head_offset + 0x0c, 0, &offset, NULL))
+            return NULL;
         channels    = read_u16le(offset + 0x02,sf);
         sample_rate = read_u32le(offset + 0x04,sf);
 
-        if (!find_chunk_le(sf, 0x64617461, head_offset + 0x0c, 0, NULL, &data_bytes)) /*"data"*/
-            goto fail;
-        num_samples = data_bytes / channels / sizeof(int16_t);
+        data_bytes = 0;
+        if (!find_chunk_le(sf, get_id32be("data"), head_offset + 0x0c, 0, NULL, &data_bytes))
+            return NULL;
+        num_samples = pcm16_bytes_to_samples(data_bytes, channels);
     }
     else {
         vgm_logi("IMUSE: unsupported format\n");
-        goto fail; /* The Dig (PC) has no header, detect? (needs a bunch of sub-codecs) */
+        return NULL; /* The Dig (PC) has no header, detect? (needs a bunch of sub-codecs) */
     }
 
     loop_flag = 0;

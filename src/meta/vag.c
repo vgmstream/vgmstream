@@ -221,6 +221,8 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 loop_end_sample = read_s32be(0x18,sf);
                 loop_flag = (loop_end_sample > 0); /* maybe at 0x1d */
                 channels = read_u8(0x1e,sf);
+                if (channels == 0)
+                    goto fail;
                 /* 0x1f: possibly volume */
                 channel_size = channel_size / channels;
                 /* mono files also have channel/volume, but start at 0x30 and are probably named .vag */
@@ -236,6 +238,8 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 /* Need for Speed: Hot Pursuit 2 (PS2) */
                 start_offset = 0x30;
                 channels = read_u32be(0x2c, sf);
+                if (channels == 0)
+                    goto fail;
                 channel_size = channel_size / channels;
                 loop_flag = 0;
 

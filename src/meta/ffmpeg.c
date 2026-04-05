@@ -51,6 +51,11 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     if (check_extensions(sf, "sbao,bao"))
         return NULL;
 
+    // ffmpeg with .usm may print some odd errors
+    if (id == get_id32be("CRID") || id == get_id32be("@UTF"))
+        return NULL;
+
+
     if (target_subsong == 0) target_subsong = 1;
 
     /* init ffmpeg */

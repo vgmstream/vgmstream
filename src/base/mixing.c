@@ -34,12 +34,20 @@ static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
 
 void mix_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     /* no support or not need to apply */
-    if (!mixer_is_active(vgmstream->mixer))
+    if (!mixer_is_chain_active(vgmstream->mixer))
         return;
 
     int32_t current_pos = get_current_pos(vgmstream, sbuf->filled);
 
-    mixer_process(vgmstream->mixer, sbuf, current_pos);
+    mixer_chain(vgmstream->mixer, sbuf, current_pos);
+}
+
+void resample_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+    /* no support or not need to apply */
+    if (!mixer_is_resample_active(vgmstream->mixer))
+        return;
+
+    mixer_resample(vgmstream->mixer, sbuf);
 }
 
 /* ******************************************************************* */
@@ -214,7 +222,10 @@ void mixing_set_resample(VGMSTREAM* vgmstream, int resample_rate, int resample_t
     }
 
     mixer->resampler_ratio = cfg.ratio;
-    vgmstream->sample_rate = resample_rate;
+    mixer->resample_rate = resample_rate;
+
+    // some calculations depend on original rate, so this value is only changed on API output info
+    //vgmstream->sample_rate = resample_rate;
 }
 
 double mixing_get_resample_ratio(VGMSTREAM* vgmstream) {
@@ -222,4 +233,11 @@ double mixing_get_resample_ratio(VGMSTREAM* vgmstream) {
     if (!mixer)
         return 0;
     return mixer->resampler_ratio;
+}
+
+int mixing_get_output_sample_rate(VGMSTREAM* vgmstream) {
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
+        return 0;
+    return mixer->resample_rate;
 }

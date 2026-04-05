@@ -1,45 +1,63 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 #include "xwma_konami_streamfile.h"
 
 
-/* MSFC - Konami (Armature?) variation [Metal Gear Solid 2 HD (X360), Metal Gear Solid 3 HD (X360)] */
+/* XWMA - Konami (Armature?) variation [Metal Gear Solid 2 HD (X360), Metal Gear Solid 3 HD (X360), MGS2 Master Collection (PC)] */
 VGMSTREAM* init_vgmstream_xwma_konami(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset;
-    int loop_flag, channels, codec, sample_rate;
-    size_t data_size;
-    STREAMFILE *temp_sf = NULL;
+    STREAMFILE* temp_sf = NULL;
 
 
     /* checks */
-    if (!is_id32be(0x00,sf, "XWMA"))
-        goto fail;
+    if (!is_id32be(0x00,sf, "XWMA") && !is_id32be(0x00,sf, "AMWX"))
+        return NULL;
     if (!check_extensions(sf,"xwma"))
-        goto fail;
+        return NULL;
 
-    codec = read_32bitBE(0x04,sf);
-    channels = read_32bitBE(0x08,sf);
-    sample_rate = read_32bitBE(0x0c,sf);
-    data_size = read_32bitBE(0x10,sf); /* data size without padding */
-    loop_flag  = 0;
-    start_offset = 0x20;
+    bool big_endian = is_id32be(0x00, sf, "XWMA");
+    read_u32_t read_u32 = get_read_u32(big_endian);
+    read_s32_t read_s32 = get_read_s32(big_endian);
+
+    int codec           = read_s32(0x04,sf);
+    int channels        = read_s32(0x08,sf);
+    int sample_rate     = read_s32(0x0c,sf);
+    uint32_t data_size  = read_u32(0x10,sf); // without padding
+    int avg_bps         = read_s32(0x14,sf);
+    int block_align     = read_s32(0x18,sf);
+    // 0x1c: empty
+    uint32_t start_offset = 0x20;
+
+    int loop_flag  = 0;
+    int32_t num_samples = 0;
+
+    // PC has a mini-fmt (codec, channels, sample rate, avg-bps, block align) + seek table
+    if (read_u32(0x24, sf) == sample_rate) {
+        // 0x30: null?
+        int seek_entries = read_s32(0x32, sf);
+        // 0x36: entries
+
+        uint32_t last_entry = read_u32(0x26 + 0x04 * (seek_entries - 1), sf); //last dpds entry = total bytes
+        num_samples = pcm16_bytes_to_samples(last_entry, channels);
+
+        // after entries sometimes there are garbage(?) bytes in the padding
+        start_offset += 0x10 + 0x06 + 0x04 * seek_entries;
+        start_offset = align_size_to_block(start_offset, 0x10);
+    }
 
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = sample_rate;
     vgmstream->meta_type = meta_XWMA_KONAMI;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
 
 #ifdef VGM_USE_FFMPEG
     {
-        /* 0x10: related to size? */
-        int avg_bps     = read_32bitBE(0x14, sf);
-        int block_align = read_32bitBE(0x18, sf);
-
-        /* data has padding (unrelated to KCEJ blocks) */
+        // XWMA blocks are padded to 0x10 (unrelated to KCEJ blocks)
         temp_sf = setup_xwma_konami_streamfile(sf, start_offset, block_align);
         if (!temp_sf) goto fail;
 
@@ -49,7 +67,7 @@ VGMSTREAM* init_vgmstream_xwma_konami(STREAMFILE* sf) {
         vgmstream->layout_type = layout_none;
 
         /* manually find total samples */
-        {
+        if (vgmstream->num_samples == 0) {
             ms_sample_data msd = {0};
 
             msd.channels = vgmstream->channels;
@@ -59,13 +77,12 @@ VGMSTREAM* init_vgmstream_xwma_konami(STREAMFILE* sf) {
 
             if (codec == 0x0161)
                 wma_get_samples(&msd, temp_sf, block_align, vgmstream->sample_rate,0x001F);
-            //else //todo not correct
+            //else //TODO: not correct
             //    wmapro_get_samples(&msd, temp_streamFile, block_align, vgmstream->sample_rate,0x00E0);
 
             vgmstream->num_samples = msd.num_samples;
             if (vgmstream->num_samples == 0)
-                vgmstream->num_samples = ffmpeg_get_samples(vgmstream->codec_data); /* from avg-br */
-            //num_samples seem to be found in the last "seek" table entry too, as: entry / channels / 2
+                vgmstream->num_samples = ffmpeg_get_samples(vgmstream->codec_data); // from avg-br
         }
     }
 #else
