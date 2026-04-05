@@ -12,7 +12,9 @@ mixer_t* mixer_init(int channels);
 void mixer_free(mixer_t* mixer);
 void mixer_reset(mixer_t* mixer);
 void mixer_update_channel(mixer_t* mixer);
-void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos);
-bool mixer_is_active(mixer_t* mixer);
+void mixer_chain(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos);
+void mixer_resample(mixer_t* mixer, sbuf_t* sbuf);
+bool mixer_is_chain_active(mixer_t* mixer);
+bool mixer_is_resample_active(mixer_t* mixer);
 
 #endif

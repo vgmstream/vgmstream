@@ -102,7 +102,10 @@ static void update_format_info(libvgmstream_priv_t* priv) {
     fmt->sample_format = api_get_output_sample_type(priv);
     fmt->sample_size = api_get_sample_size(fmt->sample_format);
 
-    fmt->sample_rate = v->sample_rate;
+    int output_sample_rate = mixing_get_output_sample_rate(v);
+    if (output_sample_rate == 0)
+        output_sample_rate = v->sample_rate;
+    fmt->sample_rate = output_sample_rate;
 
     fmt->stream_samples = v->num_samples;
     fmt->loop_start = v->loop_start_sample;

@@ -64,7 +64,7 @@ void mixer_update_channel(mixer_t* mixer) {
     mixer->output_channels++;
 }
 
-bool mixer_is_active(mixer_t* mixer) {
+bool mixer_is_chain_active(mixer_t* mixer) {
     /* no support or not need to apply */
     if (!mixer || !mixer->active)
         return false;
@@ -74,6 +74,14 @@ bool mixer_is_active(mixer_t* mixer) {
 
     if (mixer->force_type != SFMT_NONE)
         return true;
+
+    return false;
+}
+
+bool mixer_is_resample_active(mixer_t* mixer) {
+    /* no support or not need to apply */
+    if (!mixer || !mixer->active)
+        return false;
 
     if (mixer->resampler)
         return true;
@@ -110,7 +118,7 @@ static void setup_outbuf(mixer_t* mixer, sbuf_t* sbuf) {
     sbuf_copy_segments(sbuf, smix, smix->filled);
 }
 
-static void mixer_chain(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
+void mixer_chain(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
 
     // external
     //if (!mixer_is_active(mixer))
@@ -189,7 +197,7 @@ static bool sbuf_reserve_buf(sbuf_t* sdst, sfmt_t fmt, sbuf_t* ssrc) {
 // Resample sbuf samples into internal resampler buffer, and get resampled samples back into sbuf.
 // Note that resampler outputs float, and as many samples as possible from input
 // (could get partial samples but would need to avoid decoding if there are still samples in resampler).
-static void mixer_resample(mixer_t* mixer, sbuf_t* sbuf) {
+void mixer_resample(mixer_t* mixer, sbuf_t* sbuf) {
 
     if (!mixer->resampler)
         return;
@@ -220,9 +228,4 @@ static void mixer_resample(mixer_t* mixer, sbuf_t* sbuf) {
         sbuf_init(sbuf, mixer->mixbuf_dst.fmt, mixer->mixbuf_dst.buf, mixer->mixbuf_dst.samples, mixer->mixbuf_dst.channels);
         sbuf->filled = mixer->mixbuf_dst.filled;
     }
-}
-
-void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
-    mixer_chain(mixer, sbuf, current_pos);
-    mixer_resample(mixer, sbuf);
 }
