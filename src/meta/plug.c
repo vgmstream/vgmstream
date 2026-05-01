@@ -32,11 +32,11 @@ VGMSTREAM* init_vgmstream_plug(STREAMFILE* sf) {
         if (!vgmstream) goto fail;
     }
     else {
-        //TODO: handle Oblivion Remake PLUG (unknown fx)
-        //vgmstream = init_vgmstream_bkhd_fx(temp_sf);
-        //if (!vgmstream) goto fail;
+        // Aphelion (PC)
+        vgmstream = init_vgmstream_bkhd_fx(temp_sf);
+        if (!vgmstream) goto fail;
 
-        goto fail;
+        //TODO: handle Oblivion Remake PLUG (unknown fx)
     }
 
     close_streamfile(temp_sf);
