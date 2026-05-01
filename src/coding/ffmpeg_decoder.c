@@ -674,6 +674,7 @@ static void samples_u8_to_s16(int16_t* obuf, uint8_t* ibuf, int ichs, int sample
         obuf[s] = ((int)ibuf[s] - 0x80) << 8;
     }
 }
+
 static void samples_u8p_to_s16(int16_t* obuf, uint8_t** ibuf, int ichs, int samples) {
     for (int ch = 0; ch < ichs; ch++) {
         for (int s = 0; s < samples; s++) {
@@ -681,11 +682,13 @@ static void samples_u8p_to_s16(int16_t* obuf, uint8_t** ibuf, int ichs, int samp
         }
     }
 }
+
 static void samples_s16_to_s16(int16_t* obuf, int16_t* ibuf, int ichs, int samples) {
     for (int s = 0; s < samples * ichs; s++) {
         obuf[s] = ibuf[s];
     }
 }
+
 static void samples_s16p_to_s16(int16_t* obuf, int16_t** ibuf, int ichs, int samples) {
     for (int ch = 0; ch < ichs; ch++) {
         for (int s = 0; s < samples; s++) {
@@ -693,11 +696,13 @@ static void samples_s16p_to_s16(int16_t* obuf, int16_t** ibuf, int ichs, int sam
         }
     }
 }
+
 static void samples_s32_to_s32(int32_t* obuf, int32_t* ibuf, int ichs, int samples) {
     for (int s = 0; s < samples * ichs; s++) {
-        obuf[s] = ibuf[ichs + s];
+        obuf[s] = ibuf[s];
     }
 }
+
 static void samples_s32p_to_s32(int32_t* obuf, int32_t** ibuf, int ichs, int samples) {
     for (int ch = 0; ch < ichs; ch++) {
         for (int s = 0; s < samples; s++) {
@@ -705,12 +710,14 @@ static void samples_s32p_to_s32(int32_t* obuf, int32_t** ibuf, int ichs, int sam
         }
     }
 }
+
 static void samples_flt_to_flt(float* obuf, float* ibuf, int ichs, int samples, bool invert) {
     float scale = invert ? -1.0f : 1.0;
     for (int s = 0; s < samples * ichs; s++) {
         obuf[s] = ibuf[s] * scale;
     }
 }
+
 static void samples_fltp_to_flt(float* obuf, float** ibuf, int ichs, int samples, bool invert) {
     float scale = invert ? -1.0f : 1.0;
     for (int ch = 0; ch < ichs; ch++) {
