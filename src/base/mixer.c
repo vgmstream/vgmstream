@@ -94,11 +94,11 @@ static void setup_mixbuf(mixer_t* mixer, sbuf_t* sbuf) {
     sbuf_t* smix = &mixer->smix;
 
     // mixbuf (float) can be interpreted as F16, for 1:1 mapping with PCM16 (and possibly less rounding errors with mixops)
-    // for PCM24 regular float seems ok and 1:1 as well
-    if (sbuf->fmt == SFMT_S16)
+    // for others, regular float seems ok and 1:1 as well
+    if (sbuf->fmt == SFMT_S16 || sbuf->fmt == SFMT_F16)
         sbuf_init(smix, SFMT_F16, mixer->mixbuf, sbuf->filled, sbuf->channels);
     else
-        sbuf_init(smix, sbuf->fmt, mixer->mixbuf, sbuf->filled, sbuf->channels);
+        sbuf_init(smix, SFMT_FLT, mixer->mixbuf, sbuf->filled, sbuf->channels);
 
     // remix to temp buf (somehow using float buf rather than int32 is faster?)
     sbuf_copy_segments(smix, sbuf, sbuf->filled);
