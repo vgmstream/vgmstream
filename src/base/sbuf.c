@@ -112,7 +112,7 @@ static inline int clamp_pcm32(int64_t val) {
 #endif
 #define CONV_FLT_F16(x) (x * 32767.0f)
 #define CONV_FLT_S24(x) (clamp_pcm24(float_to_int(x * 8388607.0f)))
-#define CONV_FLT_S32(x) (clamp_pcm32(float_to_i64(x * 2147483647)))
+#define CONV_FLT_S32(x) (clamp_pcm32(float_to_i64(x * 2147483647.0f)))
 
 #define CONV_S24_S16(x) (x >> 8)
 #define CONV_S24_F16(x) (x >> 8)
@@ -272,13 +272,13 @@ DEFINE_SBUF_COPY(s32_s32, int32_t, int32_t, CONV_NOOP);
 DEFINE_SBUF_CP24(s32_o24, int32_t, uint8_t, CONV_S32_S24);
 
 static sbuf_copy_t copy_matrix[SFMT_MAX][SFMT_MAX] = {
-    { NULL, NULL, NULL, NULL, NULL }, //NONE
+    { NULL, NULL, NULL, NULL, NULL, NULL, NULL }, //NONE
     { NULL, sbuf_copy_s16_s16, sbuf_copy_s16_f16, sbuf_copy_s16_flt, sbuf_copy_s16_s24, sbuf_copy_s16_s32, sbuf_copy_s16_o24 },
     { NULL, sbuf_copy_f16_s16, sbuf_copy_f16_f16, sbuf_copy_f16_flt, sbuf_copy_f16_s24, sbuf_copy_f16_s32, sbuf_copy_f16_o24 },
     { NULL, sbuf_copy_flt_s16, sbuf_copy_flt_f16, sbuf_copy_flt_flt, sbuf_copy_flt_s24, sbuf_copy_flt_s32, sbuf_copy_flt_o24 },
     { NULL, sbuf_copy_s24_s16, sbuf_copy_s24_f16, sbuf_copy_s24_flt, sbuf_copy_s24_s24, sbuf_copy_s24_s32, sbuf_copy_s24_o24 },
     { NULL, sbuf_copy_s32_s16, sbuf_copy_s32_f16, sbuf_copy_s32_flt, sbuf_copy_s32_s24, sbuf_copy_s32_s32, sbuf_copy_s32_o24 },
-    { NULL, NULL, NULL, NULL, NULL }, //O24
+    { NULL, NULL, NULL, NULL, NULL, NULL, NULL }, //O24
 };
 
 

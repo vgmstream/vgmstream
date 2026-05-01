@@ -259,90 +259,114 @@ fail:
 }
 
 
+//#define ADX_PRINT_KEY_INFO 1
+#ifdef ADX_PRINT_KEY_INFO
+/* derive and print all keys in the list, quick validity test */
+static void print_key_info(adxkey_info* key, uint8_t type, uint16_t subkey) {
+    uint16_t test_xor, test_mul, test_add;
+    uint16_t xor, mul, add;
+    xor = key->start;
+    mul = key->mult;
+    add = key->add;
+    if (type == 8 && key->key8) {
+        cri_key8_derive(key->key8, &test_xor, &test_mul, &test_add);
+        VGM_LOG("key8: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (\"%s\")\n",
+                xor,mul,add, test_xor,test_mul,test_add,
+                xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", key->key8);
+    }
+    else if (type == 9 && key->key9) {
+        cri_key9_derive(key->key9, subkey, &test_xor, &test_mul, &test_add);
+        VGM_LOG("key9: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (%"PRIu64")\n",
+                xor,mul,add, test_xor,test_mul,test_add,
+                xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", key->key9);
+    }
+}
+#endif
+
+static bool read_external_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint16_t* xor_mult, uint16_t* xor_add, uint16_t subkey) {
+    uint8_t keybuf[0x40+1] = {0}; /* known max ~0x30, +1 extra null for keystrings */
+    size_t key_size;
+
+    /* handle type8 keystrings, key9 keycodes and derived keys too */
+    key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
+
+    if (key_size <= 0) 
+        return false;
+
+    int is_keystring = 0;
+
+    if (type == 8) {
+        is_keystring = cri_key8_valid_keystring(keybuf, key_size);
+    }
+    else if (type == 9) {
+        is_keystring = cri_key9_valid_keystring(keybuf, key_size);
+    }
+
+    if (key_size == 0x06 && !is_keystring) {
+        *xor_start = get_u16be(keybuf + 0x00);
+        *xor_mult  = get_u16be(keybuf + 0x02);
+        *xor_add   = get_u16be(keybuf + 0x04);
+        return true;
+    }
+    else if (type == 8 && is_keystring) {
+        const char* keystring = (const char*)keybuf;
+        cri_key8_derive(keystring, xor_start, xor_mult, xor_add);
+        return true;
+    }
+    else if (type == 9 && is_keystring) {
+        const char* keystring = (const char*)keybuf;
+        uint64_t keycode = strtoull(keystring, NULL, 10);
+        cri_key9_derive(keycode, subkey, xor_start, xor_mult, xor_add);
+        return true;
+    }
+    else if (type == 9 && key_size == 0x08) {
+        uint64_t keycode = get_u64be(keybuf);
+        cri_key9_derive(keycode, subkey, xor_start, xor_mult, xor_add);
+        return true;
+    }
+    else if (type == 9 && key_size == 0x08+0x02) {
+        uint64_t file_keycode = get_u64be(keybuf+0x00);
+        uint16_t file_subkey  = get_u16be(keybuf+0x08);
+        cri_key9_derive(file_keycode, file_subkey, xor_start, xor_mult, xor_add);
+        return true;
+    }
+
+    return false;
+}
+
 /* ADX key detection works by reading XORed ADPCM scales in frames, and un-XORing with keys in
  * a list. If resulting values are within the expected range for N scales we accept that key. */
-static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add, uint16_t subkey) {
+static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint16_t* xor_mult, uint16_t* xor_add, uint16_t subkey) {
     const int frame_size = 0x12;
-    uint16_t *scales = NULL;
-    uint16_t *prescales = NULL;
-    int bruteframe_start = 0, bruteframe_count = -1;
+    uint16_t* scales = NULL;
+    uint16_t* prescales = NULL;
     off_t start_offset;
-    int i, rc = 0;
-
+    int bruteframe_start, bruteframe_count;
+    bool rc = false;
 
     /* try to find key in external file first */
-    {
-        uint8_t keybuf[0x40+1] = {0}; /* known max ~0x30, +1 extra null for keystrings */
-        size_t key_size;
+    bool keyfile_found = read_external_key(sf, type, xor_start, xor_mult, xor_add, subkey);
+    if (keyfile_found)
+        return true;
 
-        /* handle type8 keystrings, key9 keycodes and derived keys too */
-        key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
+    /* no key set or unknown format, try list */
 
-        if (key_size > 0) {
-            int is_keystring = 0;
-
-            if (type == 8) {
-                is_keystring = cri_key8_valid_keystring(keybuf, key_size);
-            }
-            else if (type == 9) {
-                is_keystring = cri_key9_valid_keystring(keybuf, key_size);
-            }
-
-            if (key_size == 0x06 && !is_keystring) {
-                *xor_start = get_u16be(keybuf + 0x00);
-                *xor_mult  = get_u16be(keybuf + 0x02);
-                *xor_add   = get_u16be(keybuf + 0x04);
-                return true;
-            }
-            else if (type == 8 && is_keystring) {
-                const char* keystring = (const char*)keybuf;
-                cri_key8_derive(keystring, xor_start, xor_mult, xor_add);
-                return true;
-            }
-            else if (type == 9 && is_keystring) {
-                const char* keystring = (const char*)keybuf;
-                uint64_t keycode = strtoull(keystring, NULL, 10);
-                cri_key9_derive(keycode, subkey, xor_start, xor_mult, xor_add);
-                return true;
-            }
-            else if (type == 9 && key_size == 0x08) {
-                uint64_t keycode = get_u64be(keybuf);
-                cri_key9_derive(keycode, subkey, xor_start, xor_mult, xor_add);
-                return true;
-            }
-            else if (type == 9 && key_size == 0x08+0x02) {
-                uint64_t file_keycode = get_u64be(keybuf+0x00);
-                uint16_t file_subkey  = get_u16be(keybuf+0x08);
-                cri_key9_derive(file_keycode, file_subkey, xor_start, xor_mult, xor_add);
-                return true;
-            }
-        }
-        /* no key set or unknown format, try list */
-    }
-
-    /* setup totals */
-    {
-        int frame_count;
-        int channels = read_u8(0x07, sf);
-        int num_samples = read_s32be(0x0c, sf);
-        off_t end_offset;
-
-        start_offset = read_u16be(0x02, sf) + 0x4;
-        end_offset = (num_samples + 31) / 32 * frame_size * channels + start_offset; /* samples-to-bytes */
-
-        frame_count = (end_offset - start_offset) / frame_size;
-        if (frame_count < bruteframe_count || bruteframe_count < 0)
-            bruteframe_count = frame_count;
-    }
-
-    /* find longest run of non-zero frames (zero frames aren't good for key testing) */
+    /* setup and find longest run of non-zero frames (zero frames aren't good for key testing) */
     {
         static const uint8_t zeroes[0x12] = {0};
         uint8_t frame[0x12];
         int longest_start = -1, longest_count = -1;
         int count = 0;
 
-        for (i = 0; i < bruteframe_count; i++) {
+        start_offset = read_u16be(0x02, sf) + 0x4;
+
+        int channels = read_u8(0x07, sf);
+        int num_samples = read_s32be(0x0c, sf);
+
+        off_t end_offset = (num_samples + 31) / 32 * frame_size * channels + start_offset; /* samples-to-bytes */
+        int frame_count = (end_offset - start_offset) / frame_size;
+
+        for (int i = 0; i < frame_count; i++) {
             read_streamfile(frame, start_offset + i*frame_size, frame_size, sf);
             if (memcmp(zeroes, frame, frame_size) != 0)
                 count++;
@@ -357,11 +381,10 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint
                     break;
             }
         }
-
+ 
         /* no non-zero frames */
-        if (longest_start == -1) {
+        if (longest_start == -1)
             goto done;
-        }
 
         bruteframe_start = longest_start;
         bruteframe_count = longest_count;
@@ -383,20 +406,20 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint
             if (!prescales) goto done;
 
             /* read the prescales */
-            for (i = 0; i < bruteframe_start; i++) {
+            for (int i = 0; i < bruteframe_start; i++) {
                 prescales[i] = read_u16be(start_offset + i * frame_size, sf);
             }
         }
 
         /* read in the scales */
-        for (i = 0; i < bruteframe_count; i++) {
+        for (int i = 0; i < bruteframe_count; i++) {
             scales[i] = read_u16be(start_offset + (bruteframe_start + i) * frame_size, sf);
         }
     }
 
     /* try to guess key */
     {
-        const adxkey_info *keys = NULL;
+        const adxkey_info* keys = NULL;
         int keycount = 0, keymask = 0;
         int key_id;
 
@@ -434,7 +457,7 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint
         /* try all keys until one decrypts correctly vs expected scales */
         for (key_id = 0; key_id < keycount; key_id++) {
             uint16_t key_xor, key_mul, key_add;
-            uint16_t xor, mul, add;
+            int i;
 
 #ifdef ADX_BRUTEFORCE
             if (buf) {
@@ -463,31 +486,13 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint
             }
 
             /* temp test values */
-            xor = key_xor;
-            mul = key_mul;
-            add = key_add;
+            uint16_t xor = key_xor;
+            uint16_t mul = key_mul;
+            uint16_t add = key_add;
 
-#if 0
-            /* derive and print all keys in the list, quick validity test */
-            {
-                uint16_t test_xor, test_mul, test_add;
-                xor = keys[key_id].start;
-                mul = keys[key_id].mult;
-                add = keys[key_id].add;
-                if (type == 8 && keys[key_id].key8) {
-                    cri_key8_derive(keys[key_id].key8, &test_xor, &test_mul, &test_add);
-                    VGM_LOG("key8: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (\"%s\")\n",
-                            xor,mul,add, test_xor,test_mul,test_add,
-                            xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", keys[key_id].key8);
-                }
-                else if (type == 9 && keys[key_id].key9) {
-                    cri_key9_derive(keys[key_id].key9, subkey, &test_xor, &test_mul, &test_add);
-                    VGM_LOG("key9: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (%"PRIu64")\n",
-                            xor,mul,add, test_xor,test_mul,test_add,
-                            xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", keys[key_id].key9);
-                }
-                continue;
-            }
+#ifdef ADX_PRINT_KEY_INFO
+            print_key_info(&keys[key_id], type, subkey);
+            continue;
 #endif
 
             /* test vs prescales while XOR looks valid */
@@ -516,7 +521,7 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint
             *xor_start = key_xor;
             *xor_mult = key_mul;
             *xor_add = key_add;
-            rc = 1;
+            rc = true;
             break;
         }
 
@@ -530,5 +535,5 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint
 done:
     free(scales);
     free(prescales);
-    return rc != 0;
+    return rc;
 }
