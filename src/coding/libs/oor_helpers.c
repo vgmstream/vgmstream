@@ -100,6 +100,7 @@ void oor_read_header(bitstream_t* is, oor_header_t* hdr) {
                     case 5: hdr->sample_rate = 96000; break;
                     default: hdr->sample_rate = 0; break;
                 }
+                break;
 
             case 1:
                 switch(sr_index) {
