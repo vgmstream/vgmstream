@@ -15,10 +15,10 @@ VGMSTREAM* init_vgmstream_rwsd(STREAMFILE* sf) {
 
 
     if (!is_id32be(0x00, sf, "RWSD")) 
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "brwsd,rwsd"))
-        goto fail;
+        return NULL;
 
     /* check header */
     switch (read_u32be(0x04, sf)) {
@@ -43,6 +43,7 @@ VGMSTREAM* init_vgmstream_rwsd(STREAMFILE* sf) {
             break;
 
         case 0xFEFF0103: /* followed by RWAR, extract that or use .txth subfile */
+        default:
             goto fail;
     }
 

@@ -37,8 +37,6 @@ static FILE* wa_fdopen(int fd) {
 
 /* a SF that operates via STDIO but handles Winamp's unicode (in_char) paths */
 
-libstreamfile_t* open_winamp_streamfile_by_ipath(const in_char* wpath);
-
 static int wa_read(void* user_data, uint8_t* dst, int64_t offset, int length) {
     libstreamfile_t* sf = user_data;
     return sf->read(sf->user_data, dst, offset, length);

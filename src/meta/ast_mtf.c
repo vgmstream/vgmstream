@@ -50,7 +50,7 @@ VGMSTREAM* init_vgmstream_ast_mtf(STREAMFILE* sf) {
     /* v2.0: Dead Rising (X360)
      * v2.1: Dead Rising (PC)
      * v3.0: Lost Planet (X360) */
-    if (version < 0x0200 && version > 0x0300)
+    if (version < 0x0200 || version > 0x0300)
         goto fail;
 
     // fmt-like

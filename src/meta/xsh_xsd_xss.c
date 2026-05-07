@@ -174,6 +174,8 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
             vgmstream->loop_start_sample = 0;
             vgmstream->loop_end_sample = num_samples;
             break;
+        default:
+            goto fail;
     }
 
     read_string(vgmstream->stream_name, name_size, name_offset,sf);
