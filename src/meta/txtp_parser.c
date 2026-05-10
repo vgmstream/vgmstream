@@ -1097,25 +1097,23 @@ fail:
 
 txtp_header_t* txtp_parse(STREAMFILE* sf) {
     txtp_header_t* txtp = NULL;
-    uint32_t txt_offset;
 
-
-    txtp = calloc(1,sizeof(txtp_header_t));
+    txtp = calloc(1, sizeof(txtp_header_t));
     if (!txtp) goto fail;
 
     /* defaults */
-    txtp->is_segmented = 1;
-
-    txt_offset = read_bom(sf);
+    txtp->is_segmented = true;
 
     /* read and parse lines */
-    {
+    if (get_streamfile_size(sf) != 0x00) {
         text_reader_t tr;
         uint8_t buf[TXT_LINE_MAX + 1];
         char key[TXT_LINE_KEY_MAX];
         char val[TXT_LINE_VAL_MAX];
         int ok, line_len;
         char* line;
+
+        uint32_t txt_offset = read_bom(sf);
 
         if (!text_reader_init(&tr, buf, sizeof(buf), sf, txt_offset, 0))
             goto fail;
