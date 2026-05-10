@@ -47,7 +47,7 @@ VGMSTREAM* init_vgmstream_snd_mtf(STREAMFILE* sf) {
 
     // v2.0: Dead Rising, v3.0: Lost Planet
     // not == because v2.1 is seen in ast_mtf
-    if (version < 0x0200 && version > 0x0300)
+    if (version < 0x0200 || version > 0x0300)
         goto fail;
 
     if (!is_id32be(csb_offset + 0x00, sf, "CSB "))

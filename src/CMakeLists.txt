@@ -78,6 +78,7 @@ if(BUILD_SHARED_LIBS)
 
 	add_library(libvgmstream_shared SHARED ${libvgmstream_sources} ${libvgmstream_headers})
 	target_include_directories(libvgmstream_shared INTERFACE $<INSTALL_INTERFACE:include>)
+	target_compile_definitions(libvgmstream_shared PRIVATE LIBVGMSTREAM_EXPORT)
 	set_target_properties(libvgmstream_shared PROPERTIES
 		PREFIX ""
 		OUTPUT_NAME "libvgmstream"

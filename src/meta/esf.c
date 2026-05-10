@@ -14,10 +14,10 @@ VGMSTREAM* init_vgmstream_esf(STREAMFILE* sf) {
     if (!is_id32be(0x00, sf, "ESF\x03") &&
         !is_id32be(0x00, sf, "ESF\x06") &&
         !is_id32be(0x00, sf, "ESF\x08"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "esf"))
-        goto fail;
+        return NULL;
 
     version = read_u8(0x03, sf);
     pcm_size = read_u32le(0x04, sf);
@@ -87,6 +87,8 @@ VGMSTREAM* init_vgmstream_esf(STREAMFILE* sf) {
                 vgmstream->coding_type = codec_flag ? coding_DVI_IMA : coding_PCM16LE;
             }
             break;
+        default:
+            goto fail;
     }
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))

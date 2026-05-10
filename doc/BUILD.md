@@ -454,33 +454,41 @@ Should be buildable with Autotools/CMake by following the same steps as listen i
 
 
 ## Shared lib
-Currently there isn't an official way to make vgmstream a shared lib (`.so`/`.dll`), but it can be achieved with some effort.
+There is a public API, using `libvgmstream.h` and `libvgmstream_streamfile.h`.
 
-For example with CMake (outputs in `build/src/libvgmstream.so`):
-```sh
-mkdir -p build
-cd build
-cmake ..
-make libvgmstream_shared
-```
+With CMake build with `-DBUILD_SHARED_LIBS:BOOL=YES` to make `libvgmstream` (`.so`/`.dll`).
 
 Or with the basic makefiles:
 ```sh
 # build all of the intermediates with relocatable code
 # *note*: quick hack with performance penalty, needs better dependency rules
-make vgmstream_cli EXTRA_CFLAGS=-fPIC
+make vgmstream_cli EXTRA_CFLAGS=-fPIC -DLIBVGMSTREAM_EXPORT
 
 # build the actual shared library
 make -C src libvgmstream.so
 ```
 
-May also need to take `vgmstream.h`, `streamfile.h` and `plugins.h`, and trim them somewhat to use as includes for the `.so`.
+Example for MSVC:
+```bat
+cmake -A x64 -S . -B build -G "Visual Studio 17 2022"^
+    -DBUILD_CLI:BOOL=OFF^
+    -DBUILD_FB2K:BOOL=OFF^
+    -DBUILD_WINAMP:BOOL=OFF^
+    -DBUILD_XMPLAY:BOOL=OFF^
+    -DUSE_CELT:BOOL=OFF^
+    -DUSE_G719:BOOL=OFF^
+    -DUSE_G7221:BOOL=OFF^
+    -DUSE_MPEG:BOOL=OFF^
+    -DUSE_SPEEX:BOOL=OFF^
+    -DUSE_VORBIS:BOOL=OFF^
+    -DUSE_ATRAC9:BOOL=ON^
+    -DBUILD_SHARED_LIBS:BOOL=YES
 
-For MSVC, you could add `__declspec(dllexport)` to exported functions in the "public" API of the above `.h`, and set `<ConfigurationType>DynamicLibrary</ConfigurationType>` in `libvgmstream.vcxproj`, plus add a `<Link>` under `<ClCompile>` to those libs (copy from `vgmstream_cli.vcxproj`).
+cmake --build build --config MinSizeRel
+```
+Replace `Visual Studio 17 2022` with your tool (like `Visual Studio 16 2019`) and `-A x64` with `-A Win32` for 32-bit DLLs.
 
-For integration and "API" usage, easiest would be checking how `vgmstream_cli.c` works.
-
-A cleaner API/.h and build methods is planned for the future (low priority though).
+For integration and API usage, easiest would be checking how `vgmstream_cli.c` or other plugins use `libvgmstream.h`.
 
 
 ## External libraries

@@ -758,6 +758,8 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                             case 2:
                                 si.loop_end_cue = cue_point;
                                 break;
+                            default:
+                                break;
                         }
                     }
 
