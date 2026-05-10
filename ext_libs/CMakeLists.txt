@@ -1,8 +1,20 @@
 if(MSVC)
+
+	# -A xxx flag
+	if (CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
+		set(MSVC_MACHINE_TYPE "x64")
+	elseif (CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+		set(MSVC_MACHINE_TYPE "x86")
+	else()
+		# allow as USE_x flags may be disabled
+		message(STATUS "Unsupported architecture")
+	endif()
+
+
 	if(USE_MPEG)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.lib ${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libmpg123-0.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libmpg123-0.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libmpg123-0.def)
 		add_custom_target(libmpg123
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.lib
@@ -14,7 +26,7 @@ if(MSVC)
 	if(USE_VORBIS)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libvorbis.lib ${CMAKE_CURRENT_BINARY_DIR}/libvorbis.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libvorbis.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libvorbis.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libvorbis.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libvorbis.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libvorbis.def)
 		file(GLOB OGG_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ogg/*.h")
 		file(GLOB VORBIS_HEADERS "${VGM_SOURCE_DIR}/ext_includes/vorbis/*h")
@@ -30,7 +42,7 @@ if(MSVC)
 	if(USE_G719)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def)
 		add_custom_target(libg719_decode
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
@@ -40,19 +52,19 @@ if(MSVC)
 	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib ${CMAKE_CURRENT_BINARY_DIR}/avcodec.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib ${CMAKE_CURRENT_BINARY_DIR}/avformat.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib ${CMAKE_CURRENT_BINARY_DIR}/avutil.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib ${CMAKE_CURRENT_BINARY_DIR}/swresample.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def)
 		file(GLOB AVCODEC_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavcodec/*.h")
 		file(GLOB AVFORMAT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavformat/*.h")
@@ -78,7 +90,7 @@ if(MSVC)
 	if(USE_ATRAC9)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def)
 		add_custom_target(libatrac9
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
@@ -88,11 +100,11 @@ if(MSVC)
 	if(USE_CELT)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.lib ${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0061.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0061.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0061.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libcelt-0110.lib ${CMAKE_CURRENT_BINARY_DIR}/libcelt-0110.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0110.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libcelt-0110.lib
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0110.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libcelt-0110.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0110.def)
 		file(GLOB CELT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/celt/*.h")
 		add_custom_target(libcelt
@@ -105,13 +117,14 @@ if(MSVC)
     if(USE_SPEEX)
         add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.exp
             COMMAND lib
-            ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
+            ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
             DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def)
         file(GLOB SPEEX_HEADERS "${VGM_SOURCE_DIR}/ext_includes/speex/*.h")
         add_custom_target(libspeex
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
             SOURCES ${SPEEX_HEADERS})
     endif()
+
 elseif(MINGW)
 	if(NOT DLLTOOL)
 		set(DLLTOOL dlltool)

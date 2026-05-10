@@ -113,6 +113,12 @@ if(EMSCRIPTEN)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lworkerfs.js -s CASE_INSENSITIVE_FS -s ALLOW_MEMORY_GROWTH")
 endif()
 
+if (MSVC)
+	if (CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
+		set(BUILD_WINAMP OFF CACHE BOOL "" FORCE)
+	endif()
+endif()
+
 # Static builds will link all libraries statically
 if(BUILD_STATIC)
 	set(BUILD_SHARED_LIBS OFF)
