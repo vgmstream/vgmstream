@@ -15,6 +15,7 @@
 #endif
 
 #define ADX_KEY_MAX_TEST_FRAMES 32768
+#define ADX_KEY_MIN_TEST_FRAMES 32
 #define ADX_KEY_TEST_BUFFER_SIZE 0x8000
 
 static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint16_t* xor_mult, uint16_t* xor_add, uint16_t subkey);
@@ -31,7 +32,6 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
     int32_t num_samples, loop_start_sample = 0, loop_end_sample = 0;
     uint16_t cutoff;
     uint16_t version;
-    int16_t coef1, coef2;
     uint16_t xor_start = 0, xor_mult = 0, xor_add = 0;
     meta_t header_type;
     coding_t coding_type;
@@ -221,8 +221,8 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
         b = M_SQRT2 - 1.0;  /* M_SQRT2 - 1: 0.414213538169861f (decomp) */
         c = (a - sqrtf((a + b) * (a - b))) / b; /* this seems calculated with a custom algorithm */
 
-        coef1 = (short)(c * 8192);
-        coef2 = (short)(c * c * -4096);
+        int16_t coef1 = (short)(c * 8192);
+        int16_t coef2 = (short)(c * c * -4096);
 
         for (int i = 0; i < channels; i++) {
             vgmstream->ch[i].adpcm_coef[0] = coef1;
@@ -334,7 +334,7 @@ static bool read_external_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start,
     return false;
 }
 
-/* ADX key detection works by reading XORed ADPCM scales in frames, and un-XORing with keys in
+/* ADX key detection works by reading XORed ADPCM 16-bit scales in frames, and un-XORing with keys in
  * a list. If resulting values are within the expected range for N scales we accept that key. */
 static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint16_t* xor_mult, uint16_t* xor_add, uint16_t subkey) {
     const int frame_size = 0x12;
@@ -349,12 +349,11 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
     if (keyfile_found)
         return true;
 
-    /* no key set or unknown format, try list */
-
-    /* setup and find longest run of non-zero frames (zero frames aren't good for key testing) */
+    /* setup and find longest run of non-zero frames (zero frames aren't good for key testing since scales are 0) */
     {
         static const uint8_t zeroes[0x12] = {0};
         uint8_t frame[0x12];
+        uint32_t offset;
         int longest_start = -1, longest_count = -1;
         int count = 0;
 
@@ -366,8 +365,11 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
         off_t end_offset = (num_samples + 31) / 32 * frame_size * channels + start_offset; /* samples-to-bytes */
         int frame_count = (end_offset - start_offset) / frame_size;
 
+        offset = start_offset;
         for (int i = 0; i < frame_count; i++) {
-            read_streamfile(frame, start_offset + i*frame_size, frame_size, sf);
+            read_streamfile(frame, offset, frame_size, sf);
+            offset += frame_size;
+
             if (memcmp(zeroes, frame, frame_size) != 0)
                 count++;
             else
@@ -390,11 +392,12 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
         bruteframe_count = longest_count;
         if (bruteframe_count > ADX_KEY_MAX_TEST_FRAMES) //?
             bruteframe_count = ADX_KEY_MAX_TEST_FRAMES;
-    }
+        // for rare files that mix regular and silent channels, so the above detection picks 1 frame only [Chunithm New (AC)]
+        if (bruteframe_count < ADX_KEY_MIN_TEST_FRAMES && frame_count > ADX_KEY_MIN_TEST_FRAMES)
+            bruteframe_count = ADX_KEY_MIN_TEST_FRAMES;
 
-    /* pre-load scales in a table, to avoid re-reading them per key */
-    {
-        /* allocate storage for scales */
+        // TODO: read in 1 pass above
+        /* pre-load scales, to avoid re-reading them per key */
         scales = malloc(bruteframe_count * sizeof(uint16_t));
         if (!scales) goto done;
 
@@ -412,8 +415,10 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
         }
 
         /* read in the scales */
+        offset = start_offset + (bruteframe_start * frame_size);
         for (int i = 0; i < bruteframe_count; i++) {
-            scales[i] = read_u16be(start_offset + (bruteframe_start + i) * frame_size, sf);
+            scales[i] = read_u16be(offset, sf);
+            offset += frame_size;
         }
     }
 
@@ -421,7 +426,6 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
     {
         const adxkey_info* keys = NULL;
         int keycount = 0, keymask = 0;
-        int key_id;
 
         /* setup test mask (used to check high bits that signal un-XORed scale would be too high to be valid) */
         if (type == 8) {
@@ -455,9 +459,13 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
 #endif
 
         /* try all keys until one decrypts correctly vs expected scales */
-        for (key_id = 0; key_id < keycount; key_id++) {
+        for (int key_id = 0; key_id < keycount; key_id++) {
             uint16_t key_xor, key_mul, key_add;
-            int i;
+
+#if defined(ADX_PRINT_KEY_INFO) && !defined(ADX_BRUTEFORCE)
+            print_key_info(&keys[key_id], type, subkey);
+            continue;
+#endif
 
 #ifdef ADX_BRUTEFORCE
             if (buf) {
@@ -485,17 +493,14 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
                 continue;
             }
 
-            /* temp test values */
+            /* test current XOR (global for all channels) vs prescales + scales.
+             * Some of the ADX scales's upper bits aren't used, so after XORing the should partially match the XOR.
+             * Empty frames's scales aren't XORed (ignored), while regular frames may uncommonly use scale 0. */
             uint16_t xor = key_xor;
             uint16_t mul = key_mul;
             uint16_t add = key_add;
-
-#ifdef ADX_PRINT_KEY_INFO
-            print_key_info(&keys[key_id], type, subkey);
-            continue;
-#endif
-
-            /* test vs prescales while XOR looks valid */
+            int i;
+            
             for (i = 0; i < bruteframe_start; i++) {
                 if ((prescales[i] & keymask) != (xor & keymask) && prescales[i] != 0)
                     break;
@@ -504,9 +509,8 @@ static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint
             if (i != bruteframe_start)
                 continue;
 
-            /* test vs scales while XOR looks valid */
             for (i = 0; i < bruteframe_count; i++) {
-                if ((scales[i] & keymask) != (xor & keymask))
+                if ((scales[i] & keymask) != (xor & keymask) && scales[i] != 0)
                     break;
                 xor = xor * mul + add;
             }
