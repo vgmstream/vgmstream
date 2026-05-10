@@ -42,7 +42,7 @@ static const adxkey_info adxkey8_list[] = {
         /* NiGHTS: Journey of Dreams (Wii) [Sonic Team] */
         {0x440b,0x6539,0x5723, "sakakit4649",0},
 
-        /* The iDOLM@STER: Live For You (X360) [Bandai Namco] (.aix) */
+        /* The iDOLM@STER: Live For You (X360) [Bandai Namco] (voices?) */
         {0x586d,0x5d65,0x63eb, "75_501NO_003B",0},
 
         /* Shuffle! On the Stage (PS2) [Navel] */
@@ -63,7 +63,7 @@ static const adxkey_info adxkey8_list[] = {
         /* Fragments Blue (PS2) [Kadokawa Shoten] */
         {0x5803,0x4555,0x47bf, "PIETA",0},
 
-        /* Soulcalibur IV (PS3) [Namco] */
+        /* Soulcalibur IV (PS3) [Namco] (voices) */
         {0x59ed,0x4679,0x46c9, "SC4Test",0},
 
         /* Senko no Ronde DUO (X360/AC) [G.rev] */
