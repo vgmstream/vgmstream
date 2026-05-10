@@ -28,8 +28,11 @@ RESULT_FUZZY = 1            # no duffs allowing +-N
 RESULT_NONE = 2             # neither exists
 RESULT_DIFFS = -3           # different
 RESULT_SIZES = -4           # different sizes
-RESULT_MISSING_NEW = -5     # new does not exist 
-RESULT_MISSING_OLD = 6      # old does not exist 
+RESULT_MISSING_NEW = -5     # new does not exist
+RESULT_MISSING_OLD = 6      # old does not exist
+
+MAX_ARGS_LEN = 8000 # CMD can only handle up to max_len (around 8k?) chars in a command
+
 
 ###############################################################################
 
@@ -66,7 +69,7 @@ def parse_args():
     ap.add_argument("-f","--flags", help="sets CLI flags (enclose in double quotes + space, like \" -l 3.0 -F\")")
 
     args = ap.parse_args()
-    
+
     # derived defaults to simplify
     args.performance = args.performance_both or args.performance_new or args.performance_old or args.performance_write
     args.compare = not args.performance
@@ -177,8 +180,8 @@ class VrtsComparator:
         concurrency = self._concurrency
 
         # reads chunks and passes them to validator workers in parallel
-        result = multiprocessing.Value('i', 0) #new shared "i"nt 
-        fuzzies = multiprocessing.Value('i', 0) #new shared "i"nt 
+        result = multiprocessing.Value('i', 0) #new shared "i"nt
+        fuzzies = multiprocessing.Value('i', 0) #new shared "i"nt
         queue = multiprocessing.Queue(maxsize=concurrency)
 
         # init all max procs that will validate
@@ -262,7 +265,7 @@ class VrtsComparator:
             return self._compare_multi(f1, f2)
         else:
             return self._compare_single(f1, f2)
-    
+
 
     def compare(self):
         try:
@@ -315,7 +318,7 @@ class VrtsPrinter:
     DARK_GRAY = "\033[90m"
     MAGENTA = "\033[35m"
     LIGHT_MAGENTA = "\033[95m"
-    
+
     COLOR_RESULT = {
         RESULT_SAME: WHITE,
         RESULT_FUZZY: LIGHT_CYAN,
@@ -390,7 +393,7 @@ class VrtsFiles:
 
     def prepare(self):
         for fpattern in self._args.files:
-        
+
             recursive = self._args.recursive
             if recursive:
                 fpattern = '**/' + fpattern
@@ -424,7 +427,7 @@ class VrtsFiles:
 # - subprocess.check_output
 #   - call without wait, raise CalledProcessError on nonzero return code
 # - subprocess.run
-#   - recommended but python 3.5+ 
+#   - recommended but python 3.5+
 #    (check=True: raise exceptions like check_*, capture_output: return STDOUT/STDERR)
 # * python2 needs to define DEVNULL like:
 #       with open(os.devnull, 'wb') as DEVNULL: #python2
@@ -461,7 +464,7 @@ class VrtsProcess:
     # calls single command; returns True=ok, False=ko, None=wrong command
     def call(self, args, stdout=False):
         try:
-            res = subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) #capture_output=stdout, 
+            res = subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) #capture_output=stdout,
             #print("result:", res.returncode)
             #print("result:", res.strout, res.strerr)
 
@@ -515,7 +518,7 @@ class VrtsApp:
     def _detect_cli(self):
         if self._args.diffs:
             return
-    
+
         cli = self._find_cli(self._args.cli_new, DEFAULT_CLI_NEW)
         if cli:
             self._cli_new = cli
@@ -529,7 +532,7 @@ class VrtsApp:
         if not self._cli_old and (self._args.compare or self._args.performance_old):
             raise ValueError("old CLI not found")
 
-    def _get_performance_args(self, cli):
+    def _get_performance_args(self, cli, files):
         args = [cli, '-O'] #flag to not write files
 
         if not self._args.looping:
@@ -537,34 +540,51 @@ class VrtsApp:
         if self._args.flags:
             flags = self._args.flags.split(" ")
             args.extend(flags)
-        
-        args.extend(self._files.filenames)
+
+        args.extend(files)
         return args
 
-    def _performance(self):
+
+    # split file paths into sublists based on max arg len
+    @staticmethod
+    def split_paths(paths, max_len=MAX_ARGS_LEN):
+        batches = []
+        curr_batch = []
+        curr_len = 0
+        for path in paths:
+            extra_len = len(path) + 3  # including separator and quotes
+
+            if curr_len + extra_len > max_len:
+                batches.append(curr_batch)
+                curr_batch = []
+                curr_len = 0
+
+            curr_batch.append(path)
+            curr_len += extra_len
+
+        if curr_batch:
+            batches.append(curr_batch)
+
+        return batches
+
+    def _performance(self, is_old):
         # pases all files at once, as it's faster than 1 by 1 (that has to init program every time)
-        if self._args.performance_new:
-            self._p.info("testing new performance")
-            ts_st = time.time()
 
-            args = self._get_performance_args(self._cli_new)
+        info_type = "old" if is_old else "new"
+        cli_type = self._cli_old if is_old else self._cli_new
+
+        self._p.info("testing %s performance" % (info_type))
+        ts_st = time.time()
+
+        batches = self.split_paths(self._files.filenames)
+        for filenames in batches:
+            args = self._get_performance_args(cli_type, filenames)
             res = self._prc.call(args)
+            if not res:
+                print("performance: batch failed", args)
 
-            ts_ed = time.time()
-            self._p.info("done: elapsed %ss" % (ts_ed - ts_st))
-
-        if self._args.performance_old:
-            self._p.info("testing old performance")
-            ts_st = time.time()
-
-            args = self._get_performance_args(self._cli_old)
-            res = self._prc.call(args)
-
-            ts_ed = time.time()
-            self._p.info("done: elapsed %ss" % (ts_ed - ts_st))
-
-        #if self._performance_both:
-        #   handled above
+        ts_ed = time.time()
+        self._p.info("done: elapsed %ss" % (ts_ed - ts_st))
 
 
     # returns max fuzzy count, except for non-fuzzable files (that use int math)
@@ -651,28 +671,33 @@ class VrtsApp:
         self._temp_files = []
 
     def _diffs(self):
-        
+
         files = self._files.filenames
         print(files)
         for i in range(len(files) - 1):
             curr = files[i]
             next = files[i+1]
             print(curr, next)
-            
+
             fuzzy = self._args.fuzzy
             cmp = VrtsComparator(curr, next, fuzzy_max=fuzzy, concurrency=self._args.multiprocesses)
             code = cmp.compare()
-            
+
             self._p.result(curr, code)
 
     def start(self):
         self._detect_cli()
         self._files.prepare()
-        
+
         if self._args.diffs:
             self._diffs()
         elif self._args.performance:
-            self._performance()
+            if self._args.performance_new:
+                self._performance(False)
+            if self._args.performance_old:
+                self._performance(True)
+            #if self._performance_both:
+            #   sets handled above
         else:
             self._compare()
 
