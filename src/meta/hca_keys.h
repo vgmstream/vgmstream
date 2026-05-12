@@ -1660,6 +1660,10 @@ static const hcakey_info hcakey_list[] = {
 
     // Nekopara Sekai Connect (Android)
     {1624839752127897451},      // 168C972552845F00
+
+    // Super Robot Wars Y (PC)
+    {56793721747368501},        // 00C9C596CA396A35
+    
 };
 
 #endif
