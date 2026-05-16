@@ -47,9 +47,7 @@ void decode_afc(VGMSTREAMCHANNEL* stream, short* outbuf, int channels, int32_t f
         uint8_t code = frame[0x01 + i/2];
         int32_t sample;
 
-        sample = i & 1 ? /* high nibble first */
-                get_low_nibble_signed(code) :
-                get_high_nibble_signed(code);
+        sample = get_nibble_signed(code, (i & 1) == 0); // high nibble first
         sample = ((sample * scale) << 11);
         sample = (sample + coef1 * hist1 + coef2 * hist2) >> 11;
 
@@ -118,4 +116,11 @@ void decode_afc_2bit(VGMSTREAMCHANNEL* stream, short* outbuf, int channels, int3
 
     stream->adpcm_history1_16 = hist1;
     stream->adpcm_history2_16 = hist2;
+}
+
+int32_t afc_bytes_to_samples(size_t bytes, int channels) {
+    if (channels <= 0) return 0;
+    int frame_bytes = 0x09;
+    int frame_samples = (frame_bytes - 0x01) * 2;
+    return bytes / frame_bytes * frame_samples / channels;
 }

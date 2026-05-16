@@ -344,6 +344,9 @@
     <ClInclude Include="meta\hca_keys_awb.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\hvqm4_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\idtech_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
