@@ -736,6 +736,7 @@ typedef enum {
     meta_PS2P,
     meta_GCSP,
     meta_UEOPUS,
+    meta_WMW,
 } meta_t;
 
 #endif

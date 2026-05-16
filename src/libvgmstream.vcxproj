@@ -837,6 +837,7 @@
     <ClCompile Include="meta\wb.c" />
     <ClCompile Include="meta\wbk.c" />
     <ClCompile Include="meta\wd.c" />
+    <ClCompile Include="meta\wmw.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\ws_aud.c" />

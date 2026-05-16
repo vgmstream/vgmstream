@@ -709,6 +709,7 @@ static const char* extension_list[] = {
     "wic", //txth/reserved [Road Rash (SAT)-videos]
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
+    "wmw",
     "wp2",
     "wpd",
     "wsd",
@@ -1534,6 +1535,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2P,                 "THQ Australia PS2P header"},
         {meta_GCSP,                 "THQ Australia GCSP header"},
         {meta_UEOPUS,               "Epic Games UEOPUS header"},
+        {meta_WMW,                  "Artoon WMW header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
