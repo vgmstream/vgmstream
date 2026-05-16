@@ -13,7 +13,7 @@
   #endif
 #endif
 
-static int find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey);
+static void load_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t* p_subkey, STREAMFILE* sf);
 
 
 /* CRI HCA - streamed audio from CRI ADX2/Atom middleware */
@@ -46,33 +46,7 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     /* find decryption key in external file or preloaded list */
     if (hca_info->encryptionEnabled) {
         uint64_t keycode = 0;
-        uint8_t keybuf[20+1] = {0}; // max keystring 20, +1 extra null
-        size_t key_size;
-
-        key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
-
-        bool is_keystring = cri_key9_valid_keystring(keybuf, key_size);
-
-        if (is_keystring) { // number
-            keycode = cri_keystring_to_keycode(keybuf);
-        }
-        else if (key_size == 0x08) { // hex
-            keycode = get_u64be(keybuf+0x00);
-        }
-        else if (key_size == 0x08+0x02) { // seed key + AWB subkey
-            keycode = get_u64be(keybuf+0x00);
-            subkey  = get_u16be(keybuf+0x08);
-        }
-#ifdef HCA_BRUTEFORCE
-        else if (1) {
-            int ok = find_hca_key(hca_data, &keycode, subkey);
-            if (!ok)
-                bruteforce_hca_key(sf, hca_data, &keycode, subkey);
-        }
-#endif
-        else {
-            find_hca_key(hca_data, &keycode, subkey);
-        }
+        load_hca_key(hca_data, &keycode, &subkey, sf);
 
         hca_set_encryption_key(hca_data, keycode, subkey);
     }
@@ -85,12 +59,9 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     vgmstream->meta_type = meta_HCA;
     vgmstream->sample_rate = hca_info->samplingRate;
 
-    vgmstream->num_samples = hca_info->blockCount * hca_info->samplesPerBlock -
-            hca_info->encoderDelay - hca_info->encoderPadding;
-    vgmstream->loop_start_sample = hca_info->loopStartBlock * hca_info->samplesPerBlock -
-            hca_info->encoderDelay + hca_info->loopStartDelay;
-    vgmstream->loop_end_sample = hca_info->loopEndBlock * hca_info->samplesPerBlock -
-            hca_info->encoderDelay + (hca_info->samplesPerBlock - hca_info->loopEndPadding);
+    vgmstream->num_samples = hca_info->sampleCount;
+    vgmstream->loop_start_sample = hca_info->loopStartSample;
+    vgmstream->loop_end_sample = hca_info->loopEndSample;
     /* After loop end CRI's encoder removes the rest of the original samples and puts some
      * garbage in the last frame that should be ignored. Optionally it can encode fully preserving
      * the file too, but it isn't detectable, so we'll allow the whole thing just in case */
@@ -100,8 +71,7 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     /* this can happen in preloading HCA from memory AWB */
     if (hca_info->blockCount * hca_info->blockSize > get_streamfile_size(sf)) {
         unsigned int max_block = get_streamfile_size(sf) / hca_info->blockSize;
-        vgmstream->num_samples = max_block * hca_info->samplesPerBlock -
-                hca_info->encoderDelay - hca_info->encoderPadding;
+        vgmstream->num_samples = max_block * hca_info->samplesPerBlock - hca_info->encoderDelay - hca_info->encoderPadding;
     }
 
     vgmstream->coding_type = coding_CRI_HCA;
@@ -135,15 +105,14 @@ fail:
 
 
 /* try to find the decryption key from a list */
-static int find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey) {
+static bool find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey) {
     const size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_list[0]);
-    int i;
     hca_keytest_t hk = {0};
 
     hk.best_key = 0xCC55463930DBE1AB; /* defaults to PSO2 key, most common */ 
     hk.subkey = subkey;
 
-    for (i = 0; i < keys_length; i++) {
+    for (int i = 0; i < keys_length; i++) {
         hk.key = hcakey_list[i].key;
 
         test_hca_key(hca_data, &hk);
@@ -152,16 +121,15 @@ static int find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t 
 
 #if 0
         {
-            int j;
             size_t subkeys_size = hcakey_list[i].subkeys_size;
             const uint16_t* subkeys = hcakey_list[i].subkeys;
-            if (subkeys_size > 0 && subkey == 0) {
-                for (j = 0; j < subkeys_size; j++) {
-                    hk.subkey = subkeys[j];
-                    test_hca_key(hca_data, &hk);
-                    if (hk.best_score == 1)
-                        goto done;
-                }
+            if (subkeys_size <= 0 || subkey != 0)
+                continue;
+            for (int j = 0; j < subkeys_size; j++) {
+                hk.subkey = subkeys[j];
+                test_hca_key(hca_data, &hk);
+                if (hk.best_score == 1)
+                    goto done;
             }
         }
 #endif
@@ -173,4 +141,41 @@ done:
             (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), hk.best_score);
     vgm_asserti(hk.best_score <= 0, "HCA: decryption key not found\n");
     return hk.best_score > 0;
+}
+
+static void load_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t* p_subkey, STREAMFILE* sf) {
+    uint64_t keycode = *p_keycode;
+    uint64_t subkey = *p_subkey;
+
+    uint8_t keybuf[20+1] = {0}; // max keystring 20, +1 extra null
+    size_t key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
+
+    bool is_keystring = cri_key9_valid_keystring(keybuf, key_size);
+
+    if (is_keystring) { // number
+        keycode = cri_keystring_to_keycode(keybuf);
+    }
+    else if (key_size == 0x08) { // hex
+        keycode = get_u64be(keybuf+0x00);
+    }
+    else if (key_size == 0x08+0x02) { // seed key + AWB subkey
+        keycode = get_u64be(keybuf+0x00);
+        subkey  = get_u16be(keybuf+0x08);
+    }
+#ifdef HCA_BRUTEFORCE
+    else if (true) {
+        bool ok = find_hca_key(hca_data, &keycode, subkey);
+        if (!ok)
+            bruteforce_hca_key(sf, hca_data, &keycode, subkey);
+    }
+#endif
+    else {
+        if (key_size == 0x02) { // AWB subkey only (but don't do this)
+            subkey = get_u16be(keybuf+0x00);
+        }            
+        find_hca_key(hca_data, &keycode, subkey);
+    }
+
+    *p_keycode = keycode;
+    *p_subkey = subkey;
 }

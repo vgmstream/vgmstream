@@ -325,6 +325,12 @@ int clHCA_getInfo(clHCA* hca, clHCA_stInfo *info) {
     info->samplesPerBlock = HCA_SAMPLES_PER_FRAME;
     info->comment = hca->comment;
     info->encryptionEnabled = hca->ciph_type == 56; /* keycode encryption */
+
+    // derived
+    info->sampleCount = info->blockCount * info->samplesPerBlock - info->encoderDelay - info->encoderPadding;
+    info->loopStartSample = info->loopStartBlock * info->samplesPerBlock - info->encoderDelay + info->loopStartDelay;
+    info->loopEndSample = info->loopEndBlock * info->samplesPerBlock - info->encoderDelay + (info->samplesPerBlock - info->loopEndPadding);
+
     return 0;
 }
 
