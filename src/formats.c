@@ -719,6 +719,7 @@ static const char* extension_list[] = {
     "wv6",
     "wvd", //txth/reserved [Donkey Kong Barrel Blast (Wii)]
     "wve",
+    "wvp", //txth/semi [Virtua Cop 2 (PC)]
     "wvs",
     "wvx",
     "wxd",
