@@ -93,7 +93,7 @@ void block_update_xvag_subsong(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_wve_au00(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_wve_ad10(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_sthd(off_t block_offset, VGMSTREAM* vgmstream);
-void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_hvqm4(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_xa_aiff(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vs_square(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vid1(off_t block_offset, VGMSTREAM* vgmstream);

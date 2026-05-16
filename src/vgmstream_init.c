@@ -316,7 +316,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ubi_bao_atomic,
     init_vgmstream_dsp_switch_audio,
     init_vgmstream_sadf,
-    init_vgmstream_h4m,
+    init_vgmstream_hvqm4,
     init_vgmstream_ads_container,
     init_vgmstream_asf,
     init_vgmstream_xmd,

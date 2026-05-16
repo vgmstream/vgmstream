@@ -2,8 +2,8 @@
 #include "../coding/coding.h"
 
 
-/* H4M video blocks with audio frames, based on h4m_audio_decode */
-void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream) {
+/* HVQM4 video blocks with audio frames, based on h4m_audio_decode */
+void block_update_hvqm4(off_t block_offset, VGMSTREAM* vgmstream) {
     STREAMFILE* sf = vgmstream->ch[0].streamfile;
     int i;
     size_t block_size, block_samples;
@@ -20,7 +20,7 @@ void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream) {
 
         vgmstream->full_block_size = full_block_size; /* not including 0x14 block header */
         block_size = 0x14; /* skip header and point to first frame in block */
-        block_samples = 0; /* signal new block_update_h4m */
+        block_samples = 0; /* signal new block_update_hvqm4 */
     }
     else {
         /* new audio or video frames in the current block */
@@ -63,7 +63,7 @@ void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream) {
                 block_skip += (audio_bytes / vgmstream->num_streams) * (vgmstream->stream_index-1);
             }
 
-            VGM_ASSERT(frame_format == 1, "H4M: unknown frame_format %x at %x\n", frame_format, (uint32_t)block_offset);
+            VGM_ASSERT(frame_format == 1, "HVQM4: unknown frame_format %x at %x\n", frame_format, (uint32_t)block_offset);
 
             /* pass current mode to the decoder */
             vgmstream->codec_config = (frame_format << 8) | (vgmstream->codec_config & 0xFF);
@@ -74,7 +74,7 @@ void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream) {
         }
         else {
             block_size = 0x08 + frame_size;
-            block_samples = 0; /* signal new block_update_h4m */
+            block_samples = 0; /* signal new block_update_hvqm4 */
         }
 
         vgmstream->full_block_size -= block_size;

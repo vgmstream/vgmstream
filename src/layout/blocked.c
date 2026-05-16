@@ -193,8 +193,8 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_sthd:
             block_update_sthd(block_offset,vgmstream);
             break;
-        case layout_blocked_h4m:
-            block_update_h4m(block_offset,vgmstream);
+        case layout_blocked_hvqm4:
+            block_update_hvqm4(block_offset,vgmstream);
             break;
         case layout_blocked_xa_aiff:
             block_update_xa_aiff(block_offset,vgmstream);

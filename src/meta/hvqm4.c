@@ -2,9 +2,9 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 
-/* H4M - from Hudson HVQM4 videos [Resident Evil 0 (GC), Tales of Symphonia (GC)]
+/* HVQM4 - from Hudson HVQM4 videos [Resident Evil 0 (GC), Tales of Symphonia (GC)]
  * (info from hcs/Nisto's h4m_audio_decode) */
-VGMSTREAM* init_vgmstream_h4m(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_hvqm4(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels;
@@ -73,13 +73,13 @@ VGMSTREAM* init_vgmstream_h4m(STREAMFILE* sf) {
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = get_streamfile_size(sf) / total_subsongs; /* approx... */
     vgmstream->codec_config = audio_codec; /* for blocks */
-    vgmstream->meta_type = meta_H4M;
-    vgmstream->layout_type = layout_blocked_h4m;
+    vgmstream->meta_type = meta_HVQM4;
+    vgmstream->layout_type = layout_blocked_hvqm4;
 
     switch(audio_codec & 0x7F) {
         case 0x00:
             switch(sample_bits) {
-                case 16: vgmstream->coding_type = coding_H4M_IMA; break; /* common */
+                case 16: vgmstream->coding_type = coding_HVQM4_IMA; break; /* common */
                 //case  0: vgmstream->coding_type = coding_NGC_AFC; break; /* Pikmin. unsure about layout */
                 default: goto fail;
             }
@@ -89,7 +89,7 @@ VGMSTREAM* init_vgmstream_h4m(STREAMFILE* sf) {
         case 0x01: /* Uncompressed PCM */
         case 0x04: /* 8-bit (A)DPCM */
         default:
-            VGM_LOG("H4M: unknown codec %x\n", audio_codec);
+            VGM_LOG("HVQM4: unknown codec %x\n", audio_codec);
             goto fail;
     }
 
@@ -98,15 +98,15 @@ VGMSTREAM* init_vgmstream_h4m(STREAMFILE* sf) {
 
     /* calc num_samples manually */
     {
-        vgmstream->stream_index = target_subsong; /* extra setup for H4M */
-        vgmstream->full_block_size = 0; /* extra setup for H4M */
+        vgmstream->stream_index = target_subsong; /* extra setup */
+        vgmstream->full_block_size = 0; /* extra setup */
         vgmstream->next_block_offset = start_offset;
         do {
             block_update(vgmstream->next_block_offset,vgmstream);
             vgmstream->num_samples += vgmstream->current_block_samples;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(sf));
-        vgmstream->full_block_size = 0; /* extra cleanup for H4M */
+        vgmstream->full_block_size = 0; /* extra cleanup */
         block_update(start_offset, vgmstream);
     }
 

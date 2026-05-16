@@ -1224,7 +1224,7 @@ void decode_ubi_sce_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
 /* IMA with variable frame formats controlled by the block layout. The original code uses
  * tables mapping all standard IMA combinations (to optimize calculations), but decodes the same.
  * Based on HCS's and Nisto's reverse engineering in h4m_audio_decode. */
-void decode_h4m_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, uint16_t frame_format) {
+void decode_hvqm4_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, uint16_t frame_format) {
     int i, samples_done = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -1238,12 +1238,12 @@ void decode_h4m_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
         int channel_pos = is_stereo ? (1 - channel) : channel; /* R hist goes first */
         switch(frame_format) {
             case 1: /* combined hist+index */
-                hist1   = read_16bitBE(stream->offset + 0x02*channel_pos + 0x00,stream->streamfile) & 0xFFFFFF80;
-                step_index = (uint8_t)read_8bit(stream->offset + 0x02*channel_pos + 0x01,stream->streamfile) & 0x7f;
+                hist1   = read_s16be(stream->offset + 0x02*channel_pos + 0x00,stream->streamfile) & 0xFFFFFF80;
+                step_index = read_u8(stream->offset + 0x02*channel_pos + 0x01,stream->streamfile) & 0x7f;
                 break;
             case 3: /* separate hist+index */
-                hist1   = read_16bitBE(stream->offset + 0x03*channel_pos + 0x00,stream->streamfile);
-                step_index = (uint8_t)read_8bit(stream->offset + 0x03*channel_pos + 0x02,stream->streamfile);
+                hist1   = read_s16be(stream->offset + 0x03*channel_pos + 0x00,stream->streamfile);
+                step_index = read_u8(stream->offset + 0x03*channel_pos + 0x02,stream->streamfile);
                 break;
             case 2:  /* no hist/index (continues from previous frame) */
             default:
