@@ -15,7 +15,7 @@
 #define XACT2_0_MAX     21  // 0x15 // (Xbox 360 Alpha firmware) XeDK 2.0.0530.0-v20, Full Auto (X360, 2005-04-27), XeDK 2.0.1242.0-v21
 #define XACT2_1_MAX     22  // 0x16 // XeDK 2.0.1538.0, Project Gotham Racing 3 (X360), Amped 3 (X360)-v22
 #define XACT2_2_MAX     34  // 0x22 // Dead or Alive 4 (X360)-v23, Table Tennis (X360)-v34
-#define XACT2_3_MAX     38  // 0x26 // Blazing Angels (X360)-v37, Prey (X360)-v38
+#define XACT2_3_MAX     38  // 0x26 // Blazing Angels (X360/PC)-v37, Prey (X360)-v38
 #define XACT2_4_MAX     41  // 0x29 // Just Cause (X360)-v39, Blue Dragon (X360)-v40, Absolute: Blazing Infinity (X360)-v41
 #define XACT3_0_MAX     46  // 0x2E // Ninja Blade (X360)-t43-v42, Saints Row 2 (PC)-t44-v42, Persona 4 Ultimax NESSICA (PC)-t45-v43, BlazBlue (X360)-t46-v44
 #define XACT_TECHLAND   0x10000     // Sniper Ghost Warrior (PS3/X360), Nail'd (PS3/X360), equivalent to XACT3_0
@@ -31,7 +31,7 @@ static const int wma_block_align_index[17] = {
 
 typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA, ATRAC3, OGG, DSP, ATRAC9_RIFF } xact_codec;
 typedef struct {
-    int little_endian;
+    bool little_endian;
     int version;
 
     /* segments */
@@ -73,9 +73,9 @@ typedef struct {
 
     char wavebank_name[64+1];
 
-    int is_crackdown;
-    int fix_xma_num_samples;
-    int fix_xma_loop_samples;
+    bool is_crackdown;
+    bool fix_xma_num_samples;
+    bool fix_xma_loop_samples;
 } xwb_header;
 
 static void get_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf_xwb, STREAMFILE* sf_xsb);
@@ -113,7 +113,8 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
     if (xwb.little_endian) {
         read_u32 = read_u32le;
         read_s32 = read_s32le;
-    } else {
+    }
+    else {
         read_u32 = read_u32be;
         read_s32 = read_s32be;
     }
@@ -125,7 +126,7 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
     /* Crackdown 1 (X360), essentially XACT2 but may have split header in some cases, compact entries change */
     if (xwb.version == XACT_CRACKDOWN) {
         xwb.version = XACT2_4_MAX;
-        xwb.is_crackdown = 1;
+        xwb.is_crackdown = true;
     }
 
     /* read segment offsets (SEGIDX) */
@@ -179,7 +180,8 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
             xwb.extra_offset    = read_s32(offset+0x18, sf);//EXTRA
             xwb.extra_size      = read_s32(offset+0x1c, sf);
             suboffset = 0x04*2 + 0x04*2;
-        } else {
+        }
+        else {
             xwb.extra_offset    = read_s32(offset+0x10, sf);//SEEKTABLES
             xwb.extra_size      = read_s32(offset+0x14, sf);
             xwb.names_offset    = read_s32(offset+0x18, sf);//ENTRYNAMES
@@ -275,7 +277,8 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
         if (xwb.version <= XACT2_3_MAX) { /* LoopRegion (bytes) */
             xwb.loop_start  = read_u32(offset+0x10, sf);
             xwb.loop_end    = read_u32(offset+0x14, sf);//length (LoopRegion) or offset (XMALoopRegion in late XACT2)
-        } else { /* LoopRegion (samples) */
+        }
+        else { /* LoopRegion (samples) */
             xwb.loop_start_sample   = read_u32(offset+0x10, sf);
             xwb.loop_end_sample     = read_u32(offset+0x14, sf) + xwb.loop_start_sample;
         }
@@ -419,11 +422,18 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
             xwb.loop_end_sample   = xbox_ima_bytes_to_samples(xwb.loop_start + xwb.loop_end, xwb.channels);
         }
     }
-    else if (xwb.version <= XACT2_4_MAX && xwb.codec == MS_ADPCM && xwb.loop_flag) {
+    else if (xwb.version <= XACT2_4_MAX && xwb.codec == MS_ADPCM) {
         int block_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
 
-        xwb.loop_start_sample = msadpcm_bytes_to_samples(xwb.loop_start, block_size, xwb.channels);
-        xwb.loop_end_sample   = msadpcm_bytes_to_samples(xwb.loop_start + xwb.loop_end, block_size, xwb.channels);
+        if (!xwb.num_samples) {
+            // Blazing Angels (PC)-v37
+            xwb.num_samples = msadpcm_bytes_to_samples(xwb.stream_size, block_size, xwb.channels);
+        }
+
+        if (xwb.loop_flag) {
+            xwb.loop_start_sample = msadpcm_bytes_to_samples(xwb.loop_start, block_size, xwb.channels);
+            xwb.loop_end_sample   = msadpcm_bytes_to_samples(xwb.loop_start + xwb.loop_end, block_size, xwb.channels);
+        }
     }
     else if ((xwb.version <= XACT2_3_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) && xwb.loop_flag)
                 || (xwb.version == XACT_TECHLAND && xwb.codec == XMA2)) {
@@ -447,8 +457,8 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
         xwb.loop_end_sample   = msd.loop_end_sample;
 
         /* if provided, xwb.num_samples is equal to msd.num_samples after proper adjustments (+ 128 - start_skip - end_skip) */
-        xwb.fix_xma_loop_samples = 1;
-        xwb.fix_xma_num_samples = 0;
+        xwb.fix_xma_loop_samples = true;
+        xwb.fix_xma_num_samples = false;
 
         /* Techland's XMA in tool_version 0x2a (not 0x2c?) seems to use (entry_info >> 1) num_samples
          * for music banks, but not sfx [Nail'd (X360)-0x2a, Dead Island (X360)-0x2c] */
@@ -459,17 +469,17 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
         /* for XWB v22 (and below?) this seems normal [Project Gotham Racing (X360)] */
         if (xwb.num_samples == 0) {
             xwb.num_samples = msd.num_samples;
-            xwb.fix_xma_num_samples = 1;
+            xwb.fix_xma_num_samples = true;
         }
     }
     else if ((xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
         /* unlike prev versions, xwb.num_samples is the full size without adjustments */
-        xwb.fix_xma_loop_samples = 1;
-        xwb.fix_xma_num_samples = 1;
+        xwb.fix_xma_loop_samples = true;
+        xwb.fix_xma_num_samples = true;
 
         /* Crackdown does use xwb.num_samples after adjustments (but not loops) */
         if (xwb.is_crackdown) {
-            xwb.fix_xma_num_samples = 0;
+            xwb.fix_xma_num_samples = false;
         }
     }
 
@@ -546,7 +556,7 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
         }
 
         case WMA: { /* WMAudio1 (WMA v2): Prince of Persia 2 port (Xbox) */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
+            ffmpeg_codec_data* ffmpeg_data = NULL;
 
             ffmpeg_data = init_ffmpeg_offset(sf, xwb.stream_offset,xwb.stream_size);
             if ( !ffmpeg_data ) goto fail;
@@ -615,7 +625,7 @@ VGMSTREAM* init_vgmstream_wbnd_sdbk(STREAMFILE* sf, STREAMFILE* sf_xsb) {
         }
 
         case ATRAC9_RIFF: { /* Stardew Valley (Vita) extension */
-            VGMSTREAM *temp_vgmstream = NULL;
+            VGMSTREAM* temp_vgmstream = NULL;
             STREAMFILE* temp_sf = NULL;
 
             /* standard RIFF, use subfile (seems doesn't use xwb loops) */

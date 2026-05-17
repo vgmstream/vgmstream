@@ -38,16 +38,22 @@ static void yamaha_adpcmb_expand_nibble(uint8_t byte, int shift, int32_t* hist1,
 }
 
 /* Yamaha AICA expand, slightly filtered vs "ACM" Yamaha ADPCM, same as Creative ADPCM
- * (some info from https://github.com/superctr/adpcm/blob/master/ymz_codec.c, https://wiki.multimedia.cx/index.php/Creative_ADPCM) */
+ * Some info from:
+ * - https://github.com/superctr/adpcm/blob/master/ymz_codec.c
+ * - https://wiki.multimedia.cx/index.php/Creative_ADPCM) 
+ * - Ghost Vibration (PS2) decompilation
+ */
 static void yamaha_aica_expand_nibble(uint8_t byte, int shift, int16_t* hist1, int32_t* step_size, int16_t *out_sample) {
     int code, delta, sample;
 
-    *hist1 = *hist1 * 254 / 256; /* hist filter seems used but may not be needed? (clamping delta is enough?)*/
+    // TODO: highpass filter seen in  ymz_codec.c, seemingly not part of the decoding step in GV
+    // but some files drift a bit without it. Possibly 'hist1 * 511 / 512' since it attenuates less.
+    *hist1 = *hist1 * 254 / 256;
 
     code = (byte >> shift) & 0xf;
-    delta = ((((code & 0x7) * 2) + 1) * (*step_size)) >> 3; /* like 'mul' IMA */
+    delta = ((((code & 0x7) * 2) + 1) * (*step_size)) >> 3; // like 'mul' IMA
 
-    /* supposedly from official encoder but possibly all YM chips do this,
+    /* found in software decoding, but possibly all YM chips do this;
      * matters in some games to avoid random glitches (early/buggy encoders?), ex. GTA2 */
     if (delta > 32767)
         delta = 32767;
@@ -56,11 +62,13 @@ static void yamaha_aica_expand_nibble(uint8_t byte, int shift, int16_t* hist1, i
         delta = -delta;
     sample = *hist1 + delta;
 
-    sample = clamp16(sample); /* apparently done by official encoder */
+    sample = clamp16(sample);
 
     *step_size = ((*step_size) * scale_step_aica[code]) >> 8;
     if (*step_size < 0x7f) *step_size = 0x7f;
     else if (*step_size > 0x6000) *step_size = 0x6000;
+
+    // Ghost Vibration decomp saves/restore hist+step on loop start+end, and seems to filters ~512 samples when loop happens
 
     *out_sample = sample;
     *hist1 = sample;
@@ -173,7 +181,7 @@ void decode_cp_ym(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
 
 
 /* tri-Ace Aska ADPCM, Yamaha ADPCM-B with headered frames (reversed from Android SO's .so)
- * implements table with if-else/switchs too but that's too goofy */
+ * OG code implements tables with if-else/switchs but that's too goofy */
 void decode_aska(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, size_t frame_size) {
     uint8_t frame[0x100] = {0}; /* known max is 0xC0 */
     off_t frame_offset;

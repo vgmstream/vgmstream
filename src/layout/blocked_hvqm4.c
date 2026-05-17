@@ -2,50 +2,33 @@
 #include "../coding/coding.h"
 
 
-/* H4M video blocks with audio frames, based on h4m_audio_decode */
-void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream) {
+/* HVQM4 video blocks with audio frames, based on h4m_audio_decode */
+void block_update_hvqm4(off_t block_offset, VGMSTREAM* vgmstream) {
     STREAMFILE* sf = vgmstream->ch[0].streamfile;
-    int i;
     size_t block_size, block_samples;
 
 
-    /* use full_block_size as counter (a bit hacky but whatevs) */
+    /* detect new block, using full_block_size as counter (a bit hacky but whatevs) */
     if (vgmstream->full_block_size <= 0) {
-        /* new block */
-        /* 0x00: last_full_block_size (slightly smalled in .afc) */
+        // 0x00: last_full_block_size (slightly smaller in .afc)
         uint32_t full_block_size      = read_u32be(block_offset+0x04, sf);
-        /* 0x08: vid_frame_count */
-        /* 0x0c: aud_frame_count */
-        /* 0x10: flags + padding (0x01000000, except 0 in a couple of Bomberman Jetters files) */
+        // 0x08: vid_frame_count
+        // 0x0c: aud_frame_count
+        // 0x10: flags + padding (0x01000000, except 0 in a couple of Bomberman Jetters files)
 
-        vgmstream->full_block_size = full_block_size; /* not including 0x14 block header */
-        block_size = 0x14; /* skip header and point to first frame in block */
-        block_samples = 0; /* signal new block_update_h4m */
+        vgmstream->full_block_size = full_block_size; // not including 0x14 block header
+        block_size = 0x14; // skip header and point to first frame in block
+        block_samples = 0; // signal new block_update_hvqm4
     }
     else {
         /* new audio or video frames in the current block */
-        /* 0x00 = HVQM4_AUDIO (there are more checks with frame_format but not too relevant for vgmstream) */
-        uint16_t frame_type = read_u16be(block_offset+0x00, sf);
-        uint16_t frame_format = read_u16be(block_offset+0x02, sf);
-        uint32_t frame_size = read_u32be(block_offset+0x04, sf); /* not including 0x08 frame header */
+        uint16_t frame_type     = read_u16be(block_offset+0x00, sf);
+        uint16_t frame_format   = read_u16be(block_offset+0x02, sf);
+        uint32_t frame_size     = read_u32be(block_offset+0x04, sf); // not including 0x08 frame header
 
-#if 0
-        if (frame_type == 0x00 && frame_format == 0xFF00) { /* AFC (Pikmin) */
-            uint32_t frame_samples = frame_size / 0x09 * 16 / vgmstream->channels;
-            uint32_t block_skip;
+        // 0x00 = HVQM4_AUDIO (there are more checks with frame_format but not too relevant for vgmstream)
 
-            block_skip = 0x08;
-            block_size = 0x08 + frame_size;
-            block_samples = frame_samples;
-
-            // TODO unknown layout/codec
-            for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].offset = block_offset + block_skip;
-            }
-        }
-        else 
-#endif
-        if (frame_type == 0x00) { /* IMA (all others) */
+        if (frame_type == 0x00 && frame_format != 0xFF00) { /* IMA */
             uint32_t frame_samples = read_u32be(block_offset+0x08, sf);
             uint32_t block_skip;
 
@@ -63,18 +46,19 @@ void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream) {
                 block_skip += (audio_bytes / vgmstream->num_streams) * (vgmstream->stream_index-1);
             }
 
-            VGM_ASSERT(frame_format == 1, "H4M: unknown frame_format %x at %x\n", frame_format, (uint32_t)block_offset);
+            VGM_ASSERT(frame_format == 1, "HVQM4: unknown frame_format %x at %x\n", frame_format, (uint32_t)block_offset);
 
             /* pass current mode to the decoder */
             vgmstream->codec_config = (frame_format << 8) | (vgmstream->codec_config & 0xFF);
 
-            for (i = 0; i < vgmstream->channels; i++) {
+            for (int i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = block_offset + block_skip;
             }
         }
         else {
+            /* videos and AFC (can't be handled with block layout [Pikmin (GC)] */
             block_size = 0x08 + frame_size;
-            block_samples = 0; /* signal new block_update_h4m */
+            block_samples = 0; /* signal new block_update_hvqm4 */
         }
 
         vgmstream->full_block_size -= block_size;

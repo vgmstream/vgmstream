@@ -709,6 +709,7 @@ static const char* extension_list[] = {
     "wic", //txth/reserved [Road Rash (SAT)-videos]
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
+    "wmw",
     "wp2",
     "wpd",
     "wsd",
@@ -719,6 +720,7 @@ static const char* extension_list[] = {
     "wv6",
     "wvd", //txth/reserved [Donkey Kong Barrel Blast (Wii)]
     "wve",
+    "wvp", //txth/semi [Virtua Cop 2 (PC)]
     "wvs",
     "wvx",
     "wxd",
@@ -867,6 +869,7 @@ static const coding_info coding_info_list[] = {
         {coding_NGC_DTK,            "Nintendo DTK 4-bit ADPCM"},
         {coding_AFC,                "Nintendo AFC 4-bit ADPCM"},
         {coding_AFC_2bit,           "Nintendo AFC 2-bit ADPCM"},
+        {coding_AFC_4X,             "Nintendo AFC 4X 4-bit ADPCM"},
         {coding_VADPCM,             "Silicon Graphics VADPCM 4-bit ADPCM"},
 
         {coding_G721,               "CCITT G.721 4-bit ADPCM"},
@@ -916,7 +919,7 @@ static const coding_info coding_info_list[] = {
         {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
         {coding_UBI_IMA,            "Ubisoft 4-bit IMA ADPCM"},
         {coding_UBI_SCE_IMA,        "Ubisoft 4-bit SCE IMA ADPCM"},
-        {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
+        {coding_HVQM4_IMA,          "Hudson HVQM4 4-bit IMA ADPCM"},
         {coding_CD_IMA,             "Crystal Dynamics 4-bit IMA ADPCM"},
         {coding_CRANKCASE_IMA,      "CrankcaseAudio REV 4-bit IMA ADPCM"},
 
@@ -1049,7 +1052,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ea_wve_au00,    "blocked (EA WVE au00)"},
         {layout_blocked_ea_wve_ad10,    "blocked (EA WVE Ad10)"},
         {layout_blocked_sthd,           "blocked (STHD)"},
-        {layout_blocked_h4m,            "blocked (H4M)"},
+        {layout_blocked_hvqm4,          "blocked (HVQM4)"},
         {layout_blocked_xa_aiff,        "blocked (XA AIFF)"},
         {layout_blocked_vs_square,      "blocked (Square VS)"},
         {layout_blocked_vid1,           "blocked (VID1)"},
@@ -1388,7 +1391,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_BAO,              "Ubisoft BAO header"},
         {meta_DSP_SWITCH_AUDIO,     "UE4 Switch Audio header"},
         {meta_SADF,                 "Procyon Studio SADF header"},
-        {meta_H4M,                  "Hudson HVQM4 header"},
+        {meta_HVQM4,                "Hudson HVQM4 header"},
         {meta_ASF,                  "Argonaut ASF header"},
         {meta_XMD,                  "Konami XMD header"},
         {meta_CKS,                  "Cricket Audio CKS header"},
@@ -1533,6 +1536,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2P,                 "THQ Australia PS2P header"},
         {meta_GCSP,                 "THQ Australia GCSP header"},
         {meta_UEOPUS,               "Epic Games UEOPUS header"},
+        {meta_WMW,                  "Artoon WMW header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

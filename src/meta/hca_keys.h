@@ -360,7 +360,7 @@ static const hcakey_info hcakey_list[] = {
     {43472919336422565},        // 009A7263CA658CA5
 
     /* Disney's Twisted Wonderland (Android) */
-    {2895000877},               // 00000000AC8E352D 
+    {2895000877},               // 00000000AC8E352D
 
     /* B-PROJECT Kaikan Everyday (Android) */
     {12316546176516217334u},    // AAED297DDEF1D9F6
@@ -1491,7 +1491,7 @@ static const hcakey_info hcakey_list[] = {
     {8115775984160473168},      // 70A1074224880050
 
     // Punishing: Gray Raven (Android)-newer assets
-    {62855594017927612},        // 00DF4ED46995B1BC 
+    {62855594017927612},        // 00DF4ED46995B1BC
 
     // Dragon Quest The Adventure of Dai: A Hero's Bonds (Android)
     {503876638109847402},       // 06FE2121F927CF6A (in criware decryptor init code, xor of 2 strings)
@@ -1663,7 +1663,10 @@ static const hcakey_info hcakey_list[] = {
 
     // Super Robot Wars Y (PC)
     {56793721747368501},        // 00C9C596CA396A35
-    
+
+    // Monsoni! (Android)
+    {8148138013054819},         // 001CF2B037D95763
+
 };
 
 #endif

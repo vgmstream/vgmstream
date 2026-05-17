@@ -316,7 +316,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ubi_bao_atomic,
     init_vgmstream_dsp_switch_audio,
     init_vgmstream_sadf,
-    init_vgmstream_h4m,
+    init_vgmstream_hvqm4,
     init_vgmstream_ads_container,
     init_vgmstream_asf,
     init_vgmstream_xmd,
@@ -514,6 +514,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ueopus,
     init_vgmstream_crid,
     init_vgmstream_plug,
+    init_vgmstream_wmw,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_mus_acm,

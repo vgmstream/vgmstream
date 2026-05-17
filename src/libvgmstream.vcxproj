@@ -170,6 +170,7 @@
     <ClInclude Include="meta\hca_bf.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\hca_keys_awb.h" />
+    <ClInclude Include="meta\hvqm4_streamfile.h" />
     <ClInclude Include="meta\idtech_streamfile.h" />
     <ClInclude Include="meta\ivb_streamfile.h" />
     <ClInclude Include="meta\jstm_streamfile.h" />
@@ -397,8 +398,8 @@
     <ClCompile Include="layout\blocked_ea_wve_au00.c" />
     <ClCompile Include="layout\blocked_filp.c" />
     <ClCompile Include="layout\blocked_gsnd.c" />
-    <ClCompile Include="layout\blocked_h4m.c" />
     <ClCompile Include="layout\blocked_halpst.c" />
+    <ClCompile Include="layout\blocked_hvqm4.c" />
     <ClCompile Include="layout\blocked_hwas.c" />
     <ClCompile Include="layout\blocked_mul.c" />
     <ClCompile Include="layout\blocked_mxch.c" />
@@ -566,7 +567,6 @@
     <ClCompile Include="meta\gin.c" />
     <ClCompile Include="meta\gsnd.c" />
     <ClCompile Include="meta\gwb_gwd.c" />
-    <ClCompile Include="meta\h4m.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
     <ClCompile Include="meta\hd3_bd3.c" />
@@ -574,6 +574,7 @@
     <ClCompile Include="meta\hgc1.c" />
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\hsf.c" />
+    <ClCompile Include="meta\hvqm4.c" />
     <ClCompile Include="meta\hxd.c" />
     <ClCompile Include="meta\i3ds.c" />
     <ClCompile Include="meta\iab.c" />
@@ -837,6 +838,7 @@
     <ClCompile Include="meta\wb.c" />
     <ClCompile Include="meta\wbk.c" />
     <ClCompile Include="meta\wd.c" />
+    <ClCompile Include="meta\wmw.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\ws_aud.c" />

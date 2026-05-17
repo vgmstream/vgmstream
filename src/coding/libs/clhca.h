@@ -43,11 +43,10 @@ typedef struct clHCA_stInfo {
     const char* comment;
     unsigned int encryptionEnabled; /* requires keycode */
 
-    /* Derived sample formulas:
-     * - sample count: blockCount*samplesPerBlock - encoderDelay - encoderPadding;
-     * - loop start sample = loopStartBlock*samplesPerBlock - encoderDelay + loopStartDelay
-     * - loop end sample = loopEndBlock*samplesPerBlock - encoderDelay + (samplesPerBlock - info.loopEndPadding)
-     */
+    // derived
+    unsigned int sampleCount;
+    unsigned int loopStartSample;
+    unsigned int loopEndSample;
 } clHCA_stInfo;
 
 /* Retrieves header information for decoding and playback (it's the caller's responsability

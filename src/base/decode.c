@@ -231,6 +231,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 14;
         case coding_AFC:
         case coding_AFC_2bit:
+        case coding_AFC_4X:
         case coding_VADPCM:
             return 16;
         case coding_NGC_DTK:
@@ -314,7 +315,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return (0x800 - 0x04) * 2;
         case coding_RAD_IMA_mono:
             return 32;
-        case coding_H4M_IMA:
+        case coding_HVQM4_IMA:
             return 0; /* variable (block-controlled) */
 
         case coding_XA:
@@ -431,6 +432,8 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_AFC:
         case coding_VADPCM:
             return 0x09;
+        case coding_AFC_4X:
+            return 0x09 * 2;
         case coding_AFC_2bit:
             return 0x05;
         case coding_NGC_DTK:
@@ -520,7 +523,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return 0x24 * vgmstream->channels;
         case coding_APPLE_IMA4:
             return 0x22;
-        case coding_H4M_IMA:
+        case coding_HVQM4_IMA:
             return 0x00; /* variable (block-controlled) */
 
         case coding_XA:
@@ -937,6 +940,9 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
+        case coding_AFC_4X:
+            decode_afc_4x(vgmstream, buffer, vgmstream->samples_into_block, samples_to_do);
+            break;
         case coding_VADPCM: {
             int order = vgmstream->codec_config;
             for (ch = 0; ch < vgmstream->channels; ch++) {
@@ -1187,11 +1193,11 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
                     vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
-        case coding_H4M_IMA:
+        case coding_HVQM4_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 uint16_t frame_format = (uint16_t)((vgmstream->codec_config >> 8) & 0xFFFF);
 
-                decode_h4m_ima(&vgmstream->ch[ch], buffer+ch,
+                decode_hvqm4_ima(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch,
                         frame_format);
             }

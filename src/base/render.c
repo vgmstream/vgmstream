@@ -127,7 +127,7 @@ int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_blocked_ea_wve_au00:
         case layout_blocked_ea_wve_ad10:
         case layout_blocked_sthd:
-        case layout_blocked_h4m:
+        case layout_blocked_hvqm4:
         case layout_blocked_xa_aiff:
         case layout_blocked_vs_square:
         case layout_blocked_vid1:
@@ -359,7 +359,7 @@ int render_main(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
     // should be part of main mixer process, but txtp calcs and render ops assume original sample rate,
     // making it a bit hard to plug in resampling without potentially buggy changes around
-    resample_vgmstream(sbuf, vgmstream);
+    resample_vgmstream(sbuf, vgmstream); //TODO: detect eof or resampler
 
     return sbuf->filled;
 }
