@@ -74,7 +74,9 @@ void decode_ngc_dtk(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspaci
 /* afc_decoder */
 void decode_afc(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_afc_2bit(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_afc_4x(VGMSTREAM* vgmstream, short* outbuf, int32_t first_sample, int32_t samples_to_do);
 int32_t afc_bytes_to_samples(size_t bytes, int channels);
+int32_t afc_4x_bytes_to_samples(size_t bytes, int channels);
 
 /* vadpcm_decoder */
 void decode_vadpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int order);

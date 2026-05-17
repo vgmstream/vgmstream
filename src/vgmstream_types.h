@@ -41,6 +41,7 @@ typedef enum {
     coding_NGC_DTK,         /* Nintendo DTK ADPCM (hardware disc), also called TRK or ADP */
     coding_AFC,             /* Nintendo AFC ADPCM */
     coding_AFC_2bit,        /* Nintendo AFC ADPCM (2-bit) */
+    coding_AFC_4X,          /* Nintendo AFC 4X ADPCM */
     coding_VADPCM,          /* Silicon Graphics VADPCM */
 
     coding_G721,            /* CCITT G.721 */

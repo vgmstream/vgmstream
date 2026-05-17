@@ -98,17 +98,28 @@ VGMSTREAM* init_vgmstream_hvqm4(STREAMFILE* sf) {
             break;
 
         case 0x04: // Pikmin (GC)
-        //case 0x05: // Pikmin (GC)
             vgmstream->coding_type = coding_AFC;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x09;
 
+            // somehow max_audio_frame_size is the data size for AFC
+            vgmstream->num_samples = afc_bytes_to_samples(max_audio_frame_size, channels);
+
             // needs streamfile since frames are cut in between blocks
             temp_sf = setup_hvqm4_streamfile(sf, start_offset, target_subsong, total_subsongs);
             if (!temp_sf) goto fail;
+            break;
+
+        case 0x05: // Pikmin (GC)
+            vgmstream->coding_type = coding_AFC_4X;
+            vgmstream->layout_type = layout_none;
 
             // somehow max_audio_frame_size is the data size for AFC
-            vgmstream->num_samples = afc_bytes_to_samples(max_audio_frame_size, channels);
+            vgmstream->num_samples = afc_4x_bytes_to_samples(max_audio_frame_size, channels);
+
+            // needs streamfile since frames are cut in between blocks
+            temp_sf = setup_hvqm4_streamfile(sf, start_offset, target_subsong, total_subsongs);
+            if (!temp_sf) goto fail;
             break;
 
         default:
