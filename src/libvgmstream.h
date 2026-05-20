@@ -43,12 +43,20 @@
 //LIBVGMSTREAM_API (type) LIBVGMSTREAM_CALL libvgmstream_function(...);
 
 /* external function behavior (for compile time) */
-#if defined(LIBVGMSTREAM_EXPORT)
-    #define LIBVGMSTREAM_API __declspec(dllexport) /* when exporting/creating vgmstream DLL */
-#elif defined(LIBVGMSTREAM_IMPORT)
-    #define LIBVGMSTREAM_API __declspec(dllimport) /* when importing/linking vgmstream DLL */
+#if defined(_MSC_VER) || defined(__CYGWIN__)
+    #if defined(LIBVGMSTREAM_EXPORT)
+        #define LIBVGMSTREAM_API __declspec(dllexport) /* when exporting/creating vgmstream DLL */
+    #elif defined(LIBVGMSTREAM_IMPORT)
+        #define LIBVGMSTREAM_API __declspec(dllimport) /* when importing/linking vgmstream DLL */
+    #else
+        #define LIBVGMSTREAM_API /* nothing, internal/default */
+    #endif
 #else
-    #define LIBVGMSTREAM_API /* nothing, internal/default */
+    #if defined(LIBVGMSTREAM_EXPORT)
+        #define LIBVGMSTREAM_API __attribute__ ((visibility ("default"))) /* when exporting/creating vgmstream SO */
+    #else
+        #define LIBVGMSTREAM_API
+    #endif
 #endif
 
 #include <stdint.h>
