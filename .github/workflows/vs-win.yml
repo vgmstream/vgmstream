@@ -1,52 +1,34 @@
-# github workflow to automate builds
-
 name: Windows build
 
 on:
   push:
-    branches: [ master ]
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - 'COPYING'
-      - '.gitignore'
-      - 'cli/tools/**'
+    branches: [ master, main ]
+    tags: [ 'r*' ]
+    paths-ignore: ['doc/**', '**.md', 'COPYING', '.gitignore', 'cli/tools/**']
   pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - 'COPYING'
-      - '.gitignore'
-      - 'cli/tools/**'
+    paths-ignore: ['doc/**', '**.md', 'COPYING', '.gitignore', 'cli/tools/**']
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
     name: Visual Studio
-
-    # The type of runner that the job will run on
     runs-on: windows-2022
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-
-      - name: Fetch Git tags
-        shell: cmd
-        run: git fetch --prune --unshallow --tags
+      - uses: actions/checkout@v6
+        # needs history + tags for auto-versioning
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Initialize build environment
         shell: cmd
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 Init
 
-      # Runs a single command using the runners shell
       - name: Build
         shell: cmd
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 Build
@@ -56,33 +38,33 @@ jobs:
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 PackageArtifacts
 
       # upload to "actions" tab artifacts (can only make a single .zip from a dir's files)
-      - name: Upload foobar2000 component artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload foobar2000 component
+        uses: actions/upload-artifact@v7
         with:
           name: foo_input_vgmstream.fb2k-component
           path: ${{github.workspace}}\bin\artifacts\foobar2000
 
-      - name: Upload CLI tools 32-bit artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload CLI tools 32-bit
+        uses: actions/upload-artifact@v7
         with:
           name: vgmstream-win
           path: ${{github.workspace}}\bin\artifacts\cli-x32
 
-      - name: Upload CLI tools 64-bit artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload CLI tools 64-bit
+        uses: actions/upload-artifact@v7
         with:
           name: vgmstream-win64
           path: ${{github.workspace}}\bin\artifacts\cli-x64
 
-      - name: debug symbols artifact (all)
-        uses: actions/upload-artifact@v4
+      - name: Upload debug symbols
+        uses: actions/upload-artifact@v7
         with:
           name: debug-symbols-pdb
           path: ${{github.workspace}}\bin\artifacts\pdb
 
       # uploads current assets to vgmstream-releases (token only works on merges)
       - name: Upload artifacts to vgmstream-releases
-        if: github.event_name != 'pull_request' 
+        if: github.event_name != 'pull_request'
         shell: cmd
         working-directory: ${{github.workspace}}
         env:
@@ -90,21 +72,3 @@ jobs:
         run: |
           python .github\uploader.py bin\vgmstream-win.zip bin\vgmstream-win64.zip bin\foo_input_vgmstream.fb2k-component
           python .github\uploader.py --changelog
-
-      #- name: Upload artifacts to S3
-      #  if: github.event_name != 'pull_request' 
-      #  working-directory: ${{github.workspace}}
-      #  shell: powershell
-      #  env:
-      #      AWS_DEFAULT_REGION: us-west-1
-      #      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-      #      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-      #  run: |
-      #    aws s3 cp bin\vgmstream-win.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-      #    aws s3 cp bin\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-      #    aws s3 cp bin\vgmstream-win.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-      #    aws s3 cp bin\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-      #    echo ${{github.sha}} | tee latest_id_win
-      #    git describe --always | tee latest_ver_win
-      #    aws s3 cp latest_id_win s3://vgmstream-builds/ --acl public-read
-      #    aws s3 cp latest_ver_win s3://vgmstream-builds/ --acl public-read

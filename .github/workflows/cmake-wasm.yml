@@ -1,23 +1,12 @@
-# github workflow to automate builds
-
 name: WebAssembly build
 
 on:
   push:
-    branches: [ master ]
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - 'COPYING'
-      - '.gitignore'
-      - 'cli/tools/**'
+    branches: [ master, main ]
+    tags: [ 'r*' ]
+    paths-ignore: ['doc/**', '**.md', 'COPYING', '.gitignore', 'cli/tools/**']
   pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - 'COPYING'
-      - '.gitignore'
-      - 'cli/tools/**'
+    paths-ignore: ['doc/**', '**.md', 'COPYING', '.gitignore', 'cli/tools/**']
   workflow_dispatch:
 
 concurrency:
@@ -25,7 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   EM_VERSION: 3.1.74
   EM_CACHE_FOLDER: 'emsdk-cache'
@@ -36,122 +24,106 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Fetch Git tags
-      run: |
-        git fetch --prune --unshallow --tags
-
-    # 'official' mymindstorm/setup-emsdk@v11 cache is broken: https://github.com/mymindstorm/setup-emsdk/issues/47
-    #  using pyodide/setup-emsdk@v15 friendly fork until the fix is merged
-    - name: Setup emsdk
-      uses: pyodide/setup-emsdk@v15
-      with:
-          version: ${{env.EM_VERSION}}
-          actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
-
-    - name: Create build environment
-      run: cmake -E make_directory ${{runner.workspace}}/embuild
-
-    - name: Cache celt
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/dependencies/celt-0061
-          ${{runner.workspace}}/dependencies/celt-0110
-          ${{runner.workspace}}/embuild/dependencies/celt-0061/libcelt/.libs
-          ${{runner.workspace}}/embuild/dependencies/celt-0110/libcelt/.libs
-        key: wasm-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
-
-    - name: Cache ffmpeg
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/include
-          ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/lib
-        key: wasm-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
-
-    - name: Cache atrac9
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/embuild/dependencies/LibAtrac9/bin
-        key: wasm-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
-
-    - name: Cache g719
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/embuild/dependencies/libg719_decode/libg719_decode.a
-        key: wasm-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
-
-    - name: Cache mpg123
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/dependencies/mpg123
-          ${{runner.workspace}}/embuild/dependencies/mpg123/src/libmpg123/.libs
-        key: wasm-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
-
-    - name: Cache speex
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/embuild/dependencies/speex/libspeex/.libs
-        key: wasm-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
-
-    - name: Cache ogg
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/embuild/dependencies/ogg/libogg.a
-          ${{runner.workspace}}/embuild/dependencies/ogg/include
-        key: wasm-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
-
-    - name: Cache vorbis
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/embuild/dependencies/vorbis/lib/*.a
-        key: wasm-vorbis-${{ hashFiles('cmake/dependencies/vorbis.cmake') }}
-
-    - name: Configure CMake
-      shell: bash
-      working-directory: ${{runner.workspace}}/embuild
-      run: emcmake cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-
-    - name: Build
-      working-directory: ${{runner.workspace}}/embuild
-      shell: bash
-      run: emmake make
-
-    - name: Upload WebAssembly artifact
-      uses: actions/upload-artifact@v4
-      with:
+      - uses: actions/checkout@v6
+        # needs history + tags for auto-versioning
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+  
+      - name: Setup emsdk
+        uses: emscripten-core/setup-emsdk@v15
+        with:
+            version: ${{env.EM_VERSION}}
+            actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+  
+      - name: Create build environment
+        run: cmake -E make_directory ${{runner.workspace}}/embuild
+  
+      - name: Cache celt
+        uses: actions/cache@v5
+        with:
           path: |
-            ${{runner.workspace}}/embuild/cli/vgmstream-cli.js
-            ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm
-          name: vgmstream-wasm
-
-    # uploads current assets to vgmstream-releases (token only works on merges)
-    - name: Upload artifacts to vgmstream-releases
-      if: github.event_name != 'pull_request' 
-      working-directory: ${{github.workspace}}
-      env:
-        UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
-      run: |
-        python .github/uploader.py ${{runner.workspace}}/embuild/cli/vgmstream-cli.js ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm
-
-    #- name: Upload artifacts to S3
-    #  if: github.event_name != 'pull_request'
-    #  working-directory: ${{runner.workspace}}/embuild/cli
-    #  shell: bash
-    #  env:
-    #      AWS_DEFAULT_REGION: us-west-1
-    #      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-    #      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-    #  run: |
-    #    echo ${{github.sha}} | tee latest_id
-    #    aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.js s3://vgmstream-builds/js/vgmstream-cli.js --acl public-read
-    #    aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm s3://vgmstream-builds/js/vgmstream-cli.wasm --acl public-read
-    #    aws s3 cp latest_id s3://vgmstream-builds/js/version --acl public-read
+            ${{runner.workspace}}/dependencies/celt-0061
+            ${{runner.workspace}}/dependencies/celt-0110
+            ${{runner.workspace}}/embuild/dependencies/celt-0061/libcelt/.libs
+            ${{runner.workspace}}/embuild/dependencies/celt-0110/libcelt/.libs
+          key: wasm-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
+  
+      - name: Cache ffmpeg
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/include
+            ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/lib
+          key: wasm-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
+  
+      - name: Cache atrac9
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/embuild/dependencies/LibAtrac9/bin
+          key: wasm-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
+  
+      - name: Cache g719
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/embuild/dependencies/libg719_decode/libg719_decode.a
+          key: wasm-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
+  
+      - name: Cache mpg123
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/dependencies/mpg123
+            ${{runner.workspace}}/embuild/dependencies/mpg123/src/libmpg123/.libs
+          key: wasm-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
+  
+      - name: Cache speex
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/embuild/dependencies/speex/libspeex/.libs
+          key: wasm-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
+  
+      - name: Cache ogg
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/embuild/dependencies/ogg/libogg.a
+            ${{runner.workspace}}/embuild/dependencies/ogg/include
+          key: wasm-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
+  
+      - name: Cache vorbis
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/embuild/dependencies/vorbis/lib/*.a
+          key: wasm-vorbis-${{ hashFiles('cmake/dependencies/vorbis.cmake') }}
+  
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{runner.workspace}}/embuild
+        run: emcmake cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+  
+      - name: Build
+        working-directory: ${{runner.workspace}}/embuild
+        shell: bash
+        run: emmake make
+  
+      - name: Upload WebAssembly
+        uses: actions/upload-artifact@v7
+        with:
+            path: |
+              ${{runner.workspace}}/embuild/cli/vgmstream-cli.js
+              ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm
+            name: vgmstream-wasm
+  
+      # uploads current assets to vgmstream-releases (token only works on merges)
+      - name: Upload artifacts to vgmstream-releases
+        if: github.event_name != 'pull_request'
+        working-directory: ${{github.workspace}}
+        env:
+          UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
+        run: |
+          python .github/uploader.py ${{runner.workspace}}/embuild/cli/vgmstream-cli.js ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm

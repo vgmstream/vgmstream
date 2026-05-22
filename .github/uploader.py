@@ -192,7 +192,8 @@ def main(args):
         token = os.environ.get('UPLOADER_GITHUB_TOKEN')
     if not token:
         print("token not defined")
-        raise ValueError("token not defined")
+        #raise ValueError("token not defined")
+        return
 
     print("handling %s files" % (len(files)))
     try:
