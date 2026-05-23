@@ -5,7 +5,7 @@
 
 // AKA 'UTALKSTATE'
 struct utk_context_t {
-    /* config */ 
+    /* config */
     utk_type_t type;
     int parsed_header;
 
@@ -253,6 +253,8 @@ static void parse_header(utk_context_t* ctx) {
         for (int i = 1; i < 64; i++) {
             ctx->fixed_gains[i] = ctx->fixed_gains[i-1] * multiplier;
         }
+
+        // OG MT also resets synth_history/subframes, but we already do it on utk_reset
     }
 }
 
@@ -392,7 +394,9 @@ static void lp_synthesis_filter(utk_context_t* ctx, int offset, int blocks) {
             *ptr++ = x;
 
             /* CBX only: samples are multiplied by 12582912.0, then coerce_int(sample[i]) on output
-             * to get final int16, as a pseudo-optimization; not sure if worth replicating */
+             * to get final int16, as a pseudo-optimization; not sure if worth replicating
+             * In regular MT, 12582912.0 or 0.0 is added based on a flag, but it's always set to 0 (pre-compiled?)
+             */
         }
     }
 }
@@ -473,7 +477,7 @@ static void decode_frame_main(utk_context_t* ctx) {
                 /* 0'd first + last samples for interpolation */
                 memset(&excitation[0], 0, 5 * sizeof(float));
                 memset(&excitation[5 + 108], 0, 5 * sizeof(float));
-                
+
                 /* interpolate the remaining samples (spectrum is low-pass filtered) */
                 interpolate_rest(&excitation[5 + (1 - align)]);
 
@@ -519,7 +523,7 @@ static int decode_frame_pcm(utk_context_t* ctx) {
 
     decode_frame_main(ctx);
 
-    /* unread the last 8 bits and reset the bit reader 
+    /* unread the last 8 bits and reset the bit reader
      * (a bit odd but should be safe in all cases, assuming ptr has been set) */
     ctx->br.ptr--;
     ctx->br.bits_count = 0;
@@ -562,18 +566,18 @@ int utk_decode_frame(utk_context_t* ctx) {
 utk_context_t* utk_init(utk_type_t type) {
     utk_context_t* ctx = calloc(1, sizeof(utk_context_t));
     if (!ctx) return NULL;
-    
+
     //memset(ctx, 0, sizeof(*ctx));
     ctx->type = type;
-    
+
     ctx->adapt_cb = ctx->subframes + 0;
     ctx->samples = ctx->subframes + 324;
-    
+
     return ctx;
 }
 
 void utk_free(utk_context_t* ctx) {
-    free(ctx);    
+    free(ctx);
 }
 
 void utk_reset(utk_context_t* ctx) {

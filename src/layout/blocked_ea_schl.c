@@ -142,9 +142,25 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM* vgmstream) {
 
                 break;
 
-            case coding_EA_MT: /* not seen in v0 streams so far, may not exist */
+            /* id, size, samples, flag (0x01 = data start), data */
+            case coding_EA_MT: // FIFA 99 (PC)-voices
+                if (vgmstream->channels > 1) {
+                    // unsure how data works in streams (sx.exe does use external offsets)
+                    VGM_LOG("EA SCHl: unknown channel offsets in blocked layout\n");
+                    vgmstream->current_block_samples = -1;
+                    break;
+                }
+
+                for (int i = 0; i < vgmstream->channels; i++) {
+                    vgmstream->ch[i].offset = block_offset + 0x0c + 0x01;
+                }
+
+                // flush decoder in every block change
+                flush_ea_mt(vgmstream);
+                break;
+
             default:
-                VGM_LOG("EA SCHl: Unkonwn channel offsets in blocked layout\n");
+                VGM_LOG("EA SCHl: unknown channel offsets in blocked layout\n");
                 vgmstream->current_block_samples = -1;
                 break;
         }
