@@ -144,7 +144,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DSP
 - **rfrm.c**
   - Retro Studios RFRM header [*RFRM*]
-  - *rfrm_mpr*: `.csmp`
   - *rfrm*: `.csmp`
   - Codecs: NGC_DSP
 - **cstr.c**
@@ -1190,10 +1189,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Procyon Studio SADF header [*SADF*]
   - *sadf*: `.sad .nop .(extensionless)`
   - Codecs: NGC_DSP
-- **h4m.c**
-  - Hudson HVQM4 header [*H4M*]
-  - *h4m*: `.h4m .hvqm`
-  - Codecs: H4M_IMA NGC_AFC
+- **hvqm4.c**
+  - Hudson HVQM4 header [*HVQM4*]
+  - *hvqm4*: `.h4m .hvqm`
+  - Codecs: HVQM4_IMA AFC AFC_4X
 - **asf.c**
   - Argonaut ASF header [*ASF*]
   - *asf*: `.asf .lasf`
@@ -1250,7 +1249,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **sdf.c**
   - Beyond Reality SDF header [*SDF*]
   - *sdf*: `.sdf`
-  - Codecs: PCM16LE PSX NGC_DSP
+  - Codecs: PCM16LE PCM8 IMA PSX NGC_DSP
 - **svgp.c**
   - High Voltage SVGp header [*SVGP*]
   - *svgp*: `.svg`
@@ -1833,6 +1832,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - (container)
   - *plug*: `.wem`
     - Subfiles: *adm3 bkhd_fx*
+- **wmw.c**
+  - Artoon WMW header [*WMW*]
+  - *wmw*: `.wmw`
+  - Codecs: AICA
 - **mus_acm.c**
   - InterPlay MUS ACM header [*MUS_ACM*]
   - *mus_acm*: `.mus`
