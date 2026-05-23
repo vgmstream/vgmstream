@@ -1,23 +1,12 @@
-# github workflow to automate builds
-
 name: Linux build
 
 on:
   push:
-    branches: [ master ]
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - 'COPYING'
-      - '.gitignore'
-      - 'cli/tools/**'
+    branches: [ master, main ]
+    tags: [ 'r*' ]
+    paths-ignore: ['doc/**', '**.md', 'COPYING', '.gitignore', 'cli/tools/**']
   pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - 'COPYING'
-      - '.gitignore'
-      - 'cli/tools/**'
+    paths-ignore: ['doc/**', '**.md', 'COPYING', '.gitignore', 'cli/tools/**']
   workflow_dispatch:
 
 concurrency:
@@ -25,157 +14,130 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
 
 jobs:
   build:
     name: CMake, Ubuntu
-    # use ubuntu-xx.xx-arm for aarch64, should be compatible as-is
     runs-on: ubuntu-22.04
+    #runs-on: ubuntu-22.04-arm #for aarch64, should be compatible as-is
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Fetch Git tags
-      run: |
-        git fetch --prune --unshallow --tags
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y yasm libopus-dev
-
-    - name: Create build environment
-      # Some projects don't allow in-source building, so create a separate build directory
-      # We'll use this as our working directory for all subsequent commands
-      run: |
-        cmake -E make_directory ${{runner.workspace}}/build
-        echo "RELEASE=$(lsb_release -sr)" >> $GITHUB_ENV
-
-    - name: Cache celt
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/dependencies/celt-0061
-          ${{runner.workspace}}/dependencies/celt-0110
-          ${{runner.workspace}}/build/dependencies/celt-0061/libcelt/.libs
-          ${{runner.workspace}}/build/dependencies/celt-0110/libcelt/.libs
-        key: linux-${{ env.RELEASE }}-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
-
-    - name: Cache ffmpeg
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/include
-          ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/lib
-        key: linux-${{ env.RELEASE }}-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
-
-    - name: Cache atrac9
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/build/dependencies/LibAtrac9/bin
-        key: linux-${{ env.RELEASE }}-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
-
-    - name: Cache g719
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/build/dependencies/libg719_decode/libg719_decode.a
-        key: linux-${{ env.RELEASE }}-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
-
-    - name: Cache mpg123
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/dependencies/mpg123
-          ${{runner.workspace}}/build/dependencies/mpg123/src/libmpg123/.libs
-        key: linux-${{ env.RELEASE }}-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
-
-    - name: Cache speex
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/build/dependencies/speex/libspeex/.libs
-        key: linux-${{ env.RELEASE }}-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
-
-    - name: Cache ogg
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/build/dependencies/ogg/libogg.a
-          ${{runner.workspace}}/build/dependencies/ogg/include
-        key: linux-${{ env.RELEASE }}-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
-
-    - name: Cache vorbis
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/build/dependencies/vorbis/lib/*.a
-        key: linux-${{ env.RELEASE }}-vorbis-${{ hashFiles('cmake/dependencies/vorbis.cmake') }}
-
-    - name: Configure CMake
-      # Use a bash shell so we can use the same syntax for environment variable
-      # access regardless of the host operating system
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      # Note the current convention is to use the -S and -B options here to specify source 
-      # and build directories, but this is only available with CMake 3.13 and higher.  
-      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STATIC=ON
-
-    - name: Build
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      # Execute the build.  You can specify a specific target with "--target <NAME>"
-      run: cmake --build . --config $BUILD_TYPE
-
-    - name: Upload CLI tools artifact
-      uses: actions/upload-artifact@v4
-      with:
+      - uses: actions/checkout@v6
+        # needs history + tags for auto-versioning
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+  
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yasm libopus-dev
+  
+      - name: Create build environment
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: |
+          cmake -E make_directory ${{runner.workspace}}/build
+          echo "RELEASE=$(lsb_release -sr)" >> $GITHUB_ENV
+  
+      - name: Cache celt
+        uses: actions/cache@v5
+        with:
           path: |
-            ${{runner.workspace}}/build/cli/vgmstream-cli
-          # ${{runner.workspace}}/build/cli/vgmstream123
-          name: vgmstream-cli
-
-    #- name: Upload Audacious plugin artifact
-    #  uses: actions/upload-artifact@v4
-    #  with:
-    #      path: ${{runner.workspace}}/build/audacious/vgmstream.so
-    #      name: vgmstream-audacious
-
-    # uploads current assets to vgmstream-releases (token only works on merges)
-    - name: Upload artifacts to nightly
-      if: github.event_name != 'pull_request' 
-      shell: bash
-      env:
-        UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
-      # tar cvfz vgmstream-linux-123.tar.gz -C ./build/cli vgmstream123
-      # tar cvfz vgmstream-linux-audacious.tar.gz -C ./build/audacious vgmstream.so
-      run: |
-        tar cvfz ${{runner.workspace}}/vgmstream-linux-cli.tar.gz -C ${{runner.workspace}}/build/cli vgmstream-cli
-        python ${{github.workspace}}/.github/uploader.py ${{runner.workspace}}/vgmstream-linux-cli.tar.gz
-
-
-    #- name: Upload artifacts to S3
-    #  if: github.event_name != 'pull_request'
-    #  working-directory: ${{runner.workspace}}/build
-    #  shell: bash
-    #  env:
-    #      AWS_DEFAULT_REGION: us-west-1
-    #      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-    #      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-    #  # TODO: Add vgmstream123 to the archive and upload the Audacious plugin when it is supported
-    #  run: |
-    #    cd cli
-    #    tar cvfz vgmstream-linux-cli.tar.gz vgmstream-cli
-    #    cd ..
-    #    aws s3 cp cli/vgmstream-linux-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-linux-cli.tar.gz --acl public-read
-    #    cd ${{runner.workspace}}
-    #    echo ${{github.sha}} | tee latest_id_lx
-    #    aws s3 cp latest_id_lx s3://vgmstream-builds/ --acl public-read
-    #  # cd audacious
-    #  # tar cvfz vgmstream-audacious.tar.gz vgmstream.so
-    #  # cd ..
-    #  # aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
+            ${{runner.workspace}}/dependencies/celt-0061
+            ${{runner.workspace}}/dependencies/celt-0110
+            ${{runner.workspace}}/build/dependencies/celt-0061/libcelt/.libs
+            ${{runner.workspace}}/build/dependencies/celt-0110/libcelt/.libs
+          key: linux-${{ env.RELEASE }}-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
+  
+      - name: Cache ffmpeg
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/include
+            ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/lib
+          key: linux-${{ env.RELEASE }}-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
+  
+      - name: Cache atrac9
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/build/dependencies/LibAtrac9/bin
+          key: linux-${{ env.RELEASE }}-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
+  
+      - name: Cache g719
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/build/dependencies/libg719_decode/libg719_decode.a
+          key: linux-${{ env.RELEASE }}-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
+  
+      - name: Cache mpg123
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/dependencies/mpg123
+            ${{runner.workspace}}/build/dependencies/mpg123/src/libmpg123/.libs
+          key: linux-${{ env.RELEASE }}-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
+  
+      - name: Cache speex
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/build/dependencies/speex/libspeex/.libs
+          key: linux-${{ env.RELEASE }}-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
+  
+      - name: Cache ogg
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/build/dependencies/ogg/libogg.a
+            ${{runner.workspace}}/build/dependencies/ogg/include
+          key: linux-${{ env.RELEASE }}-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
+  
+      - name: Cache vorbis
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{runner.workspace}}/build/dependencies/vorbis/lib/*.a
+          key: linux-${{ env.RELEASE }}-vorbis-${{ hashFiles('cmake/dependencies/vorbis.cmake') }}
+  
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        # Note the current convention is to use the -S and -B options here to specify source 
+        # and build directories, but this is only available with CMake 3.13 and higher.  
+        # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STATIC=ON
+  
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config $BUILD_TYPE
+  
+      - name: Upload CLI tools
+        uses: actions/upload-artifact@v7
+        with:
+            path: |
+              ${{runner.workspace}}/build/cli/vgmstream-cli
+            # ${{runner.workspace}}/build/cli/vgmstream123
+            name: vgmstream-linux
+  
+      #- name: Upload Audacious plugin
+      #  uses: actions/upload-artifact@v7
+      #  with:
+      #      path: ${{runner.workspace}}/build/audacious/vgmstream.so
+      #      name: vgmstream-audacious
+  
+      # uploads current assets to vgmstream-releases (token only works on merges)
+      - name: Upload artifacts to nightly
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
+        # tar cvfz vgmstream-linux-123.tar.gz -C ./build/cli vgmstream123
+        # tar cvfz vgmstream-linux-audacious.tar.gz -C ./build/audacious vgmstream.so
+        run: |
+          tar cvfz ${{runner.workspace}}/vgmstream-linux-cli.tar.gz -C ${{runner.workspace}}/build/cli vgmstream-cli
+          python ${{github.workspace}}/.github/uploader.py ${{runner.workspace}}/vgmstream-linux-cli.tar.gz
