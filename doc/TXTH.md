@@ -487,7 +487,12 @@ subsong_count = (value)
 subsong_spacing = (value)
 ```
 
-A experimental field is `subsong_sum = (value)`, that sums all subsong values up to current subsong. Mainly meant when offsets are the sum of subsong sizes: if you have a table of sizes at 0x10 for 3 subsongs, each of size 0x1000, then `subsong_sum = @0x10` for first subsong sums 0x0000, 0x1000 for second, 0x2000 for third (can be used later as `start_offset = subsong_sum`).
+##### SUBSONGS HELPERS
+Some experimental fields for special calculations:
+
+`subsong_sum = (value)` sums values at offset for all subsongs up to current subsong. Mainly used to calculate subsong offset from sizes. Example: `subsong_sum = @0x10` + `start_offset = subsong_sum`.
+
+`subsong_delta = (value)`: substracts next subsong's value with current value. Mainly used to calculate subsong size from offsets. Example: `subsong_delta = @0x14` + `data_size = subsong_delta`. The 'next' value in the last subsong can be configured with `subsong_delta_max` (defaults to data_size).
 
 #### NAMES
 Sets the name of the stream, most useful when used with subsongs. TXTH will read a string at `name_offset`, with `name_size characters`.
@@ -1437,4 +1442,18 @@ chunk_count = 1
 chunk_start = 0x28 #first chunk after header
 
 num_samples = data_size
+```
+
+#### FIFA 99 (PC) .OFF.txth
+```
+body_file = *.STR
+subsong_count = @0x00 * @0x04 #cues + variations?
+base_offset = @0x00 * 0x04 + 0x08
+
+subsong_spacing = 0x04
+subsong_delta = @0x00 #size from offset
+
+subfile_offset = @0x00
+subfile_size = subsong_delta
+subfile_extension = str
 ```

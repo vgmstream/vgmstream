@@ -124,6 +124,8 @@ typedef struct {
     uint32_t subsong_count;
     uint32_t subsong_spacing;
     uint32_t subsong_sum;
+    uint32_t subsong_delta;
+    uint32_t subsong_delta_max;
 
     uint32_t name_offset_set;
     uint32_t name_offset;
@@ -234,7 +236,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         uint32_t interleave  = 0;
         switch(txth.codec) {
             case PSX:
-            case PSX_bf:        
+            case PSX_bf:
             case HEVAG:         interleave = 0x10; break;
             case NGC_DSP:       interleave = 0x08; break;
             case PCM_FLOAT_LE:  interleave = 0x04; break;
@@ -1407,7 +1409,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_num(txth->sf_head,txth,val, &txth->subsong_spacing)) goto fail;
     }
     else if (is_string(key,"subsong_sum")) {
-        /* add all values up to current subsong (for example, to add all sizes to get current offset, so get start_offset) 
+        /* add all values up to current subsong (for example, to add all sizes to get current offset, so get start_offset)
          * doesn't include current (that is, reading size from fist subsong doesn't add anything) */
         int default_subsong = txth->target_subsong;
         uint32_t subsong_sum = 0;
@@ -1422,7 +1424,32 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
 
         txth->target_subsong = default_subsong;
     }
-    
+    else if (is_string(key,"subsong_delta")) {
+        /* get current and next offset */
+        uint32_t subsong_curr = 0;
+        uint32_t subsong_next = 0;
+
+        if (!parse_num(txth->sf_head,txth,val, &subsong_curr)) goto fail;
+
+        if (txth->target_subsong >= txth->subsong_count) {
+            // Some files have an extra offset for 'last size' to calculate next but most don't.
+            subsong_next = txth->subsong_delta_max;
+            if (subsong_next == 0)
+                subsong_next = txth->data_size;
+        }
+        else {
+            int default_subsong = txth->target_subsong;
+            txth->target_subsong += 1;
+            if (!parse_num(txth->sf_head,txth,val, &subsong_next)) goto fail;
+            txth->target_subsong = default_subsong;
+        }
+
+        txth->subsong_delta = subsong_next - subsong_curr;
+    }
+    else if (is_string(key,"subsong_delta_max")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->subsong_delta_max)) goto fail;
+    }
+
     else if (is_string(key,"name_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->name_offset)) goto fail;
         txth->name_offset_set = true;
@@ -1822,7 +1849,7 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
         return 0;
 
     /* try "(name): (val))" */
-    
+
     ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
     if (ok == 2) {
         string_trim(key); /* otherwise includes end spaces before : */
@@ -2141,6 +2168,8 @@ static bool parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32
             else if ((n = is_string_field(val,"subsong_spacing")))      value = txth->subsong_spacing;
             else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_spacing;
             else if ((n = is_string_field(val,"subsong_sum")))          value = txth->subsong_sum;
+            else if ((n = is_string_field(val,"subsong_delta")))        value = txth->subsong_delta;
+            else if ((n = is_string_field(val,"subsong_delta_max")))    value = txth->subsong_delta_max;
             else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
             else if ((n = is_string_field(val,"subfile_size")))         value = txth->subfile_size;
             else if ((n = is_string_field(val,"base_offset")))          value = txth->base_offset;
