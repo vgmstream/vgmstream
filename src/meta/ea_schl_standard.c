@@ -193,7 +193,7 @@ VGMSTREAM* init_vgmstream_ea_pt(STREAMFILE* sf) {
     STREAMFILE* sf_body = NULL;
     off_t head_offset, body_offset;
     size_t head_size;
-    int is_split = 0;
+    bool is_split = false;
 
 
     /* .pth: split [NBA Live 97 (PC)]
@@ -202,16 +202,20 @@ VGMSTREAM* init_vgmstream_ea_pt(STREAMFILE* sf) {
     if (check_extensions(sf, "pth")) {
         sf_body = open_streamfile_by_ext(sf, "ptd");
         if (!sf_body) goto fail;
-        is_split = 1;
+        is_split = true;
     }
-    else //if (!check_extensions(sf, "dat,ldat"))
+    else { //if (!check_extensions(sf, "dat,ldat"))
         return NULL;
+    }
 
 
     if (is_split) {
         head_size = get_streamfile_size(sf);
         head_offset = 0x00;
         body_offset = 0x00;
+    }
+    else {
+        return NULL;
     }
     /* these contain multiple subsongs, but with no clear way
      * to get each of their offsets, unimplemented for now */

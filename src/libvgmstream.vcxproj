@@ -445,7 +445,6 @@
     <ClCompile Include="meta\adp_ongakukan.c" />
     <ClCompile Include="meta\adp_qd.c" />
     <ClCompile Include="meta\adp_wildfire.c" />
-    <ClCompile Include="meta\ads.c" />
     <ClCompile Include="meta\ads_midway.c" />
     <ClCompile Include="meta\adx.c" />
     <ClCompile Include="meta\adx_monster.c" />
@@ -765,6 +764,7 @@
     <ClCompile Include="meta\sre_pcm.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
+    <ClCompile Include="meta\sshd.c" />
     <ClCompile Include="meta\ssnd.c" />
     <ClCompile Include="meta\ssp.c" />
     <ClCompile Include="meta\sspf.c" />

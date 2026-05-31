@@ -77,8 +77,8 @@ VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_rfrm(STREAMFILE *streamFile);
 
-VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf);
-VGMSTREAM* init_vgmstream_ads_container(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_sshd(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_sshd_container(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_npsf(STREAMFILE* sf);
 

@@ -47,7 +47,7 @@ VGMSTREAM* init_vgmstream_npsf(STREAMFILE* sf) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x800;
-    vgmstream->meta_type = meta_NPS;
+    vgmstream->meta_type = meta_NPSF;
     read_string(vgmstream->stream_name, STREAM_NAME_SIZE, 0x34, sf);
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))

@@ -520,7 +520,7 @@ static int make_group_random(txtp_header_t* txtp, txtp_group_t* grp, int positio
      * (plus foobar caches song duration unless .txtp is modifies, so it can get strange if randoms are too different) */
     if (selected < 0) {
         static int random_seed = 0;
-        srand((unsigned)txtp + random_seed++); /* whatevs */
+        srand(((unsigned)txtp) + random_seed++); /* whatevs */
         selected = (rand() % count); /* 0..count-1 */
         //;VGM_LOG("TXTP: autoselected random %i\n", selected);
     }

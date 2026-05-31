@@ -310,8 +310,8 @@ typedef enum {
     meta_BNSF,              /* Bandai Namco Sound Format */
 
     meta_XA,
-    meta_ADS,
-    meta_NPS,
+    meta_SSHD,
+    meta_NPSF,
     meta_RXWS,
     meta_RAW_INT,
     meta_EXST,

@@ -3,7 +3,7 @@
 
 
 /* .ADS - Sony's "Audio Stream" format [Edit Racing (PS2), Evergrace II (PS2), Pri-Saga! Portable (PSP)] */
-VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_sshd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels, sample_rate, interleave, is_loop_samples = 0;
@@ -37,10 +37,10 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
 
     /* base values (a bit unorderly since devs hack ADS too much and detection is messy) */
     {
-        codec = read_u32le(0x08,sf);
+        codec       = read_u32le(0x08,sf);
         sample_rate = read_s32le(0x0C,sf);
-        channels = read_s32le(0x10,sf); /* up to 4 [Eve of Extinction (PS2)] */
-        interleave = read_s32le(0x14,sf); /* set even when mono */
+        channels    = read_s32le(0x10,sf); /* up to 4 [Eve of Extinction (PS2)] */
+        interleave  = read_s32le(0x14,sf); /* set even when mono */
 
 
         switch(codec) {
@@ -74,7 +74,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
     /* sizes */
     {
         file_size = get_streamfile_size(sf);
-        body_size = read_32bitLE(0x24,sf);
+        body_size = read_u32le(0x24,sf);
 
         /* bigger than file_size in rare cases, even if containing all data (ex. Megaman X7's SY04.ADS) */
         if (body_size + 0x28 > file_size) {
@@ -105,16 +105,15 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
 
         /* "ADSC" container */
         if (coding_type == coding_PSX
-                && read_32bitLE(0x28,sf) == 0x1000 /* real start */
-                && read_32bitLE(0x2c,sf) == 0
-                && read_32bitLE(0x1008,sf) != 0) {
-            int i;
-            int is_adsc = 1;
+                && read_u32le(0x28,sf) == 0x1000 /* real start */
+                && read_u32le(0x2c,sf) == 0
+                && read_u32le(0x1008,sf) != 0) {
+            bool is_adsc = true;
 
             /* should be empty up to data start */
-            for (i = 0; i < 0xFDC/4; i++) {
-                if (read_32bitLE(0x2c+(i*4),sf) != 0) {
-                    is_adsc = 0;
+            for (int i = 0; i < 0xFDC/4; i++) {
+                if (read_u32le(0x2c+(i*4),sf) != 0) {
+                    is_adsc = false;
                     break;
                 }
             }
@@ -129,10 +128,8 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
 
     /* loops */
     {
-        uint32_t loop_start, loop_end;
-
-        loop_start = read_u32le(0x18,sf);
-        loop_end = read_u32le(0x1C,sf);
+        uint32_t loop_start = read_u32le(0x18,sf);
+        uint32_t loop_end   = read_u32le(0x1C,sf);
 
         loop_flag = 0;
 
@@ -203,8 +200,8 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
                 loop_end_offset = loop_end * 0x20;
             }
             else if (loop_end <= body_size / 0x10 && coding_type == coding_PSX
-                    && (read_32bitBE(0x28 + loop_end*0x10 + 0x10 + 0x00, sf) == 0x00077777 ||
-                        read_32bitBE(0x28 + loop_end*0x10 + 0x20 + 0x00, sf) == 0x00077777)) {
+                    && (read_u32be(0x28 + loop_end*0x10 + 0x10 + 0x00, sf) == 0x00077777 ||
+                        read_u32be(0x28 + loop_end*0x10 + 0x20 + 0x00, sf) == 0x00077777)) {
                 /* not-quite-looping sfx, ending with a "non-looping PS-ADPCM end frame" [Kono Aozora ni Yakusoku, Chanter] */
                 loop_flag = 0;
             }
@@ -234,25 +231,25 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
             offset -= 0x10;
 
             if (read_8bit(offset+0x01,sf) == 0x07) {
-                stream_size -= 0x10*channels;/* ignore don't decode flag/padding frame (most common) [ex. Capcom games] */
+                stream_size -= 0x10 * channels;/* ignore don't decode flag/padding frame (most common) [ex. Capcom games] */
             }
-            else if (read_32bitBE(offset+0x00,sf) == 0x00000000 && read_32bitBE(offset+0x04,sf) == 0x00000000 &&
-                     read_32bitBE(offset+0x08,sf) == 0x00000000 && read_32bitBE(offset+0x0c,sf) == 0x00000000) {
-                stream_size -= 0x10*channels; /* ignore null frame [ex. A.C.E. Another Century Episode 1/2/3] */
+            else if (read_u32be(offset+0x00,sf) == 0x00000000 && read_u32be(offset+0x04,sf) == 0x00000000 &&
+                     read_u32be(offset+0x08,sf) == 0x00000000 && read_u32be(offset+0x0c,sf) == 0x00000000) {
+                stream_size -= 0x10 * channels; /* ignore null frame [ex. A.C.E. Another Century Episode 1/2/3] */
             }
-            else if (read_32bitBE(offset+0x00,sf) == 0x00007777 && read_32bitBE(offset+0x04,sf) == 0x77777777 &&
-                     read_32bitBE(offset+0x08,sf) == 0x77777777 && read_32bitBE(offset+0x0c,sf) == 0x77777777) {
-                stream_size -= 0x10*channels; /* ignore padding frame [ex. Akane Iro ni Somaru Saka - Parallel]  */
+            else if (read_u32be(offset+0x00,sf) == 0x00007777 && read_u32be(offset+0x04,sf) == 0x77777777 &&
+                     read_u32be(offset+0x08,sf) == 0x77777777 && read_u32be(offset+0x0c,sf) == 0x77777777) {
+                stream_size -= 0x10 * channels; /* ignore padding frame [ex. Akane Iro ni Somaru Saka - Parallel]  */
             }
-            else if (read_32bitBE(offset+0x00,sf) == 0x0C020000 && read_32bitBE(offset+0x04,sf) == 0x00000000 &&
-                     read_32bitBE(offset+0x08,sf) == 0x00000000 && read_32bitBE(offset+0x0c,sf) == 0x00000000 &&
+            else if (read_u32be(offset+0x00,sf) == 0x0C020000 && read_u32be(offset+0x04,sf) == 0x00000000 &&
+                     read_u32be(offset+0x08,sf) == 0x00000000 && read_u32be(offset+0x0c,sf) == 0x00000000 &&
                      ignore_silent_frame_cavia) {
-                stream_size -= 0x10*channels; /* ignore silent frame [ex. cavia games]  */
+                stream_size -= 0x10 * channels; /* ignore silent frame [ex. cavia games]  */
             }
-            else if (read_32bitBE(offset+0x00,sf) == 0x0C010000 && read_32bitBE(offset+0x04,sf) == 0x00000000 &&
-                     read_32bitBE(offset+0x08,sf) == 0x00000000 && read_32bitBE(offset+0x0c,sf) == 0x00000000 &&
+            else if (read_u32be(offset+0x00,sf) == 0x0C010000 && read_u32be(offset+0x04,sf) == 0x00000000 &&
+                     read_u32be(offset+0x08,sf) == 0x00000000 && read_u32be(offset+0x0c,sf) == 0x00000000 &&
                      ignore_silent_frame_capcom) {
-                stream_size -= 0x10*channels; /* ignore silent frame [ex. Capcom games]  */
+                stream_size -= 0x10 * channels; /* ignore silent frame [ex. Capcom games]  */
             }
             else {
                 break; /* standard frame */
@@ -272,7 +269,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
     vgmstream->coding_type = coding_type;
     vgmstream->interleave_block_size = interleave;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->meta_type = meta_ADS;
+    vgmstream->meta_type = meta_SSHD;
 
     switch(coding_type) {
         case coding_PCM16LE:
@@ -330,7 +327,7 @@ fail:
 /* ****************************************************************************** */
 
 /* ADS in containers */
-VGMSTREAM* init_vgmstream_ads_container(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_sshd_container(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     off_t subfile_offset;
@@ -367,7 +364,7 @@ VGMSTREAM* init_vgmstream_ads_container(STREAMFILE* sf) {
     temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, "ads");
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_ads(temp_sf);
+    vgmstream = init_vgmstream_sshd(temp_sf);
     close_streamfile(temp_sf);
 
     return vgmstream;
