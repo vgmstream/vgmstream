@@ -391,6 +391,20 @@ STREAMFILE* open_stdio_streamfile_by_file(FILE* file, const char* filename) {
 
 /* ************************************************************************* */
 
+#ifdef VGM_DEBUG_OUTPUT
+    #define VGM_LOGB(buf, buf_size, bytes_per_line) \
+        do { \
+            int i; \
+            for (i=0; i < buf_size; i++) { \
+                printf("%02x",buf[i] & 0xFF); \
+                if (bytes_per_line && (i+1) % bytes_per_line == 0) printf("\n"); \
+            } \
+            printf("\n"); \
+        } while (0)
+#else
+    #define VGM_LOGB(buf, buf_size, bytes_per_line) /* nothing */
+#endif
+
 void dump_streamfile(STREAMFILE* sf, int num) {
 #ifdef VGM_DEBUG_OUTPUT
     offv_t offset = 0;
