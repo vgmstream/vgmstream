@@ -472,7 +472,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_pwb,
     init_vgmstream_squeakstream,
     init_vgmstream_squeaksample,
-    init_vgmstream_snds,
+    init_vgmstream_ssdd,
     init_vgmstream_adm2,
     init_vgmstream_nxof,
     init_vgmstream_gwb_gwd,

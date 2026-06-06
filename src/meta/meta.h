@@ -988,7 +988,7 @@ VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_squeakstream(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf);
 
-VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_ssdd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_nxof(STREAMFILE* sf);
 

@@ -1504,7 +1504,7 @@ static const meta_info meta_info_list[] = {
         {meta_AWD,                  "RenderWare AWD header"},
         {meta_SQUEAKSTREAM,         "Torus SqueakStream header"},
         {meta_SQUEAKSAMPLE,         "Torus SqueakSample header"},
-        {meta_SNDS,                 "Sony SNDS header"},
+        {meta_SSDD,                 "Sony SSDD header"},
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
         {meta_CBX,                  "Traveller's Tales/Warthog Chatterbox header"},

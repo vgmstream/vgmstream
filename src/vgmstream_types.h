@@ -705,7 +705,7 @@ typedef enum {
     meta_AWD,
     meta_SQUEAKSTREAM,
     meta_SQUEAKSAMPLE,
-    meta_SNDS,
+    meta_SSDD,
     meta_NXOF,
     meta_GWB_GWD,
     meta_CBX,

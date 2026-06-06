@@ -4,7 +4,7 @@
 
 
 /* SSDD - Sony/SCE's SNDS lib format (cousin of SGXD/SNDX) */
-VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ssdd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t stream_offset, stream_size;
     int loop_flag, channels, codec, sample_rate;
@@ -19,7 +19,7 @@ VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf) {
 
     if (read_u32le(0x04, sf) != get_streamfile_size(sf))
         return NULL;
-    /* 0x10: file name */
+    // 0x10: file name
 
     /* (extensionless): no apparent extension in debug strings, though comparing other SCE libs possibly ".ssd" */
     if (!check_extensions(sf,""))
@@ -41,14 +41,14 @@ VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf) {
     /* read stream header */
     {
         uint32_t head_offset = wavs_offset + 0x04 + 0x2c * (target_subsong - 1);
-        /* 0x00: null/flags? */
-        /* 0x04: null/offset? */
-        /* 0x0c: null/offset? */
+        // 0x00: null/flags?
+        // 0x04: null/offset?
+        // 0x0c: null/offset?
         codec           =    read_u8(head_offset + 0x0c, sf);
         channels        = read_u16le(head_offset + 0x0d, sf);
-        /* 0x0e: null? */
+        // 0x0e: null?
         sample_rate     = read_u32le(head_offset + 0x10, sf);
-        at9_config      = read_u32le(head_offset + 0x14, sf); /* !!! (only known use of this lib is Android/iOS) */
+        at9_config      = read_u32le(head_offset + 0x14, sf); // !!! (only known use of this lib is Android/iOS)
         num_samples     = read_s32le(head_offset + 0x18, sf);
         loop_start      = read_s32le(head_offset + 0x1c, sf);
         loop_end        = read_s32le(head_offset + 0x20, sf);
@@ -71,7 +71,7 @@ VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_SNDS;
+    vgmstream->meta_type = meta_SSDD;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
