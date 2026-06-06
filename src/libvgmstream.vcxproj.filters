@@ -1894,9 +1894,6 @@
     <ClCompile Include="meta\ps2_joe.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_vbk.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\psb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2270,6 +2267,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vas_rockstar.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\vbk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vds_vdm.c">

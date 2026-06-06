@@ -688,7 +688,6 @@
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_vbk.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />
@@ -814,6 +813,7 @@
     <ClCompile Include="meta\vai.c" />
     <ClCompile Include="meta\vas_kceo.c" />
     <ClCompile Include="meta\vas_rockstar.c" />
+    <ClCompile Include="meta\vbk.c" />
     <ClCompile Include="meta\vds_vdm.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
