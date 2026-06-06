@@ -327,7 +327,7 @@ VGMSTREAM* init_vgmstream_gsnd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ssm(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_joe(STREAMFILE * streamFile);
 
 VGMSTREAM* init_vgmstream_vgs(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_vgs_old(STREAMFILE* sf);

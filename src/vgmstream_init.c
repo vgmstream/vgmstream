@@ -115,7 +115,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_gsnd,
     init_vgmstream_ydsp,
     init_vgmstream_ssm,
-    init_vgmstream_ps2_joe,
     init_vgmstream_vgs,
     init_vgmstream_dcs_wav,
     init_vgmstream_mul,
@@ -517,6 +516,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_wmw,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
+    init_vgmstream_joe,
     init_vgmstream_mus_acm,
     init_vgmstream_afc,
     init_vgmstream_agsc,

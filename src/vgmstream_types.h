@@ -378,7 +378,7 @@ typedef enum {
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
     meta_SSM,
-    meta_PS2_JOE,           /* Wall-E / Pixar games */
+    meta_JOE,
     meta_YMF,
     meta_SADL,
     meta_FAG,               /* Jackie Chan - Stuntmaster */

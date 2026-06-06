@@ -1210,7 +1210,7 @@ static const meta_info meta_info_list[] = {
         {meta_GSND,                 "Tecmo GSND Header"},
         {meta_YDSP,                 "Yuke's YDSP Header"},
         {meta_SSM,                  "HAL Laboratory .SSM Header"},
-        {meta_PS2_JOE,              "Asobo Studio .JOE header"},
+        {meta_JOE,                  "Asobo Studio .JOE header"},
         {meta_VGS,                  "Harmonix VGS Header"},
         {meta_DCS_WAV,              "In Utero DCS+WAV header"},
         {meta_SMP,                  "Infernal Engine .smp header"},
