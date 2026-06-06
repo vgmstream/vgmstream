@@ -976,6 +976,7 @@ static const coding_info coding_info_list[] = {
         {coding_UBI_MPEG,           "Ubisoft MPEG"},
         {coding_MIO,                "Entis MIO"},
         {coding_BINKA,              "RAD Game tools Bink Audio"},
+        {coding_AAC_raw,            "Custom AAC"},
         {coding_CF_DF_ADPCM_V40,    "Cyberflix DreamFactory v4.0 ADPCM"},
         {coding_CF_DF_DPCM_V41,     "Cyberflix DreamFactory v4.1 DPCM"},
 
@@ -1537,6 +1538,7 @@ static const meta_info meta_info_list[] = {
         {meta_GCSP,                 "THQ Australia GCSP header"},
         {meta_UEOPUS,               "Epic Games UEOPUS header"},
         {meta_WMW,                  "Artoon WMW header"},
+        {meta_PXND,                 "Pixelbite PXND header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

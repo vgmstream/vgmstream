@@ -514,6 +514,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_crid,
     init_vgmstream_plug,
     init_vgmstream_wmw,
+    init_vgmstream_pxnd,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_joe,

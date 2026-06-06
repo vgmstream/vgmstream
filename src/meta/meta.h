@@ -1066,4 +1066,6 @@ VGMSTREAM* init_vgmstream_plug(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_wmw(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_pxnd(STREAMFILE* sf);
+
 #endif

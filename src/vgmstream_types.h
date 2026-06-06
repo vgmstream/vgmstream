@@ -153,6 +153,7 @@ typedef enum {
     coding_UBI_MPEG,        /* Ubisoft MPEG codec (transform-based) */
     coding_MIO,             /* Entis MIO codec (transform-based) */
     coding_BINKA,           /* RAD Game Tools Bink Audio codec (transform-based) */
+    coding_AAC_raw,         /* AAC raw frames (transform-based) */
 
     coding_CF_DF_ADPCM_V40, /* Cyberflix DreamFactory v4.0 ADPCM */
     coding_CF_DF_DPCM_V41,  /* Cyberflix DreamFactory v4.1 DPCM */
@@ -738,6 +739,7 @@ typedef enum {
     meta_GCSP,
     meta_UEOPUS,
     meta_WMW,
+    meta_PXND,
 } meta_t;
 
 #endif

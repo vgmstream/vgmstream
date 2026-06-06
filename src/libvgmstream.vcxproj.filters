@@ -203,6 +203,15 @@
     <ClInclude Include="coding\libs\libacm.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\maac.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\maac_extras.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\maac_vgmstream.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\minimp3.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -669,6 +678,9 @@
     </ClCompile>
     <ClCompile Include="base\tags.c">
       <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\aac_raw_decoder.c">
+      <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">
       <Filter>coding\Source Files</Filter>
@@ -1907,6 +1919,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pwb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\pxnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rad.c">

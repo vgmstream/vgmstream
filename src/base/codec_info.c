@@ -30,6 +30,7 @@ extern const codec_info_t mpeg_decoder;
 #endif
 extern const codec_info_t relic_decoder;
 extern const codec_info_t binka_decoder;
+extern const codec_info_t aac_decoder;
 
 extern const codec_info_t cf_df_v40_decoder;
 extern const codec_info_t cf_df_v41_decoder;
@@ -95,6 +96,8 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
             return &cf_df_v40_decoder;
         case coding_CF_DF_DPCM_V41:
             return &cf_df_v41_decoder;
+        case coding_AAC_raw:
+            return &aac_decoder;
         default:
             return NULL;
     }
