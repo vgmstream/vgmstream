@@ -514,7 +514,7 @@ typedef enum {
     meta_HSF,
     meta_IVAG,
     meta_2PFS,
-    meta_PS2_VBK,           /* Disney's Stitch - Experiment 626 */
+    meta_VBK,
     meta_XWB_KONAMI,
     meta_CSTM,              /* Nintendo 3DS CSTM (Century Stream) */
     meta_FSTM,              /* Nintendo Wii U FSTM (caFe? Stream) */

@@ -1312,7 +1312,7 @@ static const meta_info meta_info_list[] = {
         {meta_IVAG,                 "Namco IVAG header"},
         {meta_2PFS,                 "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
-        {meta_PS2_VBK,              "PS2 VBK Header"},
+        {meta_VBK,                  "High Voltage VBK header"},
         {meta_XWB_KONAMI,           "Konami .XWB header"},
         {meta_CSTM,                 "Nintendo CSTM Header"},
         {meta_FSTM,                 "Nintendo FSTM Header"},

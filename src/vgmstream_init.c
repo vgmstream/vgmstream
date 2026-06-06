@@ -208,7 +208,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_2pfs,
     init_vgmstream_xnb,
     init_vgmstream_ubi_ckd,
-    init_vgmstream_ps2_vbk,
+    init_vgmstream_vbk,
     init_vgmstream_xwb_konami,
     init_vgmstream_bcstm,
     init_vgmstream_idsp_namco,
