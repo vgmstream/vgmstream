@@ -19,10 +19,10 @@ typedef struct {
     int segment_count;
     VGMSTREAM** segments;
     int current_segment;
-    sample_t* buffer;
-    int input_channels;     /* internal buffer channels */
-    int output_channels;    /* resulting channels (after mixing, if applied) */
-    bool mixed_channels;     /* segments have different number of channels */
+    void* buffer;
+    int input_channels;     // internal buffer channels
+    int output_channels;    // resulting channels (after mixing, if applied)
+    bool mixed_channels;    // segments have different number of channels //TODO remove
     sfmt_t fmt;
 } segmented_layout_data;
 
@@ -41,10 +41,10 @@ typedef struct {
     int layer_count;
     VGMSTREAM** layers;
     void* buffer;
-    int input_channels;     /* internal buffer channels */
-    int output_channels;    /* resulting channels (after mixing, if applied) */
-    int external_looping;   /* don't loop using per-layer loops, but layout's own looping */
-    int curr_layer;         /* helper */
+    int input_channels;     // internal buffer channels
+    int output_channels;    // resulting channels (after mixing, if applied)
+    int external_looping;   // don't loop using per-layer loops, but layout's own looping
+    int curr_layer;         // helper
     sfmt_t fmt;
 } layered_layout_data;
 

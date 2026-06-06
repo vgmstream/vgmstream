@@ -207,7 +207,10 @@ void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
 }
 
 void sbuf_silence_rest(sbuf_t* sbuf) {
-    sbuf_silence_part(sbuf, sbuf->filled, sbuf->samples - sbuf->filled);
+    int sample_count = sbuf->samples - sbuf->filled;
+    sbuf_silence_part(sbuf, sbuf->filled, sample_count);
+
+    sbuf->filled += sample_count;
 }
 
 
@@ -288,6 +291,11 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples) {
     // rarely when decoding with empty frames, may not setup ssrc
     if (samples == 0)
         return;
+
+    if (sdst->filled + samples > sdst->samples) {
+        VGM_LOG("SBUF: wrong copy segments (src-filled=%i, dst-free=%i, requested=%i)\n", ssrc->filled, sdst->samples - sdst->filled, samples);
+        return;
+    }
 
     if (ssrc->channels != sdst->channels) {
         // 0'd other channels first (uncommon so probably fine albeit slower-ish)

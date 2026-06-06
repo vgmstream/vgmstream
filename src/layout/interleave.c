@@ -161,6 +161,7 @@ void render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         samples_this_block = vgmstream->num_samples;
 
     while (sdst->filled < sdst->samples) {
+        int samples_done, curr_filled;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping, restore standard interleave sizes */
@@ -177,11 +178,12 @@ void render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
             goto decode_fail;
         }
 
+        curr_filled = sdst->filled;
         decode_vgmstream(sdst, vgmstream, samples_to_do);
+        samples_done = sdst->filled - curr_filled;
 
-        sdst->filled += samples_to_do;
-        vgmstream->current_sample += samples_to_do;
-        vgmstream->samples_into_block += samples_to_do;
+        vgmstream->current_sample += samples_done;
+        vgmstream->samples_into_block += samples_done;
 
 
         /* move to next interleaved block when all samples are consumed */

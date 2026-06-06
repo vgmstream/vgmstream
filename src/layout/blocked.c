@@ -26,7 +26,8 @@ void render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     }
 
     while (sdst->filled < sdst->samples) {
-        int samples_to_do; 
+        int samples_to_do;
+        int samples_done, curr_filled;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping, readjust back to loop start values */
@@ -56,14 +57,15 @@ void render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         if (samples_to_do > sdst->samples - sdst->filled)
             samples_to_do = sdst->samples - sdst->filled;
 
+        curr_filled = sdst->filled;
         if (samples_to_do > 0) {
             /* samples_this_block = 0 is allowed (empty block, do nothing then move to next block) */
             decode_vgmstream(sdst, vgmstream, samples_to_do);
         }
+        samples_done = sdst->filled - curr_filled;
 
-        sdst->filled += samples_to_do;
-        vgmstream->current_sample += samples_to_do;
-        vgmstream->samples_into_block += samples_to_do;
+        vgmstream->current_sample += samples_done;
+        vgmstream->samples_into_block += samples_done;
 
 
         /* move to next block when all samples are consumed */

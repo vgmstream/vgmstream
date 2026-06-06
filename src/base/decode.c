@@ -752,10 +752,11 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
     buffer += sdst->filled * vgmstream->channels; // passed externally to decoders to simplify I guess
     //samples_to_do -= samples_filled; /* pre-adjusted */
 
+    bool is_decode_new = false;
     switch (vgmstream->coding_type) {
         case coding_SILENCE:
             sbuf_silence_rest(sdst);
-            break;
+            return; //fills sbuf
 
         case coding_CRI_ADX:
         case coding_CRI_ADX_exp:
@@ -1415,12 +1416,23 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             break;
 
         default: {
-            sbuf_t stmp = *sdst;
-            stmp.samples = stmp.filled + samples_to_do; //TODO improve 
-
-            decode_frames(&stmp, vgmstream, samples_to_do);
+            is_decode_new = true;
             break;
         }
+    }
+
+    if (is_decode_new) {
+        //TODO improve 
+        sbuf_t stmp = *sdst;
+        stmp.samples = stmp.filled + samples_to_do;
+        decode_frames(&stmp, vgmstream, samples_to_do);
+        stmp.samples = sdst->samples;
+        *sdst = stmp;
+    }
+    else {
+        // old decoders will honor the exact samples_to_do, which should be pre-calculated
+        // (as to limit samples to loop points and frame boundaries)
+        sdst->filled += samples_to_do;
     }
 }
 
