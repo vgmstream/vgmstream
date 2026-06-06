@@ -578,6 +578,7 @@
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\hsf.c" />
     <ClCompile Include="meta\hvqm4.c" />
+    <ClCompile Include="meta\hwas.c" />
     <ClCompile Include="meta\hxd.c" />
     <ClCompile Include="meta\i3ds.c" />
     <ClCompile Include="meta\iab.c" />
@@ -651,7 +652,6 @@
     <ClCompile Include="meta\myspd.c" />
     <ClCompile Include="meta\naac.c" />
     <ClCompile Include="meta\naomi_adpcm.c" />
-    <ClCompile Include="meta\nds_hwas.c" />
     <ClCompile Include="meta\nds_rrds.c" />
     <ClCompile Include="meta\nds_strm.c" />
     <ClCompile Include="meta\ngc_adpdtk.c" />
