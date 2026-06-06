@@ -747,7 +747,6 @@
     <ClCompile Include="meta\smss.c" />
     <ClCompile Include="meta\smv.c" />
     <ClCompile Include="meta\sndp.c" />
-    <ClCompile Include="meta\snds.c" />
     <ClCompile Include="meta\sndx.c" />
     <ClCompile Include="meta\sndz.c" />
     <ClCompile Include="meta\snd_mtf.c" />
@@ -763,6 +762,7 @@
     <ClCompile Include="meta\sre_pcm.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
+    <ClCompile Include="meta\ssdd.c" />
     <ClCompile Include="meta\sshd.c" />
     <ClCompile Include="meta\ssnd.c" />
     <ClCompile Include="meta\ssp.c" />
