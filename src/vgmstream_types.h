@@ -446,7 +446,7 @@ typedef enum {
     meta_ZSD,
     meta_REDSPARK,
     meta_RAGE_AUD,          /* Rockstar AUD - MC:LA, GTA IV */
-    meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
+    meta_HWAS,
     meta_LPS,
     meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 Arcade games */
     meta_SD9,

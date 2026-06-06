@@ -340,6 +340,10 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, txth.name_size, txth.name_offset, txth.sf_head);
     }
 
+    //if (txth.codec == OKI4S) {
+    //    vgmstream->allow_dual_stereo = true;
+    //}
+
     /* codec specific (taken from GENH with minimal changes) */
     switch (coding) {
         case coding_PCM24LE:
@@ -437,7 +441,12 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
 
             //TODO recheck and use only for needed cases
-            vgmstream->allow_dual_stereo = true; /* known to be used in: PSX, AICA, YMZ */
+            /* known to be used in: 
+               PSX 
+               AICA [Psychic Force 2012 (DC)]
+               YMZ [VJ - Visual & Music Slap (AC)]
+             */
+            vgmstream->allow_dual_stereo = true;
             break;
 
         case coding_DPCM_KCEJ:
