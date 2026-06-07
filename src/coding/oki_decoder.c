@@ -177,12 +177,11 @@ void decode_oki16(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
 
 /* OKI variation with 16-bit output (vs standard's 12-bit) and pre-adjusted tables (shifted by 4), found in Jubeat Clan (AC).
  * Reverse engineered from the DLLs (libbmsd-engine.dll). Internally code calls it "adpcm", so OKI4S is just a description. */
-void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count = 0;
+void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, bool is_stereo) {
+    int sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
-    int is_stereo = channelspacing > 1;
 
 
     /* external interleave */
@@ -192,7 +191,7 @@ void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
     if (step_index > 48) step_index=48;
 
     /* decode nibbles (layout: varies) */
-    for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+    for (int i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         off_t byte_offset = is_stereo ?
                 stream->offset + i :    /* stereo: one nibble per channel */
                 stream->offset + i/2;   /* mono: consecutive nibbles */

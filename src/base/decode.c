@@ -1402,12 +1402,14 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             }
             break;
 
-        case coding_OKI4S:
+        case coding_OKI4S: {
+            bool is_stereo = (vgmstream->channels > 1 && vgmstream->codec_config != 1);
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_oki4s(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, is_stereo);
             }
             break;
+        }
 
         case coding_UBI_ADPCM:
             decode_ubi_adpcm(vgmstream, buffer, samples_to_do);
