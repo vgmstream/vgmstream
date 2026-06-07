@@ -42,7 +42,7 @@ VGMSTREAM* init_vgmstream_nxms(STREAMFILE* sf) {
     for (int i = 0; i < segment_count; i++) {
         uint32_t segment_offset = read_u32le(offset + 0x00, sf);
         uint32_t segment_size   = read_u32le(offset + 0x04, sf);
-        //08: segment samples?
+        int32_t segment_samples = read_s32le(offset + 0x08, sf);
         //0c: null
         //10: segment name (size 0x20), usually (filename)_head.nxms / (filename)_body.nxms
 
@@ -52,6 +52,8 @@ VGMSTREAM* init_vgmstream_nxms(STREAMFILE* sf) {
         data->segments[i] = init_vgmstream_opus_std(temp_sf);
         close_streamfile(temp_sf);
         if (!data->segments[i]) goto fail;
+
+        data->segments[i]->num_samples = segment_samples;
 
         offset += 0x30;
     }
