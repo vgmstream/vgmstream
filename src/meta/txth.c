@@ -342,9 +342,6 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, txth.name_size, txth.name_offset, txth.sf_head);
     }
 
-    //if (txth.codec == OKI4S) {
-    //    vgmstream->allow_dual_stereo = true;
-    //}
 
     /* codec specific (taken from GENH with minimal changes) */
     switch (coding) {
@@ -465,8 +462,15 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 vgmstream->codec_config = txth.codec_mode;
             break;
 
-        case coding_OKI16:
         case coding_OKI4S:
+            vgmstream->layout_type = layout_none;
+            if (vgmstream->channels == 1) {
+                vgmstream->allow_dual_stereo = 1; //
+                vgmstream->codec_config = 1;
+            }
+            break;
+
+        case coding_OKI16:
         case coding_XA:
         case coding_XA_EA:
         case coding_CP_YM:
