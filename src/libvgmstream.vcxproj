@@ -668,6 +668,7 @@
     <ClCompile Include="meta\nwav.c" />
     <ClCompile Include="meta\nxa1.c" />
     <ClCompile Include="meta\nxap.c" />
+    <ClCompile Include="meta\nxms.c" />
     <ClCompile Include="meta\nxof.c" />
     <ClCompile Include="meta\ogg_opus.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />

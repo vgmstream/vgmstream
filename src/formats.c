@@ -427,6 +427,8 @@ static const char* extension_list[] = {
     "nwa",
     "nwav",
     "nxa",
+    "nxms",
+    "nxse", //txth/reserved [Tetris the Grand Master 4: Absolute Eye (Switch)]
     "nxopus",
 
     "oga",
@@ -1540,6 +1542,7 @@ static const meta_info meta_info_list[] = {
         {meta_UEOPUS,               "Epic Games UEOPUS header"},
         {meta_WMW,                  "Artoon WMW header"},
         {meta_PXND,                 "Pixelbite PXND header"},
+        {meta_NXMS,                 "Arika NXMS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

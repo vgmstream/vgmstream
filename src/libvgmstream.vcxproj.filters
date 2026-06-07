@@ -1834,6 +1834,9 @@
     <ClCompile Include="meta\nxap.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\nxms.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\nxof.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
