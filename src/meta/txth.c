@@ -61,6 +61,7 @@ typedef enum {
     ALAW,
     DPCM_KCEJ,
     IMA_SNDS,
+    XBOX_SABER,
 
     UNKNOWN = 255,
 } txth_codec_t;
@@ -263,6 +264,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PSX_bf:        coding = coding_PSX_badflags; break;
         case HEVAG:         coding = coding_HEVAG; break;
         case XBOX:          coding = coding_XBOX_IMA; break;
+        case XBOX_SABER:    coding = coding_XBOX_IMA_saber; break;
         case NGC_DTK:       coding = coding_NGC_DTK; break;
         case PCM24LE:       coding = coding_PCM24LE; break;
         case PCM24BE:       coding = coding_PCM24BE; break;
@@ -535,6 +537,13 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 if (vgmstream->channels > 2 && vgmstream->channels % 2 != 0)
                     goto fail; /* only 2ch+..+2ch layout is known */
             }
+            break;
+
+        case coding_XBOX_IMA_saber:
+            vgmstream->layout_type = layout_none;
+            // only multichannel (4ch) files have an alt layout
+            if (vgmstream->channels <= 2)
+                coding = coding_XBOX_IMA;
             break;
 
         case coding_NGC_DTK:
@@ -1031,6 +1040,7 @@ fail:
 static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     if      (is_string(val,"PSX"))          return PSX;
     else if (is_string(val,"XBOX"))         return XBOX;
+    else if (is_string(val,"XBOX_SABER"))   return XBOX_SABER;
     else if (is_string(val,"NGC_DTK"))      return NGC_DTK;
     else if (is_string(val,"DTK"))          return NGC_DTK;
     else if (is_string(val,"PCM24BE"))      return PCM24BE;
@@ -2281,6 +2291,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
                 return ms_ima_bytes_to_samples(bytes / txth->channels, txth->frame_size, 1);
             return ms_ima_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave, txth->channels);
         case XBOX:
+        case XBOX_SABER:
             return xbox_ima_bytes_to_samples(bytes, txth->channels);
         case NGC_DSP:
             return dsp_bytes_to_samples(bytes, txth->channels);

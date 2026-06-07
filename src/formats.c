@@ -907,6 +907,7 @@ static const coding_info coding_info_list[] = {
         {coding_MS_IMA_mono,        "Microsoft 4-bit IMA ADPCM (mono)"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
         {coding_XBOX_IMA_mch,       "XBOX 4-bit IMA ADPCM (multichannel)"},
+        {coding_XBOX_IMA_saber,     "XBOX 4-bit IMA ADPCM (Saber)"},
         {coding_XBOX_IMA_mono,      "XBOX 4-bit IMA ADPCM (mono)"},
         {coding_NDS_IMA,            "NDS-style 4-bit IMA ADPCM"},
         {coding_DAT4_IMA,           "Eurocom DAT4 4-bit IMA ADPCM"},

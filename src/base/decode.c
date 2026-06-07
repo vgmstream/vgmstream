@@ -292,6 +292,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
+        case coding_XBOX_IMA_saber:
         case coding_XBOX_IMA_mono:
         case coding_FSB_IMA:
         case coding_WWISE_IMA:
@@ -519,6 +520,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_CRANKCASE_IMA:
             return 0x23;
         case coding_XBOX_IMA_mch:
+        case coding_XBOX_IMA_saber:
         case coding_FSB_IMA:
             return 0x24 * vgmstream->channels;
         case coding_APPLE_IMA4:
@@ -893,6 +895,12 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_XBOX_IMA_mch:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_xbox_ima_mch(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+            }
+            break;
+        case coding_XBOX_IMA_saber:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_xbox_ima_saber(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;

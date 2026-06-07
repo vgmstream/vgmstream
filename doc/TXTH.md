@@ -135,6 +135,8 @@ as explained below, but often will use default values. Accepted codec strings:
 # - XBOX           Xbox IMA ADPCM (mono/stereo)
 #   * For many XBOX games, and some PC games
 #   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
+# - XBOX_SABER     Xbox IMA ADPCM (Saber Interactive)
+#   * For rare PC games [Halo 2 Anniversary Edition (PC)]
 # - MS_IMA         Microsoft IMA ADPCM
 #   * For some PC games
 #   * frame_size (or interleave) varies, often multiple of 0x100 [required]
