@@ -292,6 +292,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
+        case coding_XBOX_IMA_saber:
         case coding_XBOX_IMA_mono:
         case coding_FSB_IMA:
         case coding_WWISE_IMA:
@@ -519,6 +520,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_CRANKCASE_IMA:
             return 0x23;
         case coding_XBOX_IMA_mch:
+        case coding_XBOX_IMA_saber:
         case coding_FSB_IMA:
             return 0x24 * vgmstream->channels;
         case coding_APPLE_IMA4:
@@ -752,10 +754,11 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
     buffer += sdst->filled * vgmstream->channels; // passed externally to decoders to simplify I guess
     //samples_to_do -= samples_filled; /* pre-adjusted */
 
+    bool is_decode_new = false;
     switch (vgmstream->coding_type) {
         case coding_SILENCE:
             sbuf_silence_rest(sdst);
-            break;
+            return; //fills sbuf
 
         case coding_CRI_ADX:
         case coding_CRI_ADX_exp:
@@ -892,6 +895,12 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_XBOX_IMA_mch:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_xbox_ima_mch(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+            }
+            break;
+        case coding_XBOX_IMA_saber:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_xbox_ima_saber(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
@@ -1393,12 +1402,14 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             }
             break;
 
-        case coding_OKI4S:
+        case coding_OKI4S: {
+            bool is_stereo = (vgmstream->channels > 1 && vgmstream->codec_config != 1);
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_oki4s(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, is_stereo);
             }
             break;
+        }
 
         case coding_UBI_ADPCM:
             decode_ubi_adpcm(vgmstream, buffer, samples_to_do);
@@ -1415,12 +1426,23 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             break;
 
         default: {
-            sbuf_t stmp = *sdst;
-            stmp.samples = stmp.filled + samples_to_do; //TODO improve 
-
-            decode_frames(&stmp, vgmstream, samples_to_do);
+            is_decode_new = true;
             break;
         }
+    }
+
+    if (is_decode_new) {
+        //TODO improve 
+        sbuf_t stmp = *sdst;
+        stmp.samples = stmp.filled + samples_to_do;
+        decode_frames(&stmp, vgmstream, samples_to_do);
+        stmp.samples = sdst->samples;
+        *sdst = stmp;
+    }
+    else {
+        // old decoders will honor the exact samples_to_do, which should be pre-calculated
+        // (as to limit samples to loop points and frame boundaries)
+        sdst->filled += samples_to_do;
     }
 }
 

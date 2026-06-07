@@ -59,21 +59,12 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
         do { static int written; if (!written) { if (condition) {vgm_logd(__VA_ARGS__); written = 1;} }  } while (0)
 
     /* prints to a file */
+    #if 0
     #define VGM_LOGT(txt, ...) \
         do { FILE *fl = fopen(txt,"a+"); if(fl){fprintf(fl,__VA_ARGS__); fflush(fl);} fclose(fl); } while(0)
 
-    /* prints a buffer/array */
-    #define VGM_LOGB(buf, buf_size, bytes_per_line) \
-        do { \
-            int i; \
-            for (i=0; i < buf_size; i++) { \
-                printf("%02x",buf[i] & 0xFF); \
-                if (bytes_per_line && (i+1) % bytes_per_line == 0) printf("\n"); \
-            } \
-            printf("\n"); \
-        } while (0)
-
     #define VGM_STEP()  do { printf("%s: %s:%i\n", __FILE__, __FUNCTION__,  __LINE__); } while (0)
+    #endif
 
 #else /* VGM_DEBUG_OUTPUT */
 
@@ -81,11 +72,11 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
 
     #define VGM_ASSERT_ONCE(condition, ...) /* nothing */
 
+    #if 0
     #define VGM_LOGT() /* nothing */
 
-    #define VGM_LOGB(buf, buf_size, bytes_per_line) /* nothing */
-
     #define VGM_STEP() /* nothing */
+    #endif
 
 #endif /*VGM_DEBUG_OUTPUT*/
 

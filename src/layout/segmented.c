@@ -89,19 +89,19 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
             ssrc->buf = buf_filled;
         }
 
-        int samples_done = render_main(ssrc, vs);
-        samples_done = samples_to_do; //TODO: may return more??
+        //TODO: buf may be smaller than samples
+        render_main(ssrc, vs);
 
         // returned buf may have changed
         if (ssrc->buf != buf_filled) {
-            sbuf_copy_segments(sbuf, ssrc, samples_done);
+            sbuf_copy_segments(sbuf, ssrc, ssrc->filled);
         } else {
             //TODO ???
-            sbuf->filled += samples_done;
+            sbuf->filled += ssrc->filled;
         }
 
-        vgmstream->current_sample += samples_done;
-        vgmstream->samples_into_block += samples_done;
+        vgmstream->current_sample += ssrc->filled;
+        vgmstream->samples_into_block += ssrc->filled;
     }
 
     return;
@@ -171,74 +171,83 @@ fail:
 }
 
 bool setup_layout_segmented(segmented_layout_data* data) {
+    if (!data || data->segment_count == 0)
+        return false;
+
+    //TODO: simplify, do resample external (use txtp)
     int max_input_channels = 0;
     int max_output_channels = 0;
     sfmt_t max_sample_type = SFMT_NONE;
+    int max_sample_rate = data->segments[0]->sample_rate;
     bool mixed_channels = false;
+    bool mixed_sample_rate = false;
 
     /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
     for (int i = 0; i < data->segment_count; i++) {
+        VGMSTREAM* vs = data->segments[i];
 
-        if (data->segments[i] == NULL) {
+        if (vs == NULL) {
             VGM_LOG("SEGMENTED: no vgmstream in segment %i\n", i);
             return false;
         }
 
-        if (data->segments[i]->num_samples <= 0) {
+        if (vs->num_samples <= 0) {
             VGM_LOG("SEGMENTED: no samples in segment %i\n", i);
             return false;
         }
 
         /* allow config if set for fine-tuned parts (usually TXTP only) */
-        data->segments[i]->config_enabled = data->segments[i]->config.config_set;
+        vs->config_enabled = vs->config.config_set;
 
         /* disable so that looping is controlled by render_vgmstream_segmented */
-        if (data->segments[i]->loop_flag != 0) {
+        if (vs->loop_flag) {
             VGM_LOG("SEGMENTED: segment %i is looped\n", i);
 
             /* config allows internal loops */
-            if (!data->segments[i]->config_enabled) {
-                data->segments[i]->loop_flag = 0;
+            if (!vs->config_enabled) {
+                vs->loop_flag = false;
             }
         }
 
         /* different segments may have different input or output channels (in rare cases of using ex. 2ch + 4ch) */
         int segment_input_channels, segment_output_channels;
-        mixing_info(data->segments[i], &segment_input_channels, &segment_output_channels);
+        mixing_info(vs, &segment_input_channels, &segment_output_channels);
         if (max_input_channels < segment_input_channels)
             max_input_channels = segment_input_channels;
         if (max_output_channels < segment_output_channels)
             max_output_channels = segment_output_channels;
 
+        if (max_sample_rate < vs->sample_rate) {
+            max_sample_rate = vs->sample_rate;
+            mixed_sample_rate = true;
+        }
+
+        //TODO simplify
         if (i > 0) {
+            VGMSTREAM* vs_prev = data->segments[i-1];
+
             int prev_output_channels;
 
-            mixing_info(data->segments[i-1], NULL, &prev_output_channels);
+            mixing_info(vs_prev, NULL, &prev_output_channels);
             if (segment_output_channels != prev_output_channels) {
                 mixed_channels = true;
-                //VGM_LOG("SEGMENTED: segment %i has wrong channels %i vs prev channels %i\n", i, segment_output_channels, prev_output_channels);
-                //goto fail;
             }
 
             /* a bit weird, but no matter (should resample) */
-            if (data->segments[i]->sample_rate != data->segments[i-1]->sample_rate) {
+            if (vs->sample_rate != vs_prev->sample_rate) {
                 VGM_LOG("SEGMENTED: segment %i has different sample rate\n", i);
             }
-
-            /* perfectly acceptable */
-            //if (data->segments[i]->coding_type != data->segments[i-1]->coding_type)
-            //    goto fail;
         }
 
-        sfmt_t current_sample_type = mixing_get_input_sample_type(data->segments[i]);
+        sfmt_t current_sample_type = mixing_get_input_sample_type(vs);
         if (max_sample_type < current_sample_type && max_sample_type != SFMT_FLT) //float has priority
             max_sample_type = current_sample_type;
 
         /* init mixing */
-        mixing_setup(data->segments[i], VGMSTREAM_SEGMENT_SAMPLE_BUFFER);
+        mixing_setup(vs, VGMSTREAM_SEGMENT_SAMPLE_BUFFER);
 
         /* final setup in case the VGMSTREAM was created manually */
-        setup_vgmstream(data->segments[i]);
+        setup_vgmstream(vs);
     }
 
     if (max_output_channels > VGMSTREAM_MAX_CHANNELS || max_input_channels > VGMSTREAM_MAX_CHANNELS)

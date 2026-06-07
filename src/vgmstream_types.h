@@ -78,6 +78,7 @@ typedef enum {
     coding_MS_IMA_mono,     /* Microsoft IMA ADPCM (mono) */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
     coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
+    coding_XBOX_IMA_saber,  /* XBOX IMA ADPCM (Saber) */
     coding_XBOX_IMA_mono,   /* XBOX IMA ADPCM (mono) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
@@ -153,6 +154,7 @@ typedef enum {
     coding_UBI_MPEG,        /* Ubisoft MPEG codec (transform-based) */
     coding_MIO,             /* Entis MIO codec (transform-based) */
     coding_BINKA,           /* RAD Game Tools Bink Audio codec (transform-based) */
+    coding_AAC_raw,         /* AAC raw frames (transform-based) */
 
     coding_CF_DF_ADPCM_V40, /* Cyberflix DreamFactory v4.0 ADPCM */
     coding_CF_DF_DPCM_V41,  /* Cyberflix DreamFactory v4.1 DPCM */
@@ -378,7 +380,7 @@ typedef enum {
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
     meta_SSM,
-    meta_PS2_JOE,           /* Wall-E / Pixar games */
+    meta_JOE,
     meta_YMF,
     meta_SADL,
     meta_FAG,               /* Jackie Chan - Stuntmaster */
@@ -445,7 +447,7 @@ typedef enum {
     meta_ZSD,
     meta_REDSPARK,
     meta_RAGE_AUD,          /* Rockstar AUD - MC:LA, GTA IV */
-    meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
+    meta_HWAS,
     meta_LPS,
     meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 Arcade games */
     meta_SD9,
@@ -514,7 +516,7 @@ typedef enum {
     meta_HSF,
     meta_IVAG,
     meta_2PFS,
-    meta_PS2_VBK,           /* Disney's Stitch - Experiment 626 */
+    meta_VBK,
     meta_XWB_KONAMI,
     meta_CSTM,              /* Nintendo 3DS CSTM (Century Stream) */
     meta_FSTM,              /* Nintendo Wii U FSTM (caFe? Stream) */
@@ -705,7 +707,7 @@ typedef enum {
     meta_AWD,
     meta_SQUEAKSTREAM,
     meta_SQUEAKSAMPLE,
-    meta_SNDS,
+    meta_SSDD,
     meta_NXOF,
     meta_GWB_GWD,
     meta_CBX,
@@ -738,6 +740,8 @@ typedef enum {
     meta_GCSP,
     meta_UEOPUS,
     meta_WMW,
+    meta_PXND,
+    meta_NXMS,
 } meta_t;
 
 #endif

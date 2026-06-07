@@ -427,6 +427,8 @@ static const char* extension_list[] = {
     "nwa",
     "nwav",
     "nxa",
+    "nxms",
+    "nxse", //txth/reserved [Tetris the Grand Master 4: Absolute Eye (Switch)]
     "nxopus",
 
     "oga",
@@ -907,6 +909,7 @@ static const coding_info coding_info_list[] = {
         {coding_MS_IMA_mono,        "Microsoft 4-bit IMA ADPCM (mono)"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
         {coding_XBOX_IMA_mch,       "XBOX 4-bit IMA ADPCM (multichannel)"},
+        {coding_XBOX_IMA_saber,     "XBOX 4-bit IMA ADPCM (Saber)"},
         {coding_XBOX_IMA_mono,      "XBOX 4-bit IMA ADPCM (mono)"},
         {coding_NDS_IMA,            "NDS-style 4-bit IMA ADPCM"},
         {coding_DAT4_IMA,           "Eurocom DAT4 4-bit IMA ADPCM"},
@@ -976,6 +979,7 @@ static const coding_info coding_info_list[] = {
         {coding_UBI_MPEG,           "Ubisoft MPEG"},
         {coding_MIO,                "Entis MIO"},
         {coding_BINKA,              "RAD Game tools Bink Audio"},
+        {coding_AAC_raw,            "Custom AAC"},
         {coding_CF_DF_ADPCM_V40,    "Cyberflix DreamFactory v4.0 ADPCM"},
         {coding_CF_DF_DPCM_V41,     "Cyberflix DreamFactory v4.1 DPCM"},
 
@@ -1210,7 +1214,7 @@ static const meta_info meta_info_list[] = {
         {meta_GSND,                 "Tecmo GSND Header"},
         {meta_YDSP,                 "Yuke's YDSP Header"},
         {meta_SSM,                  "HAL Laboratory .SSM Header"},
-        {meta_PS2_JOE,              "Asobo Studio .JOE header"},
+        {meta_JOE,                  "Asobo Studio .JOE header"},
         {meta_VGS,                  "Harmonix VGS Header"},
         {meta_DCS_WAV,              "In Utero DCS+WAV header"},
         {meta_SMP,                  "Infernal Engine .smp header"},
@@ -1234,7 +1238,7 @@ static const meta_info meta_info_list[] = {
         {meta_RAGE_AUD,             "Rockstar AUD header"},
         {meta_DSP_WII_WSD,          ".WSD header"},
         {meta_WII_NDP,              "Icon Games NDP header"},
-        {meta_NDS_HWAS,             "Vicarious Visions HWAS header"},
+        {meta_HWAS,                 "Vicarious Visions HWAS header"},
         {meta_LPS,                  "Konami .LPS Header"},
         {meta_NAOMI_ADPCM,          "NAOMI/NAOMI2 Arcade games ADPCM header"},
         {meta_SD9,                  "Konami SD9 header"},
@@ -1312,7 +1316,7 @@ static const meta_info meta_info_list[] = {
         {meta_IVAG,                 "Namco IVAG header"},
         {meta_2PFS,                 "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
-        {meta_PS2_VBK,              "PS2 VBK Header"},
+        {meta_VBK,                  "High Voltage VBK header"},
         {meta_XWB_KONAMI,           "Konami .XWB header"},
         {meta_CSTM,                 "Nintendo CSTM Header"},
         {meta_FSTM,                 "Nintendo FSTM Header"},
@@ -1504,7 +1508,7 @@ static const meta_info meta_info_list[] = {
         {meta_AWD,                  "RenderWare AWD header"},
         {meta_SQUEAKSTREAM,         "Torus SqueakStream header"},
         {meta_SQUEAKSAMPLE,         "Torus SqueakSample header"},
-        {meta_SNDS,                 "Sony SNDS header"},
+        {meta_SSDD,                 "Sony SSDD header"},
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
         {meta_CBX,                  "Traveller's Tales/Warthog Chatterbox header"},
@@ -1537,6 +1541,8 @@ static const meta_info meta_info_list[] = {
         {meta_GCSP,                 "THQ Australia GCSP header"},
         {meta_UEOPUS,               "Epic Games UEOPUS header"},
         {meta_WMW,                  "Artoon WMW header"},
+        {meta_PXND,                 "Pixelbite PXND header"},
+        {meta_NXMS,                 "Arika NXMS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

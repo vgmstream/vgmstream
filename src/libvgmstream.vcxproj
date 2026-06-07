@@ -123,6 +123,9 @@
     <ClInclude Include="coding\libs\ka1a_dec.h" />
     <ClInclude Include="coding\libs\ka1a_dec_data.h" />
     <ClInclude Include="coding\libs\libacm.h" />
+    <ClInclude Include="coding\libs\maac.h" />
+    <ClInclude Include="coding\libs\maac_extras.h" />
+    <ClInclude Include="coding\libs\maac_vgmstream.h" />
     <ClInclude Include="coding\libs\minimp3.h" />
     <ClInclude Include="coding\libs\minimp3_vgmstream.h" />
     <ClInclude Include="coding\libs\mio_erisacontext.h" />
@@ -280,6 +283,7 @@
     <ClCompile Include="base\streamfile_stdio.c" />
     <ClCompile Include="base\streamfile_wrap.c" />
     <ClCompile Include="base\tags.c" />
+    <ClCompile Include="coding\aac_raw_decoder.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\afc_decoder.c" />
@@ -574,6 +578,7 @@
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\hsf.c" />
     <ClCompile Include="meta\hvqm4.c" />
+    <ClCompile Include="meta\hwas.c" />
     <ClCompile Include="meta\hxd.c" />
     <ClCompile Include="meta\i3ds.c" />
     <ClCompile Include="meta\iab.c" />
@@ -592,6 +597,7 @@
     <ClCompile Include="meta\ivag.c" />
     <ClCompile Include="meta\ivb.c" />
     <ClCompile Include="meta\jaudio.c" />
+    <ClCompile Include="meta\joe.c" />
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ka1a.c" />
     <ClCompile Include="meta\kat.c" />
@@ -646,7 +652,6 @@
     <ClCompile Include="meta\myspd.c" />
     <ClCompile Include="meta\naac.c" />
     <ClCompile Include="meta\naomi_adpcm.c" />
-    <ClCompile Include="meta\nds_hwas.c" />
     <ClCompile Include="meta\nds_rrds.c" />
     <ClCompile Include="meta\nds_strm.c" />
     <ClCompile Include="meta\ngc_adpdtk.c" />
@@ -663,6 +668,7 @@
     <ClCompile Include="meta\nwav.c" />
     <ClCompile Include="meta\nxa1.c" />
     <ClCompile Include="meta\nxap.c" />
+    <ClCompile Include="meta\nxms.c" />
     <ClCompile Include="meta\nxof.c" />
     <ClCompile Include="meta\ogg_opus.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
@@ -687,13 +693,12 @@
     <ClCompile Include="meta\ps2p.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
-    <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_vbk.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\pwb.c" />
+    <ClCompile Include="meta\pxnd.c" />
     <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\rage_aud.c" />
     <ClCompile Include="meta\ras.c" />
@@ -748,7 +753,6 @@
     <ClCompile Include="meta\smss.c" />
     <ClCompile Include="meta\smv.c" />
     <ClCompile Include="meta\sndp.c" />
-    <ClCompile Include="meta\snds.c" />
     <ClCompile Include="meta\sndx.c" />
     <ClCompile Include="meta\sndz.c" />
     <ClCompile Include="meta\snd_mtf.c" />
@@ -764,6 +768,7 @@
     <ClCompile Include="meta\sre_pcm.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
+    <ClCompile Include="meta\ssdd.c" />
     <ClCompile Include="meta\sshd.c" />
     <ClCompile Include="meta\ssnd.c" />
     <ClCompile Include="meta\ssp.c" />
@@ -814,6 +819,7 @@
     <ClCompile Include="meta\vai.c" />
     <ClCompile Include="meta\vas_kceo.c" />
     <ClCompile Include="meta\vas_rockstar.c" />
+    <ClCompile Include="meta\vbk.c" />
     <ClCompile Include="meta\vds_vdm.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />

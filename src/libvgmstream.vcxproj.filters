@@ -203,6 +203,15 @@
     <ClInclude Include="coding\libs\libacm.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\maac.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\maac_extras.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\maac_vgmstream.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\minimp3.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -669,6 +678,9 @@
     </ClCompile>
     <ClCompile Include="base\tags.c">
       <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\aac_raw_decoder.c">
+      <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">
       <Filter>coding\Source Files</Filter>
@@ -1552,6 +1564,9 @@
     <ClCompile Include="meta\hvqm4.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\hwas.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\hxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1604,6 +1619,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\jaudio.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\joe.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\jstm.c">
@@ -1768,9 +1786,6 @@
     <ClCompile Include="meta\naomi_adpcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\nds_hwas.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\nds_rrds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1817,6 +1832,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nxap.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\nxms.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nxof.c">
@@ -1891,12 +1909,6 @@
     <ClCompile Include="meta\ps2_bmdx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_joe.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_vbk.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\psb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1910,6 +1922,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pwb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\pxnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rad.c">
@@ -2074,9 +2089,6 @@
     <ClCompile Include="meta\sndp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\snds.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\sndx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2120,6 +2132,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sscf_encrypted.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ssdd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sshd.c">
@@ -2270,6 +2285,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vas_rockstar.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\vbk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vds_vdm.c">
