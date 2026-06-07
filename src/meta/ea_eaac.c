@@ -469,9 +469,10 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
             }
             else {
                 switch(eaac->channels) {
-                  //case 8:  cfg.coupled_count = 3; break;  /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
+                    case 8:  cfg.coupled_count = 3; break;  /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
                     case 6:  cfg.coupled_count = 2; break;  /* 2ch+2ch+1ch+1ch, 4 streams [FC24 (PC)] */
                     case 4:  cfg.coupled_count = 2; break;  /* 2ch+2ch, 2 streams */
+                    case 3:  cfg.coupled_count = 1; break;  /* 2ch+1ch, 2 streams [EA Sports College Football 27 (PC)] */
                     case 2:  cfg.coupled_count = 1; break;  /* 2ch, 1 stream */
                     case 1:  cfg.coupled_count = 0; break;  /* 1ch, 1 stream [Madden 22 (PC)] */
                     default: 
