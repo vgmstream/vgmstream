@@ -8,7 +8,7 @@
 /* Decodes samples for blocked streams.
  * Data is divided into headered blocks with a bunch of data. The layout calls external helper functions
  * when a block is decoded, and those must parse the new block and move offsets accordingly. */
-void render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+int render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
     int frame_size = decode_get_frame_size(vgmstream);
     int samples_per_frame = decode_get_samples_per_frame(vgmstream);
@@ -26,8 +26,6 @@ void render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     }
 
     while (sdst->filled < sdst->samples) {
-        int samples_to_do;
-        int samples_done, curr_filled;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping, readjust back to loop start values */
@@ -44,25 +42,25 @@ void render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         if (samples_this_block < 0) {
             /* probably block bug or EOF, next calcs would give wrong values/segfaults/infinite loop */
             VGM_LOG("BLOCKED: wrong block samples\n");
-            goto decode_fail;
+            return RENDER_RC_ERROR_GENERIC;
         }
 
         if (vgmstream->current_block_offset < 0 || vgmstream->current_block_offset == 0xFFFFFFFF) {
             /* probably block bug or EOF, block functions won't be able to read anything useful/infinite loop */
             VGM_LOG("BLOCKED: wrong block offset found\n");
-            goto decode_fail;
+            return RENDER_RC_ERROR_GENERIC;
         }
 
-        samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        int samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sdst->samples - sdst->filled)
             samples_to_do = sdst->samples - sdst->filled;
 
-        curr_filled = sdst->filled;
+        int curr_filled = sdst->filled;
         if (samples_to_do > 0) {
             /* samples_this_block = 0 is allowed (empty block, do nothing then move to next block) */
             decode_vgmstream(sdst, vgmstream, samples_to_do);
         }
-        samples_done = sdst->filled - curr_filled;
+        int samples_done = sdst->filled - curr_filled;
 
         vgmstream->current_sample += samples_done;
         vgmstream->samples_into_block += samples_done;
@@ -91,9 +89,7 @@ void render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         }
     }
 
-    return;
-decode_fail:
-    sbuf_silence_rest(sdst);
+    return RENDER_RC_OK;
 }
 
 /* helper functions to parse new block */

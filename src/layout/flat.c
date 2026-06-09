@@ -6,13 +6,12 @@
 
 /* Decodes samples for flat streams.
  * Data forms a single stream, and the decoder may internally skip chunks and move offsets as needed. */
-void render_vgmstream_flat(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+int render_vgmstream_flat(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     int samples_per_frame = decode_get_samples_per_frame(vgmstream);
     int samples_this_block = vgmstream->num_samples; /* do all samples if possible */
 
     /* write samples */
     while (sdst->filled < sdst->samples) {
-        int samples_done, curr_filled;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping */
@@ -24,19 +23,17 @@ void render_vgmstream_flat(sbuf_t* sdst, VGMSTREAM* vgmstream) {
             samples_to_do = sdst->samples - sdst->filled;
 
         if (samples_to_do <= 0) { /* when decoding more than num_samples */
-            VGM_LOG_ONCE("FLAT: wrong samples_to_do\n"); 
-            goto decode_fail;
+            VGM_LOG("FLAT: wrong samples_to_do\n"); 
+            return RENDER_RC_ERROR_GENERIC;
         }
 
-        curr_filled = sdst->filled;
+        int curr_filled = sdst->filled;
         decode_vgmstream(sdst, vgmstream, samples_to_do);
-        samples_done = sdst->filled - curr_filled;
+        int samples_done = sdst->filled - curr_filled;
 
         vgmstream->current_sample += samples_done;
         vgmstream->samples_into_block += samples_done;
     }
 
-    return;
-decode_fail:
-    sbuf_silence_rest(sdst);
+    return RENDER_RC_OK;
 }

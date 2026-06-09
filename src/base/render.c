@@ -89,12 +89,13 @@ void render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         return;
     }
 
+    int rc = 0;
     switch (vgmstream->layout_type) {
         case layout_none:
-            render_vgmstream_flat(sbuf, vgmstream);
+            rc = render_vgmstream_flat(sbuf, vgmstream);
             break;
         case layout_interleave:
-            render_vgmstream_interleave(sbuf, vgmstream);
+            rc = render_vgmstream_interleave(sbuf, vgmstream);
             break;
         case layout_blocked_mxch:
         case layout_blocked_ast:
@@ -135,17 +136,24 @@ void render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_blocked_ubi_sce:
         case layout_blocked_tt_ad:
         case layout_blocked_vas:
-            render_vgmstream_blocked(sbuf, vgmstream);
+            rc = render_vgmstream_blocked(sbuf, vgmstream);
             break;
         case layout_segmented:
-            render_vgmstream_segmented(sbuf, vgmstream);
+            rc = render_vgmstream_segmented(sbuf, vgmstream);
             break;
         case layout_layered:
-            render_vgmstream_layered(sbuf, vgmstream);
+            rc = render_vgmstream_layered(sbuf, vgmstream);
             break;
         default:
             break;
     }
+
+    if (rc < 0) {
+        VGM_LOG("RENDER: layout error\n"); 
+        sbuf_silence_rest(sbuf);
+        return;
+    }
+
 
     // decode past stream samples: blank rest of buf
     if (vgmstream->current_sample > vgmstream->num_samples) {
