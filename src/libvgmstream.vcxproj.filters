@@ -131,6 +131,9 @@
     <ClInclude Include="base\plugins.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\rc.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\render.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>

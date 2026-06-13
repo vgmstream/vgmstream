@@ -8,7 +8,7 @@
 /* Decodes samples for blocked streams.
  * Data is divided into headered blocks with a bunch of data. The layout calls external helper functions
  * when a block is decoded, and those must parse the new block and move offsets accordingly. */
-int render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
     int frame_size = decode_get_frame_size(vgmstream);
     int samples_per_frame = decode_get_samples_per_frame(vgmstream);
@@ -42,13 +42,13 @@ int render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         if (samples_this_block < 0) {
             /* probably block bug or EOF, next calcs would give wrong values/segfaults/infinite loop */
             VGM_LOG("BLOCKED: wrong block samples\n");
-            return RENDER_RC_ERROR_GENERIC;
+            return RC_LAYOUT_ERROR;
         }
 
         if (vgmstream->current_block_offset < 0 || vgmstream->current_block_offset == 0xFFFFFFFF) {
             /* probably block bug or EOF, block functions won't be able to read anything useful/infinite loop */
             VGM_LOG("BLOCKED: wrong block offset found\n");
-            return RENDER_RC_ERROR_GENERIC;
+            return RC_LAYOUT_ERROR;
         }
 
         int samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
@@ -89,7 +89,7 @@ int render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         }
     }
 
-    return RENDER_RC_OK;
+    return RC_RENDER_OK;
 }
 
 /* helper functions to parse new block */

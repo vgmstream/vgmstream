@@ -143,12 +143,12 @@ static void update_offsets(layout_config_t* layout, VGMSTREAM* vgmstream, int* p
  * Data has interleaved chunks per channel, and once one is decoded the layout moves offsets,
  * skipping other chunks (essentially a simplified variety of blocked layout).
  * Incompatible with decoders that move offsets. */
-int render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     layout_config_t layout = {0};
 
     if (!setup_helper(&layout, vgmstream)) {
         VGM_LOG_ONCE("INTERLEAVE: wrong config found\n");
-        return RENDER_RC_ERROR_GENERIC;
+        return RC_LAYOUT_ERROR;
     }
 
 
@@ -174,7 +174,7 @@ int render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
         if (samples_to_do <= 0) { /* happens when interleave is not set */
             VGM_LOG_ONCE("INTERLEAVE: wrong samples_to_do\n"); 
-            return RENDER_RC_ERROR_GENERIC;
+            return RC_LAYOUT_ERROR;
         }
 
         int curr_filled = sdst->filled;
@@ -191,5 +191,5 @@ int render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         }
     }
 
-    return RENDER_RC_OK;
+    return RC_RENDER_OK;
 }

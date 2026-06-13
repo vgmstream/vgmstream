@@ -13,7 +13,7 @@
 /* Decodes samples for layered streams.
  * Each decoded vgmstream 'layer' (which may have different codecs and number of channels)
  * is mixed into a final buffer, creating a single super-vgmstream. */
-int render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     layered_layout_data* data = vgmstream->layout_data;
     sbuf_t ssrc_tmp;
     sbuf_t* ssrc = &ssrc_tmp;
@@ -21,7 +21,6 @@ int render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     int samples_per_frame = VGMSTREAM_LAYER_SAMPLE_BUFFER;
     int samples_this_block = vgmstream->num_samples; /* do all samples if possible */
 
-    //int samples_filled = 0;
     while (sdst->filled < sdst->samples) {
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
@@ -35,7 +34,7 @@ int render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
         if (samples_to_do <= 0) { /* when decoding more than num_samples */
             VGM_LOG_ONCE("LAYERED: wrong %i samples_to_do (%i filled vs %i samples)\n", samples_to_do, sdst->filled, sdst->samples); 
-            return RENDER_RC_ERROR_GENERIC;
+            return RC_LAYOUT_ERROR;
         }
 
         //TODO: extract only up to min filled as different layers may fill differently
@@ -48,7 +47,8 @@ int render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
             sfmt_t format = mixing_get_input_sample_type(vl);
             sbuf_init(ssrc, format, data->buffer, samples_to_do, vl->channels);
 
-            render_main(ssrc, vl);
+            rc_t rc = render_main(ssrc, vl);
+            //TODO: handle when some layers stop before others
 
             // mix layer samples to main samples
             sbuf_copy_layers(sdst, ssrc, ch, samples_to_do);
@@ -60,7 +60,7 @@ int render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         vgmstream->samples_into_block += samples_to_do;
     }
 
-    return RENDER_RC_OK;
+    return RC_RENDER_OK;
 }
 
 

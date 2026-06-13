@@ -41,12 +41,18 @@ static bool reset_buf(libvgmstream_priv_t* priv) {
 }
 
 // update info based on last render
-static void update_decoder_info(libvgmstream_priv_t* priv) {
+static void update_decoder_info(libvgmstream_priv_t* priv, rc_t rc) {
 
     // mark done if buf reaches EOF (may also happen after seek)
     if (!priv->pos.play_forever) {
         priv->pos.current += priv->sbuf.filled;
         priv->decode_done = (priv->pos.current >= priv->pos.play_samples);
+    }
+
+    //TODO: render alone should be enough detect EOR, still WIP
+    if (rc == RC_RENDER_EOR && priv->decode_done) {
+        VGM_LOG("LIBVGMSTREAM: reached EOR without decode_done set\n");
+        priv->decode_done = true;
     }
 
     sbuf_t* sbuf = &priv->sbuf;
@@ -84,9 +90,9 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
     sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);
     sbuf_init(&priv->sbuf, sfmt, priv->buf.data, to_get, priv->vgmstream->channels);
 
-    render_main(&priv->sbuf, priv->vgmstream);
+    rc_t rc = render_main(&priv->sbuf, priv->vgmstream);
 
-    update_decoder_info(priv);
+    update_decoder_info(priv, rc);
 
     return LIBVGMSTREAM_OK;
 }
@@ -174,7 +180,8 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample) {
     if (!priv->vgmstream)
         return;
 
-    seek_vgmstream(priv->vgmstream, sample);
+    /*rc_t rc = */ seek_vgmstream(priv->vgmstream, sample);
+    rc_t rc = RC_RENDER_OK;
 
     priv->pos.current = priv->vgmstream->pstate.play_position;
 
@@ -182,7 +189,7 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample) {
     sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);
     sbuf_init(&priv->sbuf, sfmt, priv->buf.data, 0, priv->vgmstream->channels);
 
-    update_decoder_info(priv);
+    update_decoder_info(priv, rc);
 }
 
 

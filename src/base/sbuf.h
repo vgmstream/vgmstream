@@ -19,8 +19,10 @@ typedef enum {
 } sfmt_t;
 
 
-/* simple buffer info to pass around, for internal mixing
- * meant to held existing sound buffer pointers rather than alloc'ing directly (some ops will swap/move its internals) */
+/* Simple buffer info to pass around, for internal mixing. Calls may increase 'filled' samples in buf.
+ * Meant to held existing sound buffer pointers rather than alloc'ing directly (some ops will swap/move its internals).
+ * It's designed so that callees are allowed to swap buf/fmt/channels/etc as needed, but certain core parts may need workarounds to allow that.
+ */
 typedef struct {
     void* buf;          // current sample buffer
     sfmt_t fmt;         // buffer type

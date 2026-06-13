@@ -99,6 +99,7 @@
     <ClInclude Include="base\play_config.h" />
     <ClInclude Include="base\play_state.h" />
     <ClInclude Include="base\plugins.h" />
+    <ClInclude Include="base\rc.h" />
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\resampler.h" />
     <ClInclude Include="base\sbuf.h" />

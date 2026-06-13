@@ -13,7 +13,7 @@
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
-int render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+rc_t render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     segmented_layout_data* data = vgmstream->layout_data;
     sbuf_t ssrc_tmp;
     sbuf_t* ssrc = &ssrc_tmp;
@@ -21,7 +21,7 @@ int render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
     if (data->current_segment >= data->segment_count) {
         VGM_LOG_ONCE("SEGMENT: wrong current segment\n");
-        return RENDER_RC_ERROR_GENERIC;
+        return RC_LAYOUT_ERROR;
     }
 
     int current_channels = 0;
@@ -50,7 +50,7 @@ int render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
             if (data->current_segment >= data->segment_count) { /* when decoding more than num_samples */
                 VGM_LOG_ONCE("SEGMENTED: reached last segment, into=%i, this=%i, curr=%i\n", vgmstream->samples_into_block, samples_this_block, data->current_segment);
-                return RENDER_RC_ERROR_GENERIC;
+                return RC_LAYOUT_ERROR;
             }
 
             vs = data->segments[data->current_segment];
@@ -71,7 +71,7 @@ int render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
         if (samples_to_do < 0) { /* 0 is ok? */
             VGM_LOG_ONCE("SEGMENTED: wrong samples_to_do %i found\n", samples_to_do);
-            return RENDER_RC_ERROR_GENERIC;
+            return RC_LAYOUT_ERROR;
         }
 
         vs = data->segments[data->current_segment];
@@ -87,7 +87,7 @@ int render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         }
 
         //TODO: buf may be smaller than samples
-        render_main(ssrc, vs);
+        rc_t rc = render_main(ssrc, vs);
 
         // returned buf may have changed
         if (ssrc->buf != buf_filled) {
@@ -101,7 +101,7 @@ int render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         vgmstream->samples_into_block += ssrc->filled;
     }
 
-    return RENDER_RC_OK;
+    return RC_RENDER_OK;
 }
 
 
