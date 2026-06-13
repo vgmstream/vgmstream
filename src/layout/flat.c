@@ -1,7 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
 #include "../base/decode.h"
-#include "../base/sbuf.h"
 
 
 /* Decodes samples for flat streams.

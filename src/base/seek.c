@@ -216,10 +216,11 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
 /* ************************************************************************* */
 
 typedef void (*seek_layout_fn_t)(VGMSTREAM* vgmstream, int32_t seek_sample);
+typedef void (*loop_layout_fn_t)(VGMSTREAM* vgmstream, int32_t loop_sample);
 
 //TODO: avoid resetting?
 //TODO test unify with the above
-static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layout_fn, int32_t seek_sample) {
+static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layout_fn, loop_layout_fn_t loop_layout_fn, int32_t seek_sample) {
 
     bool is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; // loop target may disable loop flag during decode
 
@@ -265,8 +266,12 @@ static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layou
         }
 
         seek_layout_fn(vgmstream, vgmstream->loop_start_sample);
+
         decode_do_loop(vgmstream); // ugly but needed to loop after seeking due to how layout works
+        loop_layout_fn(vgmstream, vgmstream->loop_start_sample);
+
         seek_layout_fn(vgmstream, vgmstream->loop_start_sample + loop_seek);
+
         vgmstream->loop_count = loop_count;
         return;
     }
@@ -280,12 +285,12 @@ static void seek_layout(VGMSTREAM* vgmstream, int32_t seek_sample) {
 
     // layouts can seek faster internally
     if (vgmstream->layout_type == layout_segmented) {
-        seek_layout_custom(vgmstream, seek_layout_segmented, seek_sample);
+        seek_layout_custom(vgmstream, seek_layout_segmented, loop_layout_segmented, seek_sample);
         return;
     }
 
     if (vgmstream->layout_type == layout_layered) {
-        seek_layout_custom(vgmstream, seek_layout_layered, seek_sample);
+        seek_layout_custom(vgmstream, seek_layout_layered, loop_layout_layered, seek_sample);
         return;
     }
     

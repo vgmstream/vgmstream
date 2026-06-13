@@ -3,7 +3,6 @@
 #include "../base/decode.h"
 #include "../base/mixing.h"
 #include "../base/play_state.h"
-#include "../base/sbuf.h"
 #include "../base/render.h"
 
 #define VGMSTREAM_MAX_SEGMENTS 1024
@@ -32,7 +31,8 @@ rc_t render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     while (sbuf->filled < sbuf->samples) {
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
-            /* handle loop end to start (loop_layout_segmented has been called in decode_loop_loop) */
+            /* handle loop end to start */
+            loop_layout_segmented(vgmstream, vgmstream->loop_current_sample);
 
             // update temp vars, since state changed in decode_do_loop > loop_layout_segmented
             vs = data->segments[data->current_segment];
@@ -62,7 +62,7 @@ rc_t render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
             continue;
         }
 
-        // needed to handle decode_do_loop
+        // needed for decode_do_loop
         int samples_to_do = decode_get_samples_to_do(samples_this_block, sbuf->samples, vgmstream);
         if (samples_to_do > sbuf->samples - sbuf->filled)
             samples_to_do = sbuf->samples - sbuf->filled;

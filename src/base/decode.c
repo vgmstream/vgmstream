@@ -1,14 +1,9 @@
 #include "../vgmstream.h"
-#include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "decode.h"
-#include "mixing.h"
-#include "plugins.h"
-#include "sbuf.h"
-#include "codec_info.h"
-
 #include "../util/log.h"
+#include "decode.h"
 #include "decode_state.h"
+#include "codec_info.h"
 
 
 static void* decode_state_init() {
@@ -1529,26 +1524,17 @@ bool decode_do_loop(VGMSTREAM* vgmstream) {
         vgmstream->next_block_offset = vgmstream->loop_next_block_offset;
         vgmstream->full_block_size = vgmstream->loop_full_block_size;
 
-        /* loop layouts (after restore, in case layout needs state manipulations) */
-        switch(vgmstream->layout_type) {
-            case layout_segmented:
-                loop_layout_segmented(vgmstream, vgmstream->loop_current_sample);
-                break;
-            case layout_layered:
-                loop_layout_layered(vgmstream, vgmstream->loop_current_sample);
-                break;
-            default:
-                break;
-        }
 
         /* play state is applied over loops and stream decoding, so it's not restored on loops */
         //vgmstream->pstate = vgmstream->lstate;
 
-        return true; /* has looped */
+        /* layouts may also need to handle loop state externally */
+
+        return true; // has looped
     }
 
 
-    /* is this the loop start? save if we haven't saved yet (right when first loop starts) */
+    /* is this the loop start? save loop state if we haven't saved it yet (right when first loop starts) */
     if (!vgmstream->hit_loop && vgmstream->current_sample == vgmstream->loop_start_sample) {
         /* save! */
         memcpy(vgmstream->loop_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL) * vgmstream->channels);
@@ -1564,7 +1550,10 @@ bool decode_do_loop(VGMSTREAM* vgmstream) {
         //vgmstream->lstate = vgmstream->pstate;
 
         vgmstream->hit_loop = true; /* info that loop is now ready to use */
+
+        return false; // has not looped
     }
 
-    return false; /* has not looped */
+
+    return false; // has not looped
 }

@@ -1,8 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
 #include "../base/decode.h"
-#include "../base/sbuf.h"
-#include "../coding/coding.h"
 
 
 /* Decodes samples for blocked streams.

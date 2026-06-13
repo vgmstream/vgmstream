@@ -2,8 +2,7 @@
 #include "../vgmstream.h"
 #include "../base/decode.h"
 #include "../base/mixing.h"
-#include "../base/plugins.h"
-#include "../base/sbuf.h"
+#include "../base/play_state.h"
 #include "../base/render.h"
 
 #define VGMSTREAM_MAX_LAYERS 255
@@ -24,7 +23,8 @@ rc_t render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     while (sdst->filled < sdst->samples) {
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
-            /* handle looping (loop_layout has been called inside) */
+            /* handle loop end to start */
+            loop_layout_layered(vgmstream, vgmstream->loop_current_sample);
             continue;
         }
 
