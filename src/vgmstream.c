@@ -24,6 +24,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf);
 /* INIT/META                                                                 */
 /*****************************************************************************/
 
+#if 0
 /* format detection and VGMSTREAM setup, uses default parameters */
 VGMSTREAM* init_vgmstream(const char* const filename) {
     VGMSTREAM* vgmstream = NULL;
@@ -34,6 +35,7 @@ VGMSTREAM* init_vgmstream(const char* const filename) {
     }
     return vgmstream;
 }
+#endif
 
 VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf) {
     return detect_vgmstream_format(sf);
@@ -364,7 +366,7 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
             vgmstream_set_loop_target(data->layers[i], loop_target);
         }
     }
-VGM_LOG("set vgmstream_set_loop_target\n");
+
     /* notify of new initial state */
     setup_vgmstream(vgmstream);
 }
