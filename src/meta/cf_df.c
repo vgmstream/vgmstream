@@ -206,6 +206,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     df_chunk_t* loop = NULL;
     int16_t* order = NULL;
     int* seq = NULL;
+    uint8_t* in_loop = NULL;
     char track_name[STREAM_NAME_SIZE];
     char basename[STREAM_NAME_SIZE];
 
@@ -271,6 +272,18 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         }
     }
 
+    /* Disk-stream movies  carry loop_count > order_count fragments; subsong 1 assembles
+     * them via the blocked layout. Mark loop-member containers so they can be dropped from the
+     * individual piece list
+     */
+    int disk_stream = (loop_count > order_count);
+    if (loop_count > 0 && disk_stream) {
+        in_loop = calloc(containers, 1);
+        if (!in_loop) goto fail;
+        for (int i = 0; i < loop_count; i++)
+            in_loop[loop[i].container_id] = 1;
+    }
+
     /* --- single block (named one-shots) + non-MOV track name --- */
     off_t c0 = read_u32le(DF_HEADER_SIZE + 0x00 * 0x04, sf);
     if (c0 > 0) {
@@ -308,6 +321,8 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
 
     int audio_count = 0;
     for (int i = 0; i < containers; i++) {
+        if (in_loop && in_loop[i])
+            continue;
         df_chunk_t tmp;
         if (is_valid_chunk(sf, containers, i, &tmp))
             audio_ids[audio_count++] = i;
@@ -322,8 +337,6 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
 
     if (has_loop && target == 1) {
         /* subsong 1: the assembled track */
-        int disk_stream = (loop_count > order_count);
-
         if (disk_stream && loop[0].codec_flag == 2) {
             /* scattered stream of v4.1 blocks -> blocked layout */
             vgmstream = build_blocked(sf, loop, loop_count, first_entry);
@@ -376,7 +389,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         if (names[id].name[0])
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", names[id].name);
         else
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", STREAM_NAME_SIZE - 13, basename, piece); /* reserve '#' + 11-digit int + NUL */
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", STREAM_NAME_SIZE - (11 + 1 + 1), basename, piece); /* reserve '#' + 11-digit int + NUL */
 
         if (!vgmstream_open_stream(vgmstream, sf, c.offset))
             goto fail;
@@ -389,6 +402,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     free(loop);
     free(order);
     free(seq);
+    free(in_loop);
     return vgmstream;
 
 fail:
@@ -397,6 +411,7 @@ fail:
     free(loop);
     free(order);
     free(seq);
+    free(in_loop);
     close_vgmstream(vgmstream);
     return NULL;
 }
