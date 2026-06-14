@@ -143,10 +143,10 @@ Very simplified it goes like this:
 - player asks *libvgmstream* to fill a small sample buffer *[api_x.c]*
 - renderer prepares buffers and pre-processes output *[render.c]*
 - renderer and calls layouts *[render.c]*
-- layout prepares loops, offsets and samples to read from the stream *[render_vgmstream_(layout)]*
-- layout calls decoder *[render_vgmstream_(layout)]*
+- layout prepares loops, offsets and samples to read from the stream *[render_layout_(layout)]*
+- layout calls decoder *[render_layout_(layout)]*
 - decoder reads and decodes bytes into PCM samples *[decode.c]*
-- layout repeats the process as needed *[render_vgmstream_(layout)]*
+- layout repeats the process as needed *[render_layout_(layout)]*
 - renderer postprocesses the buffer filled by the layout + decoder *[render.c]*
 - player plays those samples
 - player asks to fill sample buffer again and repeats

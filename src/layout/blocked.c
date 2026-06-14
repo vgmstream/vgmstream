@@ -6,7 +6,7 @@
 /* Decodes samples for blocked streams.
  * Data is divided into headered blocks with a bunch of data. The layout calls external helper functions
  * when a block is decoded, and those must parse the new block and move offsets accordingly. */
-rc_t render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_layout_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
     int frame_size = decode_get_frame_size(vgmstream);
     int samples_per_frame = decode_get_samples_per_frame(vgmstream);

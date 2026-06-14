@@ -142,7 +142,7 @@ static void update_offsets(layout_config_t* layout, VGMSTREAM* vgmstream, int* p
  * Data has interleaved chunks per channel, and once one is decoded the layout moves offsets,
  * skipping other chunks (essentially a simplified variety of blocked layout).
  * Incompatible with decoders that move offsets. */
-rc_t render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_layout_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     layout_config_t layout = {0};
 
     if (!setup_helper(&layout, vgmstream)) {

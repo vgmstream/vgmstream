@@ -53,10 +53,10 @@ rc_t render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     rc_t rc;
     switch (vgmstream->layout_type) {
         case layout_none:
-            rc = render_vgmstream_flat(sbuf, vgmstream);
+            rc = render_layout_flat(sbuf, vgmstream);
             break;
         case layout_interleave:
-            rc = render_vgmstream_interleave(sbuf, vgmstream);
+            rc = render_layout_interleave(sbuf, vgmstream);
             break;
         case layout_blocked_mxch:
         case layout_blocked_ast:
@@ -97,13 +97,13 @@ rc_t render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_blocked_ubi_sce:
         case layout_blocked_tt_ad:
         case layout_blocked_vas:
-            rc = render_vgmstream_blocked(sbuf, vgmstream);
+            rc = render_layout_blocked(sbuf, vgmstream);
             break;
         case layout_segmented:
-            rc = render_vgmstream_segmented(sbuf, vgmstream);
+            rc = render_layout_segmented(sbuf, vgmstream);
             break;
         case layout_layered:
-            rc = render_vgmstream_layered(sbuf, vgmstream);
+            rc = render_layout_layered(sbuf, vgmstream);
             break;
         default:
             rc = RC_LAYOUT_ERROR;

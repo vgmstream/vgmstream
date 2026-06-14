@@ -12,7 +12,7 @@
 /* Decodes samples for layered streams.
  * Each decoded vgmstream 'layer' (which may have different codecs and number of channels)
  * is mixed into a final buffer, creating a single super-vgmstream. */
-rc_t render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_layout_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     layered_layout_data* data = vgmstream->layout_data;
     sbuf_t ssrc_tmp;
     sbuf_t* ssrc = &ssrc_tmp;

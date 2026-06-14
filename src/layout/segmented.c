@@ -12,7 +12,7 @@
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
-rc_t render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+rc_t render_layout_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     segmented_layout_data* data = vgmstream->layout_data;
     sbuf_t ssrc_tmp;
     sbuf_t* ssrc = &ssrc_tmp;
@@ -194,7 +194,7 @@ bool setup_layout_segmented(segmented_layout_data* data) {
         /* allow config if set for fine-tuned parts (usually TXTP only) */
         vs->config_enabled = vs->config.config_set;
 
-        /* disable so that looping is controlled by render_vgmstream_segmented */
+        /* disable so that looping is controlled by render_layout_segmented */
         if (vs->loop_flag) {
             VGM_LOG("SEGMENTED: segment %i is looped\n", i);
 

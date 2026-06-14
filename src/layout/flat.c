@@ -5,7 +5,7 @@
 
 /* Decodes samples for flat streams.
  * Data forms a single stream, and the decoder may internally skip chunks and move offsets as needed. */
-rc_t render_vgmstream_flat(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_layout_flat(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     int samples_per_frame = decode_get_samples_per_frame(vgmstream);
     int samples_this_block = vgmstream->num_samples; /* do all samples if possible */
 
