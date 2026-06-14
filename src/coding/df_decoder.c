@@ -2,6 +2,7 @@
 #include "../vgmstream.h"
 #include "../coding/coding.h"
 #include "../base/sbuf.h"
+#include "../base/decode_state.h"
 
 /*
  * DreamFactory ADPCM/DPCM Codecs
@@ -33,7 +34,8 @@
 
 static bool decode_cf_df_v40(VGMSTREAM* v, sbuf_t* sdst) {
     VGMSTREAMCHANNEL* stream = &v->ch[0];
-    int samples_to_do = sdst->samples - sdst->filled;
+    decode_state_t* ds = v->decode_state;
+    int samples_to_do = ds->samples_left;
     sample_t* outbuf = sbuf_get_filled_buf(sdst);
     int i = 0;
     int8_t prev_sample = (int8_t)stream->adpcm_history1_16;
@@ -96,7 +98,6 @@ static bool decode_cf_df_v40(VGMSTREAM* v, sbuf_t* sdst) {
     }
 
     stream->adpcm_history1_16 = prev_sample;
-    sdst->filled += (sdst->samples - sdst->filled) - samples_to_do + i;
     return true;
 }
 
@@ -104,7 +105,8 @@ static bool decode_cf_df_v40(VGMSTREAM* v, sbuf_t* sdst) {
 
 static bool decode_cf_df_v41(VGMSTREAM* v, sbuf_t* sdst) {
     VGMSTREAMCHANNEL* stream = &v->ch[0];
-    int samples_to_do = sdst->samples - sdst->filled;
+    decode_state_t* ds = v->decode_state;
+    int samples_to_do = ds->samples_left;
     sample_t* outbuf = sbuf_get_filled_buf(sdst);
     int16_t current_sample = stream->adpcm_history1_16; // Technically should be DPCM but still "ADPCM" framework.
 
@@ -125,7 +127,6 @@ static bool decode_cf_df_v41(VGMSTREAM* v, sbuf_t* sdst) {
     }
 
     stream->adpcm_history1_16 = current_sample;
-    sdst->filled += samples_to_do;
     return true;
 }
 
