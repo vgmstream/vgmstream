@@ -2,335 +2,345 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util/layout_utils.h"
-#include <string.h>
-#include <ctype.h>
 
 /*
- * CF_DF - CyberFlix DreamFactory Engine (.SND, .SFX, .MOV)
+ * CF_DF - CyberFlix DreamFactory Engine
  *
  * Structure:
- * - A main header (1024 bytes) containing file size and container count.
- * - A table of 32-bit little-endian offsets to each container.
- * - A series of data containers, each with its own header.
+ * - 0x400-byte header: file size @0x04, container count @0x14, "LPPALPPA" @0x20.
+ * - u32 offset table @0x400 pointing to each container (u32 id, u32 size, then payload).
+ * - Audio chunks live in containers whose payload holds: u16 codec @0x1A (1=v4.0 / 2=v4.1),
+ *   u32 rate @0x1C, u32 uncompressed size @0x24, u32 data offset @0x2C.
+ *
+ * Container 1 holds a "loop block" describing a playback track: a chunkOrder sequence plus a
+ * list of audio chunks. A second "single block" (pointed at from container 0) lists named
+ * one-shot chunks. subsong 1 = the assembled track, subsongs 2..N = every audio
+ * chunk individually.
  *
  * Titles: Dust 1996 3.1/95, Titanic: Adventure Out of Time
  * Disney's Math/Reading Quest with Aladdin
- *
- * Audio Logic:
- * - Audio is stored in containers that are identified by a codec flag and sample rate.
- * - A separate metadata container lists explicitly named sound effects.
- * - The core logic partitions all audio into two groups:
- * 1. A segmented track, formed by concatenating chunks of a consistent size. (MOV only)
- * 2. Individually named or unnamed sound effects.
  */
 
-#define DF_CHUNK_NAME_SIZE 15
+#define DF_HEADER_SIZE  0x400
+#define DF_ORDER_REGION 260     /* fixed-size chunkOrder area in the loop block */
+#define DF_LOOP_ENTRY   26      /* loop-block entry stride */
+#define DF_NAME_MAX     (32-1)  /* MOV identifiers; others use 15 */
+#define DF_MAX_CHUNKS   0x4000  /* sanity cap for table sizes */
 
 typedef struct {
-    int id;
-    int is_named;
-    int is_segmented_chunk;
+    int container_id;
     int codec_flag;
-    off_t offset;
-    int32_t size;
+    off_t offset;               /* absolute offset to compressed audio */
+    int32_t size;               /* compressed size */
     int32_t sample_rate;
     int32_t uncompressed_size;
-    char name[DF_CHUNK_NAME_SIZE + 1];
+    int valid;
+    char name[DF_NAME_MAX + 1];
 } df_chunk_t;
 
-static int32_t find_segmented_chunk_size(df_chunk_t* chunks, int total_chunks) {
-    if (total_chunks < 1) return -1;
+typedef struct {
+    char name[DF_NAME_MAX + 1];
+} df_name_t;
 
-    int32_t most_common_size = -1;
-    int max_count = 0;
+/* Read the audio fields of a container; returns 1 if it looks like a valid audio chunk. */
+static bool is_valid_chunk(STREAMFILE* sf, int containers, int id, df_chunk_t* c) {
+    if (id < 0 || id >= containers)
+        return false;
 
-    for (int i = 0; i < total_chunks; i++) {
-        if (chunks[i].is_named)
-            continue;
+    off_t pos = read_u32le(DF_HEADER_SIZE + id * 0x04, sf);
+    if (pos <= 0 || pos >= get_streamfile_size(sf))
+        return false;
 
-        int current_count = 0;
-        for (int j = 0; j < total_chunks; j++) {
-            if (chunks[j].is_named)
-                continue;
-            if (chunks[i].uncompressed_size == chunks[j].uncompressed_size) {
-                current_count++;
-            }
-        }
+    off_t hp = pos + 0x08; /* skip container header (id + size) */
+    if (hp + 0x30 > get_streamfile_size(sf))
+        return false;
 
-        if (current_count > max_count) {
-            max_count = current_count;
-            most_common_size = chunks[i].uncompressed_size;
-        }
-    }
-    return most_common_size;
+    uint16_t codec = read_u16le(hp + 0x1A, sf);
+    uint32_t rate  = read_u32le(hp + 0x1C, sf);
+    if ((codec != 1 && codec != 2) || (rate != 11025 && rate != 22050 && rate != 44100))
+        return false;
+
+    uint32_t data_offset = read_u32le(hp + 0x2C, sf);
+
+    c->container_id      = id;
+    c->codec_flag        = codec;
+    c->sample_rate       = rate;
+    c->uncompressed_size = read_u32le(hp + 0x24, sf);
+    c->offset            = hp + data_offset;
+    c->size              = read_u32le(pos + 0x04, sf) - data_offset;
+    c->valid             = 1;
+    return true;
 }
 
-/* Configure a VGMSTREAM object based on a chunk's properties */
-static void build_vgmstream_from_chunk(VGMSTREAM* vgmstream, df_chunk_t* chunk) {
-    vgmstream->sample_rate = chunk->sample_rate;
-    vgmstream->stream_size = chunk->size;
-    vgmstream->meta_type = meta_CF_DF;
+static int32_t chunk_samples(df_chunk_t* c) {
+    return (c->codec_flag == 1) ? c->uncompressed_size : c->uncompressed_size / 2;
+}
 
-    if (chunk->codec_flag == 1) {
-        vgmstream->coding_type = coding_CF_DF_ADPCM_V40;
-        vgmstream->num_samples = chunk->uncompressed_size;
+static void config_chunk(VGMSTREAM* v, df_chunk_t* c) {
+    v->meta_type   = meta_CF_DF;
+    v->sample_rate = c->sample_rate;
+    v->stream_size = c->size;
+    if (c->codec_flag == 1) {
+        v->coding_type = coding_CF_DF_ADPCM_V40;
+        v->num_samples = c->uncompressed_size;
     } else {
-        vgmstream->coding_type = coding_CF_DF_DPCM_V41;
-        vgmstream->num_samples = chunk->uncompressed_size / 2;
+        v->coding_type = coding_CF_DF_DPCM_V41;
+        v->num_samples = c->uncompressed_size / 2;
     }
 }
 
-/* Main function to build the VGMSTREAM object */
+/* Pascal String (nameLen @ entry+0x0A, chars @ entry+0x0B). */
+static void read_name(STREAMFILE* sf, off_t entry, int name_max, df_name_t* dst) {
+    int len = read_u8(entry + 0x0A, sf);
+    if (len > name_max)
+        len = name_max;
+    for (int k = 0; k < len; k++)
+        dst->name[k] = read_u8(entry + 0x0B + k, sf);
+    dst->name[len] = '\0';
+}
+
+/* Assembled track via segmented layout: play the given sequence of loop chunks once. */
+static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, int count) {
+    VGMSTREAM* v = NULL;
+    segmented_layout_data* data = init_layout_segmented(count);
+    if (!data) goto fail;
+
+    for (int i = 0; i < count; i++) {
+        VGMSTREAM* seg = allocate_vgmstream(1, 0);
+        if (!seg) goto fail;
+        data->segments[i] = seg;
+
+        config_chunk(seg, &chunks[seq[i]]);
+        if (!vgmstream_open_stream(seg, sf, chunks[seq[i]].offset))
+            goto fail;
+    }
+
+    if (!setup_layout_segmented(data))
+        goto fail;
+
+    v = allocate_segmented_vgmstream(data, 0, -1, -1);
+    if (!v) goto fail;
+    return v;
+
+fail:
+    free_layout_segmented(data);
+    close_vgmstream(v);
+    return NULL;
+}
+
+/* Assembled track via blocked layout: one continuous stream traversing the loop list (disk-stream
+ * mov, where blocks are scattered among video frames). */
+static VGMSTREAM* build_blocked(STREAMFILE* sf, df_chunk_t* loop, int loop_count, off_t first_entry) {
+    VGMSTREAM* v = allocate_vgmstream(1, 0);
+    if (!v) return NULL;
+
+    int32_t total = 0, max_rate = 0;
+    for (int i = 0; i < loop_count; i++) {
+        total += chunk_samples(&loop[i]);
+        if (loop[i].sample_rate > max_rate)
+            max_rate = loop[i].sample_rate;
+    }
+
+    v->meta_type    = meta_CF_DF;
+    v->coding_type  = (loop[0].codec_flag == 1) ? coding_CF_DF_ADPCM_V40 : coding_CF_DF_DPCM_V41;
+    v->sample_rate  = max_rate;
+    v->num_samples  = total;
+    v->layout_type  = layout_blocked_cf_df;
+
+    if (!vgmstream_open_stream(v, sf, first_entry)) { /* primes the first block */
+        close_vgmstream(v);
+        return NULL;
+    }
+    return v;
+}
+
 VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    df_chunk_t* chunks = NULL;
-    int i, j;
-    int total_chunks = 0;
-    int target_subsong = sf->stream_index;
-    int is_mov_file = 0;
-    const int HEADER_SIZE = 0x400;
-    const int TRACK_SUFFIX_SIZE = (5 + 1 + 1); // Subsongs up to 5 digits plus # and \0
+    df_name_t* names = NULL;
+    int* audio_ids = NULL;
+    df_chunk_t* loop = NULL;
+    int16_t* order = NULL;
+    int* seq = NULL;
+    char track_name[STREAM_NAME_SIZE];
+    char basename[STREAM_NAME_SIZE];
 
-
-    /* Header Check:
-     *
-     * LPPALPPA more easily checked at 0x20.
-     * TO-DO: Possibly also start with 0x100, 0 at 0x08/0x0C? Needs confirmation.
-     *
-     */
-    if (!is_id32be(0x20, sf,"LPPA") || !is_id32be(0x24, sf,"LPPA"))
+    if (!is_id32be(0x20, sf, "LPPA") || !is_id32be(0x24, sf, "LPPA"))
         return NULL;
     if (read_u32le(0x04, sf) != get_streamfile_size(sf))
         return NULL;
-
-    if (!check_extensions(sf, "snd,sfx,mov"))
+    if (!check_extensions(sf, "snd,sfx,trk,mov"))
         return NULL;
 
     int containers = read_u32le(0x14, sf);
-    if (containers <= 0 || containers > INT16_MAX) //Practically 2 bytes should be enough.
+    if (containers <= 0 || containers > INT16_MAX)
         return NULL;
 
-    int segmented_chunks;
-    int32_t segmented_chunk_size;
-    int subsongs, current_subsong_idx;
+    int is_mov = check_extensions(sf, "mov");
+    int target = sf->stream_index;
+    if (target == 0)
+        target = 1;
+    get_streamfile_filename(sf, basename, sizeof(basename));
+    track_name[0] = '\0';
 
-    /* Find and catalog all physical audio containers */
-    chunks = calloc(containers, sizeof(df_chunk_t));
-    if (!chunks) goto fail;
-
-    for (i = 0; i < containers; i++) {
-        off_t container_pos = read_u32le(HEADER_SIZE + i * 0x04, sf);
-        if (container_pos <= 0 || container_pos >= get_streamfile_size(sf))
-            continue;
-
-        off_t header_pos = container_pos + 0x08;
-        if (header_pos + 0x30 > get_streamfile_size(sf))
-            continue;
-
-        uint16_t codec_flag = read_u16le(header_pos + 0x1A, sf);
-        uint32_t hertz = read_u32le(header_pos + 0x1C, sf);
-
-        if ((codec_flag == 1 || codec_flag == 2) && (hertz == 11025 || hertz == 22050 || hertz == 44100)) {
-            chunks[total_chunks].id = i;
-            chunks[total_chunks].codec_flag = codec_flag;
-            chunks[total_chunks].sample_rate = hertz;
-            chunks[total_chunks].uncompressed_size = read_u32le(header_pos + 0x24, sf);
-            chunks[total_chunks].offset = header_pos + read_u32le(header_pos + 0x2C, sf);
-            chunks[total_chunks].size = read_u32le(container_pos + 0x04, sf) - read_u32le(header_pos + 0x2C, sf);
-            total_chunks++;
-        }
-    }
-
-    if (total_chunks == 0)
+    names = calloc(containers, sizeof(*names));
+    audio_ids = malloc(containers * sizeof(int));
+    if (!names || !audio_ids)
         goto fail;
 
-    /* Parse metadata to find named files (.SND/.SFX),
-        * TO-DO: Metadata structure in .MOV files is inconsistent. */
-    is_mov_file = check_extensions(sf, "mov");
+    /* --- loop block (container 1): chunkOrder + loop chunk list --- */
+    int loop_count = 0, order_count = 0;
+    off_t first_entry = 0;
+    off_t c1 = read_u32le(DF_HEADER_SIZE + 0x01 * 0x04, sf);
+    if (c1 > 0) {
+        off_t lp = c1 + 0x08;
 
-    if (!is_mov_file) {
-        off_t pointer_offset = 0x20; /* Standard offset for SND/SFX */
-
-        off_t container0_pos = read_u32le(HEADER_SIZE + 0 * 0x04, sf);
-        int md_container_id = -1;
-        if (container0_pos > 0) {
-            /* The pointer is relative to the data payload, which starts after the 8-byte container header */
-            md_container_id = read_u32le(container0_pos + 0x08 + pointer_offset, sf);
+        order_count = read_u16le(lp + 0x04, sf);
+        if (order_count < 0 || order_count > DF_MAX_CHUNKS)
+            order_count = 0;
+        if (order_count > 0) {
+            order = malloc(order_count * sizeof(int16_t));
+            if (!order) goto fail;
+            for (int i = 0; i < order_count; i++)
+                order[i] = read_s16le(lp + 0x06 + i * 0x02, sf);
         }
 
+        off_t list_pos = lp + 0x06 + DF_ORDER_REGION;
+        int lc = read_u16le(list_pos, sf);
+        if (lc > 0 && lc <= containers) {
+            first_entry = list_pos + 0x04;
+            loop = calloc(lc, sizeof(df_chunk_t));
+            if (!loop) goto fail;
 
+            int all_valid = 1;
+            off_t e = first_entry;
+            for (int i = 0; i < lc; i++) {
+                int id = read_u16le(e + 0x04, sf);
+                if (id >= 0 && id < containers)
+                    read_name(sf, e, 15, &names[id]);
+                if (!is_valid_chunk(sf, containers, id, &loop[i]))
+                    all_valid = 0;
+                e += DF_LOOP_ENTRY;
+            }
+            if (all_valid)
+                loop_count = lc; /* only assemble if every referenced chunk is valid audio */
+        }
+    }
 
-        if (md_container_id >= 0 && md_container_id < containers) {
-            off_t md_pos = read_u32le(HEADER_SIZE + md_container_id * 0x04, sf);
-            if (md_pos > 0) {
-                /* Establish a base for the actual data, skipping the 8-byte container header */
-                const off_t md_payload_pos = md_pos + 0x08;
-                int records = read_u16le(md_payload_pos + 0x04, sf);
-                off_t current_record_offset = md_payload_pos + 0x08;
-                for (i = 0; i < records; i++) {
-                    int chunk_id = read_u32le(current_record_offset + 0x04, sf);
-                    uint8_t name_len = read_u8(current_record_offset + 10, sf);
-                    char name_buffer[DF_CHUNK_NAME_SIZE + 1] = {0};
+    /* --- single block (named one-shots) + non-MOV track name --- */
+    off_t c0 = read_u32le(DF_HEADER_SIZE + 0x00 * 0x04, sf);
+    if (c0 > 0) {
+        off_t p0 = c0 + 0x08;
 
-                    /* Needs byte for byte reading for named SND/SFX. */
-                    for (int k = 0; k < DF_CHUNK_NAME_SIZE; k++) {
-                        name_buffer[k] = read_u8(current_record_offset + 11 + k, sf);
+        if (!is_mov) {
+            int tl = read_u8(p0 + 0x24, sf);
+            if (tl > 0 && tl <= DF_NAME_MAX) {
+                for (int k = 0; k < tl; k++)
+                    track_name[k] = read_u8(p0 + 0x25 + k, sf);
+                track_name[tl] = '\0';
+            }
+        }
+
+        int single_idx = read_u32le(p0 + (is_mov ? 0x60 : 0x20), sf);
+        if (single_idx > 0 && single_idx < containers) {
+            off_t sp = read_u32le(DF_HEADER_SIZE + single_idx * 0x04, sf);
+            if (sp > 0) {
+                off_t spp = sp + 0x08;
+                int count = read_u16le(spp + 0x04, sf);
+                int name_max = is_mov ? DF_NAME_MAX : 15;
+                int stride = is_mov ? 42 : 26;
+                if (count > 0 && count <= containers) {
+                    off_t e = spp + 0x08;
+                    for (int i = 0; i < count; i++) {
+                        int id = read_u32le(e + 0x04, sf);
+                        if (id >= 0 && id < containers)
+                            read_name(sf, e, name_max, &names[id]);
+                        e += stride;
                     }
-
-                    if (name_len < DF_CHUNK_NAME_SIZE)
-                        name_buffer[name_len] = '\0';
-
-                    for (j = 0; j < total_chunks; j++) {
-                        if (chunks[j].id == chunk_id) {
-                            strncpy(chunks[j].name, name_buffer, sizeof(chunks[j].name) - 1);
-                            chunks[j].name[sizeof(chunks[j].name) - 1] = '\0';
-                            chunks[j].is_named = 1;
-                            break;
-                        }
-                    }
-                    current_record_offset += 0x1A;
                 }
             }
         }
     }
 
-    /* Partition unnamed audio into segmented chunks */
-    segmented_chunks = 0;
-    segmented_chunk_size = find_segmented_chunk_size(chunks, total_chunks);
-
-    if (segmented_chunk_size > 0) {
-        const int SEGMENT_LIMIT = 16;
-        int candidates = 0;
-        for (i = 0; i < total_chunks; i++) {
-            if (!chunks[i].is_named && chunks[i].uncompressed_size == segmented_chunk_size) {
-                candidates++;
-            }
-        }
-
-        /* Only group chunks if not a MOV file, or if it is a MOV with many segments (avoids merging duplicate/reversed chunks) */
-        if (!is_mov_file || (candidates > SEGMENT_LIMIT)) {
-            for (i = 0; i < total_chunks; i++) {
-                if (!chunks[i].is_named && chunks[i].uncompressed_size == segmented_chunk_size) {
-                    chunks[i].is_segmented_chunk = 1;
-                    segmented_chunks++;
-                }
-            }
-        }
+    int audio_count = 0;
+    for (int i = 0; i < containers; i++) {
+        df_chunk_t tmp;
+        if (is_valid_chunk(sf, containers, i, &tmp))
+            audio_ids[audio_count++] = i;
     }
 
-    /* --- Stage 4: Build the VGMSTREAM object --- */
-    subsongs = (total_chunks - segmented_chunks) + (segmented_chunks > 0 ? 1 : 0);
-    if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong < 0 || target_subsong > subsongs || subsongs == 0) goto fail;
+    int has_loop = (loop_count > 0);
+    int subsongs = (has_loop ? 1 : 0) + audio_count;
+    if (subsongs == 0)
+        goto fail;
+    if (target < 0 || target > subsongs)
+        goto fail;
 
-    current_subsong_idx = 0;
+    if (has_loop && target == 1) {
+        /* subsong 1: the assembled track */
+        int disk_stream = (loop_count > order_count);
 
-    /* Find the target subsong data, handling the segmented track first */
-    if (segmented_chunks > 0) {
-        current_subsong_idx++;
-        if (current_subsong_idx == target_subsong) {
-            char basename[STREAM_NAME_SIZE];
-            int max_len;
-            int segment_index = 0;
-
-            segmented_layout_data *data = init_layout_segmented(segmented_chunks);
-            if (!data) goto fail;
-
-            for (i = 0; i < total_chunks; i++) {
-                if (chunks[i].is_segmented_chunk) {
-                    VGMSTREAM* segment_vgmstream = allocate_vgmstream(1, 0);
-                    if (!segment_vgmstream) {
-                        free_layout_segmented(data);
-                        goto fail;
-                    }
-
-                    build_vgmstream_from_chunk(segment_vgmstream, &chunks[i]);
-
-                    if (!vgmstream_open_stream(segment_vgmstream, sf, chunks[i].offset)) {
-                        close_vgmstream(segment_vgmstream);
-                        free_layout_segmented(data);
-                        goto fail;
-                    }
-
-                    data->segments[segment_index++] = segment_vgmstream;
-                }
+        if (disk_stream && loop[0].codec_flag == 2) {
+            /* scattered stream of v4.1 blocks -> blocked layout */
+            vgmstream = build_blocked(sf, loop, loop_count, first_entry);
+        } else {
+            /* follow chunkOrder if usable, else play loop chunks in list order */
+            int use_order = (order_count > 0);
+            for (int i = 0; use_order && i < order_count; i++) {
+                int idx = order[i] - 1;
+                if (idx < 0 || idx >= loop_count)
+                    use_order = 0;
             }
+            int count = use_order ? order_count : loop_count;
+            seq = malloc(count * sizeof(int));
+            if (!seq) goto fail;
+            for (int i = 0; i < count; i++)
+                seq[i] = use_order ? (order[i] - 1) : i;
 
-            if (!setup_layout_segmented(data)) {
-                free_layout_segmented(data);
-                goto fail;
-            }
-
-            vgmstream = allocate_segmented_vgmstream(data, 0, -1, -1);
-            if (!vgmstream) {
-                free_layout_segmented(data);
-                goto fail;
-            }
-
-            get_streamfile_filename(sf, basename, sizeof(basename));
-            max_len = STREAM_NAME_SIZE - TRACK_SUFFIX_SIZE;
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", max_len, basename, target_subsong);
+            vgmstream = build_segmented(sf, loop, seq, count);
         }
-    }
-
-    /* Handle individual tracks if a segmented one wasn't chosen */
-    if (!vgmstream) {
-        df_chunk_t* target_chunk = NULL;
-
-        vgmstream = allocate_vgmstream(1, 0);
-        if (!vgmstream) goto fail;
-
-        for (i = 0; i < total_chunks; i++) {
-            if (chunks[i].is_segmented_chunk) continue;
-            current_subsong_idx++;
-            if (current_subsong_idx == target_subsong) {
-                target_chunk = &chunks[i];
-                break;
-            }
-        }
-
-        if (!target_chunk)
+        if (!vgmstream)
             goto fail;
 
-        build_vgmstream_from_chunk(vgmstream, target_chunk);
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s",
+                (!is_mov && track_name[0]) ? track_name : basename);
+    } else {
+        /* subsongs 2..N (or 1..N when no loop block): individual audio pieces */
+        int piece = target - (has_loop ? 1 : 0);
+        int id = audio_ids[piece - 1];
+        df_chunk_t c;
 
-        if (target_chunk->is_named) {
-            strcpy(vgmstream->stream_name, target_chunk->name);
-        } else {
-            char basename[STREAM_NAME_SIZE];
-            get_streamfile_filename(sf,basename,sizeof(basename));
+        if (!is_valid_chunk(sf, containers, id, &c))
+            goto fail;
 
-            /* Calculate the logical index for this unnamed track */
-            int unnamed_track_idx = 0;
-            if (segmented_chunks > 0) {
-                unnamed_track_idx++; /* The segmented track is the first unnamed track */
-            }
+        vgmstream = allocate_vgmstream(1, 0);
+        if (!vgmstream)
+            goto fail;
 
-            for (j = 0; j < total_chunks; j++) {
-                if (chunks[j].is_segmented_chunk) continue;
-                if (!chunks[j].is_named) {
-                    unnamed_track_idx++;
-                }
-                if (&chunks[j] == target_chunk) {
-                    break; /* Found our chunk, the logical index is correct */
-                }
-            }
+        config_chunk(vgmstream, &c);
+        if (names[id].name[0])
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", names[id].name);
+        else
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s#%d", basename, piece);
 
-            int max_len = STREAM_NAME_SIZE - TRACK_SUFFIX_SIZE;
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", max_len, basename, unnamed_track_idx);
-        }
-
-        if (!vgmstream_open_stream(vgmstream, sf, target_chunk->offset))
+        if (!vgmstream_open_stream(vgmstream, sf, c.offset))
             goto fail;
     }
 
     vgmstream->num_streams = subsongs;
 
-    free(chunks);
+    free(names);
+    free(audio_ids);
+    free(loop);
+    free(order);
+    free(seq);
     return vgmstream;
 
 fail:
-    free(chunks);
+    free(names);
+    free(audio_ids);
+    free(loop);
+    free(order);
+    free(seq);
     close_vgmstream(vgmstream);
     return NULL;
 }
