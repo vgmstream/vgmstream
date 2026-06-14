@@ -89,6 +89,37 @@ static void config_chunk(VGMSTREAM* v, df_chunk_t* c) {
     }
 }
 
+static bool is_silent_chunk(STREAMFILE* sf, const df_chunk_t* c) {
+    uint8_t buf[0x1000];
+
+    if (c->size <= 0)
+        return true;
+
+    off_t pos = c->offset;
+    int32_t left = c->size;
+    while (left > 0) {
+        int to_read = left > (int)sizeof(buf) ? (int)sizeof(buf) : left;
+        int got = read_streamfile(buf, pos, to_read, sf);
+        if (got <= 0)
+            return false; /* can't determine, (keep) */
+
+        for (int i = 0; i < got; i++) {
+            uint8_t b = buf[i];
+            if (c->codec_flag == 2) {
+                if (b != 0x00 && b != 0x80)
+                    return false;
+            } else {
+                if (b != 0x40 && b < 0xC0)
+                    return false;
+            }
+        }
+
+        pos  += got;
+        left -= got;
+    }
+    return true;
+}
+
 /* Pascal String (nameLen @ entry+0x0A, chars @ entry+0x0B). */
 static void read_name(STREAMFILE* sf, off_t entry, int name_max, df_name_t* dst) {
     int len = read_u8(entry + 0x0A, sf);
@@ -133,21 +164,35 @@ fail:
 static VGMSTREAM* build_blocked(STREAMFILE* sf, df_chunk_t* loop, int loop_count, off_t first_entry) {
     VGMSTREAM* v = allocate_vgmstream(1, 0);
     if (!v) return NULL;
+    /* CF_DF silence trim: drop leading/trailing fully-silent blocks but keep interspersed silence
+     * (gaps with audio on both sides). Leading is handled by priming at entry[lo]; trailing by
+     * limiting num_samples to [lo..hi] (the renderer stops there and never reaches the tail).
+     * To restore verbatim block walking, force lo=0 / hi=loop_count-1. */
+    int lo = 0, hi = loop_count - 1;
+    while (lo <= hi && is_silent_chunk(sf, &loop[lo]))
+        lo++;
+    while (hi >= lo && is_silent_chunk(sf, &loop[hi]))
+        hi--;
+    if (lo > hi) { /* degenerate all-silent track: keep everything */
+        lo = 0;
+        hi = loop_count - 1;
+    }
 
     int32_t total = 0, max_rate = 0;
-    for (int i = 0; i < loop_count; i++) {
+    for (int i = lo; i <= hi; i++) {
         total += chunk_samples(&loop[i]);
         if (loop[i].sample_rate > max_rate)
             max_rate = loop[i].sample_rate;
     }
 
     v->meta_type    = meta_CF_DF;
-    v->coding_type  = (loop[0].codec_flag == 1) ? coding_CF_DF_ADPCM_V40 : coding_CF_DF_DPCM_V41;
+    v->coding_type  = (loop[lo].codec_flag == 1) ? coding_CF_DF_ADPCM_V40 : coding_CF_DF_DPCM_V41;
     v->sample_rate  = max_rate;
     v->num_samples  = total;
     v->layout_type  = layout_blocked_cf_df;
 
-    if (!vgmstream_open_stream(v, sf, first_entry)) { /* primes the first block */
+    /* prime entry[lo] so leading silent blocks are skipped (layout re-derives index from the file) */
+    if (!vgmstream_open_stream(v, sf, first_entry + (off_t)lo * DF_LOOP_ENTRY)) {
         close_vgmstream(v);
         return NULL;
     }
@@ -295,8 +340,19 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
             if (!seq) goto fail;
             for (int i = 0; i < count; i++)
                 seq[i] = use_order ? (order[i] - 1) : i;
-
-            vgmstream = build_segmented(sf, loop, seq, count);
+            /* CF_DF silence trim: drop leading/trailing fully-silent steps (the LOGO/OCREDITS
+             * cascades are silent chunks repeated at the ends) but keep interspersed silence.
+             * Force lo=0 / hi=count-1 to disable. */
+            int lo = 0, hi = count - 1;
+            while (lo <= hi && is_silent_chunk(sf, &loop[seq[lo]]))
+                lo++;
+            while (hi >= lo && is_silent_chunk(sf, &loop[seq[hi]]))
+                hi--;
+            if (lo > hi) { /* degenerate all-silent track: keep unfiltered so subsong 1 isn't empty */
+                lo = 0;
+                hi = count - 1;
+            }
+            vgmstream = build_segmented(sf, loop, seq + lo, hi - lo + 1);
         }
         if (!vgmstream)
             goto fail;
@@ -320,7 +376,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         if (names[id].name[0])
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", names[id].name);
         else
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s#%d", basename, piece);
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", STREAM_NAME_SIZE - 13, basename, piece); /* reserve '#' + 11-digit int + NUL */
 
         if (!vgmstream_open_stream(vgmstream, sf, c.offset))
             goto fail;
