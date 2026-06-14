@@ -84,7 +84,6 @@ static void update_position(libvgmstream_priv_t* priv) {
 
     pos->play_forever = vgmstream_get_play_forever(v);
     pos->play_samples = vgmstream_get_samples(v);
-    pos->current = 0;
 }
 
 static void update_format_info(libvgmstream_priv_t* priv) {

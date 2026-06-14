@@ -36,7 +36,6 @@ typedef struct {
 typedef struct {
     int64_t play_forever;
     int64_t play_samples;
-    int64_t current;
 } libvgmstream_priv_position_t;
 
 // vgmstream context/handle
