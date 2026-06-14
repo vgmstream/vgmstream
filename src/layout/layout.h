@@ -103,5 +103,6 @@ void block_update_vid1(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_tt_ad(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vas(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_cf_df(off_t block_offset, VGMSTREAM* vgmstream);
 
 #endif

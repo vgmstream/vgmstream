@@ -97,6 +97,7 @@ rc_t render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_blocked_ubi_sce:
         case layout_blocked_tt_ad:
         case layout_blocked_vas:
+        case layout_blocked_cf_df:
             rc = render_layout_blocked(sbuf, vgmstream);
             break;
         case layout_segmented:
