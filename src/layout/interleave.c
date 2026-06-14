@@ -171,7 +171,12 @@ rc_t render_layout_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         if (samples_to_do > sdst->samples - sdst->filled)
             samples_to_do = sdst->samples - sdst->filled;
 
-        if (samples_to_do <= 0) { /* happens when interleave is not set */
+        //TODO: layout will always try to do up to 'samples', even if the stream is shorter (will be clamped externally)
+        // no more samples left to fill
+        if (samples_to_do == 0)
+            break;
+
+        if (samples_to_do < 0) { /* happens when interleave is not set */
             VGM_LOG_ONCE("INTERLEAVE: wrong samples_to_do\n"); 
             return RC_LAYOUT_ERROR;
         }

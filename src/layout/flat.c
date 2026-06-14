@@ -21,7 +21,11 @@ rc_t render_layout_flat(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         if (samples_to_do > sdst->samples - sdst->filled)
             samples_to_do = sdst->samples - sdst->filled;
 
-        if (samples_to_do <= 0) { /* when decoding more than num_samples */
+        // no more samples left to fill
+        if (samples_to_do == 0)
+            break;
+
+        if (samples_to_do < 0) {
             VGM_LOG("FLAT: wrong samples_to_do\n"); 
             return RC_LAYOUT_ERROR;
         }
