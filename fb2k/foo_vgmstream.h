@@ -104,8 +104,8 @@ class input_vgmstream : public input_stubs {
         void put_into_tagfile(file_info& p_info, abort_callback& p_abort);
         void put_info_details(file_info& p_info, vgmstream_info_t& v_info);
 
-        libvgmstream_t* init_vgmstream_foo(t_uint32 p_subsong, const char* const filename, abort_callback& p_abort);
-        void setup_vgmstream(abort_callback& p_abort);
+        libvgmstream_t* open_vgmstream(t_uint32 p_subsong, const char* const filename, abort_callback& p_abort);
+        void initialize_vgmstream(abort_callback& p_abort);
         void load_vconfig(libvgmstream_config_t* vcfg);
 
         void query_subsong_info(t_uint32 p_subsong, vgmstream_info_t& v_info, abort_callback& p_abort);
