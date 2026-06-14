@@ -4,18 +4,21 @@
 
 /* vgmstream's IO API, defined as a "streamfile" ('SF').
  *
- * vgmstream mostly assumes there is an underlying filesystem (as usual in games), plus given video game formats are
- * often ill-defined it needs extra ops to handle edge cases: seeking + reading from arbitrary offsets, opening companion
- * files, filename/size tests, etc.
+ * vgmstream mostly assumes there is an underlying filesystem (as usual in games). video game formats are often
+ * ill-defined and needs extra ops to handle edge cases: seeking + reading from arbitrary offsets, opening companion
+ * files, doing filename/size tests, etc.
  *
  * If your case is too different you may still create a partial streamfile: returning a fake filename, only handling "open"
  * that reopens itself (same filename), etc. Simpler formats should work fine.
+ *
+ * When handling I/O remember vgmstream doesn't need an actual filesystem, just something that looks standard enough.
+ * It will try to open other files based on the current file's filepath, which is expected to look like
+ * a Linux or Windows path. So your libstreamfile_t may transform _get_name + _open paths as needed.
  */
 
 
 // should be "libvgmstream_streamfile_t" but it was getting unwieldly
 typedef struct libstreamfile_t {
-    //uint32_t flags;   // info flags for vgmstream
     void* user_data;    // any internal structure
 
     /* read 'length' data at 'offset' to 'dst'
