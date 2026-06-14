@@ -742,6 +742,7 @@ typedef enum {
     meta_WMW,
     meta_PXND,
     meta_NXMS,
+    meta_SAUD,
 } meta_t;
 
 #endif

@@ -728,6 +728,7 @@
     <ClCompile Include="meta\sadf.c" />
     <ClCompile Include="meta\sadl.c" />
     <ClCompile Include="meta\sat_sap.c" />
+    <ClCompile Include="meta\saud.c" />
     <ClCompile Include="meta\sbk.c" />
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\sd9.c" />

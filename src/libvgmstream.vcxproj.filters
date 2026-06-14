@@ -2014,6 +2014,9 @@
     <ClCompile Include="meta\sat_sap.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\saud.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sbk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
