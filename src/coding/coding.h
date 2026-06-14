@@ -15,8 +15,8 @@ void adx_next_key(VGMSTREAMCHANNEL* stream);
 
 /* g721_decoder */
 void decode_g721(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
-void g72x_init_state(struct g72x_state* state_ptr);
-
+void setup_g721(VGMSTREAM* vgmstream);
+bool g721_check_format(STREAMFILE* sf, int interleave, int max_size);
 
 /* ima_decoder */
 void decode_standard_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo, int is_high_first);

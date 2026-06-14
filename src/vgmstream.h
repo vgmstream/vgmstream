@@ -24,7 +24,8 @@
 #include "streamfile.h"
 #include "vgmstream_types.h"
 
-#include "coding/g72x_state.h"
+//TODO: remove struct, but needs saving state during loop (memcpy'd)
+#include "coding/libs/g72x_vgmstream.h"
 
 
 typedef struct {

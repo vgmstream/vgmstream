@@ -16,24 +16,9 @@ VGMSTREAM* init_vgmstream_raw_rsf(STREAMFILE* sf) {
     file_size = get_streamfile_size(sf);
     interleave = (file_size + 1) / 2;
 
-    /* G.721 has no zero nibbles, so we look at the first few bytes 
-     * (known files start with 0xFFFFFFFF, but probably an oddity of the codec) */
-    {
-        uint8_t test_byte;
-        off_t i;
-
-        /* 0x20 is arbitrary, all files are much larger */
-        for (i = 0; i < 0x20; i++) {
-            test_byte = read_u8(i,sf);
-            if (!(test_byte&0xf) || !(test_byte&0xf0)) goto fail;
-        }
-
-        /* and also check start of second channel */
-        for (i = interleave; i < interleave + 0x20; i++) {
-            test_byte = read_u8(i,sf);
-            if (!(test_byte&0xf) || !(test_byte&0xf0)) goto fail;
-        }
-    }
+    const int max_tests = 0x20; // 0x20 is arbitrary, all files are much larger
+    bool ok = g721_check_format(sf, interleave, max_tests);
+    if (!ok) return NULL;
 
     channels = 2;
     loop_flag = 0;
@@ -50,17 +35,15 @@ VGMSTREAM* init_vgmstream_raw_rsf(STREAMFILE* sf) {
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_RSF;
 
-    if (!vgmstream_open_stream(vgmstream, sf, 0))
+    if (!vgmstream_open_stream(vgmstream, sf, 0x00))
         goto fail;
 
     /* open the file for reading by each channel */
-    {
-        int i;
-        for (i = 0; i < channels; i++) {
-            vgmstream->ch[i].channel_start_offset= vgmstream->ch[i].offset = interleave * i;
-            g72x_init_state(&(vgmstream->ch[i].g72x_state));
-        }
+    for (int i = 0; i < channels; i++) {
+        vgmstream->ch[i].channel_start_offset= vgmstream->ch[i].offset = interleave * i;
     }
+
+    setup_g721(vgmstream);
 
     return vgmstream;
 fail:

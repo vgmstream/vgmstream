@@ -152,9 +152,6 @@
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\g72x_state.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\mpeg_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -192,6 +189,9 @@
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\libs\g7221_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\g72x_vgmstream.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\libs\icelib.h">
@@ -944,6 +944,9 @@
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\g7221_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\g72x_vgmstream.c">
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\icelib.c">
