@@ -42,12 +42,12 @@ void mix_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     mixer_chain(vgmstream->mixer, sbuf, current_pos);
 }
 
-void resample_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+void resample_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream, bool is_eor) {
     /* no support or not need to apply */
     if (!mixer_is_resample_active(vgmstream->mixer))
         return;
 
-    mixer_resample(vgmstream->mixer, sbuf);
+    mixer_resample(vgmstream->mixer, sbuf, is_eor);
 }
 
 /* ******************************************************************* */

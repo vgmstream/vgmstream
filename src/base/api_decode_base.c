@@ -108,7 +108,6 @@ void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool full) {
         priv->buf.consumed = priv->sbuf.filled;
     }
 
-    priv->pos.current = 0;
     priv->decode_done = false;
 }
 

@@ -527,7 +527,7 @@ static bool convert_file(cli_config_t* cfg) {
     }
 
     /* would be ignored by seek code though (allowed for seek_samples2 to test this) */
-    if (cfg->seek_samples1 < -1 || cfg->seek_samples1 >= play_samples) {
+    if (cfg->seek_samples1 < -1 || cfg->seek_samples1 > play_samples) {
         fprintf(stderr, "wrong seek config\n");
         goto fail;
     }

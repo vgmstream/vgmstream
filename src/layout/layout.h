@@ -6,11 +6,13 @@
 #include "../util/reader_sf.h"
 #include "../util/log.h"
 #include "../base/sbuf.h"
+#include "../base/rc.h"
+
 
 /* basic layouts */
-void render_vgmstream_flat(sbuf_t* sbuf, VGMSTREAM* vgmstream);
+rc_t render_layout_flat(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 
-void render_vgmstream_interleave(sbuf_t* sbuf, VGMSTREAM* vgmstream);
+rc_t render_layout_interleave(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 
 
 /* segmented layout */
@@ -26,7 +28,7 @@ typedef struct {
     sfmt_t fmt;
 } segmented_layout_data;
 
-void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream);
+rc_t render_layout_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 segmented_layout_data* init_layout_segmented(int segment_count);
 bool setup_layout_segmented(segmented_layout_data* data);
 void free_layout_segmented(segmented_layout_data* data);
@@ -48,7 +50,7 @@ typedef struct {
     sfmt_t fmt;
 } layered_layout_data;
 
-void render_vgmstream_layered(sbuf_t* sbuf, VGMSTREAM* vgmstream);
+rc_t render_layout_layered(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 layered_layout_data* init_layout_layered(int layer_count);
 bool setup_layout_layered(layered_layout_data* data);
 void free_layout_layered(layered_layout_data* data);
@@ -58,7 +60,8 @@ void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample);
 
 
 /* blocked layouts */
-void render_vgmstream_blocked(sbuf_t* sbuf, VGMSTREAM* vgmstream);
+rc_t render_layout_blocked(sbuf_t* sbuf, VGMSTREAM* vgmstream);
+
 void block_update(off_t block_offset, VGMSTREAM* vgmstream);
 
 void block_update_ast(off_t block_ofset, VGMSTREAM* vgmstream);

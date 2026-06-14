@@ -96,7 +96,7 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint, const char * p_path, 
         case input_open_decode:         // prepare to retrieve info and decode
         case input_open_info_read:      // prepare to retrieve info
             // init vgmstream to get subsongs
-            setup_vgmstream(p_abort);
+            initialize_vgmstream(p_abort);
             break;
 
         case input_open_info_write:     // prepare to retrieve info and tag
@@ -304,7 +304,7 @@ void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, ab
     if (subsong != p_subsong && !direct_subsong || force_ignore_loop) {
         subsong = p_subsong;
         //;console::formatter() << "setup: ";
-        setup_vgmstream(p_abort);
+        initialize_vgmstream(p_abort);
     }
 
     //decode_seek(0, p_abort);
@@ -404,7 +404,7 @@ bool input_vgmstream::g_is_our_path(const char* p_path, const char* p_extension)
 
 
 // internal util to create a VGMSTREAM
-libvgmstream_t* input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const char* const filename, abort_callback& p_abort) {
+libvgmstream_t* input_vgmstream::open_vgmstream(t_uint32 p_subsong, const char* const filename, abort_callback& p_abort) {
 
     /* Workaround for a foobar bug (mainly for complex TXTP):
      * When converting to .ogg foobar calls oggenc, that calls setlocale(LC_ALL, "") to use system's locale.
@@ -435,14 +435,14 @@ libvgmstream_t* input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const ch
 }
 
 // internal util to initialize vgmstream
-void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
+void input_vgmstream::initialize_vgmstream(abort_callback & p_abort) {
     // close first in case of changing subsongs
     if (vgmstream) {
         libvgmstream_free(vgmstream);
     }
 
     // subsong and filename are always defined before this
-    vgmstream = init_vgmstream_foo(subsong, filename, p_abort);
+    vgmstream = open_vgmstream(subsong, filename, p_abort);
     if (!vgmstream)
         throw exception_io_data();
 
@@ -478,7 +478,7 @@ void input_vgmstream::query_subsong_info(t_uint32 p_subsong, vgmstream_info_t& v
     // If it's a direct subsong then subsong may be N while p_subsong = 1
     // so there is no need to recreate the infostream, only one subsong is used.
     if (subsong != p_subsong && !direct_subsong) {
-        infostream = init_vgmstream_foo(p_subsong, filename, p_abort);
+        infostream = open_vgmstream(p_subsong, filename, p_abort);
         if (!infostream)
             throw exception_io_data();
 

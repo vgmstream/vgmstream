@@ -99,13 +99,13 @@
     <ClInclude Include="base\play_config.h" />
     <ClInclude Include="base\play_state.h" />
     <ClInclude Include="base\plugins.h" />
+    <ClInclude Include="base\rc.h" />
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\resampler.h" />
     <ClInclude Include="base\sbuf.h" />
     <ClInclude Include="base\seek_table.h" />
     <ClInclude Include="base\tags.h" />
     <ClInclude Include="coding\coding.h" />
-    <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
     <ClInclude Include="coding\libs\binka_data.h" />
@@ -119,6 +119,7 @@
     <ClInclude Include="coding\libs\g7221_aes.h" />
     <ClInclude Include="coding\libs\g7221_data.h" />
     <ClInclude Include="coding\libs\g7221_lib.h" />
+    <ClInclude Include="coding\libs\g72x_vgmstream.h" />
     <ClInclude Include="coding\libs\icelib.h" />
     <ClInclude Include="coding\libs\ka1a_dec.h" />
     <ClInclude Include="coding\libs\ka1a_dec_data.h" />
@@ -371,6 +372,7 @@
     <ClCompile Include="coding\libs\compresswave_lib.c" />
     <ClCompile Include="coding\libs\g7221_aes.c" />
     <ClCompile Include="coding\libs\g7221_lib.c" />
+    <ClCompile Include="coding\libs\g72x_vgmstream.c" />
     <ClCompile Include="coding\libs\icelib.c" />
     <ClCompile Include="coding\libs\ka1a_dec.c" />
     <ClCompile Include="coding\libs\libacm_decode.c" />
@@ -726,6 +728,7 @@
     <ClCompile Include="meta\sadf.c" />
     <ClCompile Include="meta\sadl.c" />
     <ClCompile Include="meta\sat_sap.c" />
+    <ClCompile Include="meta\saud.c" />
     <ClCompile Include="meta\sbk.c" />
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\sd9.c" />

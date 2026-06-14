@@ -53,13 +53,15 @@ static void seek_force_render(VGMSTREAM* vgmstream, int samples) {
         int to_do = samples;
         if (to_do > buf_samples)
             to_do = buf_samples;
+
+        sbuf_tmp.filled = 0;
         sbuf_tmp.samples = to_do;
+
         render_layout(&sbuf_tmp, vgmstream);
 
         /* no mixing */
-        samples -= to_do;
 
-        sbuf_tmp.filled = 0; // discard buf
+        samples -= sbuf_tmp.filled;
     }
 }
 
@@ -214,10 +216,11 @@ static void seek_decode(VGMSTREAM* vgmstream, int32_t seek_sample) {
 /* ************************************************************************* */
 
 typedef void (*seek_layout_fn_t)(VGMSTREAM* vgmstream, int32_t seek_sample);
+typedef void (*loop_layout_fn_t)(VGMSTREAM* vgmstream, int32_t loop_sample);
 
 //TODO: avoid resetting?
 //TODO test unify with the above
-static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layout_fn, int32_t seek_sample) {
+static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layout_fn, loop_layout_fn_t loop_layout_fn, int32_t seek_sample) {
 
     bool is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; // loop target may disable loop flag during decode
 
@@ -263,8 +266,12 @@ static void seek_layout_custom(VGMSTREAM* vgmstream, seek_layout_fn_t seek_layou
         }
 
         seek_layout_fn(vgmstream, vgmstream->loop_start_sample);
+
         decode_do_loop(vgmstream); // ugly but needed to loop after seeking due to how layout works
+        loop_layout_fn(vgmstream, vgmstream->loop_start_sample);
+
         seek_layout_fn(vgmstream, vgmstream->loop_start_sample + loop_seek);
+
         vgmstream->loop_count = loop_count;
         return;
     }
@@ -278,12 +285,12 @@ static void seek_layout(VGMSTREAM* vgmstream, int32_t seek_sample) {
 
     // layouts can seek faster internally
     if (vgmstream->layout_type == layout_segmented) {
-        seek_layout_custom(vgmstream, seek_layout_segmented, seek_sample);
+        seek_layout_custom(vgmstream, seek_layout_segmented, loop_layout_segmented, seek_sample);
         return;
     }
 
     if (vgmstream->layout_type == layout_layered) {
-        seek_layout_custom(vgmstream, seek_layout_layered, seek_sample);
+        seek_layout_custom(vgmstream, seek_layout_layered, loop_layout_layered, seek_sample);
         return;
     }
     
@@ -419,10 +426,6 @@ static void seek_render(VGMSTREAM* vgmstream, seek_render_t* sc) {
 
     seek_render_pad_end(vgmstream, sc);
     seek_render_fade(vgmstream, sc);
-
-    if (sc->is_config) {
-        vgmstream->pstate.play_position = sc->seek_target;
-    }
 }
 
 /* ************************************************************************* */
@@ -466,11 +469,19 @@ static void seek_simple(VGMSTREAM* vgmstream, int32_t seek_sample) {
 void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     //;VGM_LOG("SEEK [main]: s=%i\n", seek_sample);
 
-    seek_sample = clamp_seek(vgmstream, seek_sample);
+    int32_t target_sample = seek_sample;
+
+    // seeking is done before the resampled output
+    double ratio = mixing_get_resample_ratio(vgmstream);
+    if (ratio > 0) {
+        target_sample = target_sample / ratio;
+    }
+
+    target_sample = clamp_seek(vgmstream, target_sample);
 
     bool is_config = vgmstream->config_enabled;
     if (!is_config) {
-        seek_simple(vgmstream, seek_sample);
+        seek_simple(vgmstream, target_sample);
         return;
     }
 
@@ -483,13 +494,21 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     sc.play_forever = vgmstream->config.play_forever;
     sc.is_body_end = vgmstream->loop_target > 0;
 
-    sc.seek_target = seek_sample;
-    sc.seek_decode = seek_sample;
+    sc.seek_target = target_sample;
+    sc.seek_decode = target_sample;
 
     sc.play_sample = ps->play_position;
     if (!sc.is_config)
         sc.play_sample = vgmstream->current_sample;
+    if (ratio > 0) {
+        sc.play_sample = sc.play_sample / ratio;
+    }
 
     seek_render(vgmstream, &sc);
-    return;
+
+    //ps = &vgmstream->pstate; //may be reset by render
+    if (sc.is_config) {
+        vgmstream->pstate.play_position = sc.seek_target;
+        //vgmstream->pstate.play_position = seek_sample;
+    }
 }

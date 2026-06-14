@@ -2,6 +2,7 @@
 #define _DECODE_H
 
 #include "../vgmstream.h"
+#include "sbuf.h"
 
 void* decode_init();
 void decode_free(VGMSTREAM* vgmstream);

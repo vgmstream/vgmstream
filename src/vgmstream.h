@@ -24,7 +24,8 @@
 #include "streamfile.h"
 #include "vgmstream_types.h"
 
-#include "coding/g72x_state.h"
+//TODO: remove struct, but needs saving state during loop (memcpy'd)
+#include "coding/libs/g72x_vgmstream.h"
 
 
 typedef struct {
@@ -248,8 +249,10 @@ typedef struct {
 /* vgmstream internal API                                                   */
 /* -------------------------------------------------------------------------*/
 
+#if 0
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM* init_vgmstream(const char* const filename);
+#endif
 
 /* init with custom IO via streamfile */
 VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf);

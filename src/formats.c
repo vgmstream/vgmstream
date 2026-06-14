@@ -1543,6 +1543,7 @@ static const meta_info meta_info_list[] = {
         {meta_WMW,                  "Artoon WMW header"},
         {meta_PXND,                 "Pixelbite PXND header"},
         {meta_NXMS,                 "Arika NXMS header"},
+        {meta_SAUD,                 "LucasArts SAUD header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

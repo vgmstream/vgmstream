@@ -28,7 +28,7 @@
  * This may make the API a bit odd, will probably improve later. Probably.
  *
  * Notes:
- * - now there is an API, internals (vgmstream.h) will change in the future so avoid accesing them
+ * - now there is an API, internals (vgmstream.h) will change in the future so avoid including or accesing them
  * - some details described in the API may not happen at the moment (defined for future changes)
  * - uses long-winded libvgmstream_* names since internals already use the vgmstream_* 'namespace', #define if needed
  * - c-strings should be in UTF-8
@@ -302,7 +302,7 @@ LIBVGMSTREAM_API const char** libvgmstream_get_common_extensions(int* size);
 
 typedef struct {
     bool is_extension;           /* set if filename is just an extension (otherwise may be seen as 'extensionless') */
-    bool skip_standard;           /* disable extension check vs default formats */
+    bool skip_standard;          /* disable extension check vs default formats */
     bool reject_extensionless;   /* enable if player can't play extensionless files */
     bool accept_unknown;         /* enable to allow any extension even if not known by vgmstream (for .txth) */
     bool accept_common;          /* enable to allow known-but-common extension (when player has plugin priority) */

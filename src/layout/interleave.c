@@ -1,7 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
 #include "../base/decode.h"
-#include "../base/sbuf.h"
 
 
 typedef struct {
@@ -143,12 +142,12 @@ static void update_offsets(layout_config_t* layout, VGMSTREAM* vgmstream, int* p
  * Data has interleaved chunks per channel, and once one is decoded the layout moves offsets,
  * skipping other chunks (essentially a simplified variety of blocked layout).
  * Incompatible with decoders that move offsets. */
-void render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+rc_t render_layout_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     layout_config_t layout = {0};
+
     if (!setup_helper(&layout, vgmstream)) {
         VGM_LOG_ONCE("INTERLEAVE: wrong config found\n");
-        sbuf_silence_rest(sdst);
-        return;
+        return RC_LAYOUT_ERROR;
     }
 
 
@@ -161,7 +160,6 @@ void render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         samples_this_block = vgmstream->num_samples;
 
     while (sdst->filled < sdst->samples) {
-        int samples_done, curr_filled;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping, restore standard interleave sizes */
@@ -173,14 +171,19 @@ void render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         if (samples_to_do > sdst->samples - sdst->filled)
             samples_to_do = sdst->samples - sdst->filled;
 
-        if (samples_to_do <= 0) { /* happens when interleave is not set */
+        //TODO: layout will always try to do up to 'samples', even if the stream is shorter (will be clamped externally)
+        // no more samples left to fill
+        if (samples_to_do == 0)
+            break;
+
+        if (samples_to_do < 0) { /* happens when interleave is not set */
             VGM_LOG_ONCE("INTERLEAVE: wrong samples_to_do\n"); 
-            goto decode_fail;
+            return RC_LAYOUT_ERROR;
         }
 
-        curr_filled = sdst->filled;
+        int curr_filled = sdst->filled;
         decode_vgmstream(sdst, vgmstream, samples_to_do);
-        samples_done = sdst->filled - curr_filled;
+        int samples_done = sdst->filled - curr_filled;
 
         vgmstream->current_sample += samples_done;
         vgmstream->samples_into_block += samples_done;
@@ -192,7 +195,5 @@ void render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         }
     }
 
-    return;
-decode_fail:
-    sbuf_silence_rest(sdst);
+    return RC_RENDER_OK;
 }

@@ -1070,4 +1070,6 @@ VGMSTREAM* init_vgmstream_pxnd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_nxms(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_saud(STREAMFILE* sf);
+
 #endif

@@ -3,7 +3,6 @@
 #include "../base/decode.h"
 #include "../base/mixing.h"
 #include "../base/play_state.h"
-#include "../base/sbuf.h"
 #include "../base/render.h"
 
 #define VGMSTREAM_MAX_SEGMENTS 1024
@@ -13,7 +12,7 @@
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
-void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+rc_t render_layout_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     segmented_layout_data* data = vgmstream->layout_data;
     sbuf_t ssrc_tmp;
     sbuf_t* ssrc = &ssrc_tmp;
@@ -21,8 +20,7 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
     if (data->current_segment >= data->segment_count) {
         VGM_LOG_ONCE("SEGMENT: wrong current segment\n");
-        sbuf_silence_rest(sbuf);
-        return;
+        return RC_LAYOUT_ERROR;
     }
 
     int current_channels = 0;
@@ -31,19 +29,17 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     int samples_this_block = vgmstream_get_samples(vs);
 
     while (sbuf->filled < sbuf->samples) {
-        int samples_to_do;
-        sfmt_t segment_format;
-        void* buf_filled = NULL;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
-            /* handle loop end to start (loop_layout_segmented has been called in decode_loop_loop) */
+            /* handle loop end to start */
+            loop_layout_segmented(vgmstream, vgmstream->loop_current_sample);
 
             // update temp vars, since state changed in decode_do_loop > loop_layout_segmented
             vs = data->segments[data->current_segment];
             samples_this_block = vgmstream_get_samples(vs);
             mixing_info(vs, NULL, &current_channels);
 
-            ;VGM_LOG("SEGMENTED: loop point\n");
+            //;VGM_LOG("SEGMENTED: loop point\n");
             continue;
         }
 
@@ -54,7 +50,7 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
             if (data->current_segment >= data->segment_count) { /* when decoding more than num_samples */
                 VGM_LOG_ONCE("SEGMENTED: reached last segment, into=%i, this=%i, curr=%i\n", vgmstream->samples_into_block, samples_this_block, data->current_segment);
-                goto decode_fail;
+                return RC_LAYOUT_ERROR;
             }
 
             vs = data->segments[data->current_segment];
@@ -66,8 +62,8 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
             continue;
         }
 
-        // needed to handle decode_do_loop
-        samples_to_do = decode_get_samples_to_do(samples_this_block, sbuf->samples, vgmstream);
+        // needed for decode_do_loop
+        int samples_to_do = decode_get_samples_to_do(samples_this_block, sbuf->samples, vgmstream);
         if (samples_to_do > sbuf->samples - sbuf->filled)
             samples_to_do = sbuf->samples - sbuf->filled;
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */
@@ -75,22 +71,23 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
         if (samples_to_do < 0) { /* 0 is ok? */
             VGM_LOG_ONCE("SEGMENTED: wrong samples_to_do %i found\n", samples_to_do);
-            goto decode_fail;
+            return RC_LAYOUT_ERROR;
         }
 
         vs = data->segments[data->current_segment];
 
-        segment_format = mixing_get_input_sample_type(vs);
+        sfmt_t segment_format = mixing_get_input_sample_type(vs);
         sbuf_init(ssrc, segment_format, data->buffer, samples_to_do, vs->channels);
 
         // try to use part of outbuf directly if not remixed (minioptimization) //TODO improve detection
+        void* buf_filled = NULL;
         if (vgmstream->channels == data->input_channels && sbuf->fmt == segment_format && !data->mixed_channels) {
             buf_filled = sbuf_get_filled_buf(sbuf);
             ssrc->buf = buf_filled;
         }
 
         //TODO: buf may be smaller than samples
-        render_main(ssrc, vs);
+        rc_t rc = render_main(ssrc, vs);
 
         // returned buf may have changed
         if (ssrc->buf != buf_filled) {
@@ -104,9 +101,7 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         vgmstream->samples_into_block += ssrc->filled;
     }
 
-    return;
-decode_fail:
-    sbuf_silence_rest(sbuf);
+    return RC_RENDER_OK;
 }
 
 
@@ -199,7 +194,7 @@ bool setup_layout_segmented(segmented_layout_data* data) {
         /* allow config if set for fine-tuned parts (usually TXTP only) */
         vs->config_enabled = vs->config.config_set;
 
-        /* disable so that looping is controlled by render_vgmstream_segmented */
+        /* disable so that looping is controlled by render_layout_segmented */
         if (vs->loop_flag) {
             VGM_LOG("SEGMENTED: segment %i is looped\n", i);
 

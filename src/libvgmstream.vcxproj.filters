@@ -131,6 +131,9 @@
     <ClInclude Include="base\plugins.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\rc.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\render.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
@@ -147,9 +150,6 @@
       <Filter>base\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\coding.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="coding\g72x_state.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\mpeg_decoder.h">
@@ -189,6 +189,9 @@
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\libs\g7221_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\g72x_vgmstream.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\libs\icelib.h">
@@ -941,6 +944,9 @@
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\g7221_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\g72x_vgmstream.c">
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\icelib.c">
@@ -2006,6 +2012,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sat_sap.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\saud.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sbk.c">

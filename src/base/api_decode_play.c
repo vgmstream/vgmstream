@@ -41,12 +41,10 @@ static bool reset_buf(libvgmstream_priv_t* priv) {
 }
 
 // update info based on last render
-static void update_decoder_info(libvgmstream_priv_t* priv) {
+static void update_decoder_info(libvgmstream_priv_t* priv, rc_t rc) {
 
-    // mark done if buf reaches EOF (may also happen after seek)
-    if (!priv->pos.play_forever) {
-        priv->pos.current += priv->sbuf.filled;
-        priv->decode_done = (priv->pos.current >= priv->pos.play_samples);
+    if (rc == RC_RENDER_EOR) {
+        priv->decode_done = true;
     }
 
     sbuf_t* sbuf = &priv->sbuf;
@@ -77,16 +75,16 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
 
     // requested samples, may return different max
     int to_get = priv->buf.max_samples;
-    if (!priv->pos.play_forever && to_get + priv->pos.current > priv->pos.play_samples)
-        to_get = priv->pos.play_samples - priv->pos.current;
+//if (!priv->pos.play_forever && to_get + priv->pos.current > priv->pos.play_samples)
+//    to_get = priv->pos.play_samples - priv->pos.current;
 
     // default sbuf, may change during render
     sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);
     sbuf_init(&priv->sbuf, sfmt, priv->buf.data, to_get, priv->vgmstream->channels);
 
-    render_main(&priv->sbuf, priv->vgmstream);
+    rc_t rc = render_main(&priv->sbuf, priv->vgmstream);
 
-    update_decoder_info(priv);
+    update_decoder_info(priv, rc);
 
     return LIBVGMSTREAM_OK;
 }
@@ -174,15 +172,14 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample) {
     if (!priv->vgmstream)
         return;
 
-    seek_vgmstream(priv->vgmstream, sample);
-
-    priv->pos.current = priv->vgmstream->pstate.play_position;
+    /*rc_t rc = */ seek_vgmstream(priv->vgmstream, sample);
+    rc_t rc = RC_RENDER_OK;
 
     // update flags just in case
     sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);
     sbuf_init(&priv->sbuf, sfmt, priv->buf.data, 0, priv->vgmstream->channels);
 
-    update_decoder_info(priv);
+    update_decoder_info(priv, rc);
 }
 
 
