@@ -395,6 +395,7 @@
     <ClCompile Include="layout\blocked_ast.c" />
     <ClCompile Include="layout\blocked_awc.c" />
     <ClCompile Include="layout\blocked_caf.c" />
+    <ClCompile Include="layout\blocked_cf_df.c" />
     <ClCompile Include="layout\blocked_dec.c" />
     <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_ea_schl.c" />
