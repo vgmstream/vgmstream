@@ -197,7 +197,7 @@ static bool sbuf_reserve_buf(sbuf_t* sdst, sfmt_t fmt, sbuf_t* ssrc) {
 // Resample sbuf samples into internal resampler buffer, and get resampled samples back into sbuf.
 // Note that resampler outputs float, and as many samples as possible from input
 // (could get partial samples but would need to avoid decoding if there are still samples in resampler).
-void mixer_resample(mixer_t* mixer, sbuf_t* sbuf) {
+void mixer_resample(mixer_t* mixer, sbuf_t* sbuf, bool is_eor) {
 
     if (!mixer->resampler)
         return;
@@ -215,6 +215,9 @@ void mixer_resample(mixer_t* mixer, sbuf_t* sbuf) {
         VGM_LOG("MIX: resample get error: %i\n", res);
         return;
     }
+
+    //TODO: allow existing samples
+    //resampler_drain_samples(mixer->resampler, is_eor);
 
     // convert if needed
     if (mixer->force_type && mixer->force_type != sbuf->fmt) {

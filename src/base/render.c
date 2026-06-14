@@ -33,21 +33,10 @@ void render_reset(VGMSTREAM* vgmstream) {
 
 rc_t render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
-#if 0
-    // TODO: improve; should also handle -F, may cause infinite loops
-    // clamp max requested samples (usually clamped externally)
-    if (!vgmstream->loop_flag && !vgmstream->loop_count) {
-        int samples_left = vgmstream->num_samples - vgmstream->current_sample;
-        if (sbuf->samples > samples_left && samples_left >= 0)
-            sbuf->samples = samples_left;
-    }
-#endif
-
     int sample_count = sbuf->samples - sbuf->filled;
     if (sample_count == 0) {
-        // should only happen in odd layouts
-        VGM_LOG("RENDER: nothing to do, samples=%i, filled=%i\n", sbuf->samples, sbuf->filled);
-        return RC_RENDER_EOR;
+        // may happen with padding added/etc
+        return RC_RENDER_OK;
     }
 
     /* current_sample goes between loop points (if looped) or up to max samples,
@@ -56,8 +45,9 @@ rc_t render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     // Nothing to decode: return blank buf (not ">=" to allow layouts to loop in some cases when == happens)
     // Only blank samples to detect near EOF.
     if (vgmstream->current_sample > vgmstream->num_samples) {
+        VGM_LOG("RENDER: no more samples in vgmstream, current=%i, max=%i\n", vgmstream->current_sample, vgmstream->num_samples);
         sbuf_silence_rest(sbuf);
-        return RC_RENDER_EOR;
+        return RC_RENDER_OK;
     }
 
     rc_t rc;
@@ -294,14 +284,39 @@ static void play_adjust_totals(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
         return;
 
     // usually only happens when mixing layers of different lengths (where decoder keeps calling render)
-    //TODO: excess affectings resampling, check layers
-    //int excess = ps->play_position - ps->play_duration;
-    //if (excess > sbuf->samples)
-    //    excess = sbuf->samples;
-    //sbuf->filled = (sbuf->samples - excess);
+    int excess = ps->play_position - ps->play_duration;
+    if (excess > sbuf->samples)
+        excess = sbuf->samples;
+    sbuf->filled = (sbuf->samples - excess);
 
     /* clamp */
     ps->play_position = ps->play_duration;
+}
+
+static rc_t get_result_code(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
+    if (!vgmstream->config_enabled) {
+
+        //TODO: maybe clamp samples
+
+        if (vgmstream->current_sample > vgmstream->num_samples) {
+            return RC_RENDER_EOR;
+        }
+
+        return RC_RENDER_OK;
+    }
+    else {
+
+        play_state_t* ps = &vgmstream->pstate;
+
+        if (vgmstream->config.play_forever)
+            return RC_RENDER_OK;
+
+        if (ps->play_position < ps->play_duration)
+            return RC_RENDER_OK;
+
+        // no more samples to play
+        return RC_RENDER_EOR;
+    }
 }
 
 /*****************************************************************************/
@@ -319,34 +334,35 @@ static void play_adjust_totals(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
 
 rc_t render_main(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
-    /* trim decoder output (may go anywhere before main render since it doesn't use render output, but easier first) */
+    // trim decoder output (may go anywhere before main render since it doesn't use render output, but easier first)
     play_op_trim(vgmstream, sbuf);
 
-    /* adds empty samples to buf and moves it */
+    // adds empty samples to buf and moves it
     play_op_pad_begin(vgmstream, sbuf);
 
 
     /* main decode */
-    int rc = render_layout(sbuf, vgmstream);
+    /*rc_t rc =*/ render_layout(sbuf, vgmstream);
 
     /* apply mixing ops (may change output totals) */
     mix_vgmstream(sbuf, vgmstream);
 
 
-    /* simple fadeout over decoded data (after mixing since usually results in less samples) */
+    // simple fadeout over decoded data (after mixing since usually results in less samples)
     play_op_fade(vgmstream, sbuf);
 
-    /* silence leftover buf samples (after fade, as rarely may mix decoded buf + trim samples when no fade is set)
-     * (could be done before render to "consume" buf but doesn't matter much) */
+    // silence leftover buf samples (after fade, as rarely may mix decoded buf + trim samples when no fade is set)
+    // (could be done before render to "consume" buf but doesn't matter much)
     play_op_pad_end(vgmstream, sbuf);
 
-    /* play position */
+    // change play position and max buffer
     play_adjust_totals(vgmstream, sbuf);
 
+    rc_t rc = get_result_code(vgmstream, sbuf);
 
     // should be part of main mixer process, but txtp calcs and render ops assume original sample rate,
-    // making it a bit hard to plug in resampling without potentially buggy changes around
-    resample_vgmstream(sbuf, vgmstream); //TODO: detect eof or resampler
+    // making it a bit hard to plug in resampling without potential buggy changes around
+    resample_vgmstream(sbuf, vgmstream, rc == RC_RENDER_EOR);
 
     return rc;
 }
