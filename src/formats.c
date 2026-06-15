@@ -982,6 +982,8 @@ static const coding_info coding_info_list[] = {
         {coding_AAC_raw,            "Custom AAC"},
         {coding_CF_DF_ADPCM_V40,    "Cyberflix DreamFactory v4.0 ADPCM"},
         {coding_CF_DF_DPCM_V41,     "Cyberflix DreamFactory v4.1 DPCM"},
+        {coding_CF_DF_V5_ADPCM,     "Cyberflix DreamFactory v5 ADPCM"},
+        {coding_CF_DF_V5_IMA,       "Cyberflix DreamFactory v5 IMA ADPCM"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},

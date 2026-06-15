@@ -422,3 +422,176 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+/* CF_DF v5 "sound director" (MSND container): a Pascal-string name table mapping a SOUN
+ * container id to its name. With payload base H = container + 0x08 (as for SOUN), the entry
+ * count is u32 at H+0x18 and entries follow at H+0x28 (stride 0x30): u16 SOUN container id
+ * @+0x02, u8 name length @+0x08, name chars @+0x09. Writes the matching name into dst
+ * ('\0' if the SOUN isn't listed). */
+static void cf_df_v5_lookup_name(STREAMFILE* sf, int containers, int soun_id, char* dst, int dst_size) {
+    dst[0] = '\0';
+
+    for (int i = 0; i < containers; i++) {
+        off_t coff = read_u32le(DF_HEADER_SIZE + i * 0x04, sf);
+        if (coff <= 0 || coff + 0x30 > get_streamfile_size(sf))
+            continue;
+        if (!is_id32le(coff + 0x0C, sf, "MSND"))
+            continue;
+
+        off_t H = coff + 0x08; /* MSND payload */
+        int n = read_u32le(H + 0x18, sf);
+        if (n <= 0 || n > DF_MAX_CHUNKS)
+            return;
+
+        for (int k = 0; k < n; k++) {
+            off_t e = H + 0x28 + (off_t)k * 0x30;
+            if (e + 0x09 > get_streamfile_size(sf))
+                return;
+            if (read_u16le(e + 0x02, sf) != soun_id)
+                continue;
+
+            int len = read_u8(e + 0x08, sf);
+            if (len > dst_size - 1)
+                len = dst_size - 1;
+            if (e + 0x09 + len > get_streamfile_size(sf))
+                return;
+            for (int c = 0; c < len; c++)
+                dst[c] = read_u8(e + 0x09 + c, sf);
+            dst[len] = '\0';
+            return;
+        }
+        return; /* a single MSND directs all SOUN streams */
+    }
+}
+
+
+/*
+ * CF_DF v5 - CyberFlix DreamFactory Engine, version 5 movies (.move).
+ *
+ * v5 keeps the v4 container envelope (file size @0x04, container count @0x14, u32 offset table
+ * @0x400) but replaces the magic and audio model:
+ * - Header magic @0x20 is EA-style 4CCs (stored LE).
+ * - Containers are self-describing via a 4CC at payload +0x0C (stored LE): MFRM/STEP (video),
+ *   SOUN (audio), MHED, MTHM, MSND, MTRG. Each SOUN container is one subsong.
+ * - SOUN payload base H = container + 0x08. Codec is fixed per stream and selected by
+ *   H+0x1a (==1 -> v4.0 ADPCM), else H+0x18 (==0 -> v4.1 DPCM), else IMA. Sample rate at
+ *   H+0x1c (native 11025/22050/44100; the engine upsamples to 44100, we decode native).
+ *   Block count at H+0x28; block-offset table at H+0x2c (input offsets relative to H). Codec
+ *   state resets every block;
+ *
+ * Titles: Redjack: Revenge of the Brethren
+ */
+VGMSTREAM* init_vgmstream_cf_df_v5(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int* soun_ids = NULL;
+
+    if (!is_id32le(0x20, sf, "MOVE") || !is_id32le(0x24, sf, "D5ME"))
+        return NULL;
+    if (read_u32le(0x04, sf) != get_streamfile_size(sf))
+        return NULL;
+    if (!check_extensions(sf, "move"))
+        return NULL;
+
+    int containers = read_u32le(0x14, sf);
+    if (containers <= 0 || containers > INT16_MAX)
+        return NULL;
+
+    /* collect SOUN containers (each one is a subsong) */
+    soun_ids = malloc(containers * sizeof(int));
+    if (!soun_ids) goto fail;
+
+    int soun_count = 0;
+    for (int i = 0; i < containers; i++) {
+        off_t coff = read_u32le(DF_HEADER_SIZE + i * 0x04, sf);
+        if (coff <= 0 || coff + 0x30 > get_streamfile_size(sf))
+            continue;
+        if (is_id32le(coff + 0x0C, sf, "SOUN"))
+            soun_ids[soun_count++] = i;
+    }
+    if (soun_count == 0)
+        goto fail;
+
+    int target = sf->stream_index;
+    if (target == 0)
+        target = 1;
+    if (target < 0 || target > soun_count)
+        goto fail;
+
+    off_t pos = read_u32le(DF_HEADER_SIZE + soun_ids[target - 1] * 0x04, sf);
+    off_t H   = pos + 0x08;
+    uint32_t cont_size = read_u32le(pos + 0x04, sf); /* SOUN payload size (block offsets run to here) */
+    int sel18 = read_u16le(H + 0x18, sf);
+    int sel1a = read_u16le(H + 0x1a, sf);
+    int rate  = read_u32le(H + 0x1c, sf);
+    int count = read_u32le(H + 0x28, sf);            /* block count */
+    off_t table = H + 0x2c;                          /* block-offset table (relative to H) */
+
+    if (rate != 11025 && rate != 22050 && rate != 44100)
+        goto fail;
+    if (count <= 0 || count > DF_MAX_CHUNKS)
+        goto fail;
+    if (table + (off_t)count * 0x04 > H + cont_size) /* table must fit in the payload */
+        goto fail;
+
+    int coding;
+    if (sel1a == 1)
+        coding = coding_CF_DF_V5_ADPCM; /* v4.0-style ADPCM, <<9 */
+    else if (sel18 == 0)
+        coding = coding_CF_DF_DPCM_V41; /* v4.1 DPCM */
+    else
+        coding = coding_CF_DF_V5_IMA;   /* IMA */
+
+    /* num_samples = sum of native per-block output */
+    int32_t num_samples = 0;
+    for (int k = 0; k < count; k++) {
+        uint32_t rel = read_u32le(table + (off_t)k * 0x04, sf);
+        uint32_t next_rel = (k + 1 < count) ? read_u32le(table + (off_t)(k + 1) * 0x04, sf) : cont_size;
+        if (next_rel < rel || next_rel > cont_size)
+            goto fail;
+        int B = (int)(next_rel - rel);
+        off_t block_data = H + rel;
+
+        if (coding == coding_CF_DF_V5_IMA) {
+            if (B < 3) continue;
+            int step = read_u8(block_data + 0x02, sf);
+            num_samples += (step > 0x58) ? 0 : (1 + 2 * (B - 3));
+        }
+        else if (coding == coding_CF_DF_V5_ADPCM) {
+            if (B < 1) continue;
+            num_samples += cf_df_v5_v40_block_samples(sf, block_data, B);
+        }
+        else { /* v4.1 */
+            num_samples += B;
+        }
+    }
+    if (num_samples <= 0)
+        goto fail;
+
+    vgmstream = allocate_vgmstream(1, 0);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type   = meta_CF_DF;
+    vgmstream->sample_rate = rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->stream_size = cont_size;
+    vgmstream->num_streams = soun_count;
+    vgmstream->coding_type = coding;
+    vgmstream->layout_type = layout_blocked_cf_df_v5;
+
+    /* real name from the MSND sound director; fall back to a generic name if the SOUN
+     * container isn't listed there (some v5 movies name only a subset of their streams) */
+    char name[STREAM_NAME_SIZE];
+    cf_df_v5_lookup_name(sf, containers, soun_ids[target - 1], name, sizeof(name));
+    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", name);
+
+    if (!vgmstream_open_stream(vgmstream, sf, table))
+        goto fail;
+
+    free(soun_ids);
+    return vgmstream;
+
+fail:
+    free(soun_ids);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
