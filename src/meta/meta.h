@@ -1043,6 +1043,7 @@ VGMSTREAM* init_vgmstream_srcd(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_mhwk(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_cf_df_v5(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_jaudio_aaf(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_jaudio_bx(STREAMFILE* sf);

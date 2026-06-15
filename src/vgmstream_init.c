@@ -503,6 +503,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_srcd,
     init_vgmstream_mhwk,
     init_vgmstream_cf_df,
+    init_vgmstream_cf_df_v5,
     init_vgmstream_snd_koei,
     init_vgmstream_bcf1,
     init_vgmstream_ueba,
