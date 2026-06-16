@@ -251,6 +251,7 @@ VGMSTREAM* allocate_vgmstream(int channels, int loop_flag) {
     vgmstream->tmpbuf = malloc(vgmstream->tmpbuf_size);
     if (!vgmstream->tmpbuf) goto fail;
 
+    /* BEWARE: reset may remove later changes */
     /* BEWARE: merge_vgmstream does some free'ing too */ 
 
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
