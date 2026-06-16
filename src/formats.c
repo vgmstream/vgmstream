@@ -1063,6 +1063,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ubi_sce,        "blocked (Ubi SCE)"},
         {layout_blocked_tt_ad,          "blocked (TT AD)"},
         {layout_blocked_vas,            "blocked (VAS)"},
+        {layout_blocked_cf_df,          "blocked (Cyberflix DreamFactory CF_DF)"},
 };
 
 static const meta_info meta_info_list[] = {

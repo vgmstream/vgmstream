@@ -1015,6 +1015,9 @@
     <ClCompile Include="layout\blocked_caf.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_cf_df.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\blocked_dec.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>

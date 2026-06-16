@@ -210,6 +210,8 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_vas:
             block_update_vas(block_offset,vgmstream);
             break;
+        case layout_blocked_cf_df:
+            block_update_cf_df(block_offset,vgmstream);
         default: /* not a blocked layout */
             break;
     }
