@@ -77,6 +77,5 @@ VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf) {
 
 fail:
     close_vgmstream(vgmstream);
-    close_streamfile(sf);
     return NULL;
 }

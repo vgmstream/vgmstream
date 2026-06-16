@@ -228,15 +228,22 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     get_streamfile_filename(sf, basename, sizeof(basename));
     track_name[0] = '\0';
 
+    // definitions before 'goto fail'
+    int loop_count, order_count;
+    off_t first_entry, c1, c0;
+    int audio_count, disk_stream;
+    int has_loop, subsongs;
+
     names = calloc(containers, sizeof(*names));
     audio_ids = malloc(containers * sizeof(int));
     if (!names || !audio_ids)
         goto fail;
 
     /* --- loop block (container 1): chunkOrder + loop chunk list --- */
-    int loop_count = 0, order_count = 0;
-    off_t first_entry = 0;
-    off_t c1 = read_u32le(DF_HEADER_SIZE + 0x01 * 0x04, sf);
+    loop_count = 0;
+    order_count = 0;
+    first_entry = 0;
+    c1 = read_u32le(DF_HEADER_SIZE + 0x01 * 0x04, sf);
     if (c1 > 0) {
         off_t lp = c1 + 0x08;
 
@@ -276,7 +283,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
      * them via the blocked layout. Mark loop-member containers so they can be dropped from the
      * individual piece list
      */
-    int disk_stream = (loop_count > order_count);
+    disk_stream = (loop_count > order_count);
     if (loop_count > 0 && disk_stream) {
         in_loop = calloc(containers, 1);
         if (!in_loop) goto fail;
@@ -285,7 +292,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     }
 
     /* --- single block (named one-shots) + non-MOV track name --- */
-    off_t c0 = read_u32le(DF_HEADER_SIZE + 0x00 * 0x04, sf);
+    c0 = read_u32le(DF_HEADER_SIZE + 0x00 * 0x04, sf);
     if (c0 > 0) {
         off_t p0 = c0 + 0x08;
 
@@ -319,7 +326,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         }
     }
 
-    int audio_count = 0;
+    audio_count = 0;
     for (int i = 0; i < containers; i++) {
         if (in_loop && in_loop[i])
             continue;
@@ -328,8 +335,8 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
             audio_ids[audio_count++] = i;
     }
 
-    int has_loop = (loop_count > 0);
-    int subsongs = (has_loop ? 1 : 0) + audio_count;
+    has_loop = (loop_count > 0);
+    subsongs = (has_loop ? 1 : 0) + audio_count;
     if (subsongs == 0)
         goto fail;
     if (target < 0 || target > subsongs)

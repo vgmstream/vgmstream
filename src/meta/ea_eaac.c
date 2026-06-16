@@ -257,7 +257,7 @@ static size_t calculate_eaac_size(STREAMFILE* sf, eaac_header_t* ea, uint32_t nu
 
 static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, meta_t meta_type, bool standalone) {
     VGMSTREAM* vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL, *sf = NULL, *sf_sns = NULL;
+    STREAMFILE *temp_sf = NULL, *sf_main = NULL, *sf_sns = NULL;
 
     if (eaac->version == EAAC_VERSION_V0 && eaac->streamed) {
         /* open SNS file if needed */
@@ -269,8 +269,8 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
     }
 
     /* build streamfile with audio data */
-    sf = setup_eaac_streamfile(eaac, sf_head, sf_data);
-    if (!sf) goto fail;
+    sf_main = setup_eaac_streamfile(eaac, sf_head, sf_data);
+    if (!sf_main) goto fail;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(eaac->channels, eaac->loop_flag);
@@ -281,7 +281,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
     vgmstream->loop_start_sample = eaac->loop_start;
     vgmstream->loop_end_sample = eaac->loop_end;
     vgmstream->meta_type = meta_type;
-    vgmstream->stream_size = get_streamfile_size(sf);
+    vgmstream->stream_size = get_streamfile_size(sf_main);
 
     /* EA decoder list and known internal FourCCs */
     switch(eaac->codec) {
@@ -297,14 +297,14 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
 
             /* special (if hacky) loop handling, see comments */
             if (eaac->loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, sf, eaac);
+                segmented_layout_data* data = build_segmented_eaaudiocore_looping(sf_main, sf_main, eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
                 vgmstream->layout_type = layout_segmented;
             }
             else {
-                vgmstream->layout_data = build_layered_eaaudiocore(sf, eaac, 0x00);
+                vgmstream->layout_data = build_layered_eaaudiocore(sf_main, eaac, 0x00);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_layered;
@@ -318,7 +318,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
 
             /* special (if hacky) loop handling, see comments */
             if (eaac->loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, sf, eaac);
+                segmented_layout_data* data = build_segmented_eaaudiocore_looping(sf_main, sf_main, eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
@@ -343,14 +343,14 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
 
             /* special (if hacky) loop handling, see comments */
             if (eaac->loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, sf, eaac);
+                segmented_layout_data* data = build_segmented_eaaudiocore_looping(sf_main, sf_main, eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
                 vgmstream->layout_type = layout_segmented;
             }
             else {
-                temp_sf = setup_eaac_audio_streamfile(sf, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
+                temp_sf = setup_eaac_audio_streamfile(sf_main, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
                 if (!temp_sf) goto fail;
 
                 vgmstream->codec_data = init_mpeg_custom(temp_sf, 0x00, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
@@ -378,7 +378,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
             vgmstream->coding_type = coding_SPEEX;
             vgmstream->layout_type = layout_none;
 
-            temp_sf = setup_eaac_audio_streamfile(sf, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
+            temp_sf = setup_eaac_audio_streamfile(sf_main, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
             if (!temp_sf) goto fail;
 
             break;
@@ -414,7 +414,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
             vgmstream->coding_type = coding_ATRAC9;
             vgmstream->layout_type = layout_none;
 
-            temp_sf = setup_eaac_audio_streamfile(sf, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
+            temp_sf = setup_eaac_audio_streamfile(sf_main, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
             if (!temp_sf) goto fail;
 
             break;
@@ -425,7 +425,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
         case EAAC_CODEC_EAMP3: { /* "EM30": EA-MP3 [Need for Speed 2015 (PS4), FIFA 2021 (PC)] */
             mpeg_custom_config cfg = {0};
 
-            temp_sf = setup_eaac_audio_streamfile(sf, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
+            temp_sf = setup_eaac_audio_streamfile(sf_main, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
             if (!temp_sf) goto fail;
 
             vgmstream->codec_data = init_mpeg_custom(temp_sf, 0x00, &vgmstream->coding_type, vgmstream->channels, MPEG_EAMP3, &cfg);
@@ -438,7 +438,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
 
 #ifdef VGM_USE_FFMPEG
         case EAAC_CODEC_EAOPUS: { /* "Eop0": EAOpus [FIFA 17 (PC), FIFA 19 (Switch)]*/
-            vgmstream->layout_data = build_layered_eaaudiocore(sf, eaac, 0x00);
+            vgmstream->layout_data = build_layered_eaaudiocore(sf_main, eaac, 0x00);
             if (!vgmstream->layout_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_layered;
@@ -450,14 +450,14 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
         case EAAC_CODEC_EAOPUSM: /* "MSO0": Multi-Stream Opus [FIFA 2021 (PC)] */
         case EAAC_CODEC_EAOPUSMU: { /* "MSU0": Multi-Stream Opus Uncoupled [FIFA 2022 (PC)] */
             off_t offset = 0x00; // eaac->stream_offset;
-            off_t data_size = get_streamfile_size(sf);
+            off_t data_size = get_streamfile_size(sf_main);
             opus_config cfg = {0};
 
             cfg.channels = eaac->channels;
             {
-                uint32_t block_size = read_u32be(offset + 0x00, sf) & 0x00FFFFFF;
-                uint32_t curr_samples = read_u32be(offset + 0x04, sf);
-                uint32_t next_samples = read_u32be(offset + block_size + 0x04, sf);
+                uint32_t block_size = read_u32be(offset + 0x00, sf_main) & 0x00FFFFFF;
+                uint32_t curr_samples = read_u32be(offset + 0x04, sf_main);
+                uint32_t next_samples = read_u32be(offset + block_size + 0x04, sf_main);
 
                 cfg.skip = next_samples - curr_samples;
                 /* maybe should check if next block exists, but files of single packet? */
@@ -500,7 +500,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
             //temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
             //if (!temp_sf) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_ea_opusm(sf, offset, data_size, &cfg);
+            vgmstream->codec_data = init_ffmpeg_ea_opusm(sf_main, offset, data_size, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -514,16 +514,16 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream, temp_sf ? temp_sf : sf, 0x00))
+    if (!vgmstream_open_stream(vgmstream, temp_sf ? temp_sf : sf_main, 0x00))
         goto fail;
 
-    close_streamfile(sf);
+    close_streamfile(sf_main);
     close_streamfile(sf_sns);
     close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(sf);
+    close_streamfile(sf_main);
     close_streamfile(sf_sns);
     close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
