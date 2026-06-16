@@ -37,7 +37,7 @@ VGMSTREAM* init_vgmstream_wxh_wxd(STREAMFILE* sf) {
 
     if (!is_id32be(0x00,sb, "WXD1"))
         goto fail;
-    /* 0x04: crc? */
+    //04: crc?
 
     /* stream info */
     if (!is_id32be(start_offset + 0x00,sb, "DATA"))
@@ -67,11 +67,11 @@ VGMSTREAM* init_vgmstream_wxh_wxd(STREAMFILE* sf) {
 
     if (!vgmstream_open_stream(vgmstream, sb, start_offset))
         goto fail;
-    close_streamfile(sf);
+    close_streamfile(sb);
     return vgmstream;
 
 fail:
-    close_streamfile(sf);
+    close_streamfile(sb);
     close_vgmstream(vgmstream);
     return NULL;
 }
