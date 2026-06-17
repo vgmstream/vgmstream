@@ -435,6 +435,8 @@ static void cf_df_v5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
         off_t coff = read_u32le(DF_HEADER_SIZE + i * 0x04, sf);
         if (coff <= 0 || coff + 0x30 > get_streamfile_size(sf))
             continue;
+        //TODO: Confirm if MSND/SHED has fallback if none of the SOUND container has at least one name.
+        //if (!(is_id32le(coff + 0x0C, sf, "MSND") || is_id32le(coff + 0x0C, sf, "SHED"))) //MSND => Redjack. //SHED => Disney's Villain's
         if (!is_id32le(coff + 0x0C, sf, "MSND"))
             continue;
 
@@ -479,17 +481,19 @@ static void cf_df_v5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
  *   Block count at H+0x28; block-offset table at H+0x2c (input offsets relative to H). Codec
  *   state resets every block;
  *
- * Titles: Redjack: Revenge of the Brethren
+ * Titles: Redjack: Revenge of the Brethren,
+ * Disney's: The D Show, Villains Revenge
  */
 VGMSTREAM* init_vgmstream_cf_df_v5(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int* soun_ids = NULL;
 
-    if (!is_id32le(0x20, sf, "MOVE") || !is_id32le(0x24, sf, "D5ME"))
+    if (!( (is_id32le(0x20, sf, "MOVE") && is_id32le(0x24, sf, "D5ME")) ||
+           (is_id32le(0x20, sf, "TRAK") && is_id32le(0x24, sf, "D5ST")) )) // Preliminary Support for trak. Disney's Villains Revenge
         return NULL;
     if (read_u32le(0x04, sf) != get_streamfile_size(sf))
         return NULL;
-    if (!check_extensions(sf, "move"))
+    if (!check_extensions(sf, "move,trak"))
         return NULL;
 
     int containers = read_u32le(0x14, sf);
@@ -582,7 +586,7 @@ VGMSTREAM* init_vgmstream_cf_df_v5(STREAMFILE* sf) {
      * container isn't listed there (some v5 movies name only a subset of their streams) */
     char name[STREAM_NAME_SIZE];
     cf_df_v5_lookup_name(sf, containers, soun_ids[target - 1], name, sizeof(name));
-    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", name);
+    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", name); // TODO: Figure out if root name after MSND/SHED does have numerical numbers implied. Especially SHED.
 
     if (!vgmstream_open_stream(vgmstream, sf, table))
         goto fail;

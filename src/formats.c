@@ -633,6 +633,7 @@ static const char* extension_list[] = {
     "thp",
     "tmx",
     "tra",
+    "trak",
     "trk",
     "trs", //txth/semi [Kamiwaza (PS2), Shinobido (PS2)]
     "tsdse3", //txth/reserved [Tales of Xillia (PS3)-nub container]
