@@ -11,7 +11,7 @@
 //#define XSB_XACT2_2_MAX   25  // 0x19 // XeDK 2.0.1332.0-v25
 #define XSB_XACT2_3_MAX     28  // 0x1C // XeDK 2.0.1434.0, Full Auto (X360, 2005-04-27)-v27, XeDK 2.0.1538.0-v28
 #define XSB_XACT2_4_MAX     34  // 0x22 // Amped 3-v31, Table Tennis-v34
-//#define XSB_XACT25_MAX    38  // 0x26 // Prey (v38) // v39 too?
+//#define XSB_XACT2_5_MAX   38  // 0x26 // Prey (v38) // v39 too?
 #define XSB_XACT2_6_MAX     41  // 0x29 // other PC/X360 games
 
 
@@ -791,7 +791,7 @@ static bool parse_xsb(xsb_header* xsb, STREAMFILE* sf, char* xwb_wavebank_name) 
         xsb->index_size             = 0x14;
         xsb->entry_size             = 0x14;
     }
-    // TOD), although not much of a point since these XACT builds
+    // TODO, although not much of a point since these XACT builds
     // strictly force XWB stream names to be always enabled
     //else if (xsb->version <= XSB_XACT2_0_MAX) {}
     //else if (xsb->version <= XSB_XACT2_1_MAX) {}
