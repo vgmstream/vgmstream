@@ -982,6 +982,8 @@ static const coding_info coding_info_list[] = {
         {coding_AAC_raw,            "Custom AAC"},
         {coding_CF_DF_ADPCM_V40,    "Cyberflix DreamFactory v4.0 ADPCM"},
         {coding_CF_DF_DPCM_V41,     "Cyberflix DreamFactory v4.1 DPCM"},
+        {coding_CF_DF_ADPCM_v5,     "Cyberflix DreamFactory v5 ADPCM"},
+        {coding_CF_DF_IMA_v5,       "Cyberflix DreamFactory v5 IMA ADPCM"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
@@ -1064,6 +1066,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_tt_ad,          "blocked (TT AD)"},
         {layout_blocked_vas,            "blocked (VAS)"},
         {layout_blocked_cf_df,          "blocked (Cyberflix DreamFactory CF_DF)"},
+        {layout_blocked_cf_df_v5,       "blocked (Cyberflix DreamFactory v5 CF_DF)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -1532,6 +1535,7 @@ static const meta_info meta_info_list[] = {
         {meta_SRCD,                 "Capcom SRCD header"},
         {meta_MHWK,                 "Broderbund MHWK header"},
         {meta_CF_DF,                "Cyberflix DreamFactory header"},
+        {meta_CF_DF_D5,             "Cyberflix DreamFactory D5 header"},
         {meta_JAUDIO,               "Nintendo JAudio header"},
         {meta_BCF1,                 "RAD BCF1 header"},
         {meta_UEBA,                 "Epic Games UEBA header"},

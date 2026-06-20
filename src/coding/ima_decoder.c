@@ -443,6 +443,38 @@ void decode_camelot_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
     stream->adpcm_step_index = step_index;
 }
 
+/* CyberFlix DreamFactory 5 (.move) IMA, used in a blocked SOUN stream. The block layout
+ * (block_update_cf_df_v5) reads each block's 3-byte header (s16 predictor + u8 step index),
+ * primes adpcm_history1_32/adpcm_step_index, and points stream->offset at the nibble data.
+ * Sample 0 of each block is the predictor emitted verbatim; later samples expand one nibble
+ * each (low nibble first), using the standard IMA tables. */
+void decode_cf_df_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i, sample_count;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    //external interleave (blocked)
+
+    //per-block header read externally; sample 0 of the block is the predictor
+
+    for (i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+        if (i == 0) {
+            outbuf[sample_count] = (short)hist1; /* predictor verbatim */
+            continue;
+        }
+
+        int nibble_idx = i - 1;
+        off_t byte_offset = stream->offset + nibble_idx / 2;
+        int nibble_shift = (nibble_idx & 1 ? 4 : 0); //low nibble first
+
+        std_ima_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_index);
+        outbuf[sample_count] = (short)hist1;
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
 void decode_snds_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     bool is_stereo = channelspacing > 1;
 

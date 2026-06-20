@@ -1,6 +1,7 @@
 #include "layout.h"
 #include "../vgmstream.h"
 #include "../util/reader_sf.h"
+#include "../coding/coding.h"
 
 /* CyberFlix DreamFactory streamed audio (disk-stream movies).
  *
@@ -58,4 +59,76 @@ void block_update_cf_df(off_t block_offset, VGMSTREAM* vgmstream) {
         vgmstream->next_block_offset = block_offset + DF_LOOP_ENTRY;
     else
         vgmstream->next_block_offset = DF_BLOCK_END;
+}
+
+/* CyberFlix DreamFactory v5 SOUN
+ *
+ * A SOUN payload (base H = container + 0x08) holds a block-offset table at H+0x2c with
+ * H+0x28 entries; each entry is an input byte offset relative to H, so block k spans
+ * [H + table[k], H + table[k+1]) (the last runs to the SOUN payload end = container_size).
+ * The codec is fixed per stream (set as coding_type by the meta) and codec state RESETS at
+ * every block:
+ *   - IMA:  3-byte header (s16 predictor + u8 step), data at +3; a block with step > 0x58 produces no samples.
+ *   - v4.0 based => v5: byte[0] seeds the running sample (not emitted), data +1.
+ *   - v4.1 based: accumulator reset to 0, data at +0.
+ *
+ * current_block_offset walks the *table entries* (H+0x2c + k*4); H is recovered from
+ * channel_start_offset (= the first table entry the meta opened at).
+ */
+
+#define DF_V5_TABLE_BASE   0x2c   /* block-offset table at H + 0x2c */
+#define DF_V5_BLOCK_COUNT  0x28   /* block count at H + 0x28 */
+
+
+void block_update_cf_df_v5(off_t block_offset, VGMSTREAM* vgmstream) {
+    STREAMFILE* sf = vgmstream->ch[0].streamfile;
+
+    vgmstream->current_block_offset = block_offset;
+
+    if (block_offset == DF_BLOCK_END) {
+        vgmstream->current_block_size = 0;
+        vgmstream->current_block_samples = 0;
+        vgmstream->next_block_offset = DF_BLOCK_END;
+        return;
+    }
+
+    off_t table_base = vgmstream->ch[0].channel_start_offset; /* = H + 0x2c */
+    off_t H = table_base - DF_V5_TABLE_BASE;
+    int count = read_u32le(H + DF_V5_BLOCK_COUNT, sf);
+    int index = (int)((block_offset - table_base) / 0x04);
+
+    uint32_t rel = read_u32le(block_offset, sf);
+    uint32_t next_rel = (index + 1 < count)
+            ? read_u32le(block_offset + 0x04, sf)
+            : read_u32le(H - 0x04, sf); /* container_size @ pos+0x04 = SOUN payload end */
+    int block_size = (int)(next_rel - rel);
+    off_t block_data = H + rel;
+
+    int32_t samples;
+    switch (vgmstream->coding_type) {
+        case coding_CF_DF_IMA_v5: {
+            int step_index = read_u8(block_data + 0x02, sf);
+            vgmstream->ch[0].adpcm_history1_32 = read_s16le(block_data + 0x00, sf);
+            vgmstream->ch[0].adpcm_step_index  = step_index;
+            vgmstream->ch[0].offset = block_data + 0x03;
+            /* step > 0x58 -> the decoder writes nothing (whole block skipped) */
+            samples = (step_index > 0x58) ? 0 : (1 + 2 * (block_size - 3));
+            break;
+        }
+        case coding_CF_DF_ADPCM_v5: /* v4.0 based */
+            vgmstream->ch[0].adpcm_history1_16 = read_s8(block_data, sf); /* seed, not emitted */
+            vgmstream->ch[0].offset = block_data + 0x01;
+            samples = cf_df_v5_get_samples(sf, block_data, block_size);
+            break;
+        case coding_CF_DF_DPCM_V41:
+        default:
+            vgmstream->ch[0].adpcm_history1_16 = 0; /* reset accumulator per block */
+            vgmstream->ch[0].offset = block_data;
+            samples = block_size; /* one sample per input byte */
+            break;
+    }
+
+    vgmstream->current_block_size = block_size;
+    vgmstream->current_block_samples = samples;
+    vgmstream->next_block_offset = (index + 1 < count) ? (block_offset + 0x04) : DF_BLOCK_END;
 }
