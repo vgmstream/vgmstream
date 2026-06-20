@@ -509,6 +509,7 @@
     <ClCompile Include="meta\caf.c" />
     <ClCompile Include="meta\caff.c" />
     <ClCompile Include="meta\cf_df.c" />
+    <ClCompile Include="meta\cf_df_d5.c" />
     <ClCompile Include="meta\chatterbox.c" />
     <ClCompile Include="meta\ck.c" />
     <ClCompile Include="meta\compresswave.c" />
