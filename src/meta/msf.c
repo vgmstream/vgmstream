@@ -49,8 +49,7 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
      * 0x10 often goes with 0x01 but not always (Castlevania HoD); Malicious PS3 uses flag 0x2 instead */
     loop_flag = (flags != 0xffffffff) && ((flags & 0x01) || (flags & 0x02));
 
-    /* loop offset markers: marker N = 0x18 + N * (0x08), but in practice only marker 0 is used
-     * (Saints Row 2 saves original filename in 0x28) */
+    /* loop offset markers: marker N = 0x18 + N * (0x08), but in practice only marker 0 is used */
     if (loop_flag) {
         loop_start = read_u32be(0x18,sf);
         loop_end = read_u32be(0x1C,sf); /* loop duration */
@@ -66,6 +65,10 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
     vgmstream->sample_rate = sample_rate;
     if (vgmstream->sample_rate == 0) /* some MSFv1 (PS-ADPCM only?) [Megazone 23 - Aoi Garland (PS3)] */
         vgmstream->sample_rate = 48000;
+
+    /* rare MSFv0 only? [Jak and Daxter Collection (PS3, PS-ADPCM), Saints Row 2 (PS3, ATRAC3)] */
+    if (/*read_u8(0x03, sf) == '0' &&*/ read_u32be(0x28, sf) != 0xFFFFFFFF)
+        read_string(vgmstream->stream_name, 0x18, 0x28, sf); /* 0x18th byte (at 0x3F) is always 0xFF in SR2 */
 
     switch (codec) {
         case 0x00:   /* PCM (Big Endian) [MSEnc tests] */

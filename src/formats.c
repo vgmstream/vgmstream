@@ -279,6 +279,7 @@ static const char* extension_list[] = {
     "is14",
     "isb",
     "isd",
+    "ish",
     "isws",
     "itl",
     "ivaud",
@@ -361,7 +362,7 @@ static const char* extension_list[] = {
     "mdsp",
     "med",
     "mhk",
-    "mjb",
+    "mjh",
     "mi4", //fake extension for .mib (renamed, to be removed)
     "mib",
     "mic",
@@ -725,7 +726,7 @@ static const char* extension_list[] = {
     "wvp", //txth/semi [Virtua Cop 2 (PC)]
     "wvs",
     "wvx",
-    "wxd",
+    "wxh",
     "wxv",
 
     "x",
