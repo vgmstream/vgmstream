@@ -7,9 +7,9 @@ VGMSTREAM* init_vgmstream_wmsf(STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
 
     /* checks */
-    if (!check_extensions(sf,"msf"))
-        return NULL;
     if (!is_id32be(0x00,sf,"WMSF"))
+        return NULL;
+    if (!check_extensions(sf,"msf"))
         return NULL;
     // 0x04: size
     // 0x08: flags?
