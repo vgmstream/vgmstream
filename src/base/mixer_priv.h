@@ -53,6 +53,8 @@ struct mixer_t {
     sbuf_t mixbuf_dst;      // used if final output is different than mixing buffer (ex. resampling)
 
     float* mixbuf;          // internal mixing buffer
+    int mixbuf_size;
+
     sbuf_t smix;            // temp sbuf
     int32_t current_subpos; // state: current sample pos in the stream
 
