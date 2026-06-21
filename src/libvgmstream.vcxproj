@@ -439,6 +439,7 @@
     <ClCompile Include="meta\208.c" />
     <ClCompile Include="meta\2dx.c" />
     <ClCompile Include="meta\2dx9.c" />
+    <ClCompile Include="meta\2msf.c" />
     <ClCompile Include="meta\2pfs.c" />
     <ClCompile Include="meta\9tav.c" />
     <ClCompile Include="meta\a2m.c" />

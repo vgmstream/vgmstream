@@ -1147,6 +1147,9 @@
     <ClCompile Include="meta\2dx9.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\2msf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\2pfs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
