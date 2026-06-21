@@ -67,27 +67,31 @@ export RMF SHELL CC AR STRIP WINDRES DLLTOOL
 ###############################################################################
 ### build defs
 
-DEF_CFLAGS += -ffast-math -O3 -Wall -Werror=format-security -Wvla -Wimplicit-function-declaration -Wignored-qualifiers -Wmissing-declarations
+DEF_CFLAGS += -ffast-math -Wall -Werror=format-security
+DEF_CFLAGS += -Wvla -Wimplicit-function-declaration -Wignored-qualifiers -Wlogical-op
+#DEF_CFLAGS += -Wswitch-default  -Wmissing-declarations
 
-VGM_DEBUG_FLAGS = 0
+VGM_DEBUG_FLAGS ?= 0
 ifeq ($(VGM_DEBUG_FLAGS),1)
-  #DEF_CFLAGS += -O0
+  DEF_CFLAGS += -O0
   DEF_CFLAGS += -g -DVGM_DEBUG_OUTPUT
   DEF_CFLAGS += -Wall
   DEF_CFLAGS += -Wextra
-  DEF_CFLAGS += -Wno-sign-compare
-  DEF_CFLAGS += -Wlogical-op
+  DEF_CFLAGS += -Wno-sign-compare -Wno-unused-parameter
   #DEF_CFLAGS += -pedantic -Wconversion -std=gnu90
   #DEF_CFLAGS += -Wfloat-equal
-  DEF_CFLAGS += -Wdisabled-optimization -Wunsafe-loop-optimizations -Wswitch-default
-  DEF_CFLAGS +=  -Wcast-qual -Wpointer-arith
+  DEF_CFLAGS += -Wdisabled-optimization -Wunsafe-loop-optimizations
+  DEF_CFLAGS += -Wcast-qual -Wpointer-arith
   DEF_CFLAGS += -Wcast-align=strict -Wduplicated-cond -Wjump-misses-init -Wnull-dereference
-  DEF_CFLAGS += -Wold-style-definition -Wstrict-prototypes
+  #DEF_CFLAGS += -Wold-style-definition -Wstrict-prototypes
   DEF_CFLAGS += -Wmultistatement-macros -Wstringop-truncation
   DEF_CFLAGS += -Wredundant-decls -Wmissing-include-dirs -Wmissing-declarations
   #DEF_CFLAGS += -Wshadow
   #DEF_CFLAGS += -Wstack-protector -fstack-protector
   STRIP = echo
+endif
+ifeq ($(VGM_DEBUG_FLAGS),0)
+  DEF_CFLAGS += -O3 
 endif
 
 LIBS_CFLAGS=
@@ -104,7 +108,7 @@ ifneq ($(VGM_X64),0)
 endif
 
 ifeq ($(TARGET_OS),Windows_NT)
-  VGM_UNICODE = 1
+  VGM_UNICODE ?= 1
   ifneq ($(VGM_UNICODE),0)
     # -DUNICODE/_UNICODE forces certain APIs to use UTF-16
     DEF_CFLAGS  += -DUNICODE -D_UNICODE -DVGM_STDIO_UNICODE -municode
@@ -112,7 +116,7 @@ ifeq ($(TARGET_OS),Windows_NT)
 endif
 
 # config libs
-VGM_G7221 = 1
+VGM_G7221 ?= 1
 ifneq ($(VGM_G7221),0)
   LIBS_CFLAGS  += -DVGM_USE_G7221
 endif
@@ -123,49 +127,49 @@ endif
 ifeq ($(TARGET_OS),Windows_NT)
 
   # enabled by default on Windows
-  VGM_VORBIS = 1
+  VGM_VORBIS ?= 1
   ifneq ($(VGM_VORBIS),0)
     LIBS_CFLAGS  += -DVGM_USE_VORBIS
     LIBS_LDFLAGS += -lvorbis
     LIBS_TARGET_EXT_LIBS += libvorbis.dll.a
   endif
 
-  VGM_MPEG = 1
+  VGM_MPEG ?= 1
   ifneq ($(VGM_MPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_MPEG
     LIBS_LDFLAGS += -lmpg123-0
     LIBS_TARGET_EXT_LIBS += libmpg123-0.dll.a
   endif
 
-  VGM_G719 = 1
+  VGM_G719 ?= 1
   ifneq ($(VGM_G719),0)
     LIBS_CFLAGS  += -DVGM_USE_G719
     LIBS_LDFLAGS += -lg719_decode
     LIBS_TARGET_EXT_LIBS += libg719_decode.dll.a
   endif
 
-  VGM_FFMPEG = 1
+  VGM_FFMPEG ?= 1
   ifneq ($(VGM_FFMPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG -I../ext_includes/ffmpeg
     LIBS_LDFLAGS += -lavcodec-vgmstream-59 -lavformat-vgmstream-59 -lavutil-vgmstream-57 -lswresample-vgmstream-4
     LIBS_TARGET_EXT_LIBS += avcodec-vgmstream-59.dll.a avformat-vgmstream-59.dll.a avutil-vgmstream-57.dll.a swresample-vgmstream-4.dll.a
   endif
 
-  VGM_ATRAC9 = 1
+  VGM_ATRAC9 ?= 1
   ifneq ($(VGM_ATRAC9),0)
     LIBS_CFLAGS  += -DVGM_USE_ATRAC9
     LIBS_LDFLAGS += -latrac9
     LIBS_TARGET_EXT_LIBS += libatrac9.dll.a
   endif
 
-  VGM_CELT = 1
+  VGM_CELT ?= 1
   ifneq ($(VGM_CELT),0)
     LIBS_CFLAGS  += -DVGM_USE_CELT
     LIBS_LDFLAGS += -lcelt-0061 -lcelt-0110
     LIBS_TARGET_EXT_LIBS += libcelt-0061.dll.a libcelt-0110.dll.a
   endif
 
-  VGM_SPEEX = 1
+  VGM_SPEEX ?= 1
   ifneq ($(VGM_SPEEX),0)
     LIBS_CFLAGS  += -DVGM_USE_SPEEX
     LIBS_LDFLAGS += -lspeex-1
@@ -175,31 +179,31 @@ ifeq ($(TARGET_OS),Windows_NT)
 else
 
   # must install system libs and enable manually on Linux
-  VGM_VORBIS = 0
+  VGM_VORBIS ?= 0
   ifneq ($(VGM_VORBIS),0)
     LIBS_CFLAGS  += -DVGM_USE_VORBIS
     LIBS_LDFLAGS += -lvorbis -lvorbisfile
   endif
 
-  VGM_MPEG = 0
+  VGM_MPEG ?= 0
   ifneq ($(VGM_MPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_MPEG
     LIBS_LDFLAGS += -lmpg123
   endif
 
-  VGM_G719 = 0
+  VGM_G719 ?= 0
   ifneq ($(VGM_G719),0)
     LIBS_CFLAGS  += -DVGM_USE_G719
     LIBS_LDFLAGS += -lg719_decode
   endif
 
-  VGM_FFMPEG = 0
+  VGM_FFMPEG ?= 0
   ifneq ($(VGM_FFMPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG
     LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
   endif
 
-  VGM_ATRAC9 = 0
+  VGM_ATRAC9 ?= 0
   ifneq ($(VGM_ATRAC9),0)
     LIBS_CFLAGS  += -DVGM_USE_ATRAC9
     ifeq ($(VGM_ATRAC9),1)
@@ -210,7 +214,7 @@ else
     endif
   endif
 
-  VGM_CELT = 0
+  VGM_CELT ?= 0
   ifneq ($(VGM_CELT),0)
     LIBS_CFLAGS  += -DVGM_USE_CELT
     ifeq ($(VGM_CELT),1)
@@ -221,7 +225,7 @@ else
     endif
   endif
 
-  VGM_SPEEX = 0
+  VGM_SPEEX ?= 0
   ifneq ($(VGM_SPEEX),0)
     LIBS_CFLAGS  += -DVGM_USE_SPEEX
     LIBS_LDFLAGS +=  -lspeex
