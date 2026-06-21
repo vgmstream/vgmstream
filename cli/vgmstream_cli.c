@@ -260,7 +260,7 @@ getopt_start:
             bool is_file = false; // varies with getopts but files shouldn't reach this with current config
             int argv_index = optind - (!is_file && optarg ? 2 : 1);
             cfg->flag_index[argv_index] = !is_file;
-            if (!is_file && optarg > 0) { // has parameter
+            if (!is_file && optarg != 0) { // has parameter
                 cfg->flag_index[argv_index + 1] = true;
             }
         }
