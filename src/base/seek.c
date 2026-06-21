@@ -1,11 +1,11 @@
-#include "../vgmstream.h"
-#include "../layout/layout.h"
+#include "seek.h"
 #include "render.h"
 #include "decode.h"
 #include "mixing.h"
 #include "plugins.h"
 #include "sbuf.h"
 #include "codec_info.h"
+#include "../layout/layout.h"
 
 
 /* Seeking in vgmstream can be divided into:

@@ -103,6 +103,7 @@
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\resampler.h" />
     <ClInclude Include="base\sbuf.h" />
+    <ClInclude Include="base\seek.h" />
     <ClInclude Include="base\seek_table.h" />
     <ClInclude Include="base\tags.h" />
     <ClInclude Include="coding\coding.h" />

@@ -143,6 +143,9 @@
     <ClInclude Include="base\sbuf.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\seek.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\seek_table.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>

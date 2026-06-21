@@ -1,5 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
+#include "../base/seek.h"
 #include "../base/decode.h"
 #include "../base/mixing.h"
 #include "../base/play_state.h"
