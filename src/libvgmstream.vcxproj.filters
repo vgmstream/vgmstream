@@ -143,6 +143,9 @@
     <ClInclude Include="base\sbuf.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\seek.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\seek_table.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
@@ -450,6 +453,9 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\ubi_sb_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\vig_kces_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\vsv_streamfile.h">
@@ -1144,6 +1150,9 @@
     <ClCompile Include="meta\2dx9.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\2msf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\2pfs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1222,16 +1231,13 @@
     <ClCompile Include="meta\alp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ao.c">
+    <ClCompile Include="meta\alphaogg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\apa3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\apc.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\apple_caff.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\asd_naxat.c">
@@ -1345,6 +1351,9 @@
     <ClCompile Include="meta\caf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\caff.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\cf_df.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1388,6 +1397,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\derf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\dic1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\diva.c">
@@ -1463,9 +1475,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_wve_au00.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ego_dic.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\encrypted.c">
@@ -1744,9 +1753,6 @@
     <ClCompile Include="meta\msf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\msf_banpresto.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\msf_konami.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1913,9 +1919,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_adm.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_bmdx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\psb.c">
@@ -2372,6 +2375,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\wmsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wmw.c">

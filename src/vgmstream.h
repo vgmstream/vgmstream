@@ -263,9 +263,6 @@ void reset_vgmstream(VGMSTREAM* vgmstream);
 /* close an open vgmstream */
 void close_vgmstream(VGMSTREAM* vgmstream);
 
-/* Seek to sample position (next render starts from that point). Use only after config is set (vgmstream_apply_config) */
-void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample);
-
 /* -------------------------------------------------------------------------*/
 /* vgmstream internal helpers                                               */
 /* -------------------------------------------------------------------------*/

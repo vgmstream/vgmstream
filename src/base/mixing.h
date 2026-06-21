@@ -19,6 +19,7 @@ void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count);
 /* gets current mixing info */
 void mixing_info(VGMSTREAM* vgmstream, int* input_channels, int* output_channels);
 
+int mixing_get_max_channels(VGMSTREAM* vgmstream);
 sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream);
 sfmt_t mixing_get_output_sample_type(VGMSTREAM* vgmstream);
 

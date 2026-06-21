@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* Apple Core Audio Format File - from iOS games [Vectros (iOS), Ridge Racer Accelerated (iOS)] */
-VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
+/* caff - Apple Core Audio Format File [Vectros (iOS), Ridge Racer Accelerated (iOS)] */
+VGMSTREAM* init_vgmstream_caff(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0, chunk_offset;
     size_t file_size, data_size = 0;
@@ -35,7 +35,7 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
             case 0x64657363: /* "desc" */
                 found_desc = true;
 
-                sample_rate    = (int)read_d64be(chunk_offset+0x00, sf); /* double sample rate, double the fun */
+                sample_rate    = (int)read_d64be(chunk_offset+0x00, sf); // double sample rate, double the fun
                 codec               = read_u32be(chunk_offset+0x08, sf);
                 codec_flags         = read_u32be(chunk_offset+0x0c, sf);
                 bytes_per_packet    = read_u32be(chunk_offset+0x10, sf);
@@ -47,10 +47,10 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
             case 0x70616b74:    /* "pakt" */
                 //found_pakt = 1;
 
-                //packets_table_size = (uint32_t)read_u64be(chunk_offset+0x00,streamFile); /* 0 for constant bitrate */
+                //packets_table_size = (uint32_t)read_u64be(chunk_offset+0x00,sf); // 0 for constant bitrate
                 valid_samples = (uint32_t)read_u64be(chunk_offset+0x08,sf);
-                //priming_samples = read_u32be(chunk_offset+0x10,streamFile); /* encoder delay samples */
-                //unused_samples = read_u32be(chunk_offset+0x14,streamFile); /* footer samples */
+                //priming_samples = read_u32be(chunk_offset+0x10,sf); // encoder delay samples
+                //unused_samples = read_u32be(chunk_offset+0x14,sf); // footer samples
                 break;
 
             case 0x64617461: /* "data" */

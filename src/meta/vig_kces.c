@@ -1,13 +1,14 @@
 #include "meta.h"
 #include "../coding/coding.h"
-
+#include "vig_kces_streamfile.h"
 
 /* .vig - from Konami/KCE Studio games [Pop'n Music 11~14 (PS2), Dance Dance Revolution SuperNova/X (PS2)] */
 VGMSTREAM* init_vgmstream_vig_kces(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     uint32_t data_offset, data_size;
     int loop_flag, channels, sample_rate, interleave;
-    uint32_t loop_start, loop_end;
+    uint32_t loop_start, loop_end, flags;
 
 
     /* checks */
@@ -18,16 +19,16 @@ VGMSTREAM* init_vgmstream_vig_kces(STREAMFILE* sf) {
         return NULL;
 
     /* note this is almost the same as GbTs, may be fused later */
-    /* 04: null */
+    // 04: null
     data_offset = read_u32le(0x08,sf);
-    data_size   = read_u32le(0x0C,sf); /* without padding */
-    loop_start  = read_u32le(0x10,sf); /* (0x00 if not set) */
-    loop_end    = read_u32le(0x14,sf); /* (0x00 if not set) */
+    data_size   = read_u32le(0x0C,sf); // without padding
+    loop_start  = read_u32le(0x10,sf); // (0x00 if not set)
+    loop_end    = read_u32le(0x14,sf); // (0x00 if not set)
     sample_rate = read_s32le(0x18,sf);
     channels    = read_s32le(0x1C,sf);
-    /* 20: 0? */
-    interleave  = read_u32le(0x24,sf); /* 0 for mono */
-    /* 30+: garbage from other data */
+    flags       = read_u32le(0x20,sf);
+    interleave  = read_u32le(0x24,sf); // 0 for mono
+    // 30+: garbage from other data
 
     loop_flag = (loop_end > 0);
     loop_end += loop_start; /* loop region matches PS-ADPCM flags */
@@ -48,10 +49,19 @@ VGMSTREAM* init_vgmstream_vig_kces(STREAMFILE* sf) {
 
     vgmstream->meta_type = meta_VIG_KCES;
 
-    if (!vgmstream_open_stream(vgmstream, sf, data_offset))
+    /* later games are encrypted [beatmaniaIIDX 14 GOLD (PS2), beatmaniaIIDX 16 (PS2)] */
+    if (flags == 1) {
+        temp_sf = setup_vig_kces_streamfile(sf, data_offset, data_size);
+        if (!temp_sf) goto fail;
+    }
+
+    if (!vgmstream_open_stream(vgmstream, temp_sf ? temp_sf : sf, data_offset))
         goto fail;
+
+    close_streamfile(temp_sf);
     return vgmstream;
 fail:
     close_vgmstream(vgmstream);
+    close_streamfile(temp_sf);
     return NULL;
 }

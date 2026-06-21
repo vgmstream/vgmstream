@@ -112,11 +112,8 @@ void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count) {
     if (max_sample_count <= 0)
         return;
 
-    /* create or alter internal buffer */
-    float* mixbuf_re = realloc(mixer->mixbuf, max_sample_count * mixer->mixing_channels * sizeof(float));
-    if (!mixbuf_re) goto fail;
+    // internal mixbuf is init'd later
 
-    mixer->mixbuf = mixbuf_re;
     mixer->active = true;
 
     fix_channel_layout(vgmstream);
@@ -126,8 +123,6 @@ void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count) {
 
     /* segments/layers are independant from external buffers and may always mix */
 
-    return;
-fail:
     return;
 }
 
@@ -149,6 +144,18 @@ void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_chan
 
     if (p_input_channels)  *p_input_channels = input_channels;
     if (p_output_channels) *p_output_channels = output_channels;
+}
+
+//TODO: use instead of mixing_info or remove
+int mixing_get_max_channels(VGMSTREAM* vgmstream) {
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
+        return vgmstream->channels;
+
+    if (mixer->output_channels > vgmstream->channels)
+        return mixer->output_channels;
+    else
+        return vgmstream->channels;
 }
 
 sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {

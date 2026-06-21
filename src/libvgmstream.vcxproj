@@ -103,6 +103,7 @@
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\resampler.h" />
     <ClInclude Include="base\sbuf.h" />
+    <ClInclude Include="base\seek.h" />
     <ClInclude Include="base\seek_table.h" />
     <ClInclude Include="base\tags.h" />
     <ClInclude Include="coding\coding.h" />
@@ -206,6 +207,7 @@
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_garbage_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_streamfile.h" />
+    <ClInclude Include="meta\vig_kces_streamfile.h" />
     <ClInclude Include="meta\vsv_streamfile.h" />
     <ClInclude Include="meta\xavs_streamfile.h" />
     <ClInclude Include="meta\xnb_lz4mg.h" />
@@ -438,6 +440,7 @@
     <ClCompile Include="meta\208.c" />
     <ClCompile Include="meta\2dx.c" />
     <ClCompile Include="meta\2dx9.c" />
+    <ClCompile Include="meta\2msf.c" />
     <ClCompile Include="meta\2pfs.c" />
     <ClCompile Include="meta\9tav.c" />
     <ClCompile Include="meta\a2m.c" />
@@ -464,10 +467,9 @@
     <ClCompile Include="meta\aix.c" />
     <ClCompile Include="meta\akb.c" />
     <ClCompile Include="meta\alp.c" />
-    <ClCompile Include="meta\ao.c" />
+    <ClCompile Include="meta\alphaogg.c" />
     <ClCompile Include="meta\apa3.c" />
     <ClCompile Include="meta\apc.c" />
-    <ClCompile Include="meta\apple_caff.c" />
     <ClCompile Include="meta\asd_naxat.c" />
     <ClCompile Include="meta\asf.c" />
     <ClCompile Include="meta\ast.c" />
@@ -505,6 +507,7 @@
     <ClCompile Include="meta\bwav_warthog.c" />
     <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\caf.c" />
+    <ClCompile Include="meta\caff.c" />
     <ClCompile Include="meta\cf_df.c" />
     <ClCompile Include="meta\chatterbox.c" />
     <ClCompile Include="meta\ck.c" />
@@ -520,6 +523,7 @@
     <ClCompile Include="meta\deblock_streamfile.c" />
     <ClCompile Include="meta\dec.c" />
     <ClCompile Include="meta\derf.c" />
+    <ClCompile Include="meta\dic1.c" />
     <ClCompile Include="meta\diva.c" />
     <ClCompile Include="meta\dmsg_segh.c" />
     <ClCompile Include="meta\dsb.c" />
@@ -545,7 +549,6 @@
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\ea_wve_ad10.c" />
     <ClCompile Include="meta\ea_wve_au00.c" />
-    <ClCompile Include="meta\ego_dic.c" />
     <ClCompile Include="meta\encrypted.c" />
     <ClCompile Include="meta\esf.c" />
     <ClCompile Include="meta\exakt_sc.c" />
@@ -638,7 +641,6 @@
     <ClCompile Include="meta\mpeg.c" />
     <ClCompile Include="meta\msa.c" />
     <ClCompile Include="meta\msf.c" />
-    <ClCompile Include="meta\msf_banpresto.c" />
     <ClCompile Include="meta\msf_konami.c" />
     <ClCompile Include="meta\msf_tamasoft.c" />
     <ClCompile Include="meta\msh_msb.c" />
@@ -695,7 +697,6 @@
     <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2p.c" />
     <ClCompile Include="meta\ps2_adm.c" />
-    <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />
@@ -848,6 +849,7 @@
     <ClCompile Include="meta\wb.c" />
     <ClCompile Include="meta\wbk.c" />
     <ClCompile Include="meta\wd.c" />
+    <ClCompile Include="meta\wmsf.c" />
     <ClCompile Include="meta\wmw.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />

@@ -1,6 +1,7 @@
 #include "api_internal.h"
 #include "mixing.h"
 #include "render.h"
+#include "seek.h"
 #include "../util/log.h"
 
 
@@ -75,8 +76,8 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
 
     // requested samples, may return different max
     int to_get = priv->buf.max_samples;
-//if (!priv->pos.play_forever && to_get + priv->pos.current > priv->pos.play_samples)
-//    to_get = priv->pos.play_samples - priv->pos.current;
+    //if (!priv->pos.play_forever && to_get + priv->pos.current > priv->pos.play_samples)
+    //    to_get = priv->pos.play_samples - priv->pos.current;
 
     // default sbuf, may change during render
     sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);

@@ -1,11 +1,11 @@
-#include "../vgmstream.h"
-#include "../layout/layout.h"
+#include "seek.h"
 #include "render.h"
 #include "decode.h"
 #include "mixing.h"
 #include "plugins.h"
 #include "sbuf.h"
 #include "codec_info.h"
+#include "../layout/layout.h"
 
 
 /* Seeking in vgmstream can be divided into:
@@ -49,6 +49,12 @@ static void seek_force_render(VGMSTREAM* vgmstream, int samples) {
     sbuf_t sbuf_tmp;
     sbuf_init(&sbuf_tmp, mixing_get_input_sample_type(vgmstream), tmpbuf, buf_samples, vgmstream->channels);
 
+    //TODO: improve
+    // detect seeking more that layout/decoder, may rarely happen when layout can't render more
+    // but config allows it (like forcing body time)
+    const int max_empty = 1000;
+    int num_empty = 0;
+
     while (samples) {
         int to_do = samples;
         if (to_do > buf_samples)
@@ -60,8 +66,20 @@ static void seek_force_render(VGMSTREAM* vgmstream, int samples) {
         render_layout(&sbuf_tmp, vgmstream);
 
         /* no mixing */
-
         samples -= sbuf_tmp.filled;
+
+        if (sbuf_tmp.filled == 0) {
+            num_empty++;
+
+            if (num_empty > max_empty) {
+                VGM_LOG("SEEK: deadlock?\n");
+                break;
+            }
+        }
+        else {
+            num_empty = 0;
+        }
+
     }
 }
 
@@ -438,10 +456,20 @@ static int32_t clamp_seek(VGMSTREAM* vgmstream, int32_t seek_sample) {
 
     play_state_t* ps = &vgmstream->pstate;
     bool is_config = vgmstream->config_enabled;
+    int32_t max_sample = -1;
 
     /* play forever can seek past max */
-    if (is_config && seek_sample > ps->play_duration && !vgmstream->config.play_forever)
-        return ps->play_duration;
+    if (is_config && !vgmstream->config.play_forever) {
+        max_sample = ps->play_duration;
+    }
+    //TODO: layers may try to seek more, allow?
+    //else if (!is_config) {
+    //    max_sample = vgmstream->num_samples;
+    //}
+
+    if (max_sample >= 0 && seek_sample > max_sample) {
+        return max_sample;
+    }
 
     return seek_sample;
 }

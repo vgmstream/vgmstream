@@ -1,5 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
+#include "../base/seek.h"
 #include "../base/decode.h"
 #include "../base/mixing.h"
 #include "../base/play_state.h"
@@ -32,7 +33,12 @@ rc_t render_layout_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         if (samples_to_do > sdst->samples - sdst->filled)
             samples_to_do = sdst->samples - sdst->filled;
 
-        if (samples_to_do <= 0) { /* when decoding more than num_samples */
+        // TODO: may try to handle more in some cases (ex. #b or seeking)
+        // no more samples left to fill
+        //if (samples_to_do == 0)
+        //    break;
+
+        if (samples_to_do <= 0) {
             VGM_LOG_ONCE("LAYERED: wrong %i samples_to_do (%i filled vs %i samples)\n", samples_to_do, sdst->filled, sdst->samples); 
             return RC_LAYOUT_ERROR;
         }
@@ -48,7 +54,13 @@ rc_t render_layout_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
             sbuf_init(ssrc, format, data->buffer, samples_to_do, vl->channels);
 
             rc_t rc = render_main(ssrc, vl);
+
             //TODO: handle when some layers stop before others
+            if (rc < 0) {
+                VGM_LOG("LAYERED: render error\n");
+                sbuf_silence_rest(ssrc);
+            }
+
 
             // mix layer samples to main samples
             sbuf_copy_layers(sdst, ssrc, ch, samples_to_do);

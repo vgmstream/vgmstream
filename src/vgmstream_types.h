@@ -331,7 +331,6 @@ typedef enum {
     meta_ILD,
     meta_PWB,
     meta_VPK,               /* VPK Audio File */
-    meta_PS2_BMDX,          /* Beatmania thing */
     meta_IIVB,
     meta_SSND,
     meta_SVS,
@@ -612,7 +611,7 @@ typedef enum {
     meta_SVGP,
     meta_VAI,               /* Ratatouille (GC) */
     meta_AIF_ASOBO,         /* Ratatouille (PC) */
-    meta_AO,                /* Cloudphobia (PC) */
+    meta_ALPHAOGG,
     meta_APC,               /* MegaRace 3 (PC) */
     meta_WAV2,
     meta_SFXB,

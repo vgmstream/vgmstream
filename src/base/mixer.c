@@ -89,8 +89,22 @@ bool mixer_is_resample_active(mixer_t* mixer) {
     return false;
 }
 
-// TODO: probably could be pre-initialized
-static void setup_mixbuf(mixer_t* mixer, sbuf_t* sbuf) {
+static bool setup_mixbuf(mixer_t* mixer, sbuf_t* sbuf) {
+
+    // (re)alloc if there is not enough size for mixing
+    // could be done during init but this way allows lazy init'd decbufs
+    int max_size = sbuf->samples * mixer->mixing_channels * sizeof(float);
+    if (max_size > mixer->mixbuf_size) {
+        //;VGM_LOG("MIX: realloc mixbuf, 0x%04x > 0x%04x (s=%i, ch=%i)\n", mixer->mixbuf_size, max_size, sbuf->samples, mixer->mixing_channels);
+
+        //max_size *= 2; //TO-DO: add some leeway to avoid multiple reallocs in rare cases?
+        float* mixbuf_re = realloc(mixer->mixbuf, max_size);
+        if (!mixbuf_re) return false;
+
+        mixer->mixbuf = mixbuf_re;
+        mixer->mixbuf_size = max_size;
+    }
+
     sbuf_t* smix = &mixer->smix;
 
     // mixbuf (float) can be interpreted as F16, for 1:1 mapping with PCM16 (and possibly less rounding errors with mixops)
@@ -102,6 +116,8 @@ static void setup_mixbuf(mixer_t* mixer, sbuf_t* sbuf) {
 
     // remix to temp buf (somehow using float buf rather than int32 is faster?)
     sbuf_copy_segments(smix, sbuf, sbuf->filled);
+
+    return true;
 }
 
 static void setup_outbuf(mixer_t* mixer, sbuf_t* sbuf) {
@@ -142,7 +158,11 @@ void mixer_chain(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
 
     mixer->current_subpos = current_pos;
 
-    setup_mixbuf(mixer, sbuf);
+    bool ok = setup_mixbuf(mixer, sbuf);
+    if (!ok) {
+        VGM_LOG("MIX: couldn't setup mixbuf\n");
+        return;
+    }
 
     // apply mixing ops in order. channels in mixers may increase or decrease per op (set in sbuf)
     // - 2ch w/ "1+2,1u" = ch1+ch2, ch1(add and push rest) = 3ch: ch1' ch1+ch2 ch2

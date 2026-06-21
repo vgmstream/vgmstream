@@ -8,7 +8,9 @@
 #include <libaudcore/runtime.h>
 
 #ifndef AUDACIOUS_VGMSTREAM_PRIORITY
-// set higher than FFmpeg but lower than common plugins that use around 3
+// Set higher than FFmpeg but lower than common plugins that use around 3
+// Note that extensions/mime types seem to have higher priority than the plugin priority, 
+//  so may need to add some to VgmstreamPlugin::exts
 #ifdef _AUD_PLUGIN_DEFAULT_PRIO
 # define AUDACIOUS_VGMSTREAM_PRIORITY  (_AUD_PLUGIN_DEFAULT_PRIO - 1)
 #else
@@ -30,7 +32,7 @@ public:
 
     constexpr VgmstreamPlugin() : InputPlugin (info,
             InputInfo(FlagSubtunes) // allow subsongs
-            .with_priority(AUDACIOUS_VGMSTREAM_PRIORITY)  // where 0=highest, 10=lowest (older) or 5 (newer)
+            .with_priority(AUDACIOUS_VGMSTREAM_PRIORITY)  // where 0/1=highest, 10=lowest (older) or 5 (newer?); 0 may be a special value
             .with_exts(exts)) {}  // priority exts (accepted exts are still validated at runtime)
 
     bool init();

@@ -1,4 +1,4 @@
-# Generates formats-info.md based on src/meta code, to update FORMATS.md.
+# Updates FORMATS.md based on src files.
 # A bit crummy and all but whatevs.
 
 import glob, os, re
@@ -11,11 +11,18 @@ import glob, os, re
 #TODO maybe include common idstrings (first is_id32be() / is_id32le / get_id32be / get_id32be) 
 #     > after first valid init?
 
-META_SRC = '../**/meta/*.c'
-FORMAT_SRC = '../**/formats.c'
-SORT_SRC = '../**/vgmstream_init.c'
-FORMAT_DOC = '../**/FORMATS.md'
+BASE_FOLDER = '../'
+# detect root execution
+current_dir = os.getcwd()
+if '.github' not in current_dir:
+    BASE_FOLDER = './'
+
+META_SRC = BASE_FOLDER + '**/meta/*.c'
+FORMAT_SRC = BASE_FOLDER + '**/formats.c'
+SORT_SRC = BASE_FOLDER + '**/vgmstream_init.c'
+FORMAT_DOC = BASE_FOLDER + '**/FORMATS.md'
 DUMP_DOC = 'formats-info.md'
+
 IS_SORT = True          #sorts metas lines based on LIST_SRC
 IS_PRINT_DOC = False    #echo list
 IS_DUMP_DOC = False     #creates DUMP_DOC
