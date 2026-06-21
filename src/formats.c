@@ -125,7 +125,6 @@ static const char* extension_list[] = {
     "bkh",
     "bkr",  //txth/reserved [P.N.03 (GC), Viewtiful Joe (GC)]
     "blk",
-    "bmdx", //fake extension (to be removed?)
     "bms",
     "bnk",
     "bnm",
@@ -1129,7 +1128,6 @@ static const meta_info meta_info_list[] = {
         {meta_GENH,                 "GENH generic header"},
         {meta_DSP_SADB,             "Procyon Studio SADB header"},
         {meta_SADL,                 "Procyon Studio SADL header"},
-        {meta_PS2_BMDX,             "Beatmania .bmdx header"},
         {meta_DSP_WSI,              "Alone in the Dark .WSI header"},
         {meta_AIFC,                 "Apple AIFF-C header"},
         {meta_AIFF,                 "Apple AIFF header"},

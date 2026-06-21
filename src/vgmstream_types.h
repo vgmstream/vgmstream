@@ -331,7 +331,6 @@ typedef enum {
     meta_ILD,
     meta_PWB,
     meta_VPK,               /* VPK Audio File */
-    meta_PS2_BMDX,          /* Beatmania thing */
     meta_IIVB,
     meta_SSND,
     meta_SVS,

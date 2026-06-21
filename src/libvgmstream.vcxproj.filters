@@ -1918,9 +1918,6 @@
     <ClCompile Include="meta\ps2_adm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_bmdx.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\psb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -43,7 +43,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ogg_vorbis,
     init_vgmstream_sfl_ogg,
     init_vgmstream_sadb,
-    init_vgmstream_ps2_bmdx,
     init_vgmstream_aifc,
     init_vgmstream_str_snds,
     init_vgmstream_ws_aud,

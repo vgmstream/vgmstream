@@ -169,8 +169,6 @@ VGMSTREAM* init_vgmstream_sli_loops(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_sfl_ogg(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE * streamFile);
-
 VGMSTREAM * init_vgmstream_wsi(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_aifc(STREAMFILE * streamFile);
