@@ -45,9 +45,11 @@ static const char* tagfile_name = "!tags.m3u";
  * mpg123 plugin has higher priority and tendency to accept files that aren't even MP3. To fix this
  * we declare a few conflicting formats so we have a better chance.
  * The extension affects only this priority and in all cases file must accepted during "is_our_file".
+ * Sometimes plugins may accept by extension over vgmstream even with lower priority or not being
+ * able to play the file though (ex. libsndfile w/ Relic .aifc).
  */
 const char *const VgmstreamPlugin::exts[] = {
-        "ahx","asf","awc","ckd","fsb","genh","msf","p3d","rak","scd","str","txth","xvag", nullptr
+        "ahx","aifc","asf","awc","ckd","fsb","genh","msf","p3d","rak","scd","str","txth","xvag", nullptr
 };
 
 
