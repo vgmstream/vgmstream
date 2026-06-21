@@ -320,6 +320,31 @@ static rc_t get_result_code(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
     }
 }
 
+#if 0
+/* supply sbuf if caller didn't (may still have set max samples) */
+static rc_t setup_buf(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+
+    if (sbuf->fmt != SFMT_NONE)
+        return RC_RENDER_OK;
+
+    int buf_samples = vgmstream->tmpbuf_size / vgmstream->channels / sizeof(float);
+    int max_samples = sbuf->samples;
+    if (buf_samples > max_samples && max_samples > 0)
+        buf_samples = max_samples;
+
+    if (buf_samples == 0) {
+        VGM_LOG("RENDER: no samples to render\n");
+        return RC_RENDER_ERROR;
+    }
+
+    //TODO: tmpbuf is also used when seeking; setup on demand (both render and seek may be needed for layered)
+    sfmt_t sfmt = mixing_get_input_sample_type(vgmstream);
+    sbuf_init(sbuf, sfmt, vgmstream->tmpbuf, buf_samples, vgmstream->channels);
+
+    return RC_RENDER_OK;
+}
+#endif
+
 /*****************************************************************************/
 
 /* Decode data into sbuf, which may be updated at various points during render.
@@ -334,6 +359,11 @@ static rc_t get_result_code(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
  */
 
 rc_t render_main(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+#if 0
+    rc_t buf_rc = setup_buf(sbuf, vgmstream);
+    if (buf_rc < 0)
+        return buf_rc;
+#endif
 
     // trim decoder output (may go anywhere before main render since it doesn't use render output, but easier first)
     play_op_trim(vgmstream, sbuf);

@@ -145,6 +145,12 @@ void sbuf_init_flt(sbuf_t* sbuf, float* buf, int samples, int channels) {
     sbuf_init(sbuf, SFMT_FLT, buf, samples, channels);
 }
 
+/* signals usage of internal bufs in some cases; needs max samples to do for layouts */
+void sbuf_init_default(sbuf_t* sbuf, int samples) {
+    memset(sbuf, 0, sizeof(sbuf_t));
+    sbuf->samples = samples;
+}
+
 
 int sfmt_get_sample_size(sfmt_t fmt) {
     switch(fmt) {
