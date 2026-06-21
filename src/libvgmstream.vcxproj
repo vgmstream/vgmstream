@@ -206,6 +206,7 @@
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_garbage_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_streamfile.h" />
+    <ClInclude Include="meta\vig_kces_streamfile.h" />
     <ClInclude Include="meta\vsv_streamfile.h" />
     <ClInclude Include="meta\xavs_streamfile.h" />
     <ClInclude Include="meta\xnb_lz4mg.h" />
