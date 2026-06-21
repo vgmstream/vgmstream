@@ -611,7 +611,7 @@ typedef enum {
     meta_SVGP,
     meta_VAI,               /* Ratatouille (GC) */
     meta_AIF_ASOBO,         /* Ratatouille (PC) */
-    meta_AO,                /* Cloudphobia (PC) */
+    meta_ALPHAOGG,
     meta_APC,               /* MegaRace 3 (PC) */
     meta_WAV2,
     meta_SFXB,

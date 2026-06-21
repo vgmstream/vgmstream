@@ -4,7 +4,7 @@
 
 
 /* DIC1 - from Codemaster's Ego engine 'dictionaries' [DiRT (PC), F1 2011 (PC), Race Driver Grid (PC)] */
-VGMSTREAM* init_vgmstream_ego_dic(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_dic1(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sb = NULL;
     uint32_t stream_offset = 0, stream_size = 0, codec = 0;

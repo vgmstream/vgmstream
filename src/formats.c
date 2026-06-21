@@ -1413,7 +1413,7 @@ static const meta_info meta_info_list[] = {
         {meta_SVGP,                 "High Voltage SVGp header"},
         {meta_VAI,                  "Asobo Studio .VAI header"},
         {meta_AIF_ASOBO,            "Asobo Studio .AIF header"},
-        {meta_AO,                   "AlphaOgg .AO header"},
+        {meta_ALPHAOGG,             "AlphaOgg .AO header"},
         {meta_APC,                  "Cryo APC header"},
         {meta_WAV2,                 "Infogrames North America WAV2 header"},
         {meta_SFXB,                 "Konami SFXB header"},

@@ -696,7 +696,7 @@ VGMSTREAM* init_vgmstream_nub_caf(STREAMFILE* sf) {
     temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_apple_caff(temp_sf);
+    vgmstream = init_vgmstream_caff(temp_sf);
     if (!vgmstream) goto fail;
 
     close_streamfile(temp_sf);
