@@ -53,7 +53,7 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
     /* (1) theme segment-descriptor name */
     for (int i = 0; i < containers; i++) {
         off_t coff = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > get_streamfile_size(sf))
+        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
         if (!is_id32le(coff + 0x0C, sf, "MTHM"))
             continue;
@@ -71,7 +71,7 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
                 break;
             if (len > dst_size - 1)
                 len = dst_size - 1;
-            if (desc + DF_D5_THEME_SEG_NAME + 1 + len > get_streamfile_size(sf))
+            if (desc + DF_D5_THEME_SEG_NAME + 1 + len > (off_t)get_streamfile_size(sf))
                 break;
             for (int c = 0; c < len; c++)
                 dst[c] = read_u8(desc + DF_D5_THEME_SEG_NAME + 1 + c, sf);
@@ -84,7 +84,7 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
     int current_scene_base = 0;
     for (int i = 0; i < containers; i++) {
         off_t coff = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > get_streamfile_size(sf))
+        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
 
         if (is_id32le(coff + 0x0C, sf, "MHED")) {
@@ -102,7 +102,7 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
 
         for (int k = 0; k < n; k++) {
             off_t e = H + 0x28 + (off_t)k * 0x30;
-            if (e + 0x09 > get_streamfile_size(sf))
+            if (e + 0x09 > (off_t)get_streamfile_size(sf))
                 break;
             if (scene_base + read_u16le(e + 0x02, sf) != soun_id)
                 continue;
@@ -110,7 +110,7 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
             int len = read_u8(e + 0x08, sf);
             if (len > dst_size - 1)
                 len = dst_size - 1;
-            if (e + 0x09 + len > get_streamfile_size(sf))
+            if (e + 0x09 + len > (off_t)get_streamfile_size(sf))
                 return;
             for (int c = 0; c < len; c++)
                 dst[c] = read_u8(e + 0x09 + c, sf);
@@ -122,7 +122,7 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
 
 static bool cf_df_d5_soun_is_silent(STREAMFILE* sf, int soun_id) {
     off_t pos = read_u32le(DF_HEADER_SIZE + (off_t)soun_id * 0x04, sf);
-    if (pos <= 0 || pos + 0x30 > get_streamfile_size(sf))
+    if (pos <= 0 || pos + 0x30 > (off_t)get_streamfile_size(sf))
         return false;
 
     off_t H = pos + 0x08;
@@ -175,7 +175,7 @@ static VGMSTREAM* build_d5_soun(STREAMFILE* sf, int soun_id) {
     VGMSTREAM* vgmstream = NULL;
 
     off_t pos = read_u32le(DF_HEADER_SIZE + (off_t)soun_id * 0x04, sf);
-    if (pos <= 0 || pos + 0x30 > get_streamfile_size(sf))
+    if (pos <= 0 || pos + 0x30 > (off_t)get_streamfile_size(sf))
         return NULL;
     if (!is_id32le(pos + 0x0C, sf, "SOUN"))
         return NULL;
@@ -249,7 +249,7 @@ static VGMSTREAM* build_d5_soun(STREAMFILE* sf, int soun_id) {
 static int cf_df_d5_find_theme(STREAMFILE* sf, int containers) {
     for (int i = 0; i < containers; i++) {
         off_t coff = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > get_streamfile_size(sf))
+        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
         if (!is_id32le(coff + 0x0C, sf, "MTHM"))
             continue;
@@ -289,7 +289,7 @@ static bool cf_df_d5_read_theme(STREAMFILE* sf, int containers, int theme_id,
         off_t soff = (soun >= 0 && soun < containers)
                    ? read_u32le(DF_HEADER_SIZE + (off_t)soun * 0x04, sf) : 0;
         if (soun < 0 || soun >= containers || soff <= 0 ||
-                soff + 0x30 > get_streamfile_size(sf) || !is_id32le(soff + 0x0C, sf, "SOUN")) {
+                soff + 0x30 > (off_t)get_streamfile_size(sf) || !is_id32le(soff + 0x0C, sf, "SOUN")) {
             free(segs);
             return false;
         }
@@ -332,11 +332,13 @@ static bool cf_df_d5_read_theme(STREAMFILE* sf, int containers, int theme_id,
 static VGMSTREAM* build_d5_track(STREAMFILE* sf, int* seq, int count) {
     VGMSTREAM* v = NULL;
     segmented_layout_data* data = init_layout_segmented(count);
-    if (!data) goto fail;
+    if (!data)
+        goto fail;
 
     for (int i = 0; i < count; i++) {
         VGMSTREAM* seg = build_d5_soun(sf, seq[i]);
-        if (!seg) goto fail;
+        if (!seg)
+            goto fail;
         data->segments[i] = seg;
     }
 
@@ -344,7 +346,8 @@ static VGMSTREAM* build_d5_track(STREAMFILE* sf, int* seq, int count) {
         goto fail;
 
     v = allocate_segmented_vgmstream(data, 0, -1, -1);
-    if (!v) goto fail;
+    if (!v)
+        goto fail;
     return v;
 
 fail:
@@ -359,28 +362,38 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     int* seg_souns = NULL;
     int* seq = NULL;
     int* listed = NULL;
+    int containers;
+    int soun_count = 0;
+    int seg_count = 0;
+    int seq_count = 0;
+    bool disk_stream = false;
+    int theme_id;
+    bool has_track;
+    int listed_count = 0;
+    int subsongs;
+    int target;
 
     /* checks */
     if (!( (is_id32le(0x20, sf, "MOVE") && is_id32le(0x24, sf, "D5ME")) ||
            (is_id32le(0x20, sf, "TRAK") && is_id32le(0x24, sf, "D5ST")) ))
         return NULL;
-    if (read_u32le(0x04, sf) != get_streamfile_size(sf))
+    if (read_u32le(0x04, sf) != (off_t)get_streamfile_size(sf))
         return NULL;
     if (!check_extensions(sf, "move,trak"))
         return NULL;
 
-    int containers = read_u32le(0x14, sf);
+    containers = read_u32le(0x14, sf);
     if (containers <= 0 || containers > INT16_MAX)
         return NULL;
 
     /* collect SOUN containers */
     soun_ids = malloc(containers * sizeof(int));
-    if (!soun_ids) goto fail;
+    if (!soun_ids)
+        goto fail;
 
-    int soun_count = 0;
     for (int i = 0; i < containers; i++) {
         off_t coff = read_u32le(DF_HEADER_SIZE + i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > get_streamfile_size(sf))
+        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
         if (is_id32le(coff + 0x0C, sf, "SOUN"))
             soun_ids[soun_count++] = i;
@@ -389,17 +402,15 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
         goto fail;
 
     /* optional background track from the theme (MTHM) */
-    int seg_count = 0, seq_count = 0;
-    bool disk_stream = false;
-    int theme_id = cf_df_d5_find_theme(sf, containers);
-    bool has_track = (theme_id >= 0) &&
+    theme_id = cf_df_d5_find_theme(sf, containers);
+    has_track = (theme_id >= 0) &&
         cf_df_d5_read_theme(sf, containers, theme_id, &seg_souns, &seg_count, &seq, &seq_count, &disk_stream);
 
     /* individual subsong list: every SOUN, except that disk-stream fragments are folded into the
      * assembled track and not listed separately */
     listed = malloc(soun_count * sizeof(int));
-    if (!listed) goto fail;
-    int listed_count = 0;
+    if (!listed)
+        goto fail;
     for (int i = 0; i < soun_count; i++) {
         int sid = soun_ids[i];
         if (has_track && disk_stream) {
@@ -413,9 +424,9 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
         listed[listed_count++] = sid;
     }
 
-    int subsongs = (has_track ? 1 : 0) + listed_count;
+    subsongs = (has_track ? 1 : 0) + listed_count;
 
-    int target = sf->stream_index;
+    target = sf->stream_index;
     if (target == 0)
         target = 1;
     if (target < 0 || target > subsongs)
