@@ -21,6 +21,7 @@ bool g721_check_format(STREAMFILE* sf, int interleave, int max_size);
 /* ima_decoder */
 void decode_standard_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo, int is_high_first);
 void decode_camelot_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_cf_df_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_snds_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_otns_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_wv6_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -730,6 +731,10 @@ size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
 int32_t aac_get_samples(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes);
 int32_t aac_get_samples_fs(STREAMFILE* sf, uint32_t start_offset, uint32_t bytes, int frame_samples);
 int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay);
+
+
+/* df_decoder (CyberFlix DreamFactory) */
+int32_t cf_df_v5_get_samples(STREAMFILE* sf, off_t offset, int block_size);
 
 
 /* helper to pass a wrapped, clamped, fake extension-ed, SF to another meta */

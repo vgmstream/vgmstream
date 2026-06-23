@@ -103,6 +103,10 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
             extern const codec_info_t cf_df_v41_decoder;
             return &cf_df_v41_decoder;
 
+        case coding_CF_DF_ADPCM_v5:
+            extern const codec_info_t cf_df_v5_v40_decoder;
+            return &cf_df_v5_v40_decoder;
+
         case coding_AAC_raw:
             extern const codec_info_t aac_decoder;
             return &aac_decoder;

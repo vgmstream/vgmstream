@@ -158,6 +158,8 @@ typedef enum {
 
     coding_CF_DF_ADPCM_V40, /* Cyberflix DreamFactory v4.0 ADPCM */
     coding_CF_DF_DPCM_V41,  /* Cyberflix DreamFactory v4.1 DPCM */
+    coding_CF_DF_ADPCM_v5,  /* Cyberflix DreamFactory v5 (per-block, <<9) */
+    coding_CF_DF_IMA_v5,    /* Cyberflix DreamFactory v5 IMA ADPCM (per-block) */
 
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (transform-based) */
@@ -250,6 +252,7 @@ typedef enum {
     layout_blocked_tt_ad,
     layout_blocked_vas,
     layout_blocked_cf_df,
+    layout_blocked_cf_df_v5,
 
     /* otherwise odd */
     layout_segmented,       /* song divided in segments (song sections) */
@@ -731,6 +734,7 @@ typedef enum {
     meta_SRCD,
     meta_MHWK,
     meta_CF_DF,
+    meta_CF_DF_D5,
     meta_JAUDIO,
     meta_BCF1,
     meta_UEBA,
