@@ -15,15 +15,15 @@
  * - Containers are self-describing via a 4CC at payload +0x0C (stored LE): MFRM/STEP (video),
  *   SOUN (audio), MHED, MTHM (theme/playlist), MSND (sound director), MTRG (trigger). A multi-scene
  *   movie repeats MHED/MTHM/MSND/MTRG per scene (each scene's containers numbered from a base).
- * - SOUN payload base H = container + 0x08. Codec is fixed per stream and selected by H+0x1a
- *   (==1 -> v4.0 ADPCM), else H+0x18 (==0 -> v4.1 DPCM), else IMA. Sample rate at H+0x1c (native
- *   11025/22050/44100). Block count at H+0x28; block-offset table at H+0x2c (input offsets relative
- *   to H). Codec state resets every block;
+ * - SOUN payload base head = container + 0x08. Codec is fixed per stream and selected by head+0x1a
+ *   (==1 -> v4.0 ADPCM), else head+0x18 (==0 -> v4.1 DPCM), else IMA. Sample rate at head+0x1c (native
+ *   11025/22050/44100). Block count at head+0x28; block-offset table at head+0x2c (input offsets
+ *   relative to head). Codec state resets every block;
  *
  * MTHM is the v5 analog of v4's container-1 loop block: a fixed-size order region (order_count u16
- * @T+0x1c, order list u16[] @T+0x1e, 1-based indices) followed by a segment array (segment_count
- * u32 @T+0x222, array @T+0x226 stride 0x22). Each segment descriptor holds the absolute SOUN
- * container id @+0x0c and a Pascal-string name @+0x12.
+ * @theme_head+0x1c, order list u16[] @theme_head+0x1e, 1-based indices) followed by a segment array
+ * (segment_count u32 @theme_head+0x222, array @theme_head+0x226 stride 0x22). Each segment descriptor
+ * holds the absolute SOUN container id @+0x0c and a Pascal-string name @+0x12.
  *
  * Two movie shapes (mirroring v4):
  * - Disk-streamed (segment_count > order_count, e.g. segments named "disk 0"/"disk 8192"/...): the
@@ -43,6 +43,64 @@
 #define DF_D5_THEME_SEG_SOUN     0x0c
 #define DF_D5_THEME_SEG_NAME     0x12   /* Pascal string */
 
+#define DF_D5_SOUN_V41_SELECTOR  0x18   /* u16; ==0 -> v4.1 DPCM */
+#define DF_D5_SOUN_V40_SELECTOR  0x1a   /* u16; ==1 -> v4.0 ADPCM */
+#define DF_D5_SOUN_RATE          0x1c   /* u32; native 11025/22050/44100 */
+#define DF_D5_SOUN_BLOCK_COUNT   0x28   /* u32; mixer loop bound */
+#define DF_D5_SOUN_BLOCK_TABLE   0x2c   /* u32[]; block offsets relative to head */
+
+/* Parsed SOUN header */
+typedef struct {
+    off_t    cont_offset;     /* container start in file */
+    off_t    head;            /* cont_offset + 0x08, SOUN payload base */
+    uint32_t cont_size;       /* container size @ cont_offset+0x04 */
+    int      v41_selector;    /* head+0x18 */
+    int      v40_selector;    /* head+0x1a */
+    int      rate;            /* head+0x1c */
+    int      block_count;     /* head+0x28 */
+    off_t    block_table;     /* head+0x2c */
+    int      coding;          /* derived from the selectors */
+} df_d5_soun_t;
+
+/* Result of cf_df_d5_read_theme: the segment array and the playback sequence (both SOUN ids). */
+typedef struct {
+    int* seg_souns; int seg_count;   /* every segment's SOUN id, in array order */
+    int* seq;       int seq_count;   /* playback sequence of SOUN ids */
+    bool disk;                       /* disk-streamed (seg_count > order_count) */
+} df_d5_theme_t;
+
+/* Common SOUN parse */
+static bool cf_df_d5_parse_soun(STREAMFILE* sf, int soun_id, df_d5_soun_t* s) {
+    s->cont_offset = read_u32le(DF_HEADER_SIZE + (off_t)soun_id * 0x04, sf);
+    if (s->cont_offset <= 0 || s->cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
+        return false;
+    if (!is_id32le(s->cont_offset + 0x0C, sf, "SOUN"))
+        return false;
+
+    s->head         = s->cont_offset + 0x08;
+    s->cont_size    = read_u32le(s->cont_offset + 0x04, sf);
+    s->v41_selector = read_u16le(s->head + DF_D5_SOUN_V41_SELECTOR, sf);
+    s->v40_selector = read_u16le(s->head + DF_D5_SOUN_V40_SELECTOR, sf);
+    s->rate         = read_u32le(s->head + DF_D5_SOUN_RATE, sf);
+    s->block_count  = read_u32le(s->head + DF_D5_SOUN_BLOCK_COUNT, sf);
+    s->block_table  = s->head + DF_D5_SOUN_BLOCK_TABLE;
+    if (s->block_count <= 0 || s->block_count > DF_MAX_CHUNKS)
+        return false;
+
+    s->coding = (s->v40_selector == 1) ? coding_CF_DF_ADPCM_v5
+              : (s->v41_selector == 0) ? coding_CF_DF_DPCM_V41
+                                       : coding_CF_DF_IMA_v5;
+    return true;
+}
+
+/* Input range of block k, relative to head: [*start, *end). false if it overruns the container. */
+static bool cf_df_d5_block_range(STREAMFILE* sf, const df_d5_soun_t* s, int k,
+                                 uint32_t* start, uint32_t* end) {
+    *start = read_u32le(s->block_table + (off_t)k * 0x04, sf);
+    *end   = (k + 1 < s->block_count) ? read_u32le(s->block_table + (off_t)(k + 1) * 0x04, sf) : s->cont_size;
+    return (*end >= *start && *end <= s->cont_size);
+}
+
 /* Resolve a SOUN's display name. Priority: (1) the Pascal-string name on a theme segment descriptor
  * that references it; else (2) the MSND sound director. MSND ids are scene-relative: a multi-scene
  * movie repeats MHED(+0)/MTHM(+1)/MSND(+2)/MTRG(+3) per scene, so an MSND at container index m has
@@ -52,29 +110,29 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
 
     /* (1) theme segment-descriptor name */
     for (int i = 0; i < containers; i++) {
-        off_t coff = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
+        off_t cont_offset = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
+        if (cont_offset <= 0 || cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
-        if (!is_id32le(coff + 0x0C, sf, "MTHM"))
+        if (!is_id32le(cont_offset + 0x0C, sf, "MTHM"))
             continue;
 
-        off_t T = coff + 0x08;
-        uint32_t sc = read_u32le(T + DF_D5_THEME_SEG_COUNT, sf);
-        if (sc == 0 || sc > DF_MAX_CHUNKS)
+        off_t theme_head = cont_offset + 0x08;
+        uint32_t seg_count = read_u32le(theme_head + DF_D5_THEME_SEG_COUNT, sf);
+        if (seg_count == 0 || seg_count > DF_MAX_CHUNKS)
             continue;
-        for (uint32_t s = 0; s < sc; s++) {
-            off_t desc = T + DF_D5_THEME_SEG + (off_t)s * DF_D5_THEME_SEG_STRIDE;
-            if ((int)read_u32le(desc + DF_D5_THEME_SEG_SOUN, sf) != soun_id)
+        for (uint32_t s = 0; s < seg_count; s++) {
+            off_t seg_desc = theme_head + DF_D5_THEME_SEG + (off_t)s * DF_D5_THEME_SEG_STRIDE;
+            if ((int)read_u32le(seg_desc + DF_D5_THEME_SEG_SOUN, sf) != soun_id)
                 continue;
-            int len = read_u8(desc + DF_D5_THEME_SEG_NAME, sf);
+            int len = read_u8(seg_desc + DF_D5_THEME_SEG_NAME, sf);
             if (len <= 0)
                 break;
             if (len > dst_size - 1)
                 len = dst_size - 1;
-            if (desc + DF_D5_THEME_SEG_NAME + 1 + len > (off_t)get_streamfile_size(sf))
+            if (seg_desc + DF_D5_THEME_SEG_NAME + 1 + len > (off_t)get_streamfile_size(sf))
                 break;
             for (int c = 0; c < len; c++)
-                dst[c] = read_u8(desc + DF_D5_THEME_SEG_NAME + 1 + c, sf);
+                dst[c] = read_u8(seg_desc + DF_D5_THEME_SEG_NAME + 1 + c, sf);
             dst[len] = '\0';
             return;
         }
@@ -83,37 +141,37 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
     /* (2) MSND sound director (scene-relative) */
     int current_scene_base = 0;
     for (int i = 0; i < containers; i++) {
-        off_t coff = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
+        off_t cont_offset = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
+        if (cont_offset <= 0 || cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
 
-        if (is_id32le(coff + 0x0C, sf, "MHED")) {
+        if (is_id32le(cont_offset + 0x0C, sf, "MHED")) {
             current_scene_base = i;
         }
-        if (!is_id32le(coff + 0x0C, sf, "MSND"))
+        if (!is_id32le(cont_offset + 0x0C, sf, "MSND"))
             continue;
 
         int scene_base = current_scene_base;
 
-        off_t H = coff + 0x08; /* MSND payload */
-        int n = read_u32le(H + 0x18, sf);
-        if (n <= 0 || n > DF_MAX_CHUNKS)
+        off_t head = cont_offset + 0x08; /* MSND payload */
+        int entry_count = read_u32le(head + 0x18, sf); /* MSND entry count */
+        if (entry_count <= 0 || entry_count > DF_MAX_CHUNKS)
             continue;
 
-        for (int k = 0; k < n; k++) {
-            off_t e = H + 0x28 + (off_t)k * 0x30;
-            if (e + 0x09 > (off_t)get_streamfile_size(sf))
+        for (int k = 0; k < entry_count; k++) {
+            off_t entry = head + 0x28 + (off_t)k * 0x30; /* MSND entries, stride 0x30 */
+            if (entry + 0x09 > (off_t)get_streamfile_size(sf))
                 break;
-            if (scene_base + read_u16le(e + 0x02, sf) != soun_id)
+            if (scene_base + read_u16le(entry + 0x02, sf) != soun_id) /* rel SOUN id */
                 continue;
 
-            int len = read_u8(e + 0x08, sf);
+            int len = read_u8(entry + 0x08, sf); /* name len, chars at +0x09 */
             if (len > dst_size - 1)
                 len = dst_size - 1;
-            if (e + 0x09 + len > (off_t)get_streamfile_size(sf))
+            if (entry + 0x09 + len > (off_t)get_streamfile_size(sf))
                 return;
             for (int c = 0; c < len; c++)
-                dst[c] = read_u8(e + 0x09 + c, sf);
+                dst[c] = read_u8(entry + 0x09 + c, sf);
             dst[len] = '\0';
             return;
         }
@@ -121,34 +179,21 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
 }
 
 static bool cf_df_d5_soun_is_silent(STREAMFILE* sf, int soun_id) {
-    off_t pos = read_u32le(DF_HEADER_SIZE + (off_t)soun_id * 0x04, sf);
-    if (pos <= 0 || pos + 0x30 > (off_t)get_streamfile_size(sf))
+    df_d5_soun_t s;
+    if (!cf_df_d5_parse_soun(sf, soun_id, &s))
         return false;
 
-    off_t H = pos + 0x08;
-    uint32_t cont_size = read_u32le(pos + 0x04, sf);
-    int sel18 = read_u16le(H + 0x18, sf);
-    int sel1a = read_u16le(H + 0x1a, sf);
-    int count = read_u32le(H + 0x28, sf);
-    off_t table = H + 0x2c;
-    if (count <= 0 || count > DF_MAX_CHUNKS)
-        return false;
-
-    int coding = (sel1a == 1) ? coding_CF_DF_ADPCM_v5
-               : (sel18 == 0) ? coding_CF_DF_DPCM_V41
-                              : coding_CF_DF_IMA_v5;
-    if (coding == coding_CF_DF_IMA_v5)
+    if (s.coding == coding_CF_DF_IMA_v5)
         return false; /* unknown silence pattern; keep */
 
     uint8_t buf[0x1000];
-    for (int k = 0; k < count; k++) {
-        uint32_t rel = read_u32le(table + (off_t)k * 0x04, sf);
-        uint32_t next_rel = (k + 1 < count) ? read_u32le(table + (off_t)(k + 1) * 0x04, sf) : cont_size;
-        if (next_rel < rel || next_rel > cont_size)
+    for (int k = 0; k < s.block_count; k++) {
+        uint32_t block_start, block_end;
+        if (!cf_df_d5_block_range(sf, &s, k, &block_start, &block_end))
             return false;
 
-        off_t p = H + rel;
-        int32_t left = (int32_t)(next_rel - rel);
+        off_t p = s.head + block_start;
+        int32_t left = (int32_t)(block_end - block_start);
         while (left > 0) {
             int to_read = left > (int)sizeof(buf) ? (int)sizeof(buf) : left;
             int got = read_streamfile(buf, p, to_read, sf);
@@ -156,7 +201,7 @@ static bool cf_df_d5_soun_is_silent(STREAMFILE* sf, int soun_id) {
                 return false;
             for (int i = 0; i < got; i++) {
                 uint8_t b = buf[i];
-                if (coding == coding_CF_DF_DPCM_V41) {
+                if (s.coding == coding_CF_DF_DPCM_V41) {
                     if (b != 0x00 && b != 0x80)
                         return false;
                 } else { /* v4.0 ADPCM */
@@ -174,55 +219,33 @@ static bool cf_df_d5_soun_is_silent(STREAMFILE* sf, int soun_id) {
 static VGMSTREAM* build_d5_soun(STREAMFILE* sf, int soun_id) {
     VGMSTREAM* vgmstream = NULL;
 
-    off_t pos = read_u32le(DF_HEADER_SIZE + (off_t)soun_id * 0x04, sf);
-    if (pos <= 0 || pos + 0x30 > (off_t)get_streamfile_size(sf))
+    df_d5_soun_t s;
+    if (!cf_df_d5_parse_soun(sf, soun_id, &s))
         return NULL;
-    if (!is_id32le(pos + 0x0C, sf, "SOUN"))
+    if (s.rate != 11025 && s.rate != 22050 && s.rate != 44100)
         return NULL;
-
-    off_t H = pos + 0x08;
-    uint32_t cont_size = read_u32le(pos + 0x04, sf);
-    int sel18 = read_u16le(H + 0x18, sf);
-    int sel1a = read_u16le(H + 0x1a, sf);
-    int rate  = read_u32le(H + 0x1c, sf);
-    int count = read_u32le(H + 0x28, sf);
-    off_t table = H + 0x2c;
-
-    if (rate != 11025 && rate != 22050 && rate != 44100)
+    if (s.block_table + (off_t)s.block_count * 0x04 > s.head + s.cont_size)
         return NULL;
-    if (count <= 0 || count > DF_MAX_CHUNKS)
-        return NULL;
-    if (table + (off_t)count * 0x04 > H + cont_size)
-        return NULL;
-
-    int coding;
-    if (sel1a == 1)
-        coding = coding_CF_DF_ADPCM_v5;
-    else if (sel18 == 0)
-        coding = coding_CF_DF_DPCM_V41;
-    else
-        coding = coding_CF_DF_IMA_v5;
 
     int32_t num_samples = 0;
-    for (int k = 0; k < count; k++) {
-        uint32_t rel = read_u32le(table + (off_t)k * 0x04, sf);
-        uint32_t next_rel = (k + 1 < count) ? read_u32le(table + (off_t)(k + 1) * 0x04, sf) : cont_size;
-        if (next_rel < rel || next_rel > cont_size)
+    for (int k = 0; k < s.block_count; k++) {
+        uint32_t block_start, block_end;
+        if (!cf_df_d5_block_range(sf, &s, k, &block_start, &block_end))
             return NULL;
-        int B = (int)(next_rel - rel);
-        off_t block_data = H + rel;
+        int block_size = (int)(block_end - block_start);
+        off_t block_data = s.head + block_start;
 
-        if (coding == coding_CF_DF_IMA_v5) {
-            if (B < 3) continue;
-            int step = read_u8(block_data + 0x02, sf);
-            num_samples += (step > 0x58) ? 0 : (1 + 2 * (B - 3));
+        if (s.coding == coding_CF_DF_IMA_v5) {
+            if (block_size < 3) continue;
+            int step_index = read_u8(block_data + 0x02, sf);
+            num_samples += (step_index > 0x58) ? 0 : (1 + 2 * (block_size - 3));
         }
-        else if (coding == coding_CF_DF_ADPCM_v5) {
-            if (B < 1) continue;
-            num_samples += cf_df_v5_get_samples(sf, block_data, B);
+        else if (s.coding == coding_CF_DF_ADPCM_v5) {
+            if (block_size < 1) continue;
+            num_samples += cf_df_v5_get_samples(sf, block_data, block_size);
         }
         else { /* v4.1 */
-            num_samples += B;
+            num_samples += block_size;
         }
     }
     if (num_samples <= 0)
@@ -232,13 +255,13 @@ static VGMSTREAM* build_d5_soun(STREAMFILE* sf, int soun_id) {
     if (!vgmstream) return NULL;
 
     vgmstream->meta_type   = meta_CF_DF_D5;
-    vgmstream->sample_rate = rate;
+    vgmstream->sample_rate = s.rate;
     vgmstream->num_samples = num_samples;
-    vgmstream->stream_size = cont_size;
-    vgmstream->coding_type = coding;
+    vgmstream->stream_size = s.cont_size;
+    vgmstream->coding_type = s.coding;
     vgmstream->layout_type = layout_blocked_cf_df_v5;
 
-    if (!vgmstream_open_stream(vgmstream, sf, table)) {
+    if (!vgmstream_open_stream(vgmstream, sf, s.block_table)) {
         close_vgmstream(vgmstream);
         return NULL;
     }
@@ -248,14 +271,14 @@ static VGMSTREAM* build_d5_soun(STREAMFILE* sf, int soun_id) {
 // Find the first MTHM container that carries a usable theme (segment_count > 0).
 static int cf_df_d5_find_theme(STREAMFILE* sf, int containers) {
     for (int i = 0; i < containers; i++) {
-        off_t coff = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
+        off_t cont_offset = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
+        if (cont_offset <= 0 || cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
-        if (!is_id32le(coff + 0x0C, sf, "MTHM"))
+        if (!is_id32le(cont_offset + 0x0C, sf, "MTHM"))
             continue;
-        off_t T = coff + 0x08;
-        uint32_t sc = read_u32le(T + DF_D5_THEME_SEG_COUNT, sf);
-        if (sc > 0 && sc <= DF_MAX_CHUNKS)
+        off_t theme_head = cont_offset + 0x08;
+        uint32_t seg_count = read_u32le(theme_head + DF_D5_THEME_SEG_COUNT, sf);
+        if (seg_count > 0 && seg_count <= DF_MAX_CHUNKS)
             return i;
     }
     return -1;
@@ -266,15 +289,14 @@ static int cf_df_d5_find_theme(STREAMFILE* sf, int containers) {
  * array; otherwise the sequence follows the 1-based order list. Returns false (no track) if the
  * theme is unparseable or any reference doesn't resolve to a real SOUN -- so the file degrades to a
  * plain SOUN list instead of failing or assembling garbage. */
-static bool cf_df_d5_read_theme(STREAMFILE* sf, int containers, int theme_id,
-        int** out_seg_souns, int* out_seg_count, int** out_seq, int* out_seq_count, bool* out_disk) {
-    *out_seg_souns = NULL; *out_seg_count = 0;
-    *out_seq = NULL;       *out_seq_count = 0;
-    *out_disk = false;
+static bool cf_df_d5_read_theme(STREAMFILE* sf, int containers, int theme_id, df_d5_theme_t* out) {
+    out->seg_souns = NULL; out->seg_count = 0;
+    out->seq = NULL;       out->seq_count = 0;
+    out->disk = false;
 
-    off_t T = read_u32le(DF_HEADER_SIZE + (off_t)theme_id * 0x04, sf) + 0x08;
-    int order_count = read_u16le(T + DF_D5_THEME_ORDER_COUNT, sf);
-    uint32_t seg_count = read_u32le(T + DF_D5_THEME_SEG_COUNT, sf);
+    off_t theme_head = read_u32le(DF_HEADER_SIZE + (off_t)theme_id * 0x04, sf) + 0x08;
+    int order_count = read_u16le(theme_head + DF_D5_THEME_ORDER_COUNT, sf);
+    uint32_t seg_count = read_u32le(theme_head + DF_D5_THEME_SEG_COUNT, sf);
     if (seg_count == 0 || seg_count > DF_MAX_CHUNKS)
         return false;
     if (order_count < 0 || order_count > DF_MAX_CHUNKS)
@@ -284,16 +306,16 @@ static bool cf_df_d5_read_theme(STREAMFILE* sf, int containers, int theme_id,
     if (!segs) return false;
 
     for (uint32_t s = 0; s < seg_count; s++) {
-        off_t desc = T + DF_D5_THEME_SEG + (off_t)s * DF_D5_THEME_SEG_STRIDE;
-        int soun = read_u32le(desc + DF_D5_THEME_SEG_SOUN, sf);
-        off_t soff = (soun >= 0 && soun < containers)
-                   ? read_u32le(DF_HEADER_SIZE + (off_t)soun * 0x04, sf) : 0;
-        if (soun < 0 || soun >= containers || soff <= 0 ||
-                soff + 0x30 > (off_t)get_streamfile_size(sf) || !is_id32le(soff + 0x0C, sf, "SOUN")) {
+        off_t seg_desc = theme_head + DF_D5_THEME_SEG + (off_t)s * DF_D5_THEME_SEG_STRIDE;
+        int soun_id = read_u32le(seg_desc + DF_D5_THEME_SEG_SOUN, sf);
+        off_t soun_offset = (soun_id >= 0 && soun_id < containers)
+                   ? read_u32le(DF_HEADER_SIZE + (off_t)soun_id * 0x04, sf) : 0;
+        if (soun_id < 0 || soun_id >= containers || soun_offset <= 0 ||
+                soun_offset + 0x30 > (off_t)get_streamfile_size(sf) || !is_id32le(soun_offset + 0x0C, sf, "SOUN")) {
             free(segs);
             return false;
         }
-        segs[s] = soun;
+        segs[s] = soun_id;
     }
 
     bool disk = (seg_count > (uint32_t)order_count);
@@ -313,16 +335,16 @@ static bool cf_df_d5_read_theme(STREAMFILE* sf, int containers, int theme_id,
         seq = malloc((size_t)order_count * sizeof(int));
         if (!seq) { free(segs); return false; }
         for (int i = 0; i < order_count; i++) {
-            int e = read_u16le(T + DF_D5_THEME_ORDER + (off_t)i * 0x02, sf); /* 1-based */
-            if (e < 1 || (uint32_t)e > seg_count) { free(seq); free(segs); return false; }
-            seq[i] = segs[e - 1];
+            int order_entry = read_u16le(theme_head + DF_D5_THEME_ORDER + (off_t)i * 0x02, sf); /* 1-based */
+            if (order_entry < 1 || (uint32_t)order_entry > seg_count) { free(seq); free(segs); return false; }
+            seq[i] = segs[order_entry - 1];
         }
         seq_count = order_count;
     }
 
-    *out_seg_souns = segs; *out_seg_count = (int)seg_count;
-    *out_seq = seq;        *out_seq_count = seq_count;
-    *out_disk = disk;
+    out->seg_souns = segs; out->seg_count = (int)seg_count;
+    out->seq = seq;        out->seq_count = seq_count;
+    out->disk = disk;
     return true;
 }
 
@@ -359,14 +381,10 @@ fail:
 VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int* soun_ids = NULL;
-    int* seg_souns = NULL;
-    int* seq = NULL;
     int* listed = NULL;
+    df_d5_theme_t theme = {0};
     int containers;
     int soun_count = 0;
-    int seg_count = 0;
-    int seq_count = 0;
-    bool disk_stream = false;
     int theme_id;
     bool has_track;
     int listed_count = 0;
@@ -392,10 +410,10 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
         goto fail;
 
     for (int i = 0; i < containers; i++) {
-        off_t coff = read_u32le(DF_HEADER_SIZE + i * 0x04, sf);
-        if (coff <= 0 || coff + 0x30 > (off_t)get_streamfile_size(sf))
+        off_t cont_offset = read_u32le(DF_HEADER_SIZE + i * 0x04, sf);
+        if (cont_offset <= 0 || cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
             continue;
-        if (is_id32le(coff + 0x0C, sf, "SOUN"))
+        if (is_id32le(cont_offset + 0x0C, sf, "SOUN"))
             soun_ids[soun_count++] = i;
     }
     if (soun_count == 0)
@@ -404,7 +422,7 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     /* optional background track from the theme (MTHM) */
     theme_id = cf_df_d5_find_theme(sf, containers);
     has_track = (theme_id >= 0) &&
-        cf_df_d5_read_theme(sf, containers, theme_id, &seg_souns, &seg_count, &seq, &seq_count, &disk_stream);
+        cf_df_d5_read_theme(sf, containers, theme_id, &theme);
 
     /* individual subsong list: every SOUN, except that disk-stream fragments are folded into the
      * assembled track and not listed separately */
@@ -413,10 +431,10 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
         goto fail;
     for (int i = 0; i < soun_count; i++) {
         int sid = soun_ids[i];
-        if (has_track && disk_stream) {
+        if (has_track && theme.disk) {
             bool fragment = false;
-            for (int j = 0; j < seg_count; j++) {
-                if (seg_souns[j] == sid) { fragment = true; break; }
+            for (int j = 0; j < theme.seg_count; j++) {
+                if (theme.seg_souns[j] == sid) { fragment = true; break; }
             }
             if (fragment)
                 continue;
@@ -434,17 +452,17 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
 
     if (has_track && target == 1) {
         /* subsong 1: the assembled background track */
-        int lo = 0, hi = seq_count - 1;
-        if (!disk_stream) {
+        int trim_lo = 0, trim_hi = theme.seq_count - 1;
+        if (!theme.disk) {
             /* trim leading/trailing silence (keep interspersed silence) */
-            while (lo <= hi && cf_df_d5_soun_is_silent(sf, seq[lo]))
-                lo++;
-            while (hi >= lo && cf_df_d5_soun_is_silent(sf, seq[hi]))
-                hi--;
-            if (lo > hi) { lo = 0; hi = seq_count - 1; } /* all silent: keep so it isn't empty */
+            while (trim_lo <= trim_hi && cf_df_d5_soun_is_silent(sf, theme.seq[trim_lo]))
+                trim_lo++;
+            while (trim_hi >= trim_lo && cf_df_d5_soun_is_silent(sf, theme.seq[trim_hi]))
+                trim_hi--;
+            if (trim_lo > trim_hi) { trim_lo = 0; trim_hi = theme.seq_count - 1; } /* all silent: keep so it isn't empty */
         }
 
-        vgmstream = build_d5_track(sf, seq + lo, hi - lo + 1);
+        vgmstream = build_d5_track(sf, theme.seq + trim_lo, trim_hi - trim_lo + 1);
         if (!vgmstream)
             goto fail;
 
@@ -474,15 +492,15 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     vgmstream->num_streams = subsongs;
 
     free(soun_ids);
-    free(seg_souns);
-    free(seq);
+    free(theme.seg_souns);
+    free(theme.seq);
     free(listed);
     return vgmstream;
 
 fail:
     free(soun_ids);
-    free(seg_souns);
-    free(seq);
+    free(theme.seg_souns);
+    free(theme.seq);
     free(listed);
     close_vgmstream(vgmstream);
     return NULL;

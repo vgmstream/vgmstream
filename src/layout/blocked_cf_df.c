@@ -92,17 +92,17 @@ void block_update_cf_df_v5(off_t block_offset, VGMSTREAM* vgmstream) {
         return;
     }
 
-    off_t table_base = vgmstream->ch[0].channel_start_offset; /* = H + 0x2c */
-    off_t H = table_base - DF_V5_TABLE_BASE;
-    int count = read_u32le(H + DF_V5_BLOCK_COUNT, sf);
+    off_t table_base = vgmstream->ch[0].channel_start_offset; /* = head + 0x2c */
+    off_t head = table_base - DF_V5_TABLE_BASE;
+    int block_count = read_u32le(head + DF_V5_BLOCK_COUNT, sf);
     int index = (int)((block_offset - table_base) / 0x04);
 
-    uint32_t rel = read_u32le(block_offset, sf);
-    uint32_t next_rel = (index + 1 < count)
+    uint32_t block_start = read_u32le(block_offset, sf);
+    uint32_t block_end = (index + 1 < block_count)
             ? read_u32le(block_offset + 0x04, sf)
-            : read_u32le(H - 0x04, sf); /* container_size @ pos+0x04 = SOUN payload end */
-    int block_size = (int)(next_rel - rel);
-    off_t block_data = H + rel;
+            : read_u32le(head - 0x04, sf); /* container_size @ cont_offset+0x04 = SOUN payload end */
+    int block_size = (int)(block_end - block_start);
+    off_t block_data = head + block_start;
 
     int32_t samples;
     switch (vgmstream->coding_type) {
@@ -130,5 +130,5 @@ void block_update_cf_df_v5(off_t block_offset, VGMSTREAM* vgmstream) {
 
     vgmstream->current_block_size = block_size;
     vgmstream->current_block_samples = samples;
-    vgmstream->next_block_offset = (index + 1 < count) ? (block_offset + 0x04) : DF_BLOCK_END;
+    vgmstream->next_block_offset = (index + 1 < block_count) ? (block_offset + 0x04) : DF_BLOCK_END;
 }
