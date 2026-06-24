@@ -130,8 +130,9 @@ static void read_name(STREAMFILE* sf, off_t entry, int name_max, df_name_t* dst)
     dst->name[len] = '\0';
 }
 
-/* Assembled track via segmented layout: play the given sequence of loop chunks once. */
-static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, int count) {
+/* Assembled track via segmented layout: play the given sequence of loop chunks once.
+ * loop=1 marks the whole assembled track as an end-to-end loop (.trk only; .mov/.snd/.sfx excluded). */
+static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, int count, int loop) {
     VGMSTREAM* v = NULL;
     segmented_layout_data* data = init_layout_segmented(count);
     if (!data) goto fail;
@@ -149,7 +150,7 @@ static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, 
     if (!setup_layout_segmented(data))
         goto fail;
 
-    v = allocate_segmented_vgmstream(data, 0, -1, -1);
+    v = allocate_segmented_vgmstream(data, loop, 0, count - 1);
     if (!v) goto fail;
     return v;
 
@@ -222,6 +223,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         return NULL;
 
     int is_mov = check_extensions(sf, "mov");
+    int is_trk = check_extensions(sf, "trk");
     int target = sf->stream_index;
     if (target == 0)
         target = 1;
@@ -372,7 +374,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
                 lo = 0;
                 hi = count - 1;
             }
-            vgmstream = build_segmented(sf, loop, seq + lo, hi - lo + 1);
+            vgmstream = build_segmented(sf, loop, seq + lo, hi - lo + 1, is_trk);
         }
         if (!vgmstream)
             goto fail;
