@@ -23,6 +23,10 @@ rc_t render_layout_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
     }
 
+    // detect stuck blocks //TODO: improve
+    const int max_empty = 1000;
+    int num_empty = 0;
+
     while (sdst->filled < sdst->samples) {
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
@@ -43,7 +47,7 @@ rc_t render_layout_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
             return RC_LAYOUT_ERROR;
         }
 
-        if (vgmstream->current_block_offset < 0 || vgmstream->current_block_offset == 0xFFFFFFFF) {
+        if (vgmstream->current_block_offset < 0 || vgmstream->current_block_offset == SIZE_MAX) {
             /* probably block bug or EOF, block functions won't be able to read anything useful/infinite loop */
             VGM_LOG("BLOCKED: wrong block offset found\n");
             return RC_LAYOUT_ERROR;
@@ -63,6 +67,18 @@ rc_t render_layout_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         vgmstream->current_sample += samples_done;
         vgmstream->samples_into_block += samples_done;
 
+
+        if (samples_done == 0) {
+            num_empty++;
+
+            if (num_empty > max_empty) {
+                VGM_LOG("BLOCKED: deadlock?\n");
+                break;
+            }
+        }
+        else {
+            num_empty = 0;
+        }
 
         /* move to next block when all samples are consumed */
         if (vgmstream->samples_into_block == samples_this_block
