@@ -1,8 +1,9 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/layout_utils.h"
 
-/* STHD - Dream Factory .stx [Kakuto Chojin (Xbox), Dinosaur Hunting (Xbox), Phantom Dust Remaster (PC)] */
+/* STHD - from Dream Factory games [Kakuto Chojin (Xbox), Dinosaur Hunting (Xbox), Phantom Dust Remaster (PC)] */
 VGMSTREAM* init_vgmstream_sthd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset;
@@ -20,16 +21,16 @@ VGMSTREAM* init_vgmstream_sthd(STREAMFILE* sf) {
     start_offset = read_u16le(0x04,sf); /* next block in header, data offset in other blocks */
     channels = read_s16le(0x06,sf);
     build_date = read_u32le(0x08,sf); /* in hex (0x20030610 = 2003-06-10) */
-    /* 0x0c: ? (1 in Dinosaur Hunting, otherwise 0) */
+    // 0x0c: ? (1 in Dinosaur Hunting, otherwise 0)
 
     if (start_offset != 0x0800 || channels > 8)
         return NULL;
 
-    /* 0x10: total blocks */
-    /* 0x12: block number */
-    /* 0x14: null */
-    /* 0x16: channel size (0 in header block) */
-    /* 0x18: block number + 1? */
+    // 0x10: total blocks
+    // 0x12: block number
+    // 0x14: null
+    // 0x16: channel size (0 in header block)
+    // 0x18: block number + 1?
     loop_start_block = read_u16le(0x1a,sf);
     loop_end_block   = read_u16le(0x1c,sf);
 
@@ -40,8 +41,8 @@ VGMSTREAM* init_vgmstream_sthd(STREAMFILE* sf) {
 
     /* channel info (first block only), seem to be repeated up to max 8 channels */
     sample_rate = read_s32le(0x20, sf);
-    /* 0x24/28: volume/pan? (not always set) */
-    /* 0x210: stream name for both channels (same as file) */
+    // 0x24/28: volume/pan? (not always set)
+    // 0x210: stream name for both channels (same as file)
 
 
     /* build the VGMSTREAM */
@@ -51,7 +52,7 @@ VGMSTREAM* init_vgmstream_sthd(STREAMFILE* sf) {
     vgmstream->meta_type = meta_STHD;
     vgmstream->sample_rate = sample_rate;
 
-    vgmstream->coding_type = build_date >= 0x20170000 ? /* no apparent flags [Phantom Dust Remaster (PC)] */
+    vgmstream->coding_type = build_date >= 0x20170000 ? // no apparent flags [Phantom Dust Remaster (PC)]
           coding_PCM16LE :
           coding_XBOX_IMA_mono;
     vgmstream->layout_type = layout_blocked_sthd;
@@ -59,34 +60,17 @@ VGMSTREAM* init_vgmstream_sthd(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
 
-    /* calc num_samples manually (blocks data varies in size) */
     {
-        /* loop values may change to +1 in first actual block, but this works ok enough */
-        int block_count = 1; /* header block = 0 */
-
-        vgmstream->next_block_offset = start_offset;
-        do {
-            block_update(vgmstream->next_block_offset, vgmstream);
-            if (vgmstream->current_block_samples < 0 || vgmstream->current_block_size == 0xFFFFFFFF)
-                break;
-
-            if (block_count == loop_start_block)
-                vgmstream->loop_start_sample = vgmstream->num_samples;
-            if (block_count == loop_end_block)
-                vgmstream->loop_end_sample = vgmstream->num_samples;
-
-            int block_samples = 0;
-            switch(vgmstream->coding_type) {
-                case coding_PCM16LE:        block_samples = pcm16_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_XBOX_IMA_mono:  block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                default: goto fail;
-            }
-
-            vgmstream->num_samples += block_samples;
-            block_count++;
+        blocked_counter_t cfg = {0};
+        cfg.offset = start_offset;
+        if (loop_flag && loop_start_block > 0 && loop_end_block > 0) {
+            /* header block = 0 */
+            cfg.loop_flag = loop_flag;
+            cfg.loop_start_block = loop_start_block - 1;
+            cfg.loop_end_block = loop_end_block - 1;
         }
-        while (vgmstream->next_block_offset < get_streamfile_size(sf));
-        block_update(start_offset, vgmstream);
+
+        blocked_count_samples(vgmstream, sf, &cfg);
     }
 
     return vgmstream;

@@ -299,16 +299,26 @@ void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter
     if (vgmstream == NULL)
         return;
 
-    int block_samples;
+    // detect stuck blocks //TODO: improve
+    const int max_empty = 1000;
+    int num_empty = 0;
+
+    int block_count = 0;
     off_t max_offset = get_streamfile_size(sf);
 
     vgmstream->next_block_offset = cfg->offset;
     do {
         block_update(vgmstream->next_block_offset, vgmstream);
 
-        if (vgmstream->current_block_samples < 0 || vgmstream->current_block_size == 0xFFFFFFFF)
+        if (vgmstream->current_block_samples < 0 || vgmstream->current_block_size == SIZE_MAX)
             break;
 
+        if (cfg->loop_flag && block_count == cfg->loop_start_block)
+            vgmstream->loop_start_sample = vgmstream->num_samples;
+        if (cfg->loop_flag && block_count == cfg->loop_end_block)
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+
+        int block_samples;
         if (vgmstream->current_block_samples) {
             block_samples = vgmstream->current_block_samples;
         }
@@ -329,6 +339,19 @@ void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter
         }
 
         vgmstream->num_samples += block_samples;
+        block_count++;
+
+        if (block_samples == 0) {
+            num_empty++;
+
+            if (num_empty > max_empty) {
+                VGM_LOG("BLOCKED: deadlock?\n");
+                break;
+            }
+        }
+        else {
+            num_empty = 0;
+        }
     }
     while (vgmstream->next_block_offset < max_offset);
 
