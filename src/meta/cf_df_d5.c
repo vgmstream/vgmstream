@@ -43,6 +43,20 @@
 #define DF_D5_THEME_SEG_SOUN     0x0c
 #define DF_D5_THEME_SEG_NAME     0x12   /* Pascal string */
 
+/* .trak (TRAK/D5ST) variant. Same container envelope and the same order list (order_count @0x1c,
+ * order list @0x1e) and seg_count (@0x222) as .move, but the theme is STHM (not MTHM), the sound
+ * director is SSND (not MSND), and both sub-records have their own layout. SSND ids are ABSOLUTE
+ * container indices (no scene-relative MHED math). */
+#define DF_D5_TRAK_SEG          0x22a  /* theme (STHM) segment array, rel theme_head */
+#define DF_D5_TRAK_SEG_STRIDE   0x1a
+#define DF_D5_TRAK_SEG_SOUN     0x00   /* u32 absolute SOUN container id */
+#define DF_D5_TRAK_SEG_NAME     0x06   /* Pascal string (len @ +0x06, chars @ +0x07) */
+#define DF_D5_TRAK_DIR_COUNT    0x1c   /* SSND entry count, rel dir head */
+#define DF_D5_TRAK_DIR_ENTRY    0x20   /* first SSND entry, rel dir head */
+#define DF_D5_TRAK_DIR_STRIDE   0x1a
+#define DF_D5_TRAK_DIR_SOUN     0x04   /* u32 absolute SOUN container id */
+#define DF_D5_TRAK_DIR_NAME     0x0a   /* Pascal string (len @ +0x0a, chars @ +0x0b) */
+
 #define DF_D5_SOUN_V41_SELECTOR  0x18   /* u16; ==0 -> v4.1 DPCM */
 #define DF_D5_SOUN_V40_SELECTOR  0x1a   /* u16; ==1 -> v4.0 ADPCM */
 #define DF_D5_SOUN_RATE          0x1c   /* u32; native 11025/22050/44100 */
@@ -172,6 +186,76 @@ static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, ch
                 return;
             for (int c = 0; c < len; c++)
                 dst[c] = read_u8(entry + 0x09 + c, sf);
+            dst[len] = '\0';
+            return;
+        }
+    }
+}
+
+/* .trak name resolution. Priority: (1) the SSND sound director (absolute SOUN ids string names;
+ * else (2) the STHM theme segment label. Pascal length is the exact char count. Leaves dst empty if unnamed. */
+static void cf_df_d5_lookup_name_trak(STREAMFILE* sf, int containers, int soun_id, char* dst, int dst_size) {
+    dst[0] = '\0';
+
+    /* (1) SSND sound director */
+    for (int i = 0; i < containers; i++) {
+        off_t cont_offset = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
+        if (cont_offset <= 0 || cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
+            continue;
+        if (!is_id32le(cont_offset + 0x0C, sf, "SSND"))
+            continue;
+
+        off_t head = cont_offset + 0x08;
+        int entry_count = read_u32le(head + DF_D5_TRAK_DIR_COUNT, sf);
+        if (entry_count <= 0 || entry_count > DF_MAX_CHUNKS)
+            continue;
+
+        for (int k = 0; k < entry_count; k++) {
+            off_t entry = head + DF_D5_TRAK_DIR_ENTRY + (off_t)k * DF_D5_TRAK_DIR_STRIDE;
+            if (entry + DF_D5_TRAK_DIR_NAME + 1 > (off_t)get_streamfile_size(sf))
+                break;
+            if ((int)read_u32le(entry + DF_D5_TRAK_DIR_SOUN, sf) != soun_id)
+                continue;
+
+            int len = read_u8(entry + DF_D5_TRAK_DIR_NAME, sf);
+            if (len <= 0)
+                break;
+            if (len > dst_size - 1)
+                len = dst_size - 1;
+            if (entry + DF_D5_TRAK_DIR_NAME + 1 + len > (off_t)get_streamfile_size(sf))
+                break;
+            for (int c = 0; c < len; c++)
+                dst[c] = read_u8(entry + DF_D5_TRAK_DIR_NAME + 1 + c, sf);
+            dst[len] = '\0';
+            return;
+        }
+    }
+
+    /* (2) STHM theme segment label */
+    for (int i = 0; i < containers; i++) {
+        off_t cont_offset = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
+        if (cont_offset <= 0 || cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
+            continue;
+        if (!is_id32le(cont_offset + 0x0C, sf, "STHM"))
+            continue;
+
+        off_t theme_head = cont_offset + 0x08;
+        uint32_t seg_count = read_u32le(theme_head + DF_D5_THEME_SEG_COUNT, sf);
+        if (seg_count == 0 || seg_count > DF_MAX_CHUNKS)
+            continue;
+        for (uint32_t s = 0; s < seg_count; s++) {
+            off_t seg_desc = theme_head + DF_D5_TRAK_SEG + (off_t)s * DF_D5_TRAK_SEG_STRIDE;
+            if ((int)read_u32le(seg_desc + DF_D5_TRAK_SEG_SOUN, sf) != soun_id)
+                continue;
+            int len = read_u8(seg_desc + DF_D5_TRAK_SEG_NAME, sf);
+            if (len <= 0)
+                break;
+            if (len > dst_size - 1)
+                len = dst_size - 1;
+            if (seg_desc + DF_D5_TRAK_SEG_NAME + 1 + len > (off_t)get_streamfile_size(sf))
+                break;
+            for (int c = 0; c < len; c++)
+                dst[c] = read_u8(seg_desc + DF_D5_TRAK_SEG_NAME + 1 + c, sf);
             dst[len] = '\0';
             return;
         }
@@ -378,6 +462,144 @@ fail:
     return NULL;
 }
 
+/* Build the .trak playback sequence: the 1-based order list mapped through the STHM segment array to
+ * absolute SOUN ids. Returns NULL when there is no stitched track -- no STHM,
+ * empty order list, or any reference that doesn't resolve to a real SOUN.
+ * Unlike .move there is no disk/one-shot split: the stitch is always exactly the order list. */
+static int* cf_df_d5_read_theme_trak(STREAMFILE* sf, int containers, int* out_count) {
+    *out_count = 0;
+
+    for (int i = 0; i < containers; i++) {
+        off_t cont_offset = read_u32le(DF_HEADER_SIZE + (off_t)i * 0x04, sf);
+        if (cont_offset <= 0 || cont_offset + 0x30 > (off_t)get_streamfile_size(sf))
+            continue;
+        if (!is_id32le(cont_offset + 0x0C, sf, "STHM"))
+            continue;
+
+        off_t theme_head = cont_offset + 0x08;
+        int order_count = read_u16le(theme_head + DF_D5_THEME_ORDER_COUNT, sf);
+        uint32_t seg_count = read_u32le(theme_head + DF_D5_THEME_SEG_COUNT, sf);
+        if (order_count <= 0 || order_count > DF_MAX_CHUNKS)
+            return NULL; /* no playable order, lists SOUNs individually */
+        if (seg_count == 0 || seg_count > DF_MAX_CHUNKS)
+            return NULL;
+
+        int* seq = malloc((size_t)order_count * sizeof(int));
+        if (!seq)
+            return NULL;
+
+        for (int o = 0; o < order_count; o++) {
+            int order_entry = read_u16le(theme_head + DF_D5_THEME_ORDER + (off_t)o * 0x02, sf); /* 1-based */
+            if (order_entry < 1 || (uint32_t)order_entry > seg_count) {
+                free(seq);
+                return NULL;
+            }
+            off_t seg_desc = theme_head + DF_D5_TRAK_SEG + (off_t)(order_entry - 1) * DF_D5_TRAK_SEG_STRIDE;
+            int soun_id = read_u32le(seg_desc + DF_D5_TRAK_SEG_SOUN, sf);
+            off_t soun_offset = (soun_id >= 0 && soun_id < containers)
+                       ? read_u32le(DF_HEADER_SIZE + (off_t)soun_id * 0x04, sf) : 0;
+            if (soun_id < 0 || soun_id >= containers || soun_offset <= 0 ||
+                    soun_offset + 0x30 > (off_t)get_streamfile_size(sf) || !is_id32le(soun_offset + 0x0C, sf, "SOUN")) {
+                free(seq);
+                return NULL;
+            }
+            seq[o] = soun_id;
+        }
+
+        *out_count = order_count;
+        return seq;
+    }
+
+    return NULL;
+}
+
+/* .trak assembly, kept entirely separate from the .move logic below. Segmented .trak files expose the
+ * stitched track only (subsong 1, the order list assembled in order); every SOUN that is part of that
+ * stitch is folded out of the individual list, and all remaining SOUNs stay as their own named
+ * subsongs. Files with no order list or a single-segment order get no track and list every SOUN.
+ * (the .trak order lists are continuous/linear). */
+static VGMSTREAM* cf_df_d5_build_trak(STREAMFILE* sf, int containers, int* soun_ids, int soun_count) {
+    VGMSTREAM* vgmstream = NULL;
+    int* seq = NULL;
+    int* listed = NULL;
+    int seq_count = 0;
+    int listed_count = 0;
+    int subsongs = 0;
+    int target;
+
+    seq = cf_df_d5_read_theme_trak(sf, containers, &seq_count);
+    /* A single-segment order is not a real stitch -- treat that lone SOUN as a normal individual
+     * subsong so its name survives. Folding a 1-segment "stitch" into a filename-named track would
+     * drop the only name it has. Only > 1 segments form a track. */
+    bool has_track = (seq != NULL && seq_count > 1);
+
+    /* individual list: every SOUN not folded into the stitched track */
+    listed = malloc((size_t)soun_count * sizeof(int));
+    if (!listed)
+        goto fail;
+    for (int i = 0; i < soun_count; i++) {
+        int sid = soun_ids[i];
+        bool folded = false;
+        if (has_track) {
+            for (int j = 0; j < seq_count; j++) {
+                if (seq[j] == sid) { folded = true; break; }
+            }
+        }
+        if (folded)
+            continue;
+        listed[listed_count++] = sid;
+    }
+
+    subsongs = (has_track ? 1 : 0) + listed_count;
+    target = sf->stream_index;
+
+    if (target == 0)
+        target = 1;
+    if (target < 0 || target > subsongs)
+        goto fail;
+
+    if (has_track && target == 1) {
+        /* subsong 1: the assembled background track (order list, in order, no trimming) */
+        vgmstream = build_d5_track(sf, seq, seq_count);
+        if (!vgmstream)
+            goto fail;
+
+        char basename[STREAM_NAME_SIZE];
+        get_streamfile_filename(sf, basename, sizeof(basename));
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", basename);
+    }
+    else {
+        /* individual SOUN streams */
+        int piece = target - (has_track ? 1 : 0); /* 1-based index into listed[] */
+        int soun_id = listed[piece - 1];
+
+        vgmstream = build_d5_soun(sf, soun_id);
+        if (!vgmstream)
+            goto fail;
+
+        char name[STREAM_NAME_SIZE], basename[STREAM_NAME_SIZE];
+        cf_df_d5_lookup_name_trak(sf, containers, soun_id, name, sizeof(name));
+        if (name[0]) {
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", name);
+        } else {
+            get_streamfile_filename(sf, basename, sizeof(basename));
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", STREAM_NAME_SIZE - (11 + 1 + 1), basename, piece);
+        }
+    }
+
+    vgmstream->num_streams = subsongs;
+
+    free(seq);
+    free(listed);
+    return vgmstream;
+
+fail:
+    free(seq);
+    free(listed);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
 VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int* soun_ids = NULL;
@@ -418,6 +640,13 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     }
     if (soun_count == 0)
         goto fail;
+
+    /* .trak variant: fully separate path (STHM/SSND). */
+    if (is_id32le(0x20, sf, "TRAK") && is_id32le(0x24, sf, "D5ST")) {
+        vgmstream = cf_df_d5_build_trak(sf, containers, soun_ids, soun_count);
+        free(soun_ids);
+        return vgmstream;
+    }
 
     /* optional background track from the theme (MTHM) */
     theme_id = cf_df_d5_find_theme(sf, containers);
