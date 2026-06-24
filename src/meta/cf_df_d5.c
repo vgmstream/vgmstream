@@ -434,8 +434,8 @@ static bool cf_df_d5_read_theme_move(STREAMFILE* sf, int containers, int theme_i
 
 /* Assemble the background track: play the given SOUN sequence once via the segmented layout, like
  * the v4 path's build_segmented. Each step gets its own decoder (so a repeated SOUN is a distinct
- * segment, never a double free). */
-static VGMSTREAM* build_d5_track(STREAMFILE* sf, int* seq, int count) {
+* segment, never a double free). loop=1 marks the whole assembled track as an end-to-end loop. */
+static VGMSTREAM* build_d5_track(STREAMFILE* sf, int* seq, int count, int loop) {
     VGMSTREAM* v = NULL;
     segmented_layout_data* data = init_layout_segmented(count);
     if (!data)
@@ -451,7 +451,7 @@ static VGMSTREAM* build_d5_track(STREAMFILE* sf, int* seq, int count) {
     if (!setup_layout_segmented(data))
         goto fail;
 
-    v = allocate_segmented_vgmstream(data, 0, -1, -1);
+    v = allocate_segmented_vgmstream(data, loop, 0, count - 1);
     if (!v)
         goto fail;
     return v;
@@ -559,7 +559,7 @@ static VGMSTREAM* cf_df_d5_build_trak(STREAMFILE* sf, int containers, int* soun_
             trim_hi--;
         if (trim_lo > trim_hi) { trim_lo = 0; trim_hi = seq_count - 1; } /* all silent: keep so it isn't empty */
 
-        vgmstream = build_d5_track(sf, seq + trim_lo, trim_hi - trim_lo + 1);
+        vgmstream = build_d5_track(sf, seq + trim_lo, trim_hi - trim_lo + 1, 1); /* .trak: loop end-to-end */
         if (!vgmstream)
             goto fail;
 
@@ -690,7 +690,7 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
             if (trim_lo > trim_hi) { trim_lo = 0; trim_hi = theme.seq_count - 1; } /* all silent: keep so it isn't empty */
         }
 
-        vgmstream = build_d5_track(sf, theme.seq + trim_lo, trim_hi - trim_lo + 1);
+        vgmstream = build_d5_track(sf, theme.seq + trim_lo, trim_hi - trim_lo + 1, 0); /* .move: no loop */
         if (!vgmstream)
             goto fail;
 
