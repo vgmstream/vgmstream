@@ -76,12 +76,12 @@ typedef struct {
     int      coding;          /* derived from the selectors */
 } df_d5_soun_t;
 
-/* Result of cf_df_d5_read_theme: the segment array and the playback sequence (both SOUN ids). */
+/* Result of cf_df_d5_read_theme_move: the segment array and the playback sequence (both SOUN ids). */
 typedef struct {
     int* seg_souns; int seg_count;   /* every segment's SOUN id, in array order */
     int* seq;       int seq_count;   /* playback sequence of SOUN ids */
     bool disk;                       /* disk-streamed (seg_count > order_count) */
-} df_d5_theme_t;
+} df_d5_theme_move_t;
 
 /* Common SOUN parse */
 static bool cf_df_d5_parse_soun(STREAMFILE* sf, int soun_id, df_d5_soun_t* s) {
@@ -119,7 +119,7 @@ static bool cf_df_d5_block_range(STREAMFILE* sf, const df_d5_soun_t* s, int k,
  * that references it; else (2) the MSND sound director. MSND ids are scene-relative: a multi-scene
  * movie repeats MHED(+0)/MTHM(+1)/MSND(+2)/MTRG(+3) per scene, so an MSND at container index m has
  * scene base m-2 and its entries map to absolute SOUN base+rel. Leaves dst empty if unnamed. */
-static void cf_df_d5_lookup_name(STREAMFILE* sf, int containers, int soun_id, char* dst, int dst_size) {
+static void cf_df_d5_lookup_name_move(STREAMFILE* sf, int containers, int soun_id, char* dst, int dst_size) {
     dst[0] = '\0';
 
     /* (1) theme segment-descriptor name */
@@ -373,7 +373,7 @@ static int cf_df_d5_find_theme(STREAMFILE* sf, int containers) {
  * array; otherwise the sequence follows the 1-based order list. Returns false (no track) if the
  * theme is unparseable or any reference doesn't resolve to a real SOUN -- so the file degrades to a
  * plain SOUN list instead of failing or assembling garbage. */
-static bool cf_df_d5_read_theme(STREAMFILE* sf, int containers, int theme_id, df_d5_theme_t* out) {
+static bool cf_df_d5_read_theme_move(STREAMFILE* sf, int containers, int theme_id, df_d5_theme_move_t* out) {
     out->seg_souns = NULL; out->seg_count = 0;
     out->seq = NULL;       out->seq_count = 0;
     out->disk = false;
@@ -517,7 +517,7 @@ static int* cf_df_d5_read_theme_trak(STREAMFILE* sf, int containers, int* out_co
  * stitched track only (subsong 1, the order list assembled in order); every SOUN that is part of that
  * stitch is folded out of the individual list, and all remaining SOUNs stay as their own named
  * subsongs. Files with no order list or a single-segment order get no track and list every SOUN.
- * (the .trak order lists are continuous/linear). */
+ * No silence trimming (the .trak order lists are continuous/linear). */
 static VGMSTREAM* cf_df_d5_build_trak(STREAMFILE* sf, int containers, int* soun_ids, int soun_count) {
     VGMSTREAM* vgmstream = NULL;
     int* seq = NULL;
@@ -604,7 +604,7 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int* soun_ids = NULL;
     int* listed = NULL;
-    df_d5_theme_t theme = {0};
+    df_d5_theme_move_t theme = {0};
     int containers;
     int soun_count = 0;
     int theme_id;
@@ -651,7 +651,7 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
     /* optional background track from the theme (MTHM) */
     theme_id = cf_df_d5_find_theme(sf, containers);
     has_track = (theme_id >= 0) &&
-        cf_df_d5_read_theme(sf, containers, theme_id, &theme);
+        cf_df_d5_read_theme_move(sf, containers, theme_id, &theme);
 
     /* individual subsong list: every SOUN, except that disk-stream fragments are folded into the
      * assembled track and not listed separately */
@@ -709,7 +709,7 @@ VGMSTREAM* init_vgmstream_cf_df_d5(STREAMFILE* sf) {
             goto fail;
 
         char name[STREAM_NAME_SIZE], basename[STREAM_NAME_SIZE];
-        cf_df_d5_lookup_name(sf, containers, soun_id, name, sizeof(name));
+        cf_df_d5_lookup_name_move(sf, containers, soun_id, name, sizeof(name));
         if (name[0]) {
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", name);
         } else {
