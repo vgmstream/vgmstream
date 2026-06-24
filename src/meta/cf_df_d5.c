@@ -513,11 +513,11 @@ static int* cf_df_d5_read_theme_trak(STREAMFILE* sf, int containers, int* out_co
     return NULL;
 }
 
-/* .trak assembly, kept entirely separate from the .move logic below. Segmented .trak files expose the
- * stitched track only (subsong 1, the order list assembled in order); every SOUN that is part of that
- * stitch is folded out of the individual list, and all remaining SOUNs stay as their own named
- * subsongs. Files with no order list or a single-segment order get no track and list every SOUN.
- * No silence trimming (the .trak order lists are continuous/linear). */
+/* .trak assembly, kept entirely separate from the .move logic below. A multi-segment order produces
+ * the assembled track as subsong 1, and then EVERY SOUN is listed individually -- including the
+ * stitched chunks, so named loops stay reachable as their own. Files with no order list
+ * or a single-segment order get no track and list every SOUN.
+ * No silence trimming (the .trak order lists are continuous). */
 static VGMSTREAM* cf_df_d5_build_trak(STREAMFILE* sf, int containers, int* soun_ids, int soun_count) {
     VGMSTREAM* vgmstream = NULL;
     int* seq = NULL;
@@ -533,22 +533,12 @@ static VGMSTREAM* cf_df_d5_build_trak(STREAMFILE* sf, int containers, int* soun_
      * drop the only name it has. Only > 1 segments form a track. */
     bool has_track = (seq != NULL && seq_count > 1);
 
-    /* individual list: every SOUN not folded into the stitched track */
+    /* individual list: every SOUN, including the stitched chunks */
     listed = malloc((size_t)soun_count * sizeof(int));
     if (!listed)
         goto fail;
-    for (int i = 0; i < soun_count; i++) {
-        int sid = soun_ids[i];
-        bool folded = false;
-        if (has_track) {
-            for (int j = 0; j < seq_count; j++) {
-                if (seq[j] == sid) { folded = true; break; }
-            }
-        }
-        if (folded)
-            continue;
-        listed[listed_count++] = sid;
-    }
+    for (int i = 0; i < soun_count; i++)
+        listed[listed_count++] = soun_ids[i];
 
     subsongs = (has_track ? 1 : 0) + listed_count;
     target = sf->stream_index;
