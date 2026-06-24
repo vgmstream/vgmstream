@@ -26,6 +26,9 @@ VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_fl
 
 typedef struct {
     off_t offset;
+    bool loop_flag;
+    int loop_start_block;
+    int loop_end_block;
 } blocked_counter_t;
 
 void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter_t* cfg);

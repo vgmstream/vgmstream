@@ -176,7 +176,7 @@ void decode_afc_4x(VGMSTREAM* vgmstream, short* outbuf,  int32_t first_sample, i
     }
 
     // mix x4 into x2 frames and copy output
-	int mix_level = 0x5fff;
+    int mix_level = 0x5fff;
     int samples_done = 0;
     for (int i = 0; i < samples_to_do; i++) {
         int sample_l = (tmp[0][i] * mix_level >> 15) + (tmp[2][i] * mix_level >> 15); // A + C

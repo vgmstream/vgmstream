@@ -157,13 +157,12 @@ VGMSTREAM* init_vgmstream_genh(STREAMFILE *sf) {
         case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = genh.interleave;
             vgmstream->interleave_last_block_size = genh.interleave_last;
-            if (vgmstream->channels > 1)
-            {
+            if (vgmstream->channels > 1) {
                 if (coding == coding_SDX2) {
                     coding = coding_SDX2_int;
                 }
 
-                if (vgmstream->interleave_block_size==0xffffffff) {// || vgmstream->interleave_block_size == 0) {
+                if (genh.interleave == 0xFFFFFFFF) {// || vgmstream->interleave_block_size == 0) {
                     vgmstream->layout_type = layout_none;
                 }
                 else {
@@ -185,7 +184,8 @@ VGMSTREAM* init_vgmstream_genh(STREAMFILE *sf) {
                         coding == coding_SDX2_int) ) {
                     goto fail;
                 }
-            } else {
+            }
+            else {
                 vgmstream->layout_type = layout_none;
             }
 

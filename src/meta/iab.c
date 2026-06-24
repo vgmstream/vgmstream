@@ -2,6 +2,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util.h"
+#include "../util/layout_utils.h"
 
 
 /* .IAB - from Runtime(?) games [Ueki no Housoku: Taosu ze Robert Juudan!! (PS2), RPG Maker 3 (PS2)] */
@@ -32,20 +33,16 @@ VGMSTREAM* init_vgmstream_iab(STREAMFILE* sf) {
 
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_ps2_iab;
-    //vgmstream->interleave_block_size = read_32bitLE(0x0C, streamFile); /* unneeded */
+    //vgmstream->interleave_block_size = read_32bitLE(0x0C, sf); /* unneeded */
 
     if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
 
-    /* calc num_samples */
     {
-        vgmstream->next_block_offset = start_offset;
-        do {
-            block_update(vgmstream->next_block_offset, vgmstream);
-            vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
-        }
-        while (vgmstream->next_block_offset < get_streamfile_size(sf));
-        block_update(start_offset, vgmstream);
+        blocked_counter_t cfg = {0};
+        cfg.offset = start_offset;
+
+        blocked_count_samples(vgmstream, sf, &cfg);
     }
 
     return vgmstream;

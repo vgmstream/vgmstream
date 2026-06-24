@@ -370,13 +370,12 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_TGC:
             vgmstream->interleave_block_size = txth.interleave;
             vgmstream->interleave_last_block_size = txth.interleave_last;
-            if (vgmstream->channels > 1)
-            {
+            if (vgmstream->channels > 1) {
                 if (coding == coding_SDX2) {
                     coding = coding_SDX2_int;
                 }
 
-                if (vgmstream->interleave_block_size==0xffffffff || vgmstream->interleave_block_size == 0) {
+                if (txth.interleave == 0xFFFFFFFF || txth.interleave == 0) {
                     vgmstream->layout_type = layout_none;
                 }
                 else {
@@ -400,7 +399,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                         coding == coding_AICA_int) ) {
                     goto fail;
                 }
-            } else {
+            }
+            else {
                 vgmstream->layout_type = layout_none;
             }
 

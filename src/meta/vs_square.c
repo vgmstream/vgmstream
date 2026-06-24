@@ -2,6 +2,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/spu_utils.h"
+#include "../util/layout_utils.h"
 
 
 /* VS - VagStream from Square Sounds Co. games [Final Fantasy X (PS2) voices, Unlimited Saga (PS2) voices, All Star Pro-Wrestling 2/3 (PS2) music] */
@@ -19,12 +20,12 @@ VGMSTREAM* init_vgmstream_vs_square(STREAMFILE* sf) {
         return NULL;
 
     flags = read_u32le(0x04,sf);
-    /* 0x08: block number */
-    /* 0x0c: blocks left in the subfile */
-    pitch = read_u32le(0x10,sf); /* usually 0x1000 = 48000 */
-    /* 0x14: volume, usually 0x64 = 100, up to 128 [Lethal Skies / Sidewinder F (PS2)] */
-    /* 0x18: null */
-    /* 0x1c: null */
+    // 0x08: block number
+    // 0x0c: blocks left in the subfile
+    pitch = read_u32le(0x10,sf); // usually 0x1000 = 48000
+    // 0x14: volume, usually 0x64 = 100, up to 128 [Lethal Skies / Sidewinder F (PS2)]
+    // 0x18: null
+    // 0x1c: null
 
     /* some Front Mission 4 voices have flag 0x100, no idea */
     if (flags != 0x00 && flags != 0x01) {
@@ -48,15 +49,11 @@ VGMSTREAM* init_vgmstream_vs_square(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
 
-    /* calc num_samples */
     {
-        vgmstream->next_block_offset = start_offset;
-        do {
-            block_update(vgmstream->next_block_offset,vgmstream);
-            vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
-        }
-        while (vgmstream->next_block_offset < get_streamfile_size(sf));
-        block_update(start_offset, vgmstream);
+        blocked_counter_t cfg = {0};
+        cfg.offset = start_offset;
+
+        blocked_count_samples(vgmstream, sf, &cfg);
     }
 
     return vgmstream;
