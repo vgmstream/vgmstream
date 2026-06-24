@@ -549,8 +549,17 @@ static VGMSTREAM* cf_df_d5_build_trak(STREAMFILE* sf, int containers, int* soun_
         goto fail;
 
     if (has_track && target == 1) {
-        /* subsong 1: the assembled background track (order list, in order, no trimming) */
-        vgmstream = build_d5_track(sf, seq, seq_count);
+        /* subsong 1: the assembled track. Trim leading/trailing intentional silence
+         * but keep interspersed silence -- same policy as the .move named-one-shot path,
+         * The trimmed segments still appear as individual subsongs. */
+        int trim_lo = 0, trim_hi = seq_count - 1;
+        while (trim_lo <= trim_hi && cf_df_d5_soun_is_silent(sf, seq[trim_lo]))
+            trim_lo++;
+        while (trim_hi >= trim_lo && cf_df_d5_soun_is_silent(sf, seq[trim_hi]))
+            trim_hi--;
+        if (trim_lo > trim_hi) { trim_lo = 0; trim_hi = seq_count - 1; } /* all silent: keep so it isn't empty */
+
+        vgmstream = build_d5_track(sf, seq + trim_lo, trim_hi - trim_lo + 1);
         if (!vgmstream)
             goto fail;
 
