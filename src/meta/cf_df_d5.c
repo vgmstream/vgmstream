@@ -107,11 +107,14 @@ static bool cf_df_d5_parse_soun(STREAMFILE* sf, int soun_id, df_d5_soun_t* s) {
     return true;
 }
 
-/* Input range of block k, relative to head: [*start, *end). false if it overruns the container. */
+/* Input range of block k, relative to head: [*start, *end). false if it overruns the container.
+ * The block-offset table has block_count+1 entries: table[k+1] (incl. the terminal entry for the last
+ * block) is the true end. container_size includes alignment padding, which would otherwise decode as
+ * trailing garbage (e.g. a padding 0xff read as a v4.0 Mode III run). */
 static bool cf_df_d5_block_range(STREAMFILE* sf, const df_d5_soun_t* s, int k,
                                  uint32_t* start, uint32_t* end) {
     *start = read_u32le(s->block_table + (off_t)k * 0x04, sf);
-    *end   = (k + 1 < s->block_count) ? read_u32le(s->block_table + (off_t)(k + 1) * 0x04, sf) : s->cont_size;
+    *end   = read_u32le(s->block_table + (off_t)(k + 1) * 0x04, sf);
     return (*end >= *start && *end <= s->cont_size);
 }
 
@@ -308,7 +311,7 @@ static VGMSTREAM* build_d5_soun(STREAMFILE* sf, int soun_id) {
         return NULL;
     if (s.rate != 11025 && s.rate != 22050 && s.rate != 44100)
         return NULL;
-    if (s.block_table + (off_t)s.block_count * 0x04 > s.head + s.cont_size)
+    if (s.block_table + (off_t)(s.block_count + 1) * 0x04 > s.head + s.cont_size) /* +1: terminal entry */
         return NULL;
 
     int32_t num_samples = 0;

@@ -98,9 +98,10 @@ void block_update_cf_df_v5(off_t block_offset, VGMSTREAM* vgmstream) {
     int index = (int)((block_offset - table_base) / 0x04);
 
     uint32_t block_start = read_u32le(block_offset, sf);
-    uint32_t block_end = (index + 1 < block_count)
-            ? read_u32le(block_offset + 0x04, sf)
-            : read_u32le(head - 0x04, sf); /* container_size @ cont_offset+0x04 = SOUN payload end */
+    /* the table has block_count+1 entries; table[index+1] (incl. the terminal entry for the last block)
+     * is the true end. container_size includes alignment padding that would otherwise decode as trailing garbage
+     * e.g. a padding 0xff read as a v4.0 Mode III run */
+    uint32_t block_end = read_u32le(block_offset + 0x04, sf);
     int block_size = (int)(block_end - block_start);
     off_t block_data = head + block_start;
 
