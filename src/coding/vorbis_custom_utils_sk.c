@@ -7,7 +7,7 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int target_packet);
+static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int* p_header_type, int target_packet);
 static int build_header(uint8_t* buf, size_t bufsize, STREAMFILE* sf, off_t packet_offset, size_t packet_size);
 
 
@@ -30,14 +30,14 @@ int vorbis_custom_setup_init_sk(STREAMFILE* sf, off_t start_offset, vorbis_custo
     /* standard header packets except the "vorbis" keyword is replaced by "SK" */
 
     /* first page has the id packet */
-    if (!get_page_info(sf, offset, &id_offset, &id_size, &page_packets, 0)) goto fail;
+    if (!get_page_info(sf, offset, &id_offset, &id_size, &page_packets, NULL, 0)) goto fail;
     if (page_packets != 1) goto fail;
     offset = id_offset + id_size;
 
     /* second page has the comment and setup packets */
-    if (!get_page_info(sf, offset, &comment_offset, &comment_size, &page_packets, 0)) goto fail;
+    if (!get_page_info(sf, offset, &comment_offset, &comment_size, &page_packets, NULL, 0)) goto fail;
     if (page_packets != 2) goto fail;
-    if (!get_page_info(sf, offset, &setup_offset, &setup_size, &page_packets, 1)) goto fail;
+    if (!get_page_info(sf, offset, &setup_offset, &setup_size, &page_packets, NULL, 1)) goto fail;
     if (page_packets != 2) goto fail;
     offset = comment_offset + comment_size + setup_size;
 
@@ -64,7 +64,7 @@ fail:
     return 0;
 }
 
-
+// TODO: improve (handle more oor like pre-loading page data into buf)
 int vorbis_custom_parse_packet_sk(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data) {
     off_t packet_offset = 0;
     size_t packet_size = 0;
@@ -72,25 +72,41 @@ int vorbis_custom_parse_packet_sk(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_
     bool ok;
 
     /* read OggS/SK page and get current packet */
-    ok = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, data->current_packet);
+    ok = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, NULL, data->current_packet);
     data->current_packet++;
-    if (!ok || packet_size > data->buffer_size) goto fail;
+    if (!ok || packet_size > data->buffer_size) return false;
 
-    /* read raw block */
     data->op.bytes = read_streamfile(data->buffer, packet_offset, packet_size, stream->streamfile);
-    if (data->op.bytes != packet_size) goto fail; /* wrong packet? */
+    if (data->op.bytes != packet_size) return false;
 
     /* go next page when processed all packets in page */
     if (data->current_packet >= page_packets) {
-        if (!get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, -1)) goto fail;
+        size_t prev_size = packet_size;
+
+        // special call to advance current page to next one
+        ok = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, NULL, -1);
+        if (!ok) return false;
         stream->offset = packet_offset + packet_size;
         data->current_packet = 0;
+
+        // 'continued packet' (first packet is part of prev packet), signaled by size 0xFF in the last packet of 
+        // prev page + header_type of the next page. New continued packet can be of size 0x00 to allow packets of size 0xFF.
+        if (prev_size == 0xFF) {
+            int header_type = 0;
+
+            ok = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, &header_type, 0);
+            if (!ok || prev_size + packet_size > data->buffer_size) return false;
+
+            if (header_type & 0x01) {
+                data->current_packet++;
+
+                data->op.bytes += read_streamfile(data->buffer + prev_size, packet_offset, packet_size, stream->streamfile);
+                if (data->op.bytes != prev_size + packet_size) return false;
+            }
+        }
     }
 
-    return 1;
-
-fail:
-    return 0;
+    return true;
 }
 
 /* **************************************************************************** */
@@ -113,34 +129,34 @@ fail:
  *  0x--(n): data
  * Reference: https://xiph.org/ogg/doc/framing.html
  */
-static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int target_packet) {
+static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int* p_header_type, int target_packet) {
     off_t table_offset, current_packet_offset, target_packet_offset = 0;
     size_t total_packets_size = 0, current_packet_size = 0, target_packet_size = 0;
-    int page_packets = 0;
-    uint8_t segments;
-    int i;
 
 
-    if (read_u32be(page_offset+0x00, sf) != 0x11534B10) /* \11"SK"\10 */
-        goto fail; /* not a valid page */
+    if (read_u32be(page_offset+0x00, sf) != 0x11534B10) // \11"SK"\10
+        return false;
     /* No point on validating other stuff, but they look legal enough (CRC too it seems) */
 
-    segments = read_u8(page_offset+0x1a, sf);
+    uint8_t header_type = read_u8(page_offset+0x05, sf);
+    uint8_t segments    = read_u8(page_offset+0x1a, sf);
 
     table_offset = page_offset + 0x1b;
     current_packet_offset = page_offset + 0x1b + segments; /* first packet starts after segments */
 
     /* process segments */
-    for (i = 0; i < segments; i++) {
+    int page_packets = 0;
+    for (int i = 0; i < segments; i++) {
         uint8_t segment_size = read_u8(table_offset, sf);
         total_packets_size += segment_size;
         current_packet_size += segment_size;
         table_offset += 0x01;
 
-        if (segment_size != 0xFF) { /* packet complete */
+        // packet complete or last packet (continued in next page)
+        if (segment_size != 0xFF || i + 1 == segments) {
             page_packets++;
 
-            if (target_packet+1 == page_packets) {
+            if (target_packet + 1 == page_packets) {
                 target_packet_offset = current_packet_offset;
                 target_packet_size = current_packet_size;
             }
@@ -152,7 +168,8 @@ static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_off
     }
 
     /* < 0 is accepted and returns first offset and all packets sizes */
-    if (target_packet+1 > page_packets) goto fail;
+    if (target_packet + 1 > page_packets)
+        return false;
     if (target_packet < 0) {
         target_packet_offset = page_offset + 0x1b + segments; /* first */
         target_packet_size = total_packets_size;
@@ -161,12 +178,9 @@ static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_off
     if (p_packet_offset) *p_packet_offset = target_packet_offset;
     if (p_packet_size) *p_packet_size = target_packet_size;
     if (p_page_packets) *p_page_packets = page_packets;
+    if (p_header_type) *p_header_type = header_type;
 
-    return 1;
-
-fail:
-    //VGM_LOG("SK Vorbis: failed to read page @ 0x%08lx\n", page_offset);
-    return 0;
+    return true;
 }
 
 /* rebuild a custom header packet into a "vorbis" one */

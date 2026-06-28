@@ -106,6 +106,7 @@ void vgmstream_settings_load() {
     settings.downmix_channels = aud_get_int(CFG_ID, "downmix_channels");
     settings.exts_unknown_on = aud_get_bool(CFG_ID, "exts_unknown_on");
     settings.exts_common_on = aud_get_bool(CFG_ID, "exts_common_on");
+    settings.tagfile_disable = aud_get_bool(CFG_ID, "tagfile_disable");
 }
 
 void vgmstream_settings_save() {
@@ -118,6 +119,7 @@ void vgmstream_settings_save() {
     aud_set_int(CFG_ID, "downmix_channels", settings.downmix_channels);
     aud_set_bool(CFG_ID, "exts_unknown_on", settings.exts_unknown_on);
     aud_set_bool(CFG_ID, "exts_common_on", settings.exts_common_on);
+    aud_set_bool(CFG_ID, "tagfile_disable", settings.tagfile_disable);
 }
 
 const PluginPreferences VgmstreamPlugin::prefs = {
