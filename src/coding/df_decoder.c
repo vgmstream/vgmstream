@@ -150,22 +150,22 @@ static bool decode_cf_df_v41(VGMSTREAM* v, sbuf_t* sdst) {
 /* Walk a v5 v4.0 control stream to count its output samples (no decode), used by the meta
  * (total num_samples) and the block layout (per-block current_block_samples). data = block
  * start, block_size = block input size; the running sample seed is byte[0], control bytes follow. */
-int32_t cf_df_v5_get_samples(STREAMFILE* sf, off_t data, int block_size) {
+int32_t cf_df_v5_get_samples(STREAMFILE* sf, off_t block_data, int block_size) {
     int32_t samples = 0;
-    off_t p = data + 1;            /* skip the seed byte */
-    off_t end = data + block_size;
+    off_t p = block_data + 1;            /* skip the seed byte */
+    off_t end = block_data + block_size;
     while (p < end) {
-        uint8_t c = read_u8(p++, sf);
-        if ((c & 0x80) == 0) {            /* Mode I: absolute */
+        uint8_t ctrl = read_u8(p++, sf);
+        if ((ctrl & 0x80) == 0) {            /* Mode I: absolute */
             samples += 1;
         }
-        else if ((c & 0x40) == 0) {       /* Mode II: nibble pairs, consumes count bytes */
-            int count = (c & 0x3f) + 1;
-            samples += 2 * count;
-            p += count;
+        else if ((ctrl & 0x40) == 0) {       /* Mode II: nibble pairs, consumes pair_count bytes */
+            int pair_count = (ctrl & 0x3f) + 1;
+            samples += 2 * pair_count;
+            p += pair_count;
         }
         else {                            /* Mode III: RLE */
-            samples += (c & 0x3f) + 1;
+            samples += (ctrl & 0x3f) + 1;
         }
     }
     return samples;
