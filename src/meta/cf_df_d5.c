@@ -270,9 +270,6 @@ static bool cf_df_d5_soun_is_silent(STREAMFILE* sf, int soun_id) {
     if (!cf_df_d5_parse_soun(sf, soun_id, &s))
         return false;
 
-    if (s.coding == coding_CF_DF_IMA_v5)
-        return false; /* unknown silence pattern; keep */
-
     uint8_t buf[0x1000];
     for (int k = 0; k < s.block_count; k++) {
         uint32_t block_start, block_end;
@@ -290,6 +287,9 @@ static bool cf_df_d5_soun_is_silent(STREAMFILE* sf, int soun_id) {
                 uint8_t b = buf[i];
                 if (s.coding == coding_CF_DF_DPCM_V41) {
                     if (b != 0x00 && b != 0x80)
+                        return false;
+                } else if (s.coding == coding_CF_DF_IMA_v5) {
+                    if (b != 0x00)
                         return false;
                 } else { /* v4.0 ADPCM */
                     if (b != 0x40 && b < 0xC0)
