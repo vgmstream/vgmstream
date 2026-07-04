@@ -297,6 +297,7 @@
     <ClCompile Include="coding\circus_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\compresswave_decoder.c" />
+    <ClCompile Include="coding\cwv_decoder.c" />
     <ClCompile Include="coding\derf_decoder.c" />
     <ClCompile Include="coding\df_decoder.c" />
     <ClCompile Include="coding\dpcm_kcej_decoder.c" />
@@ -519,6 +520,7 @@
     <ClCompile Include="meta\csb.c" />
     <ClCompile Include="meta\csmp.c" />
     <ClCompile Include="meta\cstr.c" />
+    <ClCompile Include="meta\cwv.c" />
     <ClCompile Include="meta\cxs.c" />
     <ClCompile Include="meta\dcs_wav.c" />
     <ClCompile Include="meta\deblock_streamfile.c" />
