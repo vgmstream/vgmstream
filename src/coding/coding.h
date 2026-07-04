@@ -257,6 +257,9 @@ void decode_wady(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing,
 /* dpcm_kcej_decoder */
 void decode_dpcm_kcej(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+/* derf_decoder */
+void decode_cwv(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 /* circus_decoder */
 typedef struct circus_codec_data circus_codec_data;
 

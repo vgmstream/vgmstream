@@ -162,6 +162,7 @@ static const char* extension_list[] = {
     "csmp",
     "cvs", //txth/reserved [Aladdin in Nasira's Revenge (PS1)]
     "cwav",
+    "cwv",
     "cxb",
     "cxk", // ,acb+cpk/reserved [Dariusburst: Another Chronicle (AC)]
     "cxs",
@@ -962,6 +963,7 @@ static const coding_info coding_info_list[] = {
         {coding_DERF,               "Xilam DERF 8-bit DPCM"},
         {coding_WADY,               "Marble WADY 8-bit DPCM"},
         {coding_DPCM_KCEJ,          "Konami 8-bit DPCM"},
+        {coding_CWV,                "Nintendo CWV 8-bit DPCM"},
         {coding_NWA,                "VisualArt's NWA DPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_CIRCUS_ADPCM,       "Circus 8-bit ADPCM"},
@@ -1548,6 +1550,7 @@ static const meta_info meta_info_list[] = {
         {meta_PXND,                 "Pixelbite PXND header"},
         {meta_NXMS,                 "Arika NXMS header"},
         {meta_SAUD,                 "LucasArts SAUD header"},
+        {meta_CWV,                  "Nintendo .CWV header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

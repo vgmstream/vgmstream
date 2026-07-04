@@ -1794,6 +1794,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Cyberflix DreamFactory header [*CF_DF*]
   - *cf_df*: `.snd .sfx .trk .mov`
   - Codecs: CF_DF_ADPCM_V40 CF_DF_DPCM_V41
+- **cf_df_d5.c**
+  - Cyberflix DreamFactory D5 header [*CF_DF_D5*]
+  - *cf_df_d5*: `.move .trak`
+  - Codecs: CF_DF_ADPCM_v5 CF_DF_DPCM_V41 CF_DF_IMA_v5
 - **bcf1.c**
   - RAD BCF1 header [*BCF1*]
   - *bcf1*: `.binka`
@@ -1986,6 +1990,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Warthog .BWAV header [*BWAV_WARTHOG*]
   - *bwav_warthog*: `.bwav`
   - Codecs: PSX XBOX_IMA NGC_DSP
+- **cwv.c**
+  - Nintendo .CWV header [*CWV*]
+  - *cwv*: `.cwv`
+  - Codecs: CWV
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
@@ -2181,6 +2189,7 @@ are used in few games.
   - Activision EXAKT SASSC DPCM
   - Xilam DERF DPCM
   - Circus XPCM DPCM
+  - CWV XPCM DPCM
   - VisualArt's NWA PCM/DPCM
   - Marble WADY PCM/DPCM
   - InterPlay ACM
