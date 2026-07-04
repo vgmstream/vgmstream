@@ -136,6 +136,7 @@ typedef enum {
     coding_DERF,            /* DERF 8-bit DPCM */
     coding_WADY,            /* WADY 8-bit DPCM */
     coding_DPCM_KCEJ,       /* Konami Computer Entertainment Japan 8-bit DPCM */
+    coding_CWV,             /* Nintendo CWV DPCM */
     coding_NWA,             /* VisualArt's NWA DPCM */
     coding_ACM,             /* InterPlay ACM */
     coding_CIRCUS_ADPCM,    /* Circus 8-bit ADPCM */
@@ -747,6 +748,7 @@ typedef enum {
     meta_PXND,
     meta_NXMS,
     meta_SAUD,
+    meta_CWV,
 } meta_t;
 
 #endif
