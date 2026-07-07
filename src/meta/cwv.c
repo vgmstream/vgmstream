@@ -49,6 +49,7 @@ VGMSTREAM* init_vgmstream_cwv(STREAMFILE* sf) {
 
     hdr.channels = flags & 0x01 ? 2 : 1;
     hdr.loop_flag = hdr.loop_end > 0; // 0 if not set
+    hdr.loop_end += hdr.loop_start;
 
     hdr.coding = coding_CWV;
     hdr.layout = layout_interleave;
