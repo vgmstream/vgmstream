@@ -1667,6 +1667,12 @@ static const hcakey_info hcakey_list[] = {
     // Monsoni! (Android)
     {8148138013054819},         // 001CF2B037D95763
 
+    // Sakuna of Rice and Ruin ~Hinuka Pilgrimage Tale (Android)
+    {3464836862622683982},      // 301592C4E14DD34E
+
+    // Wizardry Variants Daphne (Android/PC)
+    {427327583497},             // 000000637EB57509
+
 };
 
 #endif
