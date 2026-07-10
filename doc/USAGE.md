@@ -452,7 +452,7 @@ a companion file:
 - `.bnsf`: `.bnsfkey` (decryption key, a string up to 24 chars)
 - `.awc`: `.awckey` (decryption key, 0x10 bytes divided into 4 BE ints)
 
-The key file can be `.(ext)key` (for the whole folder), or `(name).(ext)key"
+The key file can be `.(ext)key` (for the whole folder), or `(name).(ext)`
 (for a single file). The format is made up to suit vgmstream.
 
 For example, if you have an encrypted HCA and its key string is *"123456789"*, make
