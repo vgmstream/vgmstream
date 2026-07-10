@@ -227,24 +227,20 @@ static void init_dequantization(float* scales) {
     }
 }
 
+/* original code doesn't check bad sizes so no return errcode */
 static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, const float* scales, uint8_t* exponents, int freq_size) {
-    uint8_t flags, cb_bits, ev_bits, ei_bits, qv_bits;
-    int qv;
-    uint8_t ev;
-    uint8_t move;
-    uint32_t bit_offset, max_offset;
     const int freq_half = freq_size >> 1;
 
 
     memset(freq1, 0, RELIC_MAX_FREQ * sizeof(float));
     memset(freq2, 0, RELIC_MAX_FREQ * sizeof(float));
 
-    flags   = read_ubits(2u, 0u, buf);
-    cb_bits = read_ubits(3u, 2u, buf);
-    ev_bits = read_ubits(2u, 5u, buf);
-    ei_bits = read_ubits(4u, 7u, buf);
-    bit_offset = 11;
-    max_offset = buf_size * 8u;
+    uint8_t flags   = read_ubits(2u, 0u, buf);
+    uint8_t cb_bits = read_ubits(3u, 2u, buf);
+    uint8_t ev_bits = read_ubits(2u, 5u, buf);
+    uint8_t ei_bits = read_ubits(4u, 7u, buf);
+    uint32_t bit_offset = 11;
+    uint32_t max_offset = buf_size * 8u;
 
     /* reset exponents indexes */
     if ((flags & 1) == 1) {
@@ -256,8 +252,8 @@ static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2,
         int pos = 0;
         for (int i = 0; i < RELIC_CRITICAL_BAND_COUNT - 1; i++) {
             if (bit_offset + cb_bits > max_offset)
-                goto fail;
-            move = read_ubits(cb_bits, bit_offset, buf);
+                return false;
+            uint8_t move = read_ubits(cb_bits, bit_offset, buf);
             bit_offset += cb_bits;
 
             if (i > 0 && move == 0)
@@ -265,12 +261,12 @@ static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2,
             pos += move;
 
             if (bit_offset + ev_bits > max_offset)
-                goto fail;
-            ev = read_ubits(ev_bits, bit_offset, buf);
+                return false;
+            uint8_t ev = read_ubits(ev_bits, bit_offset, buf);
             bit_offset += ev_bits;
 
-            if (pos + 1 >= sizeof(critical_band_data))
-                goto fail;
+            if (pos + 1 >= RELIC_CRITICAL_BAND_COUNT)
+                return false;
             for (int j = critical_band_data[pos]; j < critical_band_data[pos + 1]; j++) {
                 exponents[j] = ev;
             }
@@ -284,8 +280,8 @@ static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2,
         int pos = 0;
         for (int i = 0; i < RELIC_MAX_FREQ; i++) {
             if (bit_offset + ei_bits > max_offset)
-                goto fail;
-            move = read_ubits(ei_bits, bit_offset, buf);
+                return false;
+            uint8_t move = read_ubits(ei_bits, bit_offset, buf);
             bit_offset += ei_bits;
 
             if (i > 0 && move == 0)
@@ -293,12 +289,12 @@ static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2,
             pos += move;
 
             if (pos >= RELIC_MAX_FREQ)
-                goto fail;
-            qv_bits = exponents[pos];
+                return false;
+            uint8_t qv_bits = exponents[pos];
 
             if (bit_offset + qv_bits + 2u > max_offset)
-                goto fail;
-            qv = read_sbits(qv_bits + 2u, bit_offset, buf);
+                return false;
+            int qv = read_sbits(qv_bits + 2u, bit_offset, buf);
             bit_offset += qv_bits + 2u;
 
             if (qv != 0 && pos < freq_half && qv_bits < 6) {
@@ -314,8 +310,8 @@ static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2,
             pos = 0;
             for (int i = 0; i < RELIC_MAX_FREQ; i++) {
                 if (bit_offset + ei_bits > max_offset)
-                    goto fail;
-                move = read_ubits(ei_bits, bit_offset, buf);
+                    return false;
+                uint8_t move = read_ubits(ei_bits, bit_offset, buf);
                 bit_offset += ei_bits;
 
                 if (i > 0 && move == 0)
@@ -323,12 +319,12 @@ static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2,
                 pos += move;
 
                 if (pos >= RELIC_MAX_FREQ)
-                    goto fail;
-                qv_bits = exponents[pos];
+                    return false;
+                uint8_t qv_bits = exponents[pos];
 
                 if (bit_offset + qv_bits + 2u > max_offset)
-                    goto fail;
-                qv = read_sbits(qv_bits + 2u, bit_offset, buf);
+                    return false;
+                int qv = read_sbits(qv_bits + 2u, bit_offset, buf);
                 bit_offset += qv_bits + 2u;
 
                 if (qv != 0 && pos < freq_half && qv_bits < 6) {
@@ -338,9 +334,7 @@ static bool unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2,
         }
     }
 
-    return 1;
-fail:
-    return 0; /* original code doesn't check bad sizes so no return errcode */
+    return true;
 }
 
 /*****************************************************************************/
