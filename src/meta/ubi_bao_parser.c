@@ -622,11 +622,6 @@ static bool parse_values(ubi_bao_header_t* bao) {
         return false;
     }
 
-    if (bao->stream_type >= BAO_MAX_CODECS) {
-        VGM_LOG("UBI BAO: unknown stream_type at %x\n", bao->header_offset);
-        return false;
-    }
-
     // post-process layers
     if (bao->type == TYPE_LAYER) {
       //bao->channels       = bao->layer[0].channels; // loaded per layer
@@ -653,6 +648,10 @@ static bool parse_values(ubi_bao_header_t* bao) {
         }
     }
 
+    if (bao->stream_type < 0 || bao->stream_type >= BAO_MAX_CODECS) {
+        VGM_LOG("UBI BAO: unknown stream_type at %x\n", bao->header_offset);
+        return false;
+    }
 
     /* set codec */
     bao->codec = bao->cfg.codec_map[bao->stream_type];
@@ -737,7 +736,6 @@ static bool parse_header(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset) {
 
 /* parse a full BAO, DARE's main audio format which can be inside other formats */
 static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int target_subsong) {
-    uint32_t bao_class, header_type;
 
     uint32_t bao_version = read_u32be(offset+0x00, sf); // force buffer read (check just in case it's optimized out)
     if (((bao_version >> 24) & 0xFF) > 0x02) {
@@ -748,7 +746,7 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
     ubi_bao_config_endian(&bao->cfg, sf, offset);
     read_u32_t read_u32 = get_read_u32(bao->cfg.big_endian);
 
-    bao_class = read_u32(offset + bao->cfg.bao_class, sf);
+    uint32_t bao_class = read_u32(offset + bao->cfg.bao_class, sf);
     if (bao_class & 0x0FFFFFFF) {
         VGM_LOG("UBI BAO: unknown class %x at %x\n", bao_class, (uint32_t)offset);
         return false;
@@ -759,9 +757,9 @@ static bool parse_bao(ubi_bao_header_t* bao, STREAMFILE* sf, off_t offset, int t
         return true;
 
     uint32_t h_offset = offset + bao->cfg.header_skip;
-    header_type = read_u32(h_offset + bao->cfg.header_type, sf);
-    if (header_type > 9) {
-        VGM_LOG("UBI BAO: unknown type %x at %x\n", header_type, (int)offset);
+    uint32_t header_type = read_u32(h_offset + bao->cfg.header_type, sf);
+    if (header_type >= BAO_MAX_TYPES) {
+        VGM_LOG("UBI BAO: unknown type %x at %x\n", header_type, (uint32_t)offset);
         return false;
     }
 
