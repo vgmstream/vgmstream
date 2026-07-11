@@ -8,7 +8,10 @@
 #define TXT_LINE_MAX 2048 /* some wwise .txtp get wordy */
 #define TXT_LINE_KEY_MAX 128
 #define TXT_LINE_VAL_MAX (TXT_LINE_MAX - TXT_LINE_KEY_MAX)
-
+// sscanf needs buf maxs when key/val aren't as big as line
+#define TXT_LINE_STR "2047"
+#define TXT_LINE_KEY_STR "127"
+#define TXT_LINE_VAL_STR "1919"
 
 /*******************************************************************************/
 /* PARSER - HELPERS                                                            */
@@ -22,6 +25,7 @@
  * - %d/f: match number until end or *non-number* (so "%d" reads "5t" as "5")
  * - %s: reads string (dangerous due to overflows and surprising as %s%d can't match numbers since string eats all chars)
  * - %[^(chars)] match string with chars not in the list (stop reading at those chars)
+ * - %10[^(chars)] same as above, at most 10 chars (not counting null terminator)
  * - %*(command) read but don't match (no need to supply parameterr)
  * - " ": ignore all spaces until next non-space
  * - other chars in string must exist: ("%dt t%dt" reads "5t  t5t" as "5" and "5", while "t5t 5t" matches only first "5")
@@ -458,7 +462,7 @@ static void parse_params(txtp_entry_t* entry, char* params) {
 
         /* get command until next space/number/comment/end */
         command[0] = '\0';
-        mc = sscanf(params, "#%n%[^ #0-9\r\n]%n", &nc, command, &nc);
+        mc = sscanf(params, "#%n%"TXT_LINE_STR"[^ #0-9\r\n]%n", &nc, command, &nc);
         //;VGM_LOG("TXTP:  command='%s', nc=%i, mc=%i\n", command, nc, mc);
         if (mc <= 0 && nc == 0) break;
 
@@ -1129,7 +1133,7 @@ txtp_header_t* txtp_parse(STREAMFILE* sf) {
                 continue;
 
             /* try key/val (ignores lead/trail spaces, # may be commands or comments) */
-            ok = sscanf(line, " %[^ \t#=] = %[^\t\r\n] ", key,val);
+            ok = sscanf(line, " %"TXT_LINE_KEY_STR"[^ \t#=] = %"TXT_LINE_VAL_STR"[^\t\r\n] ", key,val);
             if (ok == 2) { /* key=val */
                 int ret = parse_keyval(txtp, key, val); /* read key/val */
                 if (ret == 0) goto fail;
@@ -1139,7 +1143,7 @@ txtp_header_t* txtp_parse(STREAMFILE* sf) {
             }
 
             /* must be a filename (only remove spaces from start/end, as filenames con contain mid spaces/#/etc) */
-            ok = sscanf(line, " %[^\t\r\n] ", val);
+            ok = sscanf(line, " %"TXT_LINE_VAL_STR"[^\t\r\n] ", val);
             if (ok != 1) /* not a filename either */
                 continue;
             if (val[0] == '#')
