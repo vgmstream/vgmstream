@@ -43,11 +43,16 @@ static void seek_force_render(VGMSTREAM* vgmstream, int samples) {
     }
 #endif
 
-    void* tmpbuf = vgmstream->tmpbuf;
-    int buf_samples = vgmstream->tmpbuf_size / vgmstream->channels / sizeof(float); /* base decoder channels, no need to apply mixing */
+    vgmstream_state_t* state = vgmstream->state;
+    int buf_samples = 1024;
+    int channels = vgmstream->channels; // base decoder channels, no need to apply mixing
+    int target_size = buf_samples * channels * sizeof(float);
+
+    bool alloc_ok = prealloc_buf(&state->tmpbuf, &state->tmpbuf_size, target_size);
+    if (!alloc_ok) return;
 
     sbuf_t sbuf_tmp;
-    sbuf_init(&sbuf_tmp, mixing_get_input_sample_type(vgmstream), tmpbuf, buf_samples, vgmstream->channels);
+    sbuf_init(&sbuf_tmp, mixing_get_input_sample_type(vgmstream), state->tmpbuf, buf_samples, channels);
 
     //TODO: improve
     // detect seeking more that layout/decoder, may rarely happen when layout can't render more
