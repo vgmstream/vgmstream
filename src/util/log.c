@@ -63,7 +63,7 @@ static void log_internal(void* ctx_p, int level, const char* fmt, va_list args) 
     char line[256];
     int done = vsnprintf(line, sizeof(line), fmt, args);
     if (done < 0 || done > sizeof(line))
-        strcpy(line, "(ignored log)"); //to-do something better, meh
+        strcpy(line, "(ignored big log)\n"); //to-do something better, meh
     ctx->callback(level, line);
 }
 #endif

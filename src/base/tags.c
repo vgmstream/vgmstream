@@ -7,6 +7,7 @@
 /* TAGS: loads key=val tags from a file */
 
 #define VGMSTREAM_TAGS_LINE_MAX 2048
+// note that key/val should be as big as line buf for sscanf (or add splicit lenghts)
 
 /* opaque tag state */
 struct VGMSTREAM_TAGS {
