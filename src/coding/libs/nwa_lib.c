@@ -105,10 +105,21 @@ NWAData* nwalib_open(STREAMFILE* sf) {
     nwa->tmpdata = NULL;
     nwa->filesize = get_streamfile_size(sf);
 
+#if 0
+    //raw PCM is handled externally in vgmstream
+	if (nwa->complevel == -1) {	/* 無圧縮rawデータ */ //uncompressed raw data
+		/* 適当に決め打ちする */ //arbitrary values
+		nwa->blocksize = 65536;
+		nwa->restsize = (nwa->datasize % (nwa->blocksize * (nwa->bps / 8))) / (nwa->bps / 8);
+		nwa->blocks = nwa->datasize / (nwa->blocksize * (nwa->bps / 8)) + (nwa->restsize > 0 ? 1 : 0);
+	}
+    ...
+#endif
 
-    if (nwa->blocks <= 0 || nwa->blocks > 1000000)
+    if (nwa->blocks <= 0 || nwa->blocks > 1000000) {
         /* １時間を超える曲ってのはないでしょ*/ //surely there won't be songs over 1 hour
         goto fail;
+    }
 
     // NWAData::CheckHeader:
 
@@ -149,6 +160,11 @@ NWAData* nwalib_open(STREAMFILE* sf) {
     nwa->use_runlength = is_use_runlength(nwa);
     nwa->curblock = 0;
 
+    // extra (known max is 0x200)
+    if (nwa->blocksize < 0 || nwa->blocksize > 0x2000)
+        goto fail;
+    if (nwa->restsize < 0 || nwa->restsize > 0x2000)
+        goto fail;
 
     //extra
     if (nwa->restsize > nwa->blocksize) {
@@ -209,10 +225,6 @@ static void decode_block(NWAData* nwa, const uint8_t* data, int outdatasize) {
     int i;
     int shift = 0;
 
-    int dsize = outdatasize / (nwa->bps / 8);
-    int flip_flag = 0; /* stereo 用 */ //for stereo
-    int runlength = 0;
-
     /* 最初のデータを読み込む */ //read initial data
     for (i = 0; i < nwa->channels; i++) {
         if (nwa->bps == 8) {
@@ -224,6 +236,10 @@ static void decode_block(NWAData* nwa, const uint8_t* data, int outdatasize) {
             data += 2;
         }
     }
+
+    int dsize = outdatasize / (nwa->bps / 8);
+    int flip_flag = 0; /* stereo 用 */ //for stereo
+    int runlength = 0;
 
     for (i = 0; i < dsize; i++) {
         if (runlength == 0) { /* コピーループ中でないならデータ読み込み */ //read data if not in the copy loop
