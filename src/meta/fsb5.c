@@ -239,6 +239,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
         /* target found */
         if (i + 1 == target_subsong) {
+            uint32_t next_data_offset;
             fsb5.stream_offset = fsb5.base_header_size + fsb5.sample_header_size + fsb5.name_table_size + data_offset;
 
             /* catch bad rips (like incorrectly split +1.5GB .fsb with wrong header+data) */
@@ -248,16 +249,16 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
             /* get stream size from next stream offset or full size if there is only one */
             if (i + 1 == fsb5.total_subsongs) {
-                fsb5.stream_size = fsb5.sample_data_size - data_offset;
+                next_data_offset = fsb5.sample_data_size;
             }
             else {
-                uint32_t next_data_offset;
-                uint64_t next_sample_mode;
-                next_sample_mode = read_u64le(offset+stream_header_size+0x00,sf);
+                uint64_t next_sample_mode = read_u64le(offset+stream_header_size+0x00,sf);
                 next_data_offset   =  ((next_sample_mode >> 7) & 0x07FFFFFF) << 5;
-
-                fsb5.stream_size = next_data_offset - data_offset;
             }
+
+            if (next_data_offset <= data_offset)
+                goto fail;
+            fsb5.stream_size = next_data_offset - data_offset;
 
             break;
         }
