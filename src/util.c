@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #include "util.h"
 #include "streamtypes.h"
 
@@ -56,5 +57,19 @@ bool check_subsongs(int* target_subsong, int total_subsongs) {
         *target_subsong = 1;
     if (*target_subsong < 0 || *target_subsong > total_subsongs || total_subsongs < 1)
         return false;
+    return true;
+}
+
+bool prealloc_buf(void** buf, int* current_size, int target_size) {
+
+    if (*current_size >= target_size)
+        return true;
+
+    void *newbuf = realloc(*buf, target_size);
+    if (!newbuf)
+        return false;
+
+    *buf = newbuf;
+    *current_size = target_size;
     return true;
 }

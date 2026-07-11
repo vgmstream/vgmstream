@@ -59,4 +59,6 @@ void concatn(int length, char * dst, const char * src);
 /* checks max subsongs and setups target */
 bool check_subsongs(int* target_subsong, int total_subsongs);
 
+bool prealloc_buf(void** buf, int* current_size, int target_size);
+
 #endif

@@ -244,12 +244,8 @@ VGMSTREAM* allocate_vgmstream(int channels, int loop_flag) {
     vgmstream->decode_state = decode_init();
     if (!vgmstream->decode_state) goto fail;
 
-    //TODO: improve/init later to minimize memory
-    /* garbage buffer for seeking/discarding (local bufs may cause stack overflows with segments/layers)
-     * in theory the bigger the better but in practice there isn't much difference. */
-    vgmstream->tmpbuf_size = 1024 * 2 * channels * sizeof(float);
-    vgmstream->tmpbuf = malloc(vgmstream->tmpbuf_size);
-    if (!vgmstream->tmpbuf) goto fail;
+    vgmstream->state = calloc(1, sizeof(vgmstream_state_t));
+    if (!vgmstream->state) goto fail;
 
     /* BEWARE: reset may remove later changes */
     /* BEWARE: merge_vgmstream does some free'ing too */ 
@@ -259,6 +255,16 @@ VGMSTREAM* allocate_vgmstream(int channels, int loop_flag) {
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+// TODO: improve
+void state_free(VGMSTREAM* vgmstream) {
+    if (vgmstream->state) {
+        vgmstream_state_t* state = vgmstream->state;
+        free(state->tmpbuf);
+        free(state->decbuf);
+    }
+    free(vgmstream->state);
 }
 
 void close_vgmstream(VGMSTREAM* vgmstream) {
@@ -291,7 +297,7 @@ void close_vgmstream(VGMSTREAM* vgmstream) {
     }
 
     mixer_free(vgmstream->mixer);
-    free(vgmstream->tmpbuf);
+    state_free(vgmstream);
     free(vgmstream->ch);
     free(vgmstream->start_ch);
     free(vgmstream->loop_ch);
@@ -440,7 +446,7 @@ static bool merge_vgmstream(VGMSTREAM* opened_vgmstream, VGMSTREAM* new_vgmstrea
     /* discard the second VGMSTREAM */
     decode_free(new_vgmstream);
     mixer_free(new_vgmstream->mixer);
-    free(new_vgmstream->tmpbuf);
+    state_free(new_vgmstream);
     free(new_vgmstream->start_vgmstream);
     free(new_vgmstream);
 

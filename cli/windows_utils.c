@@ -9,6 +9,7 @@
 #include <windows.h>
 
 #define WIN_PATH_LIMIT 4096
+#define WIN_MODE_LIMIT (3+1)
 
 // WideCharToMultiByte:
 //  CodePage: CP_UTF8
@@ -114,7 +115,7 @@ static bool fprint_line(FILE* stream, const char* text, int text_len) {
     HANDLE hOut = get_windows_std_handle(stream);
     if (is_windows_console(hOut)) {
         wchar_t wtext[WIN_LINE];
-        int wtext_len = char_to_wchar(text, wtext, sizeof(wtext));
+        int wtext_len = char_to_wchar(text, wtext, WIN_LINE);
         if (wtext_len <= 0)
             return false;
 
@@ -276,11 +277,11 @@ FILE* fopen_win(const char* path, const char* mode) {
     int done;
 
     wchar_t wpath[WIN_PATH_LIMIT];
-    done = char_to_wchar(path, wpath, sizeof(wpath));
+    done = char_to_wchar(path, wpath, WIN_PATH_LIMIT);
     if (done <= 0) return NULL;
 
-    wchar_t wmode[3+1];
-    done = char_to_wchar(mode, wmode, sizeof(wmode));
+    wchar_t wmode[WIN_MODE_LIMIT];
+    done = char_to_wchar(mode, wmode, WIN_MODE_LIMIT);
     if (done <= 0) return NULL;
 
     return _wfopen(wpath, wmode);

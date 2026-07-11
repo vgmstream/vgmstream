@@ -3,6 +3,7 @@
 #include "../util/spu_utils.h"
 #include "../util/reader_text.h"
 
+#define TXT_LINE_MAX 1024
 
 #define VAB_MIN(x,y) ((x)<(y)?(x):(y))
 #define VAB_MAX(x,y) ((x)>(y)?(x):(y))
@@ -25,8 +26,9 @@ static bool read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, i
 
     /* read lines and find target filename, format is (filename): value1, ... valueN */
     while (txt_offset < file_size) {
-        char line[0x2000];
-        char key[PATH_LIMIT] = { 0 }, val[0x2000] = { 0 };
+        char line[TXT_LINE_MAX];
+        char key[TXT_LINE_MAX];
+        char val[TXT_LINE_MAX];
         int ok, bytes_read, line_ok;
         int cfg_program, cfg_tone, cfg_note, cfg_fine, cfg_limits;
 
@@ -47,7 +49,8 @@ static bool read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, i
 
             if (strcmp(filename + (file_len - key_len + 1), key + 1) != 0)
                 continue;
-        } else {
+        }
+        else {
             if (strcmp(filename, key) != 0)
                 continue;
         }
@@ -99,10 +102,12 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
         is_vh = true;
         sf_data = open_streamfile_by_ext(sf, "vb");
         if (!sf_data) return NULL;
-    } else if (check_extensions(sf, "vab")) {
+    }
+    else if (check_extensions(sf, "vab")) {
         is_vh = false;
         sf_data = sf;
-    } else {
+    }
+    else {
         return NULL;
     }
 

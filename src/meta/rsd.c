@@ -8,8 +8,6 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
     uint32_t start_offset, name_offset, coef_offset;
     size_t data_size;
     int loop_flag, channels, sample_rate, interleave;
-    uint32_t codec;
-    uint8_t version;
 
 
     /* checks */
@@ -20,12 +18,12 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
 
     loop_flag = 0;
 
-    codec = read_u32be(0x04,sf);
-    channels = read_s32le(0x08, sf);
-    /* 0x0c: always 16? */
-    sample_rate = read_s32le(0x10, sf);
+    uint32_t codec  = read_u32be(0x04,sf);
+    channels        = read_s32le(0x08, sf);
+    // 0x0c: always 16?
+    sample_rate     = read_s32le(0x10, sf);
 
-    version = read_8bit(0x03, sf);
+    uint8_t version = read_u8(0x03, sf);
     switch(version) {
         case '2': /* known codecs: VAG/XADP/PCMB [The Simpsons: Road Rage] */
         case '3': /* known codecs: VAG/PCM/PCMB/GADP? [Dark Summit] */
@@ -156,8 +154,8 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = ffmpeg_get_samples(vgmstream->codec_data); /* an estimation, sometimes cuts files a bit early */
-          //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, sf) / channels / 2; /* may be PCM data size, but not exact */
-            vgmstream->sample_rate = read_32bitLE(start_offset + 0x04, sf);
+          //vgmstream->num_samples = read_s32le(start_offset + 0x00, sf) / channels / 2; /* may be PCM data size, but not exact */
+            vgmstream->sample_rate = read_s32le(start_offset + 0x04, sf);
             break;
         }
 
@@ -174,11 +172,12 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
         }
 
         case 0x584D4120: { /* "XMA " [Crash of the Titans (X360)-v1, Crash: Mind over Mutant (X360)-v2] */
-            uint32_t chunk_size = read_32bitBE(0x800, sf);
-            uint32_t seek_size = read_32bitBE(0x804, sf);
-            uint32_t stream_size = read_32bitBE(0x808, sf);
-            uint32_t chunk_offset = 0x80c;
-            int old_xma2_version = read_u8(chunk_offset + 0x00, sf);
+            uint32_t chunk_size     = read_u32be(0x800, sf);
+            uint32_t seek_size      = read_u32be(0x804, sf);
+            uint32_t stream_size    = read_u32be(0x808, sf);
+            uint32_t chunk_offset   = 0x80c;
+            int old_xma2_version =    read_u8(chunk_offset + 0x00, sf);
+            int skip_samples     = read_s32be(chunk_offset + 0x04, sf); // always 384?
 
             start_offset = chunk_offset + chunk_size + seek_size;
 
@@ -190,20 +189,20 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
             /* read PCM samples rather than full samples (dev trickery?) */
             switch (old_xma2_version) {
                 case 0x03:
-                    vgmstream->sample_rate = read_32bitBE(chunk_offset + 0x0c, sf);
-                    vgmstream->num_samples = read_32bitBE(chunk_offset + 0x18, sf);
+                    vgmstream->sample_rate = read_s32be(chunk_offset + 0x0c, sf);
+                    vgmstream->num_samples = read_s32be(chunk_offset + 0x18, sf);
+                    vgmstream->num_samples -= 64; // matches other platforms better than 384
                     break;
                 case 0x04:
-                    vgmstream->num_samples = read_32bitBE(chunk_offset + 0x08, sf);
-                    vgmstream->sample_rate = read_32bitBE(chunk_offset + 0x0c, sf);
+                    vgmstream->num_samples = read_s32be(chunk_offset + 0x08, sf);
+                    vgmstream->sample_rate = read_s32be(chunk_offset + 0x0c, sf);
+                    vgmstream->num_samples -= skip_samples; // otherwise reads more than EOF
                     break;
                 default:
                     goto fail;
             }
 
-            /* for some reason (dev trickery?) .rsd don't set skips in the bitstream, though they should */
-            //xma_fix_raw_samples(vgmstream, sf, start_offset,xma_size, 0, 0,0);
-            ffmpeg_set_skip_samples(vgmstream->codec_data, 512+64);
+            //xma_fix_raw_samples(vgmstream, sf, start_offset, stream_size, chunk_offset, true, true);
             break;
         }
 #endif

@@ -2,7 +2,7 @@
 #include "libs/libacm.h"
 #include <stdio.h>
 
-/* libacm 1.2 (despite libacm.h saying 1.1) from: https://github.com/markokr/libacm */
+/* libacm from: https://github.com/markokr/libacm */
 
 
 /* libacm interface */
@@ -38,7 +38,6 @@ acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number) {
     /* Setup libacm decoder, needs read callbacks and a parameter for said callbacks */
     {
         ACMStream* handle = NULL;
-        int res;
         acm_io_config* io_config = data->io_config;
         acm_io_callbacks io_callbacks = {0};
 
@@ -50,7 +49,8 @@ acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number) {
         io_callbacks.close_func = NULL; /* managed in free_acm */
         io_callbacks.get_length_func = acm_get_length_streamfile;
 
-        res = acm_open_decoder(&handle, io_config, io_callbacks, force_channel_number);
+        int force_chans = force_channel_number ? force_channel_number : -1; // 1.3 uses 0 = trust header (which we don't)
+        int res = acm_open_decoder(&handle, io_config, io_callbacks, force_chans);
         if (res < 0) {
             VGM_LOG("ACM: failed opening libacm, error=%i\n", res);
             goto fail;

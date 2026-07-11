@@ -338,6 +338,7 @@ static bool is_ascii(const char* str) {
     return true;
 }
 
+#define WIN_MODE_LIMIT (3+1)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -350,11 +351,11 @@ static FILE* fopen_win(const char* path, const char* mode) {
 
     int done;
     wchar_t wpath[PATH_LIMIT];
-    done = MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, sizeof(wpath));
+    done = MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, PATH_LIMIT);
     if (done <= 0) return NULL;
 
-    wchar_t wmode[3+1];
-    done = MultiByteToWideChar(CP_UTF8, 0, mode, -1, wmode, sizeof(mode));
+    wchar_t wmode[WIN_MODE_LIMIT];
+    done = MultiByteToWideChar(CP_UTF8, 0, mode, -1, wmode, WIN_MODE_LIMIT);
     if (done <= 0) return NULL;
 
     return _wfopen(wpath, wmode);

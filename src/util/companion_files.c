@@ -4,6 +4,7 @@
 #include "reader_text.h"
 #include "sf_utils.h"
 
+#define TXT_LINE_MAX 1024
 
 size_t read_key_file(uint8_t* buf, size_t buf_size, STREAMFILE* sf) {
     char keyname[PATH_LIMIT];
@@ -96,8 +97,9 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
 
     /* read lines and find target filename, format is (filename): value1, ... valueN */
     while (txt_offset < file_size) {
-        char line[0x2000];
-        char key[PATH_LIMIT] = { 0 }, val[0x2000] = { 0 };
+        char line[TXT_LINE_MAX];
+        char key[TXT_LINE_MAX];
+        char val[TXT_LINE_MAX];
         int ok, bytes_read, line_ok;
 
         bytes_read = read_line(line, sizeof(line), txt_offset, sf_map, &line_ok);
@@ -117,11 +119,10 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
 
         if (strcmp(key, filename) == 0) {
             int n;
-            char subval[PATH_LIMIT];
+            char subval[TXT_LINE_MAX];
             const char* current = val;
-            int i;
 
-            for (i = 0; i <= file_num; i++) {
+            for (int i = 0; i <= file_num; i++) {
                 if (current[0] == '\0')
                     goto fail;
 

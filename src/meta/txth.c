@@ -11,6 +11,13 @@
 #define TXT_LINE_MAX 2048 /* probably ~1000 would be ok */
 #define TXT_LINE_KEY_MAX 128
 #define TXT_LINE_VAL_MAX (TXT_LINE_MAX - TXT_LINE_KEY_MAX)
+// sscanf needs buf maxs if key/val aren't as big as line
+#define TXT_LINE_STR "2047"
+#define TXT_LINE_KEY_STR "127"
+#define TXT_LINE_VAL_STR "1919"
+// multitxth
+#define TXT_PATH_LIMIT_MAX 4096 //PATH_LIMIT
+#define TXT_PATH_LIMIT_STR "4095"
 
 /* known TXTH types */
 typedef enum {
@@ -997,7 +1004,7 @@ static int parse_txth(txth_header* txth) {
     /* read lines */
     {
         text_reader_t tr;
-        uint8_t buf[TXT_LINE_MAX + 1];
+        uint8_t buf[TXT_LINE_MAX];
         char key[TXT_LINE_KEY_MAX];
         char val[TXT_LINE_VAL_MAX];
         int ok, line_len;
@@ -1016,8 +1023,12 @@ static int parse_txth(txth_header* txth) {
             if (line_len == 0) /* empty */
                 continue;
 
+            // this removes a drmemory uninit read warning, but not sure if a false positive;
+            // seems related to -O3 strcmp optimizations
+            //key[0]= '\0';
+
             /* get key/val (ignores lead spaces, stops at space/comment/separator) */
-            ok = sscanf(line, " %[^ \t#=] = %[^\t#\r\n] ", key,val);
+            ok = sscanf(line, " %"TXT_LINE_KEY_STR"[^ \t#=] = %"TXT_LINE_VAL_STR"[^\t#\r\n] ", key, val);
             if (ok != 2) /* ignore line if no key=val (comment or garbage) */
                 continue;
 
@@ -1873,7 +1884,7 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
 
     /* try "(name): (val))" */
 
-    ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
+    ok = sscanf(line, " %"TXT_LINE_KEY_STR"[^\t#:] : %"TXT_LINE_VAL_STR"[^\t#\r\n] ", key, val);
     if (ok == 2) {
         string_trim(key); /* otherwise includes end spaces before : */
         //;VGM_LOG("TXTH: name %s get\n", key);
@@ -1882,14 +1893,14 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
 
     /* try "(empty): (val))" */
     key[0] = '\0';
-    ok = sscanf(line, " : %[^\t#\r\n] ", val);
+    ok = sscanf(line, " : %"TXT_LINE_VAL_STR"[^\t#\r\n] ", val);
     if (ok == 1) {
         //;VGM_LOG("TXTH: default get\n");
         return 1;
     }
 
     /* try "(name)#subsong: (val))" */
-    ok = sscanf(line, " %[^\t#:]#%i : %[^\t#\r\n] ", key, &subsong, val);
+    ok = sscanf(line, " %"TXT_LINE_KEY_STR"[^\t#:]#%i : %"TXT_LINE_VAL_STR"[^\t#\r\n] ", key, &subsong, val);
     if (ok == 3 && subsong == txth->target_subsong) {
         //;VGM_LOG("TXTH: name %s + subsong %i get\n", key, subsong);
         return 1;
@@ -1897,7 +1908,7 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
 
     /* try "(empty)#subsong: (val))" */
     key[0] = '\0';
-    ok = sscanf(line, " #%i: %[^\t#\r\n] ", &subsong, val);
+    ok = sscanf(line, " #%i: %"TXT_LINE_VAL_STR"[^\t#\r\n] ", &subsong, val);
     if (ok == 2 && subsong == txth->target_subsong) {
         //;VGM_LOG("TXTH: default + subsong %i get\n", subsong);
         return 1;
@@ -1990,7 +2001,7 @@ static bool parse_name_table(txth_header* txth, char* set_name) {
                 const char *current = val;
 
                 while (current[0] != '\0') {
-                    ok = sscanf(current, " %[^\t#\r\n,]%n ", subval, &n);
+                    ok = sscanf(current, " %"TXT_LINE_STR"[^\t#\r\n,]%n ", subval, &n);
                     if (ok != 1)
                         goto fail;
 
@@ -2020,7 +2031,7 @@ fail:
 
 static bool parse_multi_txth(txth_header* txth, char* names) {
     STREAMFILE* sf_text = NULL;
-    char name[PATH_LIMIT];
+    char name[TXT_PATH_LIMIT_MAX];
     int n, ok;
 
     /* temp save */
@@ -2036,7 +2047,7 @@ static bool parse_multi_txth(txth_header* txth, char* names) {
         STREAMFILE* sf_test = NULL;
         int found;
 
-        ok = sscanf(names, " %[^\t#\r\n,]%n ", name, &n);
+        ok = sscanf(names, " %"TXT_PATH_LIMIT_STR"[^\t#\r\n,]%n ", name, &n);
         if (ok != 1)
             goto fail;
 
