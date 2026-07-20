@@ -14,7 +14,7 @@ add_library(in_vgmstream SHARED
 	${RESOURCES})
 
 # Link to the vgmstream library
-target_link_libraries(in_vgmstream PUBLIC libvgmstream)
+target_link_libraries(in_vgmstream PRIVATE libvgmstream)
 
 setup_target(in_vgmstream TRUE)
 
