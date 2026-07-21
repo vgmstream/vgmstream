@@ -24,7 +24,7 @@ REM set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildToo
 On Windows 10, `curl` is included by default but you may need to get it first (or just manually download and unzip files).
 
 ### Tools and PATHs
-When using Mingw+Git you may add their location to Windows' `PATH` variable, so programs like `gcc.exe` work as-is in Windows CMD without writting the full path. This can be done temporarily by writting in the command line: `set PATH=C:\(path-to-mingw)\mingw32\bin;C:\Git\usr\bin;%PATH%` (for example), or in Windows' system variables panel.
+When using Mingw+Git you may add their location to Windows' `PATH` variable, so programs like `gcc.exe` work as-is in Windows CMD without writing the full path. This can be done temporarily by writing in the command line: `set PATH=C:\(path-to-mingw)\mingw32\bin;C:\Git\usr\bin;%PATH%` (for example), or in Windows' system variables panel.
 
 For MSYS2 commands should work (after installing relevant programs) by opening the `msys2/mingw32.exe` console.
 
