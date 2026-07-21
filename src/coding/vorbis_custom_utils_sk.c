@@ -185,19 +185,25 @@ static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_off
 
 /* rebuild a custom header packet into a "vorbis" one */
 static int build_header(uint8_t* buf, size_t bufsize, STREAMFILE* sf, off_t packet_offset, size_t packet_size) {
-    int bytes;
-    int vorbis_word_size = 0x02; /* "SK" */
+    const int sk_base_size = 0x01 + 0x02;
+    const int vb_base_size = 0x01 + 0x06; // packet type + "vorbis"
 
-    if (0x07 + packet_size - 0x01 - vorbis_word_size > bufsize)
+    if (packet_size < sk_base_size || vb_base_size + packet_size - sk_base_size > bufsize)
         return 0;
 
-    put_u8(buf+0x00, read_u8(packet_offset,sf)); /* packet_type */
-    memcpy(buf+0x01, "vorbis", 6); /* id */
-    bytes = read_streamfile(buf+0x07, packet_offset + 0x01 + vorbis_word_size, packet_size - 0x01 - vorbis_word_size, sf); /* copy rest (all except id+"(vorbis word)") */
+    // SK format: packet type + "SK" + data, of size 'packet_size'; swap "SK" with "vorbis"
+
+    // copy packet type + "vorbis"
+    uint8_t packet_type = read_u8(packet_offset,sf);
+    put_u8(buf+0x00, packet_type);
+    memcpy(buf+0x01, "vorbis", 6);
+
+    // copy rest
+    int bytes = read_streamfile(buf+0x07, packet_offset + sk_base_size, packet_size - sk_base_size, sf);
     if (packet_size - 0x03 != bytes)
         return 0;
 
-    return 0x07 + packet_size - 0x03;
+    return vb_base_size + packet_size - sk_base_size;
 }
 
 #endif

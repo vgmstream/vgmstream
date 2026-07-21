@@ -13,6 +13,8 @@
 #define TXT_LINE_KEY_STR "127"
 #define TXT_LINE_VAL_STR "1919"
 
+#define TXTP_RANGE_MAX 1000 //arbitrary max to avoid excess allocs
+
 /*******************************************************************************/
 /* PARSER - HELPERS                                                            */
 /*******************************************************************************/
@@ -193,7 +195,6 @@ static int get_bool(const char* params, bool* value) {
 static int get_mask(const char* params, uint32_t* value) {
     int n, m, total_n = 0;
     int temp1,temp2, r1, r2;
-    int i;
     char cmd;
     uint32_t mask = *value;
 
@@ -220,7 +221,7 @@ static int get_mask(const char* params, uint32_t* value) {
         if (n == 0 || r1 < 0 || r1 > 31 || r2 < 0 || r2 > 31)
             break;
 
-        for (i = r1; i < r2 + 1; i++) {
+        for (int i = r1; i < r2 + 1; i++) {
             mask |= (1 << i);
         }
 
@@ -427,8 +428,9 @@ static void add_settings(txtp_entry_t* current, txtp_entry_t* entry, const char*
     }
 
     if (entry->mixing_count > 0) {
-        int i;
-        for (i = 0; i < entry->mixing_count; i++) {
+        for (int i = 0; i < entry->mixing_count; i++) {
+            if (current->mixing_count >= TXTP_MIXING_MAX)
+                break;
             current->mixing[current->mixing_count] = entry->mixing[i];
             current->mixing_count++;
         }
@@ -877,10 +879,9 @@ static int add_group(txtp_header_t* txtp, char* line) {
     {
         /* resize in steps if not enough */
         if (txtp->group_count+1 > txtp->group_max) {
-            txtp_group_t *temp_group;
-
             txtp->group_max += 5;
-            temp_group = realloc(txtp->group, sizeof(txtp_group_t) * txtp->group_max);
+
+            txtp_group_t* temp_group = realloc(txtp->group, sizeof(txtp_group_t) * txtp->group_max);
             if (!temp_group) goto fail;
             txtp->group = temp_group;
         }
@@ -919,7 +920,6 @@ static void clean_filename(char* filename) {
 
 //TODO see if entry can be set to &default/&entry[entry_count] to avoid add_settings
 static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
-    int i;
     txtp_entry_t entry = {0};
 
 
@@ -981,16 +981,21 @@ static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
         return 1;
     }
 
+    int range_entries = entry.range_end - entry.range_start;
+    if (range_entries < 0 || range_entries > TXTP_RANGE_MAX)
+        return 0;
+
     /* add final entry */
-    for (i = entry.range_start; i < entry.range_end; i++){
+    for (int i = entry.range_start; i < entry.range_end; i++){
         txtp_entry_t* current;
 
         /* resize in steps if not enough */
         if (txtp->entry_count+1 > txtp->entry_max) {
-            txtp_entry_t* temp_entry;
+            txtp->entry_max *= 2;
+            if (txtp->entry_max < 5)
+                txtp->entry_max = 5;
 
-            txtp->entry_max += 5;
-            temp_entry = realloc(txtp->entry, sizeof(txtp_entry_t) * txtp->entry_max);
+            txtp_entry_t* temp_entry = realloc(txtp->entry, sizeof(txtp_entry_t) * txtp->entry_max);
             if (!temp_entry) goto fail;
             txtp->entry = temp_entry;
         }

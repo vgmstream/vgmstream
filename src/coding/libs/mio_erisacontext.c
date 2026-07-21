@@ -526,9 +526,11 @@ ULONG MIOContext_DecodeERINACodeBytes(MIOContext* context, SBYTE* ptrDst, ULONG 
             length = nCount;
         }
         context->m_nLength -= length;
-        do {
+        // OG do-while could run once when nCount=0 (unlikely since nCount is samples)
+        while (length > 0) {
             ptrDst[i++] = 0;
-        } while (--length);
+            length--;
+        }
     }
     while (i < nCount) {
         symbol = MIOContext_GetHuffmanCode(context, tree);

@@ -19,6 +19,9 @@
 #define TXT_PATH_LIMIT_MAX 4096 //PATH_LIMIT
 #define TXT_PATH_LIMIT_STR "4095"
 
+#define TXTH_COEF_TABLE_CHANNELS 16
+
+
 /* known TXTH types */
 typedef enum {
     PSX = 0,            /* PS-ADPCM */
@@ -119,7 +122,7 @@ typedef struct {
     uint32_t coef_big_endian;
     uint32_t coef_mode;
     bool coef_table_set;
-    uint8_t coef_table[0x02*16 * 16]; /* reasonable max */
+    uint8_t coef_table[sizeof(short) * 16 * TXTH_COEF_TABLE_CHANNELS]; /* reasonable max */
 
     bool hist_set;
     uint32_t hist_offset;
@@ -584,8 +587,13 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 read_s16_t read_s16 = txth.coef_big_endian ? read_s16be : read_s16le;
                 get_s16_t get_s16 =txth.coef_big_endian ? get_s16be : get_s16le;
 
+                if (txth.coef_table_set && vgmstream->channels > TXTH_COEF_TABLE_CHANNELS) {
+                    goto fail;
+                }
+
                 for (int i = 0; i < vgmstream->channels; i++) {
-                    if (txth.coef_mode == 0) { /* normal coefs */
+                    if (txth.coef_mode == 0) {
+                        /* normal coefs */
                         for (int j = 0; j < 16; j++) {
                             int16_t coef;
                             if (txth.coef_table_set)
@@ -595,7 +603,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                             vgmstream->ch[i].adpcm_coef[j] = coef;
                         }
                     }
-                    else { /* split coefs (first all 8 positive, then all 8 negative [P.N.03 (GC), Viewtiful Joe (GC)] */
+                    else {
+                        /* split coefs (first all 8 positive, then all 8 negative [P.N.03 (GC), Viewtiful Joe (GC)] */
                         for (int j = 0; j < 8; j++) {
                             vgmstream->ch[i].adpcm_coef[j*2+0] = read_s16(txth.coef_offset + i*txth.coef_spacing + j*2 + 0x00, txth.sf_head);
                             vgmstream->ch[i].adpcm_coef[j*2+1] = read_s16(txth.coef_offset + i*txth.coef_spacing + j*2 + 0x10, txth.sf_head);
@@ -1840,7 +1849,7 @@ static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char
     return n;
 }
 
-static bool parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size) {
+static bool parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* coef_table, size_t coef_table_size) {
     if (!sf) { //not needed but...
         VGM_LOG("TXTH: wrong header SF\n");
         return false;
@@ -1860,10 +1869,10 @@ static bool parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val,
             val += 2;
         if (sscanf(val, " %2x", &byte) != 1)
             return false;
-        if (done + 1 >= out_size)
+        if (done + 1 >= coef_table_size)
             return false;
 
-        out_value[done] = (uint8_t)byte;
+        coef_table[done] = (uint8_t)byte;
         done++;
         val += 2;
     }
@@ -2300,9 +2309,14 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         return 0;
     }
 
+    // div-by-zero check is done by most helpers but just in case
+    if (txth->channels == 0) {
+        return 0;
+    }
+
     switch(txth->codec) {
         case MS_IMA:
-            if (txth->interleave && txth->frame_size) /* mono mode */ //TODO maybe some helper instead
+            if (txth->interleave && txth->frame_size && txth->channels) /* mono mode */ //TODO maybe some helper instead
                 return ms_ima_bytes_to_samples(bytes / txth->channels, txth->frame_size, 1);
             return ms_ima_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave, txth->channels);
         case XBOX:

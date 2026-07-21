@@ -83,14 +83,14 @@ typedef struct {
 } ealayer3_frame_t;
 
 
-static int ealayer3_parse_frame(mpeg_codec_data* data, int num_stream, ealayer3_buffer_t* ib, ealayer3_frame_t* eaf);
-static int ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf, int channels_per_frame, int is_v1b);
-static int ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf);
-static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf);
-static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_0, bitstream_t* is_1, ealayer3_frame_t* eaf_1, bitstream_t* os);
-static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, ealayer3_frame_t* eaf);
-static int ealayer3_skip_data(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, int at_start);
-static int ealayer3_is_empty_frame_v2p(STREAMFILE* sf, off_t offset);
+static bool ealayer3_parse_frame(mpeg_codec_data* data, int num_stream, ealayer3_buffer_t* ib, ealayer3_frame_t* eaf);
+static bool ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf, int channels_per_frame, int is_v1b);
+static bool ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf);
+static bool ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf);
+static bool ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_0, bitstream_t* is_1, ealayer3_frame_t* eaf_1, bitstream_t* os);
+static bool ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, ealayer3_frame_t* eaf);
+static bool ealayer3_skip_data(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, int at_start);
+static bool ealayer3_is_empty_frame_v2p(STREAMFILE* sf, off_t offset);
 
 /* **************************************************************************** */
 /* EXTERNAL API                                                                 */
@@ -273,7 +273,7 @@ static void fill_buf(ealayer3_buffer_t* ib, int bits) {
     ib->leftover_bits = (mod > 0 ? 8 - mod : 0);
 }
 
-static int ealayer3_parse_frame(mpeg_codec_data* data, int num_stream, ealayer3_buffer_t* ib, ealayer3_frame_t* eaf) {
+static bool ealayer3_parse_frame(mpeg_codec_data* data, int num_stream, ealayer3_buffer_t* ib, ealayer3_frame_t* eaf) {
     int ok;
 
     /* We must pass this from state, as not all EA-frames have channel info.
@@ -291,18 +291,17 @@ static int ealayer3_parse_frame(mpeg_codec_data* data, int num_stream, ealayer3_
         case MPEG_EAL31b:       ok = ealayer3_parse_frame_v1(ib, eaf, channels_per_frame, 1); break;
         case MPEG_EAL32P:
         case MPEG_EAL32S:       ok = ealayer3_parse_frame_v2(ib, eaf); break;
-        default: goto fail;
+        default: return false;
     }
-    if (!ok) goto fail;
+    if (!ok)
+        return false;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 
 /* read V1"a" (in SCHl) and V1"b" (in SNS) EALayer3 frame */
-static int ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf, int channels_per_frame, int is_v1b) {
+static bool ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf, int channels_per_frame, int is_v1b) {
     int ok;
     bitstream_t* is = &ib->is;
 
@@ -315,17 +314,17 @@ static int ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf,
 
     if (eaf->v1_pcm_flag != 0x00 && eaf->v1_pcm_flag != 0xEE) {
         VGM_LOG("EAL3 v1: header not 0x00 or 0xEE\n");
-        goto fail; /* wrong offset? */
+        return false; /* wrong offset? */
     }
     if (eaf->v1_pcm_flag == 0xEE && !channels_per_frame) {
         VGM_LOG("EAL3 v1: PCM block in first frame\n");
-        goto fail; /* must know from a prev frame (can't use eaf->channels for V1a) */
+        return false; /* must know from a prev frame (can't use eaf->channels for V1a) */
     }
 
     /* read EA-frame common header (V1a PCM blocks don't have EA-frames, while V1b do) */
     if (is_v1b || eaf->v1_pcm_flag == 0x00) {
         ok = ealayer3_parse_frame_common(ib, eaf);
-        if (!ok) goto fail;
+        if (!ok) return false;
     }
 
     /* check PCM block */
@@ -335,7 +334,7 @@ static int ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf,
         bm_get(is, 16,&eaf->v1_pcm_samples); /* number of PCM samples, can be 0 */
 
         eaf->pre_size += 2+2; /* 16b+16b */
-        eaf->pcm_size = (2*eaf->v1_pcm_samples * channels_per_frame);
+        eaf->pcm_size = sizeof(short) * eaf->v1_pcm_samples * channels_per_frame;
 
         if (is_v1b) { /* extra 32b in v1b */
             fill_buf(ib, 32);
@@ -349,14 +348,12 @@ static int ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf,
 
     eaf->eaframe_size = eaf->pre_size + eaf->common_size + eaf->pcm_size;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 /* read V2"PCM" and V2"Spike" EALayer3 frame (exactly the same but V2P seems to have bigger
  * PCM blocks and maybe smaller frames) */
-static int ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf) {
+static bool ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf) {
     int ok;
     bitstream_t* is = &ib->is;
 
@@ -383,7 +380,7 @@ static int ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf)
     /* read EA-frame common header */
     if (!eaf->v2_extended_flag || (eaf->v2_extended_flag && eaf->v2_common_size)) {
         ok = ealayer3_parse_frame_common(ib, eaf);
-        if (!ok) goto fail;
+        if (!ok) return false;
     }
     else {
         /* rarely frames contain PCM data only [FIFA 2014 World Cup Brazil (PS3)] */
@@ -394,24 +391,21 @@ static int ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf)
     VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_offset_samples > 0, "EA EAL3: v2_offset_mode=%x with value=0x%x\n", eaf->v2_offset_mode, eaf->v2_offset_samples); /* Dead Space 2 (PC) */
     //VGM_ASSERT(eaf->v2_pcm_samples > 0, "EA EAL3: v2_pcm_samples 0x%x\n", eaf->v2_pcm_samples);
 
-    eaf->pcm_size = (eaf->v2_pcm_samples * sizeof(int16_t) * eaf->channels);
+    eaf->pcm_size = sizeof(short) * eaf->v2_pcm_samples * eaf->channels;
 
     eaf->eaframe_size = eaf->pre_size + eaf->common_size + eaf->pcm_size;
 
     if (eaf->v2_frame_size != eaf->eaframe_size) {
         VGM_LOG("EAL3: different v2 frame size vs calculated (0x%x vs 0x%x)\n", eaf->v2_frame_size, eaf->eaframe_size);
-        goto fail;
+        return false;
     }
 
-
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 
 /* parses an EALayer3 frame (common part) */
-static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf) {
+static bool ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf) {
     /* index tables */
     static const int version_table[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
     static const int sample_rate_table[4][4] = { /* [version_index][sample rate index] */
@@ -424,7 +418,7 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
 
     bitstream_t* is = &ib->is;
     off_t start_b_off = bm_pos(is);
-    int i, fill_bits, others_2_bits;
+    int fill_bits, others_2_bits;
 
 
     /* read main header */
@@ -441,7 +435,7 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
         eaf->channel_mode == 0 &&
         eaf->mode_extension == 0) {
         VGM_LOG("EAL3: empty frame\n");
-        goto fail;
+        return false;
     }
 
 
@@ -453,7 +447,7 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
 
     if (eaf->version == -1 || eaf->sample_rate == -1) {
         VGM_LOG("EAL3: illegal header values\n");
-        goto fail;
+        return false;
     }
     
     others_2_bits = eaf->mpeg1 ? 47-32 : 51-32;
@@ -467,12 +461,12 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
     fill_buf(ib, fill_bits);
 
     if (eaf->mpeg1 && eaf->granule_index == 1) {
-        for (i = 0; i < eaf->channels; i++) {
+        for (int i = 0; i < eaf->channels; i++) {
             bm_get(is,  4,&eaf->scfsi[i]);
         }
     }
 
-    for (i = 0; i < eaf->channels; i++) {
+    for (int i = 0; i < eaf->channels; i++) {
         bm_get(is, 12,&eaf->main_data_size[i]);
         /* divided in 47b=32+15 (MPEG1) or 51b=32+19 (MPEG2), arbitrarily */
         bm_get(is, 32,&eaf->others_1[i]);
@@ -483,7 +477,7 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
     /* derived */
     eaf->data_offset_b = bm_pos(is); /* header size + above size */
     eaf->base_size_b = (bm_pos(is) - start_b_off); /* above size without header */
-    for (i = 0; i < eaf->channels; i++) {
+    for (int i = 0; i < eaf->channels; i++) {
         eaf->data_size_b += eaf->main_data_size[i]; /* can be 0, meaning a micro EA-frame */
     }
     if ((eaf->base_size_b + eaf->data_size_b) % 8) /* aligned to closest 8b */
@@ -494,22 +488,19 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
 
     eaf->common_size = (eaf->base_size_b + eaf->data_size_b + eaf->padding_size_b)/8;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 
 /* converts an EALAYER3 frame to a standard MPEG frame from pre-parsed info */
-static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_0, bitstream_t* is_1, ealayer3_frame_t* eaf_1, bitstream_t* os) {
+static bool ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_0, bitstream_t* is_1, ealayer3_frame_t* eaf_1, bitstream_t* os) {
     uint32_t c = 0;
-    int i, j;
     int expected_bitrate_index, expected_frame_size;
 
 
     /* ignore PCM-only frames */
     if (!eaf_0->common_size)
-        return 1;
+        return true;
 
     /* extra checks */
     if (eaf_0->mpeg1 && (!eaf_1
@@ -518,7 +509,7 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
             || eaf_0->granule_index == eaf_1->granule_index
             || !eaf_0->common_size || !eaf_1->common_size)) {
         VGM_LOG("EAL3: EA-frames for MPEG1 don't match\n");
-        goto fail;
+        return false;
     }
 
 
@@ -563,15 +554,15 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
         bm_put(os,  9, 0);  /* main data start (no bit reservoir) */
         bm_put(os,  private_bits, 0);
 
-        for (i = 0; i < eaf_1->channels; i++) {
+        for (int i = 0; i < eaf_1->channels; i++) {
             bm_put(os,  4, eaf_1->scfsi[i]); /* saved in granule1 only */
         }
-        for (i = 0; i < eaf_0->channels; i++) { /* granule0 */
+        for (int i = 0; i < eaf_0->channels; i++) { /* granule0 */
             bm_put(os, 12,    eaf_0->main_data_size[i]);
             bm_put(os, 32,    eaf_0->others_1[i]);
             bm_put(os, 47-32, eaf_0->others_2[i]);
         }
-        for (i = 0; i < eaf_1->channels; i++) { /* granule1 */
+        for (int i = 0; i < eaf_1->channels; i++) { /* granule1 */
             bm_put(os, 12,    eaf_1->main_data_size[i]);
             bm_put(os, 32,    eaf_1->others_1[i]);
             bm_put(os, 47-32, eaf_1->others_2[i]);
@@ -579,16 +570,16 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
 
         /* write MPEG1 main data */
         bm_set(is_0, eaf_0->data_offset_b);
-        for (i = 0; i < eaf_0->channels; i++) { /* granule0 */
-            for (j = 0; j < eaf_0->main_data_size[i]; j++) {
+        for (int i = 0; i < eaf_0->channels; i++) { /* granule0 */
+            for (int j = 0; j < eaf_0->main_data_size[i]; j++) {
                 bm_get(is_0,  1, &c);
                 bm_put(os,    1,  c);
             }
         }
 
         bm_set(is_1, eaf_1->data_offset_b);
-        for (i = 0; i < eaf_1->channels; i++) { /* granule1 */
-            for (j = 0; j < eaf_1->main_data_size[i]; j++) {
+        for (int i = 0; i < eaf_1->channels; i++) { /* granule1 */
+            for (int j = 0; j < eaf_1->main_data_size[i]; j++) {
                 bm_get(is_1,  1, &c);
                 bm_put(os,    1,  c);
             }
@@ -601,7 +592,7 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
         bm_put(os,  8, 0);  /* main data start (no bit reservoir) */
         bm_put(os,  private_bits, 0);
 
-        for (i = 0; i < eaf_0->channels; i++) {
+        for (int i = 0; i < eaf_0->channels; i++) {
             bm_put(os, 12,    eaf_0->main_data_size[i]);
             bm_put(os, 32,    eaf_0->others_1[i]);
             bm_put(os, 51-32, eaf_0->others_2[i]);
@@ -609,8 +600,8 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
 
         /* write MPEG2 main data */
         bm_set(is_0, eaf_0->data_offset_b);
-        for (i = 0; i < eaf_0->channels; i++) {
-            for (j = 0; j < eaf_0->main_data_size[i]; j++) {
+        for (int i = 0; i < eaf_0->channels; i++) {
+            for (int j = 0; j < eaf_0->main_data_size[i]; j++) {
                 bm_get(is_0,  1, &c);
                 bm_put(os,    1,  c);
             }
@@ -635,13 +626,11 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
 
     bm_set(os, expected_frame_size * 8);
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 static void ealayer3_copy_pcm_block(float* sbuf, off_t pcm_offset, int pcm_number, int channels_per_frame, int is_packed, STREAMFILE* sf) {
-    uint8_t pcm_block[1152 * 2 * 2]; /* assumed max: 1 MPEG frame samples * 16b * max channels */
+    uint8_t pcm_block[1152 * 2 * sizeof(short)]; /* assumed max: 1 MPEG frame samples * 16b * max channels */
 
     if (pcm_number == 0)
         return;
@@ -651,7 +640,7 @@ static void ealayer3_copy_pcm_block(float* sbuf, off_t pcm_offset, int pcm_numbe
         return;
     }
 
-    size_t pcm_size = pcm_number * 2 * channels_per_frame;
+    size_t pcm_size = sizeof(short) * pcm_number * channels_per_frame;
     int bytes = read_streamfile(pcm_block, pcm_offset, pcm_size, sf);
     if (bytes != pcm_size) {
         VGM_LOG("EAL3: incorrect pcm_number %i at %lx\n", pcm_number, pcm_offset);
@@ -689,23 +678,25 @@ static void ealayer3_copy_pcm_block(float* sbuf, off_t pcm_offset, int pcm_numbe
 
 /* write PCM block directly to sample buffer and setup decode discard (EALayer3 seems to use this as a prefetch of sorts).
  * Seems to alter decoded sample buffer to handle encoder delay/padding in a twisted way. */
-static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, ealayer3_frame_t* eaf) {
+static bool ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, ealayer3_frame_t* eaf) {
     mpeg_custom_stream* ms = &data->streams[num_stream];
     int channels_per_frame = ms->channels_per_frame;
 
-    float* sbuf = ms->sbuf;
-    sbuf += ms->samples_filled * channels_per_frame;
-
-    int bytes_filled = sizeof(float) * ms->samples_filled * channels_per_frame;
-    if (bytes_filled + eaf->pcm_size > ms->sbuf_size) {
-        VGM_LOG("EAL3: can't fill the sample buffer with 0x%x\n", eaf->pcm_size);
-        goto fail;
+    //size_t bytes_filled = sizeof(float) * ms->samples_filled * channels_per_frame;
+    size_t max_samples = ms->sbuf_size / data->channels_per_frame / sizeof(float);
+    size_t pcm_number = eaf->pcm_size / data->channels_per_frame / sizeof(short);
+    if (ms->samples_filled + pcm_number > max_samples) {
+        VGM_LOG("EAL3: can't fill the sample buffer with %i sa\n", pcm_number);
+        return false;
     }
 
     if (eaf->v1_pcm_samples && !eaf->pcm_size) {
         VGM_LOG("EAL3: pcm_size without pcm_samples\n");
-        goto fail;
+        return false;
     }
+
+    float* sbuf = ms->sbuf;
+    sbuf += ms->samples_filled * channels_per_frame;
 
     if (eaf->v1_pcm_samples || eaf->v1_offset_samples) {
         off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size;
@@ -793,9 +784,7 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
         ms->decode_to_discard += decode_to_discard;
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 
@@ -818,35 +807,33 @@ fail:
  *
  * EALayer3 v1 in SCHl uses external offsets and 1ch multichannel instead.
  */
-static int ealayer3_skip_data(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, int at_start) {
-    int ok, i;
+static bool ealayer3_skip_data(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, int at_start) {
+    int ok;
     ealayer3_buffer_t ib = {0};
     ealayer3_frame_t eaf;
     int skips = at_start ? num_stream : data->streams_count - 1 - num_stream;
 
     /* v1 does multichannel with set offsets */
     if (data->type == MPEG_EAL31)
-        return 1;
+        return true;
 
-    for (i = 0; i < skips; i++) {
+    for (int i = 0; i < skips; i++) {
         ib.sf = stream->streamfile;
         ib.offset = stream->offset;
         bm_setup(&ib.is, ib.buf, 0); // filled later
 
         ok = ealayer3_parse_frame(data, num_stream, &ib, &eaf);
-        if (!ok) goto fail;
+        if (!ok) return false;
 
         stream->offset += eaf.eaframe_size;
         //;VGM_LOG("s%i-%i: skipping %x, now at %lx\n", num_stream,i,eaf.eaframe_size,stream->offset);
     }
     //;VGM_LOG("s%i: skipped %i frames, now at %lx\n", num_stream,skips,stream->offset);
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
-static int ealayer3_is_empty_frame_v2p(STREAMFILE* sf, off_t offset) {
+static bool ealayer3_is_empty_frame_v2p(STREAMFILE* sf, off_t offset) {
     /* V2P frame header should contain a valid frame size (lower 12b) */
     uint16_t v2_header = read_u16be(offset, sf);
     return (v2_header % 0xFFF) == 0 || v2_header == 0xFFFF;

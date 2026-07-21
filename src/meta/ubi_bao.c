@@ -1323,7 +1323,7 @@ static STREAMFILE* open_memory_bao_spk(ubi_bao_header_t* bao, STREAMFILE* sf) {
         // too big is usually bad config
         if (bao->stream_size > resource_size + bao->header_size) {
             VGM_LOG("UBI BAO: bad stream config at %x\n", bao->header_offset);
-            return false;
+            goto fail;
         }
 
         memory_size = resource_size - bao->memory_skip;
