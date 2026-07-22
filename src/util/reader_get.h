@@ -1,7 +1,7 @@
 #ifndef _READER_GET_H
 #define _READER_GET_H
 
-#include "../streamtypes.h"
+#include <stdint.h>
 
 /* very common functions, so static (inline) in .h as compiler can optimize to avoid some call overhead */
 
