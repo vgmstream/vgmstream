@@ -26,7 +26,9 @@
  * (but would need handling frame boundaries based on avpkt's read data)
  */
 
+#define MAAC_PUBLIC /* none */
 #define MAAC_PRIVATE static
+
 #define MAAC_IMPLEMENTATION
 #include "maac.h"
 

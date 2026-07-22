@@ -72,18 +72,38 @@ setup_target(libvgmstream)
 
 target_include_directories(libvgmstream PRIVATE ${libvgmstream_includes})
 
-# libvgmstream.so
+# libvgmstream.so / libvgmstream.dll
 if(BUILD_SHARED_LIBS)
+	set(libvgmstream_public_headers
+		${CMAKE_CURRENT_SOURCE_DIR}/libvgmstream.h
+		${CMAKE_CURRENT_SOURCE_DIR}/libvgmstream_streamfile.h
+	)
+
 	include(GNUInstallDirs)
 
 	add_library(libvgmstream_shared SHARED ${libvgmstream_sources} ${libvgmstream_headers})
-	target_include_directories(libvgmstream_shared INTERFACE $<INSTALL_INTERFACE:include>)
+	target_include_directories(libvgmstream_shared PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+		$<INSTALL_INTERFACE:include>
+	)
+
 	target_compile_definitions(libvgmstream_shared PRIVATE LIBVGMSTREAM_EXPORT)
+
+    # Hide exported symbols from libs (libatrac9/celt/etc), that CC seems to export by default
+    # Could add CFLAGS=-fvisibility=hidden to all libs's cmake but this seems cleaner
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_link_options(libvgmstream_shared PRIVATE
+            "-Wl,--exclude-libs,ALL"
+        )
+    endif()
+
 	set_target_properties(libvgmstream_shared PROPERTIES
+		C_VISIBILITY_PRESET hidden
+		VISIBILITY_INLINES_HIDDEN YES
 		PREFIX ""
 		OUTPUT_NAME "libvgmstream"
 		EXPORT_NAME "vgmstream"
-		PUBLIC_HEADER "${libvgmstream_headers}"
+		PUBLIC_HEADER "${libvgmstream_public_headers}"
 	)
 	
 	if(USE_FFMPEG AND FFMPEG_COMPILE)
@@ -94,7 +114,9 @@ if(BUILD_SHARED_LIBS)
 	
 	target_include_directories(libvgmstream_shared PRIVATE ${libvgmstream_includes})
 
-	install(TARGETS libvgmstream_shared EXPORT vgmstream-targets PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vgmstream)
+	install(TARGETS libvgmstream_shared EXPORT vgmstream-targets
+		PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vgmstream
+	)
 	install(EXPORT vgmstream-targets FILE vgmstream-targets.cmake NAMESPACE vgmstream:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vgmstream)
 	include(CMakePackageConfigHelpers)
 	configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/vgmstream-config.cmake.in

@@ -8,7 +8,7 @@ set_target_properties(vgmstream_cli PROPERTIES
 	OUTPUT_NAME "vgmstream-cli")
 
 # Link to the vgmstream library
-target_link_libraries(vgmstream_cli PUBLIC libvgmstream)
+target_link_libraries(vgmstream_cli PRIVATE libvgmstream)
 
 
 setup_target(vgmstream_cli TRUE)
@@ -18,7 +18,7 @@ if(WIN32)
 	target_compile_definitions(vgmstream_cli PRIVATE _CONSOLE UNICODE _UNICODE VGM_STDIO_UNICODE)
 
 	# Link to the getopt library
-	target_link_libraries(vgmstream_cli PUBLIC getopt)
+	target_link_libraries(vgmstream_cli PRIVATE getopt)
 
 	# Make sure that the binary directory is included (for version.h), as well as the getopt library include directory
 	target_include_directories(vgmstream_cli PRIVATE

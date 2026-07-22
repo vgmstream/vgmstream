@@ -58,6 +58,8 @@ hca_codec_data* init_hca(STREAMFILE* sf) {
 
     /* init library handle */
     data->handle = calloc(1, clHCA_sizeof());
+    if (!data->handle) goto fail;
+
     clHCA_clear(data->handle);
 
     status = clHCA_DecodeHeader(data->handle, header_buffer, header_size); /* parse header */

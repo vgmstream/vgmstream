@@ -7,16 +7,15 @@
  * error control (original doesn't check zlib errors or buf sizes) plus a few extra structs/functions
  * that were likely inline'd (such as bitreaders). */
 
-//TODO change to streaming decoder
 // Currently lib expects most data in memory. Due to how format is designed it's not the
-// easiest thing to change, to be fixed later:
-// - data is divided into 2 blocks (intro+body) that are decoded separatedly
+// easiest thing to change into an streaming decoder:
+// - data is divided into 2 blocks (intro + body) that are decoded separatedly
 //   (streaming should read up to block max)
 // - code data isn't divided into frames, just keeps reading from the file buf
 // - "range" decoder has linear data, and should be easy enough to stream, but it's rarely used.
 // - "dct" decoder has a big chunk (+30%) of codebook data at the beginning of each block, then
-//   code data *but* decoder reads simultaneously from both places. Files can be rather big
-//   (2 mins = 6mb, codebooks = ~1.5mb). Would need to pre-read all the codebooks (still big) then
+//   code data, *but* decoder reads simultaneously from both places. Files can be rather big
+//   (120s = 6mb, codebooks = ~1.5mb). Would need to pre-read all the codebooks (still big) then
 //   stream data, or seek around to codebooks (thrashes FILE buffers).
 
 
@@ -223,6 +222,9 @@ static int zlib_init(z_stream* strm, int* p_zlib_init, const uint8_t* buf, int b
     if (err < 0) return ICESND_ERROR_SETUP;
     *p_zlib_init = 1;
 
+    if (buf_size < 0x04)
+        return ICESND_ERROR_SETUP;
+
     /* zlib data starts with the decompressed size */
     strm->next_in = buf + 0x04;
     strm->avail_in = buf_size - 0x04;
@@ -426,8 +428,6 @@ static int16_t range_get_sample(range_handle_t* ctx, int ch) {
  * Internally decodes N samples at a time, and if asked for non-multiple number of samples it'll
  * stop and resume properly from last copied sample of those 16. Return 1 if no more samples left. */
 static int range_decoder_decode(range_handle_t* ctx, int16_t* sbuf, const int max_done, int* p_done) {
-    int ch;
-
 
     *p_done = 0;
 
@@ -435,7 +435,7 @@ static int range_decoder_decode(range_handle_t* ctx, int16_t* sbuf, const int ma
 
         /* read frame header */
         if (ctx->codes_left == 0) {
-            for (ch = 0; ch < ctx->channels; ch++) {
+            for (int ch = 0; ch < ctx->channels; ch++) {
                 range_load_header(ctx, ch);
             }
 
@@ -447,7 +447,7 @@ static int range_decoder_decode(range_handle_t* ctx, int16_t* sbuf, const int ma
 
         /* decode frame samples */
         while (ctx->codes_left) {
-            for (ch = 0; ch < ctx->channels; ch++) {
+            for (int ch = 0; ch < ctx->channels; ch++) {
                 *sbuf++ = range_get_sample(ctx, ch);
             }
 
@@ -612,9 +612,8 @@ static void dct_codebook_close(dct_codebook_t* ctx) {
 }
 
 static int dct_codebook_reset(dct_codebook_t* ctx, const uint8_t* buf, int buf_size) {
-    int err;
 
-    err = zlib_init(&ctx->strm, &ctx->zlib_init, buf, buf_size);
+    int err = zlib_init(&ctx->strm, &ctx->zlib_init, buf, buf_size);
     if (err < ICESND_RESULT_OK) return err;
 
     dct_bitreader_init(&ctx->br);
@@ -625,7 +624,6 @@ static int dct_codebook_reset(dct_codebook_t* ctx, const uint8_t* buf, int buf_s
 /* Read next quantized value's bits from zlibbed codebook. Data is in LSB order and codes 4-bits, like:
  *  0x10,0x32,0x54,0x76,0x98... = 0 1 2 3 4 5 6 7 8 9... */
 static uint8_t dct_codebook_get_qbits(dct_codebook_t* ctx) {
-    uint32_t qbits;
 
     if (dct_bitreader_is_over(&ctx->br)) {
         ctx->strm.avail_out = sizeof(ctx->outbuf);
@@ -636,7 +634,7 @@ static uint8_t dct_codebook_get_qbits(dct_codebook_t* ctx) {
         dct_bitreader_set(&ctx->br, ctx->outbuf, sizeof(ctx->outbuf) - ctx->strm.avail_out);
     }
 
-    qbits = dct_bitreader_get(&ctx->br, 4);
+    uint8_t qbits = dct_bitreader_get(&ctx->br, 4);
 
     return qbits;
 }
@@ -645,7 +643,6 @@ static uint8_t dct_codebook_get_qbits(dct_codebook_t* ctx) {
 /* IceSoundCodecDecoderDCT */
 
 static dct_handle_t* dct_decoder_open() {
-    int i, ch, band;
     dct_handle_t* ctx = NULL;
 
     //ctx = calloc(1, sizeof(dct_handle_t));
@@ -655,8 +652,8 @@ static dct_handle_t* dct_decoder_open() {
     ctx->codeinfo = NULL;
 
     /* init all codebook's base values */
-    for (ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
-        for (band = 0; band < DCT_MAX_BANDS; band++) {
+    for (int ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
+        for (int band = 0; band < DCT_MAX_BANDS; band++) {
             dct_codebook_t* codebook = &ctx->codebook[ch][band];
 
             dct_codebook_init(codebook);
@@ -665,7 +662,7 @@ static dct_handle_t* dct_decoder_open() {
 
     dct_bitreader_init(&ctx->br);
 
-    for (i = 0; i < DCT_MAX_BANDS; i++) {
+    for (int i = 0; i < DCT_MAX_BANDS; i++) {
         ctx->scales[i] = 1.0f;
     }
 
@@ -675,12 +672,12 @@ fail:
 }
 
 static void dct_decoder_close(dct_handle_t* ctx) {
-    int ch, band;
-    
+    if (!ctx)
+        return;
 
     /* setup all codebook's zlib streams (even if not used, since we can close before anything is set) */
-    for (ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
-        for (band = 0; band < DCT_MAX_BANDS; band++) {
+    for (int ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
+        for (int band = 0; band < DCT_MAX_BANDS; band++) {
             dct_codebook_t* codebook = &ctx->codebook[ch][band];
 
             dct_codebook_close(codebook);
@@ -690,26 +687,30 @@ static void dct_decoder_close(dct_handle_t* ctx) {
     free(ctx);
 }
 
-static int dct_decoder_reset(dct_handle_t* ctx, const uint8_t* buf) {
-    int err;
-    int ch, band;
+static int dct_decoder_reset(dct_handle_t* ctx, const uint8_t* buf, int buf_size) {
     dct_codeinfo_t* ci = ctx->codeinfo;
 
     /* OG code doesn't pass buf (since reset is a virtual method), but rather codeinfo doubles as a pointer to data start */
 
-    /* close all codebook's zlib streams */
-    for (ch = 0; ch < ci->channels; ch++) {
-        for (band = 0; band < ci->bands; band++) {
+    /* setup all codebook's zlib streams */
+    for (int ch = 0; ch < ci->channels; ch++) {
+        for (int band = 0; band < ci->bands; band++) {
             dct_codebook_t* codebook = &ctx->codebook[ch][band];
 
-            const uint8_t* cbk_start = buf + ci->cbk_offset[ch][band];
-            int cbk_size = ci->cbk_size[ch][band];
+            uint32_t cbk_offset = ci->cbk_offset[ch][band];
+            uint32_t cbk_size = ci->cbk_size[ch][band];
 
-            err = dct_codebook_reset(codebook, cbk_start, cbk_size);
+            // consider u32 overflows
+            if (cbk_offset > buf_size || cbk_size > buf_size - cbk_offset)
+                return ICESND_ERROR_HEADER;
+
+            const uint8_t* cbk_start = buf + cbk_offset;
+            int err = dct_codebook_reset(codebook, cbk_start, cbk_size);
             if (err < ICESND_RESULT_OK) return err;
         }
     }
 
+    // ci->data_start / ci->data_size should be validated on init
     dct_bitreader_set(&ctx->br, buf + ci->data_start, ci->data_size);
 
     memset(ctx->spectra, 0, sizeof(ctx->spectra));
@@ -721,13 +722,12 @@ static int dct_decoder_reset(dct_handle_t* ctx, const uint8_t* buf) {
 
 /* transform spectrum into samples (iDCT) */
 static void dct_decoder_transform(dct_handle_t* ctx, int16_t* sbuf_tmp, int channel, int pos) {
-    int i, band;
-    float fbuf[16] = {0}; /* no need to init as it's written in band 0 but gcc complains */
-    float f_curr;
     dct_codeinfo_t* ci = ctx->codeinfo;
 
+    float fbuf[16] = {0}; /* no need to init as it's written in band 0 but gcc complains */
+    for (int band = 0; band < ci->bands; band++) {
+        float f_curr;
 
-    for (band = 0; band < ci->bands; band++) {
         /* scales seems fixed to 1.0, maybe a remnant */
         float coef = (float)ctx->spectra[channel][pos][band] * ctx->scales[band];
 
@@ -871,7 +871,7 @@ static void dct_decoder_transform(dct_handle_t* ctx, int16_t* sbuf_tmp, int chan
     }
 
     /* copy float samples to sbuf samples */
-    for (i = 0; i < DCT_MAX_BANDS; i++) {
+    for (int i = 0; i < DCT_MAX_BANDS; i++) {
         float sample = roundf(fbuf[i]);
         /* interleaved (L: 0,2,4,6,8... R:1,3,5,7...) */
         sbuf_tmp[channel + ci->channels * i] = (int16_t)sample; /* no clamp */
@@ -902,7 +902,6 @@ static int16_t dct_decoder_get_code(dct_handle_t* ctx, uint8_t qbits) {
 
 /* read codes for this channel */
 static void dct_decoder_dequantize(dct_handle_t* ctx, int channel, int pos) {
-    int band;
     dct_codeinfo_t* ci = ctx->codeinfo;
 
     int16_t* spectra = ctx->spectra[channel][pos];
@@ -910,13 +909,11 @@ static void dct_decoder_dequantize(dct_handle_t* ctx, int channel, int pos) {
     int16_t* spectra_prev2 = ctx->spectra[channel][(pos - 2) & DCT_MAX_PREV_MASK];
 
 
-    for (band = 0; band < ci->bands; band++) {
-        uint8_t qbits; /* common 7~10 bits, sometimes 12 too */
-        int16_t code; /* also ok as int32 */
+    for (int band = 0; band < ci->bands; band++) {
 
         /* get next code's resolution and code */
-        qbits = dct_codebook_get_qbits(&ctx->codebook[channel][band]);
-        code = dct_decoder_get_code(ctx, qbits);
+        uint8_t qbits = dct_codebook_get_qbits(&ctx->codebook[channel][band]); // common 7~10 bits, sometimes 12 too
+        int16_t code = dct_decoder_get_code(ctx, qbits); // also ok as int32
 
         /* calc final value based on previous */
         spectra[band] = code + (int16_t)(2 * spectra_prev1[band]) - spectra_prev2[band];
@@ -925,10 +922,9 @@ static void dct_decoder_dequantize(dct_handle_t* ctx, int channel, int pos) {
 
 /* restore L/R bands based on mid channel + side differences, ratio 1.0 + copy to final buffer */
 static void dct_decoder_ms_stereo(dct_handle_t* ctx, int16_t* sbuf_tmp) {
-    int i;
     dct_codeinfo_t* ci = ctx->codeinfo;
 
-    for (i = 0; i < DCT_MAX_BANDS; i++) {
+    for (int i = 0; i < DCT_MAX_BANDS; i++) {
         int16_t sample_l = sbuf_tmp[0 + ci->channels * i];
         int16_t sample_r = sbuf_tmp[1 + ci->channels * i];
         ctx->sbuf_tmp[0 + ci->channels * i] = sample_l + sample_r;
@@ -940,19 +936,17 @@ static void dct_decoder_ms_stereo(dct_handle_t* ctx, int16_t* sbuf_tmp) {
  * Internally decodes 16 samples at a time, and if asked for non-multiple number of samples it'll
  * stop and resume properly from last copied sample of those 16. Return 1 if no more samples left. */
 static int dct_decoder_decode(dct_handle_t* ctx, int16_t* sbuf, const int max_done, int* p_done) {
-    int ch;
     int16_t sbuf_loc[DCT_MAX_BANDS * ICESND_MAX_CHANNELS]; /* interleaved */
-    int16_t* sbuf_tmp;
     dct_codeinfo_t* ci = ctx->codeinfo;
-    int samples_left;
 
 
     *p_done = 0;
-    samples_left = max_done;
+    int samples_left = max_done;
     if (samples_left > ci->max_samples - ctx->samples_done)
         samples_left = ci->max_samples - ctx->samples_done;
 
     /* 2ch uses a tmp buffer to handle MS stereo */
+    int16_t* sbuf_tmp;
     if (ci->channels == 1)
         sbuf_tmp = ctx->sbuf_tmp;
     else
@@ -966,7 +960,7 @@ static int dct_decoder_decode(dct_handle_t* ctx, int16_t* sbuf, const int max_do
         /* decode 16 samples (every 16 samples) */
         if ((ctx->samples_done & 0xF) == 0) {
 
-            for (ch = 0; ch < ci->channels; ch++) {
+            for (int ch = 0; ch < ci->channels; ch++) {
                 dct_decoder_dequantize(ctx, ch, ctx->spectra_curr);
 
                 dct_decoder_transform(ctx, sbuf_tmp, ch, ctx->spectra_curr);
@@ -1003,9 +997,9 @@ static int dct_decoder_decode(dct_handle_t* ctx, int16_t* sbuf, const int max_do
 }
 
 
-/* OG code casts buffer to this struct, read in a more portable fashion */
+/* OG code casts buffer to this struct; read in a more portable fashion */
 static int dct_codeinfo_parse(dct_codeinfo_t* ci, const uint8_t* buf, int buf_size) {
-    int ch, i, pos;
+    int pos;
 
     if (buf_size < 0x114)
         goto fail;
@@ -1019,22 +1013,22 @@ static int dct_codeinfo_parse(dct_codeinfo_t* ci, const uint8_t* buf, int buf_si
 
     pos = 0x0c;
 
-    for (ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
-        for (i = 0; i < DCT_MAX_BANDS; i++) {
+    for (int ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
+        for (int i = 0; i < DCT_MAX_BANDS; i++) {
             ci->cbk_offset[ch][i] = get_u32le(buf + pos);
             pos += 0x04;
         }
     }
 
-    for (ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
-        for (i = 0; i < DCT_MAX_BANDS; i++) {
+    for (int ch = 0; ch < ICESND_MAX_CHANNELS; ch++) {
+        for (int i = 0; i < DCT_MAX_BANDS; i++) {
             ci->cbk_size[ch][i] = get_u32le(buf + pos);
             pos += 0x04;
         }
     }
 
-    ci->data_start      = get_u32le(buf + 0x10c);
-    ci->data_size       = get_u32le(buf + 0x110);
+    ci->data_start      = get_u32le(buf + 0x10c); // after sizes
+    ci->data_size       = get_u32le(buf + 0x110); // data chunk
 
     if (ci->table_size > 0x114)
         goto fail;
@@ -1044,8 +1038,9 @@ static int dct_codeinfo_parse(dct_codeinfo_t* ci, const uint8_t* buf, int buf_si
         goto fail;
     if (ci->unused != 0x00)
         goto fail;
-
-    if (buf_size < ci->data_start + ci->data_size)
+    
+    // consider u32 overflows
+    if (ci->data_start > buf_size || ci->data_size > buf_size - ci->data_start)
         goto fail;
 
     return ICESND_RESULT_OK;
@@ -1073,11 +1068,9 @@ static const int DCT_TRANSFORM_STEPS[16] = {
 
 /* re-calculate DCT table, that depends on a current intro/body chunk's scale value */
 static int dct_decoder_block_setup(dct_handle_t* ctx, const uint8_t* buf, int buf_size, bigrp_entry_t* etr) {
-    int i;
-    int err;
-    float scale;
     float dct_coefs[DCT_MAX_BANDS];
     dct_codeinfo_t* ci = &ctx->codeinfo_mem;
+    int err;
 
 
     /* portable init */
@@ -1085,13 +1078,13 @@ static int dct_decoder_block_setup(dct_handle_t* ctx, const uint8_t* buf, int bu
     if (err < ICESND_RESULT_OK) return err;
 
     /* pre-calculate scaled coefs (mini optimization?) */
-    scale = ci->init_scale;
-    for (i = 0; i < DCT_MAX_BANDS; i++) {
+    float scale = ci->init_scale;
+    for (int i = 0; i < DCT_MAX_BANDS; i++) {
         dct_coefs[i] = DCT_TRANSFORM_COEFS[i] * scale;
     }
 
     /* transform for N=16, k=0..8? */
-    for (i = 0; i < DCT_MAX_BANDS; i++) {
+    for (int i = 0; i < DCT_MAX_BANDS; i++) {
         int steps = DCT_TRANSFORM_STEPS[i];
         int step;
         int pos = i;
@@ -1124,7 +1117,7 @@ static int dct_decoder_block_setup(dct_handle_t* ctx, const uint8_t* buf, int bu
     /* rest of setup */
     ctx->codeinfo = ci;
 
-    err = dct_decoder_reset(ctx, buf);
+    err = dct_decoder_reset(ctx, buf, buf_size);
     if (err < ICESND_RESULT_OK) return err;
 
     return ICESND_RESULT_OK;

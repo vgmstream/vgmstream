@@ -160,7 +160,7 @@ NWAData* nwalib_open(STREAMFILE* sf) {
     nwa->use_runlength = is_use_runlength(nwa);
     nwa->curblock = 0;
 
-    // extra (known max is 0x200)
+    // extra: known max is 0x200
     if (nwa->blocksize < 0 || nwa->blocksize > 0x2000)
         goto fail;
     if (nwa->restsize < 0 || nwa->restsize > 0x2000)
@@ -177,7 +177,7 @@ NWAData* nwalib_open(STREAMFILE* sf) {
         goto fail;
 
     /* これ以上の大きさはないだろう、、、 */ //probably not over this size
-    nwa->tmpdata = malloc(sizeof(uint8_t) * nwa->blocksize * (nwa->bps / 8) * 2);
+    nwa->tmpdata = malloc(nwa->blocksize * (nwa->bps / 8) * 2);
     if (!nwa->tmpdata)
         goto fail;
 
@@ -344,7 +344,14 @@ int nwalib_decode(STREAMFILE* sf, NWAData* nwa) {
         curblocksize = nwa->restsize * (nwa->bps / 8);
         curcompsize = nwa->blocksize * (nwa->bps / 8) * 2;
     }
+
+    // extra:
+    // - curblocksize = decoded output size (blocksize * 2)
+    // - curcompsize = actual buffer data (calculated from offsets so could go over tmpdata)
     // (in practice compsize is ~200-400 and blocksize ~0x800, but last block can be different)
+    if (curcompsize <= 0 || curcompsize > nwa->blocksize * (nwa->bps / 8) * 2) {
+        return -1;
+    }
 
     /* データ読み込み */ //data read (may read less on last block?)
     read_streamfile(nwa->tmpdata, nwa->offsets[nwa->curblock], curcompsize, sf);

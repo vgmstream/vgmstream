@@ -5,7 +5,7 @@
 #ifdef VGM_USE_SPEEX
 #include "speex/speex.h"
 
-#define SPEEX_MAX_FRAME_SIZE  0x100  /* frame sizes are stored in a byte */
+#define SPEEX_MAX_FRAME_SIZE  0x100
 #define SPEEX_MAX_FRAME_SAMPLES  640  /* nb=160, wb/uwb=320*2 */
 #define SPEEX_MAX_CHANNELS  1  /* nb=160, wb/uwb=320*2 */
 #define SPEEX_CTL_OK  0  /* -1=request unknown, -2=invalid param */
@@ -121,13 +121,13 @@ static bool read_frame(speex_codec_data* data, VGMSTREAMCHANNEL* stream) {
             stream->offset += 0x01;
             break;
         case TORUS:
-            data->frame_size = read_u16le(stream->offset, stream->streamfile);
+            data->frame_size = read_u16le(stream->offset, stream->streamfile); //16-bit but only seen 8-bit sizes
             stream->offset += 0x02;
             break;
         default:
             break;
     }
-    if (data->frame_size == 0)
+    if (data->frame_size <= 0 || data->frame_size > SPEEX_MAX_FRAME_SIZE)
         return false;
 
     size_t bytes = read_streamfile(data->buf, stream->offset, data->frame_size, stream->streamfile);

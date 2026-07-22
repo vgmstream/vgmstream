@@ -397,7 +397,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_opus_sqex,
     init_vgmstream_isb,
     init_vgmstream_xssb,
-    init_vgmstream_xma_ue3,
     init_vgmstream_csb,
     init_vgmstream_fwse,
     init_vgmstream_fda,
@@ -561,6 +560,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_jaudio_baa,
     init_vgmstream_bwav_warthog,
     init_vgmstream_cwv,
+    init_vgmstream_xma_ue3,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,

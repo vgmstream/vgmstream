@@ -546,11 +546,14 @@ static ESLError MIODecoder_DecodeSoundDCT_Std(MIODecoder* dec, MIOContext* conte
         free(dec->m_ptrWeightCode);
         free(dec->m_ptrCoefficient);
 
+        // OG code allocs 'nAllSubbandCount * 5' in m_ptrWeightCode/m_ptrCoefficient, but later would overflow
+        // if nDivisionCode = 3 (up to index 9). Possibly a bug since MIODecoder_DecodeSoundDCT_Mss allocs 10.
+
         dec->m_ptrBuffer2 = malloc(nAllSampleCount * sizeof(INT));
         dec->m_ptrBuffer3 = malloc(nAllSampleCount * sizeof(SWORD));
         dec->m_ptrDivisionTable = malloc(nAllSubbandCount * sizeof(BYTE));
-        dec->m_ptrWeightCode = malloc(nAllSubbandCount * 5 * sizeof(SDWORD));
-        dec->m_ptrCoefficient = malloc(nAllSubbandCount * 5 * sizeof(INT));
+        dec->m_ptrWeightCode = malloc(nAllSubbandCount * 10 * sizeof(SDWORD));
+        dec->m_ptrCoefficient = malloc(nAllSubbandCount * 10 * sizeof(INT));
         if (!dec->m_ptrBuffer2 || !dec->m_ptrBuffer3 || !dec->m_ptrDivisionTable || !dec->m_ptrWeightCode || !dec->m_ptrCoefficient)
             return eslErrGeneral;
 
