@@ -134,7 +134,7 @@ class ProjectFixer:
         out_name = self.prj_pathname
         if TEST_OUTPUT:
             out_name += '.test'
-        print("writting " + out_name)
+        print("writing " + out_name)
 
 
         with open(out_name, 'w', newline='\r\n', encoding='utf-8-sig') as f:
