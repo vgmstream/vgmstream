@@ -84,6 +84,7 @@ static const char* extension_list[] = {
     "ast",
     "at3",
     "at9",
+    "at9psv",
     "atsl",
     "atsl3",
     "atsl4",
