@@ -578,3 +578,18 @@ VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
+/* CUBETYPE(?) variation [Touhou Kobuto V (Switch)] */
+VGMSTREAM* init_vgmstream_opus_opns(STREAMFILE* sf) {
+
+    /* checks */
+    if (!is_id32be(0x00, sf,"OPNS"))
+        return NULL;
+    if (!check_extensions(sf, "opusnsw"))
+        return NULL;
+    // 0x04: hash/flags?
+
+    off_t offset = 0x08;
+    int32_t num_samples = 0;
+    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, 0, 0);
+}

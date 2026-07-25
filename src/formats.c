@@ -444,6 +444,7 @@ static const char* extension_list[] = {
     "oor",
     "opu",
     //"opus", //common
+    "opusnsw",
     "opusnx",
     "opusx",
     "oto", //txth/reserved [Vampire Savior (SAT)]
