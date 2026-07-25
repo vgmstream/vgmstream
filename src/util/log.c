@@ -61,9 +61,12 @@ static void log_internal(void* ctx_p, int level, const char* fmt, va_list args) 
         return;
 
     char line[256];
-    int done = vsnprintf(line, sizeof(line), fmt, args);
-    if (done < 0 || done > sizeof(line))
-        strcpy(line, "(ignored big log)\n"); //to-do something better, meh
+    int n = vsnprintf(line, sizeof(line), fmt, args);
+
+    // Could allow truncation but signal that line is a bit odd (basic logs shouldn't need that much space).
+    // n is "characters _needed_" (full line w/o null) and some of Microsoft's CRTs may not null-terminate on truncation
+    if (n < 0 || n >= sizeof(line))
+        snprintf(line, sizeof(line), "(LOG: ignored big line of n=%i)\n", n);
     ctx->callback(level, line);
 }
 #endif
