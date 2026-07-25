@@ -60,7 +60,7 @@ class Cli(object):
         p.add_argument('-s',  dest='subsong_start', help="Start subsong", type=int)
         p.add_argument('-S',  dest='subsong_end', help="End subsong", type=int)
         p.add_argument('-o',  dest='overwrite', help="Overwrite existing .txtp\n(beware when using with internal names alone)", action='store_true')
-        p.add_argument('-oi', dest='overwrite_ignore', help="Ignore repeated rather than overwritting .txtp\n", action='store_true')
+        p.add_argument('-oi', dest='overwrite_ignore', help="Ignore repeated rather than overwriting .txtp\n", action='store_true')
         p.add_argument('-or', dest='overwrite_rename', help="Rename rather than overwriting", action='store_true')
         p.add_argument('-os', dest='overwrite_suffix', help="Rename with a suffix")
         p.add_argument('-os2', dest='overwrite_suffix_2nd', help="Rename with a suffix not including first", action='store_true')
