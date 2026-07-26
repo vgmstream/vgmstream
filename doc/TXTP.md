@@ -926,7 +926,7 @@ introC_2ch.at3
 mainC_2ch.at3
 
 # - group intro/main pairs as segments, starting from 1 and repeating for A/B/C
-# same as writting "group = -S2" x3
+# same as writing "group = -S2" x3
 group = S2R
 
 # - play all as layer (can't set loop_start_segment in this case)
