@@ -259,7 +259,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFF WAVE header (wsmp looping) [*RIFF_WAVE_wsmp*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
-  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v .xst .wxv .vag .xbw`
+  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v .xst .wxv .vag .xbw .at9psv`
   - *rifx*: `.wav .lwav`
   - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA LEVEL5 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_mono
 - **nwa.c**
@@ -1024,6 +1024,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *opus_nsopus*: `.nsopus`
   - *opus_sqex*: `.wav .lwav`
   - *opus_rsnd*: `.rsnd`
+  - *opus_opns*: `.opusnsw`
   - Codecs: Opus
 - **ast_mtf.c**
   - Capcom AST header [*AST_MTF*]
@@ -1461,10 +1462,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Artoon XSSB header [*XSSB*]
   - *xssb*: `.bin .lbin`
   - Codecs: PCM16LE XBOX_IMA
-- **xma_ue3.c**
-  - Unreal Engine XMA header [*XMA_UE3*]
-  - *xma_ue3*: `.xma .x360audio .(extensionless)`
-  - Codecs: XMA
 - **fwse.c**
   - MT Framework FWSE header [*FWSE*]
   - *fwse*: `.fwse`
@@ -1994,6 +1991,14 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Nintendo .CWV header [*CWV*]
   - *cwv*: `.cwv`
   - Codecs: CWV
+- **xma_ue3.c**
+  - Unreal Engine 3 XMA header [*XMA_UE3*]
+  - *xma_ue3*: `.xma .x360audio .(extensionless)`
+  - Codecs: XMA
+- **xma_ue5.c**
+  - Unreal Engine 5 XMA header [*XMA_UE5*]
+  - *xma_ue5*: `.xma`
+  - Codecs: XMA
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
