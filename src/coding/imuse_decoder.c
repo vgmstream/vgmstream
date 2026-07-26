@@ -138,7 +138,7 @@ static const int8_t* index_tables_v2[8] = {
 
 /* ************************** */
 
-static int clamp_s32(int val, int min, int max) {
+static int _clamp_s32(int val, int min, int max) {
     if (val > max)
         return max;
     else if (val < min)
@@ -469,7 +469,7 @@ static void expand_vima(imuse_codec_data* data, bitstream_t* is, int ch, int s) 
         index_tables_v1[code_bits][code] :
         index_tables_v2[code_bits][code];
     step_index += new_step;
-    data->adpcm_step_index[ch] = clamp_s32(step_index, 0, 88);
+    data->adpcm_step_index[ch] = _clamp_s32(step_index, 0, 88);
 }
 
 static int decode_vima_comp(imuse_codec_data* data, block_entry_t* entry) {
@@ -523,7 +523,7 @@ static int decode_vima_comp(imuse_codec_data* data, block_entry_t* entry) {
                 pos += 0x09;
 
                 // not done originally
-                data->adpcm_step_index[i] = clamp_s32(data->adpcm_step_index[i], 0, 88);
+                data->adpcm_step_index[i] = _clamp_s32(data->adpcm_step_index[i], 0, 88);
             }
         }
     }
@@ -583,7 +583,7 @@ static int decode_vima_mcmp(imuse_codec_data* data, block_entry_t* entry) {
             }
 
             // not done originally
-            data->adpcm_step_index[i] = clamp_s32(data->adpcm_step_index[i], 0, 88); 
+            data->adpcm_step_index[i] = _clamp_s32(data->adpcm_step_index[i], 0, 88); 
         }
     }
 
@@ -623,8 +623,8 @@ static int decode_vima_aifc(imuse_codec_data* data, block_entry_t* entry) {
         data->adpcm_step_index[1] = entry->step_r;
 
         // not done originally
-        data->adpcm_step_index[0] = clamp_s32(data->adpcm_step_index[0], 0, 88);
-        data->adpcm_step_index[1] = clamp_s32(data->adpcm_step_index[1], 0, 88);
+        data->adpcm_step_index[0] = _clamp_s32(data->adpcm_step_index[0], 0, 88);
+        data->adpcm_step_index[1] = _clamp_s32(data->adpcm_step_index[1], 0, 88);
     }
 
     bitstream_t is = {0};
