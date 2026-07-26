@@ -162,7 +162,7 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
 
     /* transition table info:
      * 0x00: offset
-     * 0x04: 0x02*4 next segment points (one per track)
+     * 0x04: 0x02 * 4 next segment points (one per track)
      * (xN segments)
      *
      * There are 4 possible tracks, like: normal, tension, action, high action. Segment 0 has tracks'
@@ -185,8 +185,8 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
      * - 6+: single segment (where 6=first segment) to allow free mixes
      */
     {
-        int track[4][255] = {0};
-        int count[4] = {0};
+        int track[4][256] = {0}; // segment numbers for all 4 tracks
+        int count[4] = {0}; // segment count in each track
         int current_track, current_point, next_point, repeat_point;
         int transition_count = read_s32le(0x04, sf);
 
@@ -198,12 +198,12 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
         if (target_subsong == 1) {
             current_track = 0; /* start from first track, will move to others automatically */
 
-            snprintf(stream_name,sizeof(stream_name), "full");
+            snprintf(stream_name, sizeof(stream_name), "full");
         }
         else if (target_subsong <= 1+4) {
             current_track = (target_subsong-1) - 1; /* where 0 = first track */
 
-            snprintf(stream_name,sizeof(stream_name), "track%i", (current_track+1));
+            snprintf(stream_name, sizeof(stream_name), "track%i", (current_track+1));
         }
         else {
             int segment = target_subsong - 1 - 4; /* where 1 = first segment */
@@ -273,17 +273,22 @@ VGMSTREAM* init_vgmstream_psf_segmented(STREAMFILE* sf) {
 
 
             /* separate track info to find repeated points (since some transitions are common for all tracks) */
-            track[current_track][count[current_track]] = next_point;
+
+            if (current_track < 0 || current_track >= 4) // can't happen but anyway
+                goto fail;
+            int current_step = count[current_track];
+            if (current_step < 0 || current_step >= 256)
+                goto fail;
+            track[current_track][current_step] = next_point;
             count[current_track]++;
 
+            if (sequence_count < 0 || sequence_count >= 512)
+                goto fail;
             sequence[sequence_count] = next_point;
             sequence_count++;
 
             current_point = next_point;
         }
-
-        if (sequence_count >= 512 || count[current_track] >=  512)
-            goto fail;
     }
 
 
