@@ -2440,6 +2440,9 @@
     <ClCompile Include="meta\xma_ue3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\xma_ue5.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\xmd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

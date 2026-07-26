@@ -562,6 +562,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bwav_warthog,
     init_vgmstream_cwv,
     init_vgmstream_xma_ue3,
+    init_vgmstream_xma_ue5,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,
