@@ -89,11 +89,11 @@ static void g_init_ffmpeg(void) {
 static void remap_audio_flt(float* outbuf, int sample_count, int channels, int* channel_mappings) {
     for (int s = 0; s < sample_count; s++) {
         for (int ch_from = 0; ch_from < channels; ch_from++) {
-            if (ch_from > 32)
+            if (ch_from >= 32)
                 continue;
 
             int ch_to = channel_mappings[ch_from];
-            if (ch_to < 1 || ch_to > 32 || ch_to > channels-1 || ch_from == ch_to)
+            if (ch_to < 1 || ch_to >= 32 || ch_to > channels-1 || ch_from == ch_to)
                 continue;
 
             float temp = outbuf[s*channels + ch_from];

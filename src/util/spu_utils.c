@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include "spu_utils.h"
+#include "../util.h"
 
 static int round10(int val) {
     int round_val = val % 10;
@@ -30,7 +31,7 @@ int spu2_pitch_to_sample_rate(int pitch) {
 
 /* Converts VAB note to PS1 pitch value (0-4096 where 4096 is 44100 Hz).
  * Function reversed from PS1 SDK. */
-static uint16_t _svm_ptable[] = {
+static const uint16_t svm_ptable[193] = {
     4096, 4110, 4125, 4140, 4155, 4170, 4185, 4200,
     4216, 4231, 4246, 4261, 4277, 4292, 4308, 4323,
     4339, 4355, 4371, 4386, 4402, 4418, 4434, 4450,
@@ -60,28 +61,33 @@ static uint16_t _svm_ptable[] = {
 
 static uint16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t fine_shift) {
 
-    uint32_t pitch;
-    int16_t calc, type;
-    int32_t add, sfine;//, ret;
-
-    sfine = fine + fine_shift;
-    if (sfine < 0) sfine += 7;
+    int32_t sfine = fine + fine_shift;
+    if (sfine < 0)
+        sfine += 7;
     sfine >>= 3;
 
-    add = 0;
+    int32_t add = 0;
     if (sfine > 15) {
         add = 1;
         sfine -= 16;
     }
 
-    calc = add + (note - (center - 60));//((center + 60) - note) + add;
-    pitch = _svm_ptable[16 * (calc % 12) + (int16_t)sfine];
-    type = calc / 12 - 5;
+    int16_t calc = add + (note - (center - 60)); //((center + 60) - note) + add;
+
+    int svm_idx = 16 * (calc % 12) + (int16_t)sfine;
+
+    // extra just in case (maybe svm_ptable should be 256?)
+    svm_idx = clamp_s32(svm_idx, 0, 193 - 1);
+
+    uint32_t pitch = svm_ptable[svm_idx];
+    int16_t type = calc / 12 - 5;
 
     // regular shift
-    if (type > 0) return pitch << type;
+    if (type > 0)
+        return pitch << type;
     // negative shift
-    if (type < 0) return pitch >> -type;
+    if (type < 0)
+        return pitch >> -type;
 
     return pitch;
 }
@@ -175,6 +181,9 @@ static uint16_t ps_note_to_pitch(uint16_t center_note, uint16_t center_fine, uin
         fine_idx += (fine_adjust + 1) * 128;
     }
 
+    // extra (not sure if possible, but not sure)
+    note_idx = clamp_s32(note_idx, 0, 12 - 1);
+    fine_idx = clamp_s32(fine_idx, 0, 128 - 1);
     pitch = (note_pitch_table[note_idx] * fine_pitch_table[fine_idx]) >> 16;
 
     if (unk1 < 0)
@@ -203,11 +212,13 @@ int spu2_note_to_pitch(int16_t note, int16_t fine, uint8_t center_note, uint8_t 
 
 
 #if 0
+// base 12 semitones in octave, possibly in 16.16 notation
 static const uint32_t ssl_note_pitch_table[12] = {
     0x10000, 0x10F38, 0x11F59, 0x1306F, 0x1428A, 0x155B8,
     0x16A09, 0x17F91, 0x1965F, 0x1AE89, 0x1C823, 0x1E343,
 };
 
+// semitone tuning
 static const uint32_t ssl_fine_pitch_table[256] = {
     0x10000, 0x1000E, 0x1001D, 0x1002C, 0x1003B, 0x10049, 0x10058, 0x10067,
     0x10076, 0x10085, 0x10094, 0x100A2, 0x100B1, 0x100C0, 0x100CF, 0x100DE,
@@ -244,41 +255,62 @@ static const uint32_t ssl_fine_pitch_table[256] = {
 };
 
 // from LIBSSL.IRX (Square Sound Library?) in The Bouncer
-static int square_note_to_pitch_ssl(uint16_t a1, uint16_t a2) {
-    int idx = a1 + (a2 << 24);
-    int unk0 = (idx >> 8) & 0xFF;
-    int unk1 = (unk0 & 127);
-    int unk2 = (128 << (unk1 / 12));
+static int square_note_to_pitch_ssl(uint16_t info_tune, uint16_t info_note) {
+    // not sure if this is an artifact of the decompilation or really 2 u16
+    uint32_t key = (info_note << 24) | info_tune;
 
-    int unk3 = *(int *) ((char *)ssl_fine_pitch_table + ((idx >> 14) & 1020));
-    int note_idx = (unk1 - 12 * (unk1 / 12 - ((int)(unk1 << 16) >> 31)));
+    uint32_t note_num = (key >> 8) & 0xFF;
+    uint32_t fine_idx = (key >> 16) & 0xFF;
 
-    int pitch = (((unk2 * ssl_note_pitch_table[note_idx]) >> 16) * unk3) >> 16;
+    uint32_t note_abs = (note_num) & 0x7F;
+    uint32_t octave = note_abs / 12;
+    // this seems to be % with sign handling, but note_abs can't be negative
+    //int note_idx = (note_abs - 12 * (octave - ((note_abs << 16) >> 31)));
+    uint32_t note_idx = note_abs % 12;
+
+    uint32_t octave_scale = (128 << octave);
+
+    uint32_t fine_pitch = ssl_fine_pitch_table[fine_idx];
+    uint32_t note_pitch = ssl_note_pitch_table[note_idx];
+
+    // 16.16 into standard notation?
+    uint32_t base_pitch = (octave_scale * note_pitch) >> 16;
+    uint32_t pitch = (base_pitch * fine_pitch) >> 16;
 
     return pitch;
 }
 
 // from IOPSOUND.IRX in FF XI/XII
-static int square_note_to_pitch_iop(int a1, int a2, int a3, int a4) {
-    unsigned int v6; // $v1
+static int square_note_to_pitch_iop(int a1, int a2, int a3, int pitch_mod) {
+    int key = (a1 >> 12) + a2 + (a3 >> 16);
 
-    int fine_index = (a1 >> 12) + a2 + (a3 >> 0x10);
-    int i;
-    for (i = 0; fine_index < 0; --i)
-        fine_index += 0xC00;
-    int shift = (10 - (i + ((int)((uint64_t)(0x2AAAAAABLL * ((fine_index >> 8) & 0x7F)) >> 0x20) >> 1)));
-    v6 = ((ssl_note_pitch_table[((fine_index >> 8) & 0x7F) - 12
-        * ((int)((uint64_t)(0x2AAAAAABLL * ((fine_index >> 8) & 0x7F)) >> 32) >> 1)] >> shift)
-        * ssl_fine_pitch_table[(uint8_t)fine_index]) >> 0x10;
-
-    if ( a4 ) {
-        if ( a4 <= 0 )
-            return (int)(v6 * (unsigned __int8)a4) >> 8;
-        else
-            v6 += (int)(v6 * (a4 + 1)) >> 7;
+    int adjust;
+    for (adjust = 0; key < 0; adjust--) {
+        key += 0xC00; // // 12 semitones * 256 fine?
     }
 
-    return v6;
+    int semitone_num = (key >> 8) & 0x7F;
+    int octave = ((int)((uint64_t)(0x2AAAAAABLL * semitone_num) >> 32) >> 1); //magic MIPS div?
+    int semitone_shift = 10 - (adjust + octave);
+
+    int note_idx = semitone_num - (12 * octave);
+    int fine_idx = (uint8_t)key;
+
+    int note_pitch = ssl_note_pitch_table[note_idx];
+    int fine_pitch = ssl_fine_pitch_table[fine_idx];
+    uint32_t pitch = ((note_pitch >> semitone_shift) * fine_pitch) >> 16;
+
+    // pitch modulation?
+    if (pitch_mod) {
+        if (pitch_mod <= 0) {
+            pitch = (int)(pitch * (uint8_t)pitch_mod) >> 8;
+        }
+        else {
+            pitch += (pitch * (pitch_mod + 1)) >> 7;
+        }
+    }
+
+    return pitch;
 }
 #endif
 

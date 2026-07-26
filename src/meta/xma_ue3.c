@@ -4,46 +4,45 @@
 /* XMA from Unreal Engine games */
 VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    uint32_t start_offset, chunk_offset;
-    int loop_flag, channel_count, sample_rate;
+    uint32_t start_offset;
+    int loop_flag, channels, sample_rate;
     int num_samples, loop_start_sample, loop_end_sample;
-    uint32_t file_size, chunk_size, seek_size, data_size;
 
+
+    /* checks */
+    uint32_t file_size = get_streamfile_size(sf);
+    uint32_t chunk_size = read_u32be(0x00, sf);
+    uint32_t seek_size = read_u32be(0x04, sf);
+    uint32_t data_size = read_u32be(0x08, sf);
+    if (0x0c + chunk_size + seek_size + data_size != file_size)
+        return NULL;
+
+    /* .xma: assumed */
+    /* .x360audio: fake produced by UE Viewer */
+    if (!check_extensions(sf, "xma,x360audio,"))
+        return NULL;
 
     /* UE3 uses class-like chunks called "SoundNodeWave" to store info and (rarely multi) raw audio data. Other
      * platforms use standard formats (PC=Ogg, PS3=MSF), while X360 has mutant XMA. Extractors transmogrify
      * UE3 XMA into RIFF XMA (discarding seek table and changing endianness) but we'll support actual raw
      * data for completeness. UE4 has .uexp which are very similar so XBone may use the same XMA. */
 
-    /* checks */
-    file_size = get_streamfile_size(sf);
-    chunk_size = read_u32be(0x00, sf);
-    seek_size = read_u32be(0x04, sf);
-    data_size = read_u32be(0x08, sf);
-    if (0x0c + chunk_size + seek_size + data_size != file_size)
-        goto fail;
-
-    /* .xma: assumed */
-    /* .x360audio: fake produced by UE Viewer */
-    if (!check_extensions(sf, "xma,x360audio,"))
-        goto fail;
-    
-    chunk_offset = 0x0c;
+    uint32_t chunk_offset = 0x0c;
 
     /* parse sample data (always BE unlike real XMA) */
     if (chunk_size != 0x34) { /* old XMA2 [The Last Remnant (X360)] */
-        xma2_parse_xma2_chunk(sf, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
+        xma2_parse_xma2_chunk(sf, chunk_offset, &channels,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
     }
     else { /* new XMA2 [Shadows of the Damned (X360)] */
-        channel_count = read_s16be(chunk_offset + 0x02, sf);
-        sample_rate   = read_s32be(chunk_offset + 0x04, sf);
+        channels    = read_s16be(chunk_offset + 0x02, sf);
+        sample_rate = read_s32be(chunk_offset + 0x04, sf);
         xma2_parse_fmt_chunk_extra(sf, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 1);
     }
 
     start_offset = 0x0c + chunk_size + seek_size;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_XMA_UE3;

@@ -404,15 +404,15 @@ static bool setup_adx_keytest(adx_keytest_t* keytest, uint8_t type, STREAMFILE* 
         if (bruteframe_count >= max_scales) {
             max_scales = max_scales * ADX_KEY_SCALES_GROWTH;
 
-            uint16_t* temp_scales = realloc(scales, max_scales * sizeof(uint16_t));
+            uint16_t* temp_scales = realloc(scales, max_scales * sizeof(*scales));
             if (!temp_scales) return false;
             scales = temp_scales;
+            keytest->scales = scales;
         }
     }
 
     //;VGM_LOG("ADX: bruteframes: count=%i, start=%i, others=%i\n", bruteframe_count, bruteframe_start, bruteframe_others, bruteframe_blanks);
 
-    keytest->scales = scales; // in case or reallocs
     keytest->bruteframe_start = bruteframe_start;
     keytest->bruteframe_count = bruteframe_count;
 

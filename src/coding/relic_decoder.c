@@ -99,6 +99,9 @@ static void seek_relic(VGMSTREAM* v, int32_t num_sample) {
 }
 
 int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate) {
+    int frame_size = bitrate / 8;
+    if (channels <= 0 || frame_size <= 0)
+        return 0;
     return bytes / channels / (bitrate / 8) * RELIC_SAMPLES_PER_FRAME;
 }
 

@@ -5,7 +5,7 @@
 
 /* Nintendo OPUS - from Switch games, including header variations (not the same as Ogg Opus) */
 
-static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t offset, int32_t num_samples, int32_t loop_start, int32_t loop_end) {
+static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, off_t offset, int32_t num_samples, int32_t loop_start, int32_t loop_end) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channels, sample_rate;
@@ -14,7 +14,7 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
 
     /* header chunk */
     if (read_u32le(offset + 0x00,sf) != 0x80000001) /* 'basic info' chunk */
-        goto fail;
+        return NULL;
     /* 0x04: chunk size (should be 0x24) */
 
     /* 0x08: version (0) */
@@ -62,7 +62,7 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
     /* 'data info' chunk */
     data_offset += offset;
     if (read_u32le(data_offset, sf) != 0x80000004)
-        goto fail;
+        return NULL;
 
     data_size = read_u32le(data_offset + 0x04, sf);
 
@@ -73,7 +73,7 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
     vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_type;
+    vgmstream->meta_type = meta_OPUS;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
@@ -131,7 +131,7 @@ VGMSTREAM* init_vgmstream_opus_std(STREAMFILE* sf) {
 
     /* checks */
     if (read_u32le(0x00,sf) != 0x80000001) /* 'basic info' chunk */
-        goto fail;
+        return NULL;
 
     /* .opus: standard / .lopus: for plugins
      * .bgm: Cotton Reboot (Switch)
@@ -139,7 +139,7 @@ VGMSTREAM* init_vgmstream_opus_std(STREAMFILE* sf) {
      * .ogg: Trouble Witches Origin (Switch)
      * .opusnx: Sweet Café Collection (Switch) */
     if (!check_extensions(sf,"opus,lopus,bgm,opu,ogg,logg,opusnx"))
-        goto fail;
+        return NULL;
 
     offset = 0x00;
 
@@ -158,9 +158,7 @@ VGMSTREAM* init_vgmstream_opus_std(STREAMFILE* sf) {
         loop_end = 0;
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples,loop_start,loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples,loop_start,loop_end);
 }
 
 /* Nippon1 variation [Disgaea 5 (Switch)] */
@@ -171,18 +169,16 @@ VGMSTREAM* init_vgmstream_opus_n1(STREAMFILE* sf) {
     /* checks */
     if (!((read_u32be(0x04,sf) == 0x00000000 && read_u32be(0x0c,sf) == 0x00000000) ||
           (read_u32be(0x04,sf) == 0xFFFFFFFF && read_u32be(0x0c,sf) == 0xFFFFFFFF)))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf,"opus,lopus"))
-        goto fail;
+        return NULL;
 
     offset = 0x10;
     num_samples = 0;
     loop_start = read_s32le(0x00,sf);
     loop_end = read_s32le(0x08,sf);
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples,loop_start,loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples,loop_start,loop_end);
 }
 
 /* Capcom variation [Ultra Street Fighter II (Switch), Resident Evil: Revelations (Switch)] */
@@ -194,20 +190,20 @@ VGMSTREAM* init_vgmstream_opus_capcom(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf,"opus,lopus"))
-        goto fail;
+        return NULL;
 
-    channels = read_32bitLE(0x04,sf);
+    channels = read_s32le(0x04,sf);
     if (channels != 1 && channels != 2 && channels != 6)
-        goto fail; /* unknown stream layout */
+        return NULL; /* unknown stream layout */
 
-    num_samples = read_32bitLE(0x00,sf);
+    num_samples = read_s32le(0x00,sf);
     /* 0x04: channels, >2 uses interleaved streams (2ch+2ch+2ch) */
-    loop_start = read_32bitLE(0x08,sf);
-    loop_end = read_32bitLE(0x0c,sf);
+    loop_start = read_s32le(0x08,sf);
+    loop_end = read_s32le(0x0c,sf);
     /* 0x10: frame size (with extra data) */
     /* 0x14: extra chunk count */
     /* 0x18: null */
-    offset = read_32bitLE(0x1c,sf);
+    offset = read_s32le(0x1c,sf);
     /* 0x20-8: config? (0x0077C102 04000000 E107070C) */
     /* 0x2c: some size? */
     /* 0x30+: extra chunks (0x00: 0x7f, 0x04: num_sample), alt loop starts/regions? */
@@ -237,7 +233,7 @@ VGMSTREAM* init_vgmstream_opus_capcom(STREAMFILE* sf) {
             STREAMFILE* temp_sf = setup_opus_interleave_streamfile(sf, offset, i, layers);
             if (!temp_sf) goto fail;
 
-            data->layers[i] = init_vgmstream_opus(temp_sf, meta_OPUS, 0x00, num_samples,loop_start,loop_end);
+            data->layers[i] = init_vgmstream_opus(temp_sf, 0x00, num_samples,loop_start,loop_end);
             close_streamfile(temp_sf);
             if (!data->layers[i]) goto fail;
         }
@@ -256,7 +252,7 @@ VGMSTREAM* init_vgmstream_opus_capcom(STREAMFILE* sf) {
         return vgmstream;
     }
     else {
-        return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples,loop_start,loop_end);
+        return init_vgmstream_opus(sf, offset, num_samples,loop_start,loop_end);
     }
 
 
@@ -315,7 +311,7 @@ VGMSTREAM* init_vgmstream_opus_nop(STREAMFILE* sf) {
         loop_end = 0;
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* Shin'en variation [Fast RMX (Switch)] */
@@ -325,9 +321,9 @@ VGMSTREAM* init_vgmstream_opus_shinen(STREAMFILE* sf) {
 
     /* checks */
     if (read_u32be(0x08,sf) != 0x01000080)
-        goto fail;
+        return NULL;
     if (!check_extensions(sf,"opus,lopus"))
-        goto fail;
+        return NULL;
 
     offset = 0x08;
     loop_start = read_s32le(0x00,sf);
@@ -338,11 +334,9 @@ VGMSTREAM* init_vgmstream_opus_shinen(STREAMFILE* sf) {
     num_samples = -1;
 
     if (loop_start > loop_end)
-        goto fail; /* just in case */
+        return NULL; /* just in case */
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* Bandai Namco Opus (found in NUS3Banks) [Taiko no Tatsujin: Nintendo Switch Version!] */
@@ -352,27 +346,25 @@ VGMSTREAM* init_vgmstream_opus_nus3(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "OPUS"))
-        goto fail;
+        return NULL;
 
     /* .opus: header ID (they only exist inside .nus3bank) */
     if (!check_extensions(sf, "opus,lopus"))
-        goto fail;
+        return NULL;
 
     /* Here's an interesting quirk, OPUS header contains big endian values
        while the Nintendo Opus header and data that follows remain little endian as usual */
-    offset = read_32bitBE(0x20, sf);
-    num_samples = read_32bitBE(0x08, sf);
+    offset = read_s32be(0x20, sf);
+    num_samples = read_s32be(0x08, sf);
 
     /* Check if there's a loop end value to determine loop_flag*/
-    loop_flag = read_32bitBE(0x18, sf);
+    loop_flag = read_s32be(0x18, sf);
     if (loop_flag) {
-        loop_start = read_32bitBE(0x14, sf);
-        loop_end = read_32bitBE(0x18, sf);
+        loop_start = read_s32be(0x14, sf);
+        loop_end = read_s32be(0x18, sf);
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* Nippon Ichi SPS wrapper (non-segmented) [Ys VIII: Lacrimosa of Dana (Switch)] */
@@ -382,32 +374,32 @@ VGMSTREAM* init_vgmstream_opus_sps_n1(STREAMFILE* sf) {
 
     /* checks */
     if (read_u32be(0x00, sf) != 0x09000000) /* file type (see other N1 SPS) */
-        goto fail;
+        return NULL;
 
     /* .sps: Labyrinth of Refrain: Coven of Dusk (Switch)
      * .nlsd: Disgaea Refine (Switch), Ys VIII (Switch)
      * .at9: void tRrLM(); //Void Terrarium (Switch)
      * .opus: Asatsugutori (Switch) */
     if (!check_extensions(sf, "sps,nlsd,at9,opus,lopus"))
-        goto fail;
+        return NULL;
 
-    num_samples = read_32bitLE(0x0C, sf);
+    num_samples = read_s32le(0x0C, sf);
 
-    if (read_32bitBE(0x1c, sf) == 0x01000080) {
+    if (read_u32be(0x1c, sf) == 0x01000080) {
         offset = 0x1C;
 
         /* older games loop section (remnant of segmented opus_sps_n1): */
-        loop_start = read_32bitLE(0x10, sf); /* intro samples */
-        loop_end = loop_start + read_32bitLE(0x14, sf); /* loop samples */
+        loop_start = read_s32le(0x10, sf); /* intro samples */
+        loop_end = loop_start + read_s32le(0x14, sf); /* loop samples */
         /* 0x18: end samples (all must add up to num_samples) */
-        loop_flag = read_32bitLE(0x18, sf); /* with loop disabled only loop_end has a value */
+        loop_flag = read_s32le(0x18, sf); /* with loop disabled only loop_end has a value */
     }
     else {
         offset = 0x18;
 
         /* newer games loop section: */
-        loop_start = read_32bitLE(0x10, sf);
-        loop_end = read_32bitLE(0x14, sf);
+        loop_start = read_s32le(0x10, sf);
+        loop_end = read_s32le(0x14, sf);
         loop_flag = loop_start != loop_end; /* with loop disabled start and end are the same as num samples */
     }
 
@@ -416,9 +408,7 @@ VGMSTREAM* init_vgmstream_opus_sps_n1(STREAMFILE* sf) {
         loop_end = 0;
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
@@ -429,16 +419,16 @@ VGMSTREAM* init_vgmstream_opus_opusx(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "OPUS"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "opusx"))
-        goto fail;
+        return NULL;
 
     offset = 0x10;
     /* values are for the original 44100 files, but Opus resamples to 48000 */
     modifier = 48000.0f / 44100.0f;
-    num_samples = 0;//read_32bitLE(0x04, sf) * modifier; /* better use calc'd num_samples */
-    loop_start = read_32bitLE(0x08, sf) * modifier;
-    loop_end = read_32bitLE(0x0c, sf) * modifier;
+    num_samples = 0; //read_s32le(0x04, sf) * modifier; /* better use calc'd num_samples */
+    loop_start = read_s32le(0x08, sf) * modifier;
+    loop_end = read_s32le(0x0c, sf) * modifier;
 
     /* resampling calcs are slighly off and may to over num_samples, but by removing delay seems ok */
     if (loop_start >= 120) {
@@ -449,9 +439,7 @@ VGMSTREAM* init_vgmstream_opus_opusx(STREAMFILE* sf) {
         loop_end = 0;
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* Prototype variation [Clannad (Switch)] */
@@ -461,25 +449,23 @@ VGMSTREAM* init_vgmstream_opus_prototype(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "OPUS"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "opus,lopus"))
-        goto fail;
-    if (read_32bitBE(0x18, sf) != 0x01000080)
-        goto fail;
+        return NULL;
+    if (read_u32be(0x18, sf) != 0x01000080)
+        return NULL;
 
     offset = 0x18;
-    num_samples = read_32bitLE(0x08, sf);
+    num_samples = read_s32le(0x08, sf);
 
     /* Check if there's a loop end value to determine loop_flag*/
-    loop_flag = read_32bitLE(0x10, sf);
+    loop_flag = read_s32le(0x10, sf);
     if (loop_flag) {
-        loop_start = read_32bitLE(0x0C, sf);
-        loop_end = read_32bitLE(0x10, sf);
+        loop_start = read_s32le(0x0C, sf);
+        loop_end = read_s32le(0x10, sf);
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* Edelweiss variation [Astebreed (Switch)] */
@@ -489,18 +475,16 @@ VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id64be(0x00, sf,"OPUSNX\0\0"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "opus,lopus"))
-        goto fail;
+        return NULL;
 
     offset = 0x10;
-    num_samples = 0; //read_32bitLE(0x08, sf); /* samples with encoder delay */
-    if (read_32bitLE(0x0c, sf) != 0)
-        goto fail;
+    num_samples = 0; //read_s32le(0x08, sf); /* samples with encoder delay */
+    if (read_s32le(0x0c, sf) != 0)
+        return NULL;
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* Edelweiss variation [Sakuna: Of Rice and Ruin (Switch)] */
@@ -510,16 +494,14 @@ VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf,"EWNO"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "nsopus"))
-        goto fail;
+        return NULL;
 
     offset = 0x08;
-    num_samples = 0; //read_32bitLE(0x08, sf); /* samples without encoder delay? (lower than count) */
+    num_samples = 0; //read_s32le(0x08, sf); /* samples without encoder delay? (lower than count) */
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 /* Square Enix variation [Dragon Quest I-III (Switch)] */
@@ -529,25 +511,23 @@ VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf) {
 
     /* checks */
     if (read_u32be(0x00, sf) != 0x01000000)
-        goto fail;
+        return NULL;
 
     /* .wav: original */
     if (!check_extensions(sf, "wav,lwav"))
-        goto fail;
+        return NULL;
     /* 0x04: channels */
     /* 0x08: data_size */
-    offset = read_32bitLE(0x0C, sf);
-    num_samples = read_32bitLE(0x1C, sf);
+    offset = read_s32le(0x0C, sf);
+    num_samples = read_s32le(0x1C, sf);
 
-    loop_flag = read_32bitLE(0x18, sf);
+    loop_flag = read_s32le(0x18, sf);
     if (loop_flag) {
-        loop_start = read_32bitLE(0x14, sf);
-        loop_end = read_32bitLE(0x18, sf);
+        loop_start = read_s32le(0x14, sf);
+        loop_end = read_s32le(0x18, sf);
     }
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
 
@@ -558,9 +538,9 @@ VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf,"RSND"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "rsnd"))
-        goto fail;
+        return NULL;
     /* 0x04: 00? (16b)*/
     /* 0x06: 00? (8b)*/
     loop_flag = read_u8(0x07, sf);
@@ -574,7 +554,20 @@ VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf) {
     num_samples = 0; /* not loop_end as it isn't set when looping is disabled */
 
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
-fail:
-    return NULL;
+    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
+}
+
+/* CUBETYPE(?) variation [Touhou Kobuto V (Switch)] */
+VGMSTREAM* init_vgmstream_opus_opns(STREAMFILE* sf) {
+
+    /* checks */
+    if (!is_id32be(0x00, sf,"OPNS"))
+        return NULL;
+    if (!check_extensions(sf, "opusnsw"))
+        return NULL;
+    // 0x04: hash/flags?
+
+    off_t offset = 0x08;
+    int32_t num_samples = 0;
+    return init_vgmstream_opus(sf, offset, num_samples, 0, 0);
 }

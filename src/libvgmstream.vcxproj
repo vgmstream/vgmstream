@@ -870,6 +870,7 @@
     <ClCompile Include="meta\xa_xa30.c" />
     <ClCompile Include="meta\xma.c" />
     <ClCompile Include="meta\xma_ue3.c" />
+    <ClCompile Include="meta\xma_ue5.c" />
     <ClCompile Include="meta\xmd.c" />
     <ClCompile Include="meta\xmu.c" />
     <ClCompile Include="meta\xnb.c" />

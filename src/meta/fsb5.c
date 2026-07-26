@@ -65,6 +65,8 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
      * (some FSB5 CLI versions make buggy offsets = bad output but this was fixed later) */
     if (fsb5.stream_offset > 0x7FFFFFFF) {
         sb = setup_subfile_streamfile(sf, fsb5.stream_offset, fsb5.stream_size, NULL);
+        if (!sb) goto fail;
+
         fsb5.stream_offset = 0x00;
     }
     else {

@@ -71,6 +71,7 @@
 
 #define LITTLE_ENDIAN_OUTPUT 1 /* untested in BE */
 
+#define CLI_MAX_BUFFER_SIZE_KB (0x200000/1024) // arbitrary max but avoid inderflow
 
 #define DEFAULT_CONFIG { 0, 0, 0, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0,  0, 0 }
 typedef struct {
@@ -279,7 +280,7 @@ fail:
 
 static int play_vgmstream(const char* filename, song_config_t* cfg) {
     int ret = 0;
-    FILE* save_fps[4];
+    FILE* save_fps[4] = {0};
     size_t buffer_size;
     int32_t max_buffer_samples;
 
@@ -342,9 +343,10 @@ static int play_vgmstream(const char* filename, song_config_t* cfg) {
      */
     buffer_size = 1024 * buffer_size_kb;
     if (!buffer) {
-        if (buffer_size_kb < 1) {
+        if (buffer_size_kb < 1 || buffer_size_kb > CLI_MAX_BUFFER_SIZE_KB) {
             fprintf(stderr, "Invalid buffer size '%d'\n", buffer_size_kb);
-            return -1;
+            ret = -1;
+            goto fail;
         }
 
         buffer = malloc(buffer_size * vgmstream->format->sample_size);
@@ -556,8 +558,10 @@ static int play_compressed_file(const char* filename, song_config_t* cfg, const 
     cmd = malloc(strlen(filename) + 1024);
     temp_file = malloc(strlen(filename) + 256);
 
-    if (!cmd || !temp_file)
-        return -2;
+    if (!cmd || !temp_file) {
+        ret = -2;
+        goto fail;
+    }
 
     if (!mkdtemp(temp_dir)) {
         fprintf(stderr, "%s: error creating temp dir for decompression\n", temp_dir);

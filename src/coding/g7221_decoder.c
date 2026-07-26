@@ -3,7 +3,8 @@
 #ifdef VGM_USE_G7221
 #include "libs/g7221_lib.h"
 
-#define G7221_MAX_FRAME_SIZE 0x78   /* 960/8 */
+#define G7221_MIN_FRAME_SIZE 0x3c
+#define G7221_MAX_FRAME_SIZE 0x78
 #define G7221_MAX_FRAME_SAMPLES 640 /* 32000/50 */
 
 struct g7221_codec_data {
@@ -16,10 +17,10 @@ struct g7221_codec_data {
 };
 
 g7221_codec_data* init_g7221(int channels, int frame_size) {
-    int i;
     g7221_codec_data* data = NULL;
 
-    if (frame_size > G7221_MAX_FRAME_SIZE)
+    // valid frame sizes are 0x3c (480/8), 0x50 (640/8) and 0x78 (960/8)
+    if (frame_size < G7221_MIN_FRAME_SIZE || frame_size > G7221_MAX_FRAME_SIZE)
         goto fail;
 
     data = calloc(1, sizeof(g7221_codec_data));
@@ -31,7 +32,7 @@ g7221_codec_data* init_g7221(int channels, int frame_size) {
     data->ch = calloc(channels, sizeof(struct g7221_channel_data));
     if (!data->ch) goto fail;
 
-    for (i = 0; i < data->channels; i++) {
+    for (int i = 0; i < data->channels; i++) {
         data->ch[i].handle = g7221_init(frame_size);
         if (!data->ch[i].handle) goto fail;
     }
@@ -48,9 +49,8 @@ void decode_g7221(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, in
     VGMSTREAMCHANNEL* ch = &vgmstream->ch[channel];
     g7221_codec_data* data = vgmstream->codec_data;
     struct g7221_channel_data* ch_data = &data->ch[channel];
-    int i;
 
-    if (0 == vgmstream->samples_into_block) {
+    if (vgmstream->samples_into_block == 0) {
         uint8_t buf[G7221_MAX_FRAME_SIZE];
         size_t bytes;
         size_t read = data->frame_size;
@@ -66,7 +66,7 @@ void decode_g7221(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, in
         }
     }
 
-    for (i = 0; i < samples_to_do; i++) {
+    for (int i = 0; i < samples_to_do; i++) {
         outbuf[i*channelspacing] = ch_data->buffer[vgmstream->samples_into_block+i];
     }
 }

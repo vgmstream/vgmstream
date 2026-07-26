@@ -46,7 +46,7 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
     uint8_t* buf = NULL;
     uint64_t keys_offset;
     uint32_t keys_limit;
-    int pos, step;
+    int pos, step, key_size;
     uint64_t key = 0, old_key = 0;
     hca_keytest_t hk = {0};
 
@@ -72,8 +72,14 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
     switch(type) {
         case HBF_TYPE_64LE_1:
         case HBF_TYPE_64BE_1:
+            key_size = 0x08;
+            step = 0x01;
+            break;
         case HBF_TYPE_32LE_1:
-        case HBF_TYPE_32BE_1: step = 0x01; break;
+        case HBF_TYPE_32BE_1: 
+            key_size = 0x04;
+            step = 0x01;
+            break;
         //case HBF_TYPE_64LE_4:
         //case HBF_TYPE_64BE_4:
         //case HBF_TYPE_32LE_4:
@@ -87,7 +93,7 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
     pos = 0;
     while (true) {
         /* read new chunk */
-        if (pos >= keys_limit) {
+        if (pos + key_size >= keys_limit) {
             if (keys_offset + keys_limit == get_streamfile_size(sf_keys))
                 break;
             if (keys_limit >= 8)
@@ -95,8 +101,9 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
 
             VGM_LOG("HCA BF: reading %llx + ...\n", (long long)keys_offset);
             keys_limit = read_streamfile(buf, keys_offset, HCA_BF_CHUNK, sf_keys);
-            if (keys_limit == 0)
-                return;
+            if (keys_limit < key_size)
+                break;
+            keys_limit -= key_size;
             pos = 0;
         }
 

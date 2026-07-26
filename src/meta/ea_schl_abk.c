@@ -8,6 +8,8 @@
 #define EA_BNK_HEADER_LE            0x424E4B6C /* "BNKl" */
 #define EA_BNK_HEADER_BE            0x424E4B62 /* "BNKb" */
 
+#define EA_ABK_MAX_TABLES           0x400
+
 static VGMSTREAM* init_vgmstream_ea_abk_schl_main(STREAMFILE* sf);
 
 /* .ABK - standard */
@@ -118,7 +120,7 @@ static VGMSTREAM* init_vgmstream_ea_abk_schl_main(STREAMFILE* sf) {
     uint32_t i, j, k, num_sounds, num_sample_tables;
     uint16_t num_modules;
     uint8_t sound_type, num_players;
-    off_t sample_tables[0x400];
+    off_t sample_tables[EA_ABK_MAX_TABLES];
     STREAMFILE* sf_ast = NULL;
     VGMSTREAM* vgmstream = NULL;
     segmented_layout_data* data_s = NULL;
@@ -175,6 +177,8 @@ static VGMSTREAM* init_vgmstream_ea_abk_schl_main(STREAMFILE* sf) {
             if (is_dupe)
                 continue;
 
+            if (num_sample_tables >= EA_ABK_MAX_TABLES)
+                goto fail;
             sample_tables[num_sample_tables++] = samples_table;
             num_sounds = read_u32(samples_table, sf);
             if (num_sounds == 0xffffffff) goto fail; /* EOF read */

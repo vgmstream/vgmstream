@@ -93,7 +93,8 @@ rc_t render_layout_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         // returned buf may have changed
         if (ssrc->buf != buf_filled) {
             sbuf_copy_segments(sbuf, ssrc, ssrc->filled);
-        } else {
+        }
+        else {
             //TODO ???
             sbuf->filled += ssrc->filled;
         }
@@ -115,6 +116,11 @@ void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample) {
     int segment = 0;
     int total_samples = 0;
     while (total_samples < vgmstream->num_samples) {
+        // should be clamped but just in case
+        if (segment >= data->segment_count) {
+            VGM_LOG("SEGMENTED: wrong seeking past existing segments\n");
+            break;
+        }
         int32_t segment_samples = vgmstream_get_samples(data->segments[segment]);
 
         /* find if sample falls within segment's samples */

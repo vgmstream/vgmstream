@@ -280,9 +280,9 @@ size_t yamaha_bytes_to_samples(size_t bytes, int channels) {
     return bytes * 2 / channels;
 }
 
-size_t aska_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
-    int block_align = frame_size;
-    if (channels <= 0) return 0;
-    return (bytes / block_align) * (block_align - 0x04*channels) * 2 / channels
-            + ((bytes % block_align) ? ((bytes % block_align) - 0x04*channels) * 2 / channels : 0);
+size_t aska_bytes_to_samples(size_t bytes, size_t block_size, int channels) {
+    if (block_size <= 0 || channels <= 0)
+        return 0;
+    return (bytes / block_size) * (block_size - 0x04*channels) * 2 / channels
+            + ((bytes % block_size) ? ((bytes % block_size) - 0x04*channels) * 2 / channels : 0);
 }

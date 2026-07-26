@@ -16,17 +16,17 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "RIFF"))
-        goto fail;
+        return NULL;
     if (read_u32le(0x04,sf) + 0x04 + 0x04 != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
     if (!is_id32be(0x08,sf, "WAVE"))
-        goto fail;
+        return NULL;
 
     /* .sns: Red Steel 2
      * .wav: Tintin, Just Dance
      * .son: From Dust, ZombieU */
     if (!check_extensions(sf,"sns,wav,lwav,son"))
-        goto fail;
+        return NULL;
 
     /* a slightly eccentric RIFF with custom codecs */
 
@@ -84,7 +84,7 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
                     break;
 
                 default:
-                    /* unknown chunk: must be another RIFF */
+                    /* unknown chunk: it's another type of RIFF */
                     goto fail;
             }
         }
@@ -123,7 +123,7 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
 
             /* setup default Ubisoft coefs */
             {
-                static const int16_t coef[16] = {
+                static const int16_t ubi_lyn_dsp_coefs[16] = {
                         0x04ab,0xfced,0x0789,0xfedf,0x09a2,0xfae5,0x0c90,0xfac1,
                         0x084d,0xfaa4,0x0982,0xfdf7,0x0af6,0xfafa,0x0be6,0xfbf5
                 };
@@ -131,7 +131,7 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
 
                 for (ch = 0; ch < channels; ch++) {
                     for (i = 0; i < 16; i++) {
-                        vgmstream->ch[ch].adpcm_coef[i] = coef[i];
+                        vgmstream->ch[ch].adpcm_coef[i] = ubi_lyn_dsp_coefs[i];
                     }
                 }
             }
@@ -143,7 +143,6 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
         case 0x3157: {  /* Ogg (PC), interleaved 1ch (newer version) [Adventures of Tintin (PC)] */
             size_t interleave_size;
             layered_layout_data* data = NULL;
-            int i;
 
             if (codec == 0x3157) {
                 if (read_u32le(start_offset+0x00,sf) != 1) /* id? */
@@ -163,7 +162,7 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             vgmstream->layout_data = data;
 
             /* open each layer subfile */
-            for (i = 0; i < channels; i++) {
+            for (int i = 0; i < channels; i++) {
                 STREAMFILE* temp_sf = NULL;
                 size_t logical_size = read_u32le(start_offset+0x04 + 0x04*i,sf);
                 off_t layer_offset = start_offset + 0x04 + 0x04*channels;
@@ -189,22 +188,25 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
 #ifdef VGM_USE_MPEG
         case 0x5051: { /* MPEG (PS3/PC), interleaved 1ch */
             mpeg_custom_config cfg = {0};
-            int i, frame_samples;
+            int frame_samples;
 
             /* 0x00: config? (related to chunk size? 2=Tintin, some JD4?, 3=Michael Jackson, JD4) */
             cfg.interleave = read_u32le(start_offset+0x04,sf);
-            /* 0x08: CBR frame size (not counting MPEG padding) */
-            /* 0x0c: bps (32) */
+            // 0x08: CBR frame size (not counting MPEG padding)
+            // 0x0c: bps (32)
             frame_samples = read_s32le(start_offset+0x10,sf);
+
+            if (cfg.interleave <= 0 || frame_samples <= 0) // div-by-zero below
+                goto fail;
 
             /* skip seek tables and find actual start */
             /* table: entries per channel (1 per chunk, but not chunk-aligned?) */
-            /* - 0x00: offset but same for both channels? */
-            /* - 0x04: flag? (-1~-N) */
-            /* - 0x06: flag? (-1~-N) */
+            // - 0x00: offset but same for both channels?
+            // - 0x04: flag? (-1~-N)
+            // - 0x06: flag? (-1~-N)
             start_offset += 0x14;
             data_size -= 0x14;
-            for (i = 0; i < channels; i++) {
+            for (int i = 0; i < channels; i++) {
                 int entries = read_s32le(start_offset,sf);
 
                 start_offset += 0x04 + entries*0x08;
@@ -244,9 +246,11 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             mp4_custom_t mp4 = {0};
             int entries;
 
-            /* 0x00: null? */
-            /* 0x04: fact samples again */
+            // 0x00: null?
+            // 0x04: fact samples again
             entries = read_s32le(start_offset + 0x08, sf);
+            if (entries <= 0 || entries >= 0x4000) // arbitrary max (~1000 isn't uncommon)
+                goto fail;
 
             /* has a seek/frame table then raw (non-header) AAC data */
             mp4.channels = channels;
@@ -258,7 +262,7 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             mp4.table_entries = entries;
 
             /* assumed (not in fmt's block size, fact, LyN, etc) */
-            mp4.encoder_delay = 1024; /* observed, uses libaac */
+            mp4.encoder_delay = 1024; // observed, uses libaac
             mp4.end_padding = 0;
             mp4.frame_samples = 1024;
 

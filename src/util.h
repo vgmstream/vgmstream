@@ -44,6 +44,7 @@ static inline /*const*/ uint64_t get_id64be(const char* s) {
 /* less common functions, no need to inline */
 
 uint32_t clamp_u32(uint32_t v, uint32_t min, uint32_t max);
+int32_t clamp_s32(int32_t v, int32_t min, int32_t max);
 
 #define align_size align_size_to_block
 

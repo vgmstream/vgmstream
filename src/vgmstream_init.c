@@ -516,6 +516,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_pxnd,
     init_vgmstream_nxms,
     init_vgmstream_saud,
+    init_vgmstream_opus_opns,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_joe,
@@ -561,6 +562,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bwav_warthog,
     init_vgmstream_cwv,
     init_vgmstream_xma_ue3,
+    init_vgmstream_xma_ue5,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,

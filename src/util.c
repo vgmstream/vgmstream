@@ -32,6 +32,13 @@ uint32_t clamp_u32(uint32_t v, uint32_t min, uint32_t max) {
     return v;
 }
 
+/* math helpers */
+int32_t clamp_s32(int32_t v, int32_t min, int32_t max) {
+    if (v < min) return min;
+    if (v > max) return max;
+    return v;
+}
+
 size_t align_size_to_block(size_t value, size_t block_align) {
     if (!block_align)
         return 0;

@@ -84,6 +84,7 @@ static const char* extension_list[] = {
     "ast",
     "at3",
     "at9",
+    "at9psv",
     "atsl",
     "atsl3",
     "atsl4",
@@ -443,6 +444,7 @@ static const char* extension_list[] = {
     "oor",
     "opu",
     //"opus", //common
+    "opusnsw",
     "opusnx",
     "opusx",
     "oto", //txth/reserved [Vampire Savior (SAT)]
@@ -1462,7 +1464,7 @@ static const meta_info meta_info_list[] = {
         {meta_BMP_KONAMI,           "Konami BMP header"},
         {meta_ISB,                  "Creative ISACT header"},
         {meta_XSSB,                 "Artoon XSSB header"},
-        {meta_XMA_UE3,              "Unreal Engine XMA header"},
+        {meta_XMA_UE3,              "Unreal Engine 3 XMA header"},
         {meta_FWSE,                 "MT Framework FWSE header"},
         {meta_FDA,                  "Relic FDA header"},
         {meta_TGC,                  "Tiger Game.com .4 header"},
@@ -1551,6 +1553,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXMS,                 "Arika NXMS header"},
         {meta_SAUD,                 "LucasArts SAUD header"},
         {meta_CWV,                  "Nintendo .CWV header"},
+        {meta_XMA_UE5,              "Unreal Engine 5 XMA header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

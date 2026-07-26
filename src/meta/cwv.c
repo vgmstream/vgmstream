@@ -15,7 +15,7 @@ VGMSTREAM* init_vgmstream_cwv(STREAMFILE* sf) {
 
     // .cwv are loose files with a footer, fully read and decoded in memory. There doesn't seem to be
     // debug strings or anything to identify this format, but OG code checks that extension is .cwv before decoding.
-    // Decoder also aligns dst buffer to 0x1000, and seems to copy the footer than to the decoded data.
+    // Decoder also aligns dst buffer to 0x1000, and seems to copy the footer to the decoded data.
     uint32_t footer_offset = file_size - 0x100;
 
     meta_header_t hdr = {0};

@@ -495,8 +495,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .wxv: Dariusburst (PSP)[ATRAC3]
      * .vag: Knight Rider (PS2)
      * .xbw: Elminage: Yami no Fujo to Kamigami no Yubiwa (PS2)
+     * .at9psv: Touhou Kobuto V - Burst Battle (Vita)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst,wxv,vag,xbw")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst,wxv,vag,xbw,at9psv")) {
         return NULL;
     }
 

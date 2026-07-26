@@ -2,7 +2,9 @@
 #include "libs/libacm.h"
 #include <stdio.h>
 
-/* libacm from: https://github.com/markokr/libacm */
+/* libacm from: https://github.com/markokr/libacm
+ * Extra info: https://github.com/gemrb/gemrb/tree/master/gemrb/plugins/ACMReader
+ */
 
 
 /* libacm interface */

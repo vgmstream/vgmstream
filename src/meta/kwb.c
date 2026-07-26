@@ -2,6 +2,8 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 
+#define KWB_MAX_DEPTH 3
+
 typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9, MSF_APEX, XMA2, WBND_SDBK } kwb_codec;
 
 typedef struct {
@@ -724,7 +726,13 @@ static bool parse_type_wbnd_sdbk(kwb_header_t* kwb, uint32_t xwb_offset, uint32_
     return true;
 }
 
-static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAMFILE* sf) {
+static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAMFILE* sf, int depth) {
+
+    // avoid stack overflow (unlikely but just in case for buggy files)
+    if (depth >= KWB_MAX_DEPTH) {
+        vgm_logi("KWB: long recursion found\n");
+        return false;
+    }
 
     uint64_t id = read_u64be(offset + 0x00, sf);
     if ( !(id == get_id64be("XWSFILE\0") || id == get_id64be("tdpack\0\0") || id == get_id64be("SND\0\0\0\0\0")) )
@@ -753,7 +761,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
     // 0x2c: null
 
 
-    int i = 0;
+    int i = 0; // some chunks are skipped below
     while (i < chunks) {
         //;VGM_LOG("XWS: entry %i/%i\n", i, chunks);
 
@@ -771,26 +779,30 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             head_offset = read_u32(offset + table1_offset + i * 0x04, sf);
         }
 
-        if (!head_offset) { /* just in case */
+        if (head_offset == 0x00) { /* just in case */
             i += 1;
             continue;
         }
 
         head_offset += offset;
+        if (head_offset == offset) {
+            // unlikely but possible with overflows?
+            VGM_LOG("XWS: wrong chunk at %x\n", offset);
+            return false;
+        }
 
         //;VGM_LOG("XWS: head=%x + %x\n", head_offset, head_size);
 
         uint32_t entry_type = read_u32be(head_offset + 0x00, sf);
         if (entry_type == get_id32be("XWSF")) { //+ "ILE\0"
             i += 1;
-            if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf))
-                return false;;
+            if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf, depth + 1))
+                return false;
         }
         else if (entry_type == get_id32be("tdpa")) { // + "ck\0\0"
             i += 1;
-            if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf))
-                return false;;
-            continue;
+            if (!parse_type_xwsfile_tdpack(kwb, head_offset, sf, depth + 1))
+                return false;
         }
         else if (entry_type == get_id32be("_HBW")) {
             // .wbh+wbd with KWB2 [Ninja Gaiden Sigma (PC)]
@@ -801,7 +813,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             i += 1;
 
             if (!parse_wbh_wbd(kwb, sf, head_offset, sf, body_offset))
-                return false;;
+                return false;
         }
         else if (entry_type == get_id32be("CUEB") || entry_type < 0x100) {
             // CUE-like info (may start with 0 or a low number instead)
@@ -810,7 +822,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
         else if (entry_type == get_id32be("MSFB")) { //+ "ANK\0" 
             i += 1;
             if (!parse_type_msfbank(kwb, head_offset, sf))
-                return false;;
+                return false;
         }
         else if (entry_type == get_id32be("KWB2")) {
             // NG2/3 PC, DoA LR PC goes head,body,...
@@ -819,7 +831,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             i += 2;
 
             if (!parse_type_kwb2(kwb, head_offset, body_offset, sf))
-                return false;;
+                return false;
         }
         else if (entry_type == get_id32be("PVHD")) {
             // [Ninja Gaiden 2 Sigma Plus (Vita)]
@@ -831,7 +843,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
                 return false;
 
             if (!parse_type_kwb2(kwb, head_offset, body_offset, sf))
-                return false;;
+                return false;
         }
         else if (entry_type == get_id32be("DNBW")) {
             // .xwb+.xsd [Ninja Gaiden 2 (X360)]
@@ -849,7 +861,7 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             i += 1;
 
             if (!parse_type_wbnd_sdbk(kwb, xwb_offset, xwb_size, kbds_offset, kbds_size, sf))
-                return false;;
+                return false;
         }
         else if (entry_type == get_id32be("0000")) {
             // dummy/padding (all '0') [Ninja Gaiden 2 (X360)]
@@ -860,11 +872,11 @@ static bool parse_type_xwsfile_tdpack(kwb_header_t* kwb, uint32_t offset, STREAM
             // SND has 2 config chunks after first (no header id)
             if (is_snd && i > 0) {
                 i += 1;
-                continue;
             }
-
-            vgm_logi("XWS: unknown chunk %i (%x) with head=%x at %x\n", i, entry_type, head_offset, offset);
-            return false;
+            else {
+                vgm_logi("XWS: unknown chunk %i (%x) with head=%x at %x\n", i, entry_type, head_offset, offset);
+                return false;
+            }
         }
     }
 
@@ -887,7 +899,7 @@ static bool parse_xws(kwb_header_t* kwb, STREAMFILE* sf) {
      *
      * Needs to call sub-parts multiple times to fill total subsongs when parsing xwsfile.
      */
-    if (!parse_type_xwsfile_tdpack(kwb, 0x00, sf))
+    if (!parse_type_xwsfile_tdpack(kwb, 0x00, sf, 0))
         return false;
 
     if (!kwb->found)

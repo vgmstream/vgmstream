@@ -240,9 +240,11 @@ void blowfish_decrypt(blowfish_ctx* ctx, uint32_t* p_xl, uint32_t* p_xr) {
 }
 
 
-blowfish_ctx* blowfish_init_ecb(uint8_t* key, int32_t key_len) {
-    uint32_t xl, xr;
-    uint8_t tmpkey[18*4];
+blowfish_ctx* blowfish_init_ecb(uint8_t* key, int key_len) {
+    uint8_t tmpkey[18 * 4];
+
+    if (key_len <= 0)
+        return NULL;
 
     blowfish_ctx* ctx = calloc(1, sizeof(blowfish_ctx));
     if (!ctx) return NULL;
@@ -267,8 +269,8 @@ blowfish_ctx* blowfish_init_ecb(uint8_t* key, int32_t key_len) {
     }
     
     /* encrypt 0s with blowfish, using the calculated P subkeys, and replace Pn with each step */
-    xl = 0x00000000;
-    xr = 0x00000000;
+    uint32_t xl = 0x00000000;
+    uint32_t xr = 0x00000000;
     for (int i = 0; i < 18; i += 2) {
         blowfish_encrypt(ctx, &xl, &xr);
         /* Replace P1 and P2 with the output of step */

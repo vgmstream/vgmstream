@@ -9,7 +9,11 @@
 #define VAB_MAX(x,y) ((x)>(y)?(x):(y))
 #define VAB_CLAMP(x,min,max) VAB_MIN(VAB_MAX(x,min),max)
 
-static bool read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, int* fine, int* uselimits) {
+/* Read ".vab_config", used to override default note/fine/clamping.
+ * Format: N lines like "file: program, tone, note, fine, use_limits" (file can be a wildcard).
+ * Example: "*.vab: -1, -1, 120, 0, 0" = for any program and tone, apply note 120 (no fine, no VAB clamping).
+*/
+static bool read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, int* fine, int* use_limits) {
     char filename[PATH_LIMIT];
     off_t txt_offset, file_size;
     STREAMFILE* sf_cfg = NULL;
@@ -59,21 +63,25 @@ static bool read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, i
         if (ok != 5)
             continue;
 
+        // target program must match (-1 = any)
         if (cfg_program >= 0 && program != cfg_program)
             continue;
 
+        // target tone must match (-1 = any)
         if (cfg_tone >= 0 && tone != cfg_tone)
             continue;
 
         *note = cfg_note;
         *fine = cfg_fine;
-        *uselimits = cfg_limits;
+        *use_limits = cfg_limits;
 
+        //;VGM_LOG("VAB: found config\n");
         close_streamfile(sf_cfg);
         return true;
     }
 
 fail:
+    VGM_LOG("VAB: fail to read config for file\n");
     close_streamfile(sf_cfg);
     return false;
 }
@@ -164,7 +172,8 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
             fine = shift;
         if (uselimits)
             note = VAB_CLAMP(note, min_note, max_note);
-    } else {
+    }
+    else {
         /* play default note */
         note = 60;
         fine = 0;
