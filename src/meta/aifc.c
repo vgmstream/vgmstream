@@ -138,10 +138,15 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
     if (file_size != aifx_size + 0x08) {
-        if (is_aiff && file_size == aifx_size + 0x08 + 0x08)
-            aifx_size += 0x08; /* [Psychic Force Puzzle Taisen CD2 (PS1)] */
-        else if (is_aifc && file_size == aifx_size + 0x08 + 0x4c)
-            aifx_size += 0x4c; /* Cro-Mag Rally (Mac), only one file */
+        if (is_aiff && file_size == aifx_size + 0x08 + 0x08) {
+            aifx_size += 0x08; // [Psychic Force Puzzle Taisen CD2 (PS1)]
+        }
+        else if (is_aifc && file_size == aifx_size + 0x08 + 0x4c) {
+            aifx_size += 0x4c; // Cro-Mag Rally (Mac), only one file
+        }
+        else if (is_aifc && file_size < aifx_size / 3 && is_id32be(0x26,sf, "VAPC")) {
+            aifx_size = file_size - 0x08; // N64 SDK samples (N64), all buggy
+        }
     }
 
     if (aifx_size + 0x08 != file_size) {
