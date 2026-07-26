@@ -2,7 +2,7 @@
 #define _VJSON_H_
 
 /* What is this crap, you may wonder? For probably non-existant use cases Jansson was added to write JSON info,
- * but external libs are a pain to maintain. For now this glorified string joiner replaces it.
+ * but external libs are big and a pain to maintain. This ~150 LOC glorified string joiner replaces it.
  *
  * On incorrect usage or small buf it'll create invalid JSON because who cares, try-parse-catch as usual.
  *
@@ -47,12 +47,21 @@ static void vjson_init(vjson_t* j, char* buf, int buf_len) {
 }
 
 static void vjson_raw(vjson_t* j, const char* str) {
+    if (j->buf_left <= 0)
+        return;
+
     if (!str)
         str = "null";
-    int done = snprintf(j->bufp, j->buf_left, "%s", str);
 
-    j->bufp += done;
-    j->buf_left -= done;
+    int n = snprintf(j->bufp, j->buf_left, "%s", str);
+    if (n < 0 || n >= j->buf_left) {
+        // truncation, unlikely if buffer is big enough (would make malformed json but ignored by design)
+        //j->error = true;
+        return;
+    }
+
+    j->bufp += n;
+    j->buf_left -= n;
 }
 
 static void vjson_comma_(vjson_t* j) {

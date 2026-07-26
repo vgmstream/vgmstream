@@ -42,6 +42,7 @@
 //extern char* optarg;
 //extern int optind, opterr, optopt;
 
+#define CLI_MAX_BUFFER_SIZE 0x200000 // arbitrary max but avoid inderflow
 
 static void print_usage(const char* progname, bool is_help) {
 
@@ -221,6 +222,11 @@ getopt_start:
                 // this forces a buffer as a test, but vgmstream provides its own buffers
                 // may improve IO/memory in some systems (wasm without -s ALLOW_MEMORY_GROWTH?)
                 cfg->sample_buffer_size = atoi(optarg);
+                if (cfg->sample_buffer_size < 0 || cfg->sample_buffer_size > CLI_MAX_BUFFER_SIZE) {
+                    fprintf(stderr, "failed allocating buffer\n");
+                    goto fail;
+                }
+
                 break;
             case 'W':
                 cfg->wav_force_output = atoi(optarg);
@@ -555,7 +561,11 @@ static bool convert_file(cli_config_t* cfg) {
 
         if (cfg->outfilename_config) {
             /* special substitution */
-            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg, vgmstream);
+            bool ok = cli_replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg, vgmstream);
+            if (!ok) {
+                fprintf(stderr, "couldn't generate output name\n");
+                goto fail;
+            }
             cfg->outfilename = outfilename_temp;
         }
 

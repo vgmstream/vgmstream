@@ -18,7 +18,7 @@ static void clean_filename(char* dst, int clean_paths) {
 
 /* replaces a filename with "?n" (stream name), "?f" (infilename) or "?s" (subsong) wildcards
  * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
-void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream_t* vgmstream) {
+bool cli_replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream_t* vgmstream) {
     int subsong;
     char stream_name[CLI_PATH_LIMIT];
     char buf[CLI_PATH_LIMIT];
@@ -26,8 +26,12 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream
 
 
     /* file has a "%" > temp replace for sprintf */
-    strcpy(buf, cfg->outfilename_config);
-    for (int i = 0; i < strlen(buf); i++) {
+    int n = snprintf(buf, sizeof(buf), "%s", cfg->outfilename_config);
+    if (n <= 0 || n >= sizeof(buf)) // truncation
+        return false;
+
+    int buf_len = strlen(buf);
+    for (int i = 0; i < buf_len; i++) {
         if (buf[i] == '%')
             buf[i] = '|'; /* non-valid filename, not used in format */
     }
@@ -93,6 +97,7 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream
     }
 
     snprintf(dst, dstsize, "%s", buf);
+    return true;
 }
 
 

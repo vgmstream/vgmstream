@@ -18,11 +18,13 @@
 //  cchWideChar: size of input, or -1 for null-terminated
 //  lpMultiByteStr: output string
 //  cbMultiByte: output size (0 to check for needed string)
-//  lpDefaultChar: char to use for non-representable chars (NULL for default)
-//  lpUsedDefaultChar: flag to check if default char was used
 // returns number of written chars, or 0 on error (not enough buffer, etc)
-
 static int char_to_wchar(const char* str, wchar_t* wstr, int wstr_len) {
+    // wstr_len=0 means "get needed size", prone to subtle bugs
+    if (wstr_len <= 0) {
+        //SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return 0;
+    }
     return MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, wstr_len);
 }
 
@@ -33,9 +35,15 @@ static int char_to_wchar(const char* str, wchar_t* wstr, int wstr_len) {
 //  cbMultiByte: size of input, or -1 for null-terminated
 //  lpWideCharStr: output string
 //  cchWideChar: output size (0 to check for needed string)
+//  lpDefaultChar: char to use for non-representable chars (NULL for default)
+//  lpUsedDefaultChar: flag to check if default char was used
 // returns number of written chars, or 0 on error (not enough buffer, etc)
-
 static int wchar_to_char(const wchar_t* wstr, char* str, int str_len) {
+    // str_len=0 means "get needed size", prone to subtle bugs
+    if (str_len <= 0) {
+        //SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return 0;
+    }
     return WideCharToMultiByte(CP_UTF8, 0, wstr, -1, str, str_len, NULL, NULL);
 }
 
@@ -184,6 +192,7 @@ static void windows_restore_codepage(uint32_t codepage) {
     SetConsoleOutputCP(codepage);
 }
 
+// copy to stack buf without allocs
 static bool windows_wargs_to_args_stack(int argc, wchar_t** argv_w, char** argv, int argc_max, char* block, int block_size) {
     if (argc > argc_max)
         return false;
@@ -201,6 +210,7 @@ static bool windows_wargs_to_args_stack(int argc, wchar_t** argv_w, char** argv,
     return true;
 }
 
+// copy to alloc'd buf with reallocs
 static bool windows_wargs_to_args_alloc(int argc, wchar_t** argv_w, char*** p_argv, char** p_block) {
     int block_alloc_size = 0x2000;
     int block_pos = 0;
@@ -222,9 +232,12 @@ static bool windows_wargs_to_args_alloc(int argc, wchar_t** argv_w, char*** p_ar
 
         int done = wchar_to_char(argv_w[i], block, block_size);
         if (done <= 0) {
-            DWORD err = GetLastError();
-            if (err != ERROR_INSUFFICIENT_BUFFER)
-                goto fail;
+            if (block_size > 0) {
+                // <= 0 is not enough buf in this block
+                DWORD err = GetLastError();
+                if (err != ERROR_INSUFFICIENT_BUFFER)
+                    goto fail;
+            }
 
             if (block_alloc_size > 0x100000) //arbitrary max
                 goto fail;

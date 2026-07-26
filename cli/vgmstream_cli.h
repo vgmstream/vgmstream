@@ -66,7 +66,7 @@ typedef struct {
 } cli_config_t;
 
 
-void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream_t* vgmstream);
+bool cli_replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream_t* vgmstream);
 void print_info(libvgmstream_t* vgmstream, cli_config_t* cfg);
 void print_tags(cli_config_t* cfg);
 void print_title(libvgmstream_t* vgmstream, cli_config_t* cfg);
