@@ -41,46 +41,37 @@
  * - minor optimizations here and there but otherwise very similar
  * This decoder generally uses Polycom's terminology, and while some parts like the bitreader could be
  * reimplemented they are mostly untouched for documentation purposes.
- *
- * TODO: missing some validations (may segfault on bad data), 
- *       access indexes with (idx & max) and clamp buffer reads
  */
 
 /*****************************************************************************
  * IMLT
  *****************************************************************************/
 
+/* overlap 2nd half of prev frame's samples and 1st half of current frame's samples with
+ * a window function to smooth out between frames */
 static int imlt_window(int16_t* new_samples, int16_t* old_samples, int16_t* out_samples) {
-    int i;
-    int sample_lo, sample_hi;
-    int16_t win_val_lo, win_val_hi, new_val, old_val;
-    const int16_t *win_ptr_lo, *win_ptr_hi;
-    int16_t *new_ptr, *old_ptr, *out_ptr_lo, *out_ptr_hi;
 
-
-    /* overlap 2nd half of prev frame's samples and 1st half of current frame's samples with
-     * a window function to smooth out between frames */
-    win_ptr_lo = imlt_samples_window + 0;
-    win_ptr_hi = imlt_samples_window + 640;
-    new_ptr = new_samples + 320;
-    old_ptr = old_samples + 0;
-    out_ptr_lo = out_samples + 0;
-    out_ptr_hi = out_samples + 640;
+    const int16_t* win_ptr_lo = imlt_samples_window + 0;
+    const int16_t* win_ptr_hi = imlt_samples_window + 640;
+    int16_t* new_ptr = new_samples + 320;
+    int16_t* old_ptr = old_samples + 0;
+    int16_t* out_ptr_lo = out_samples + 0;
+    int16_t* out_ptr_hi = out_samples + 640;
 
     while (out_ptr_lo != out_ptr_hi) {
-        win_val_lo = *win_ptr_lo++;
-        win_val_hi = *--win_ptr_hi;
-        new_val = *--new_ptr;
-        old_val = *old_ptr++;
+        int16_t win_val_lo = *win_ptr_lo++;
+        int16_t win_val_hi = *--win_ptr_hi;
+        int16_t new_val = *--new_ptr;
+        int16_t old_val = *old_ptr++;
 
-        sample_lo = (new_val * win_val_lo + old_val * *win_ptr_hi + 32768) >> 13;
+        int sample_lo = (new_val * win_val_lo + old_val * *win_ptr_hi + 32768) >> 13;
         if (sample_lo > 32767)
             sample_lo = 32767;
         else if (sample_lo < -32768)
             sample_lo = -32768;
         *out_ptr_lo++ = sample_lo;
 
-        sample_hi = (new_val * win_val_hi - old_val * win_val_lo + 32768) >> 13;
+        int sample_hi = (new_val * win_val_hi - old_val * win_val_lo + 32768) >> 13;
         if (sample_hi > 32767)
             sample_hi = 32767;
         else if (sample_hi < -32768)
@@ -92,7 +83,7 @@ static int imlt_window(int16_t* new_samples, int16_t* old_samples, int16_t* out_
     old_ptr = old_samples + 0;
     new_ptr = new_samples + 320;
 
-    for (i = 0; i < 320; i++) {
+    for (int i = 0; i < 320; i++) {
         old_ptr[i] = new_ptr[i];
     }
 
@@ -101,10 +92,6 @@ static int imlt_window(int16_t* new_samples, int16_t* old_samples, int16_t* out_
 
 /* "dct4_x640_int" */
 static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
-    int i, j, k, n;
-    const uint8_t *set1_ptr;
-    int mod_shift, sub_shift;
-
 
     /* vs refdec: very optimized, output is slightly different (louder) but it's massively
      * faster (around 20% vs float refdec, int refdec was very slow to begin with).
@@ -114,16 +101,14 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
     /* rotation butterflies? (cos/sin 640 groups) */
     {
         int cos_val, sin_val;
-        const uint16_t *cos_ptr, *sin_ptr;
         int16_t mlt_val_lo, mlt_val_hi;
-        int16_t *mlt_ptr_lo, *mlt_ptr_hi;
 
-        mlt_ptr_lo = mlt_coefs + 0;
-        mlt_ptr_hi = mlt_coefs + 640;
-        cos_ptr = &imlt_cos_tables[0]; /* cos_table_64 */
-        sin_ptr = &imlt_sin_tables[0]; /* sin_table_64 */
+        int16_t* mlt_ptr_lo = mlt_coefs + 0;
+        int16_t* mlt_ptr_hi = mlt_coefs + 640;
+        const uint16_t* cos_ptr = &imlt_cos_tables[0]; /* cos_table_64 */
+        const uint16_t* sin_ptr = &imlt_sin_tables[0]; /* sin_table_64 */
 
-        for (i = 40; i > 0; --i) {
+        for (int i = 40; i > 0; --i) {
             cos_val = *cos_ptr++;
             sin_val = *sin_ptr++;
             mlt_val_lo = *mlt_ptr_lo >> 1;
@@ -137,7 +122,7 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
             *--mlt_ptr_hi = (sin_val * mlt_val_lo + 32768) >> 16;
         }
 
-        for (i = 120; i > 0; --i) {
+        for (int i = 120; i > 0; --i) {
             cos_val = *cos_ptr++;
             sin_val = *sin_ptr++;
             mlt_val_lo = *mlt_ptr_lo >> 1;
@@ -156,20 +141,17 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
 
     /* sum/diff butterflies? */
     {
-        int16_t mlt_val_lo, mlt_val_mlo, mlt_val_mhi, mlt_val_hi;
-        int16_t *mlt_ptr, *mlt_ptr_lo, *mlt_ptr_mlo, *mlt_ptr_mhi, *mlt_ptr_hi;
-
-        mlt_ptr = mlt_coefs + 0;
-        for (i = 2; i > 0; --i) {
-            mlt_ptr_lo = mlt_ptr + 0;
-            mlt_ptr_hi = mlt_ptr + 320;
-            mlt_ptr_mlo = mlt_ptr + 160;
-            mlt_ptr_mhi = mlt_ptr + 160;
-            for (j = 80; j > 0; --j) {
-                mlt_val_lo = *mlt_ptr_lo;
-                mlt_val_hi = *--mlt_ptr_hi;
-                mlt_val_mhi = *--mlt_ptr_mhi;
-                mlt_val_mlo = *mlt_ptr_mlo;
+        int16_t* mlt_ptr = mlt_coefs + 0;
+        for (int i = 2; i > 0; --i) {
+            int16_t* mlt_ptr_lo = mlt_ptr + 0;
+            int16_t* mlt_ptr_hi = mlt_ptr + 320;
+            int16_t* mlt_ptr_mlo = mlt_ptr + 160;
+            int16_t* mlt_ptr_mhi = mlt_ptr + 160;
+            for (int j = 80; j > 0; --j) {
+                int16_t mlt_val_lo = *mlt_ptr_lo;
+                int16_t mlt_val_hi = *--mlt_ptr_hi;
+                int16_t mlt_val_mhi = *--mlt_ptr_mhi;
+                int16_t mlt_val_mlo = *mlt_ptr_mlo;
                 *mlt_ptr_lo++  = (mlt_val_hi + mlt_val_lo) >> 1;
                 *mlt_ptr_mlo++ = (mlt_val_lo - mlt_val_hi) >> 1;
                 *mlt_ptr_mhi   = (mlt_val_mlo + mlt_val_mhi) >> 1;
@@ -180,27 +162,27 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
     }
 
     /* helper table used in next 3 sections */
-    set1_ptr = imlt_set1_table;
+    const uint8_t* set1_ptr = imlt_set1_table;
 
     /* rotation butterflies? (cos/sin 160/80/40/20/10 groups) */
     {
         int cos_val, sin_val;
-        const uint16_t *cos_ptr, *sin_ptr, *cos_ptr_lo, *sin_ptr_lo;
+        const uint16_t *cos_ptr_lo, *sin_ptr_lo;
         int16_t mlt_val_lo, mlt_val_hi, mlt_val_mlo, mlt_val_mhi;
-        int16_t *mlt_ptr, *mlt_ptr_lo, *mlt_ptr_hi, *mlt_ptr_mlo, *mlt_ptr_mhi;
+        int16_t *mlt_ptr_lo, *mlt_ptr_hi, *mlt_ptr_mlo, *mlt_ptr_mhi;
 
-        cos_ptr = &imlt_cos_tables[320+160]; /* cos_table_16 > 8 > 4 > 2 */
-        sin_ptr = &imlt_sin_tables[320+160]; /* sin_table_16 > 8 > 4 > 2 */
+        const uint16_t* cos_ptr = &imlt_cos_tables[320+160]; /* cos_table_16 > 8 > 4 > 2 */
+        const uint16_t* sin_ptr = &imlt_sin_tables[320+160]; /* sin_table_16 > 8 > 4 > 2 */
 
-        for (n = 160; n >= 20; n /= 2) {
-            mlt_ptr = mlt_coefs + 0;
+        for (int n = 160; n >= 20; n /= 2) {
+            int16_t* mlt_ptr = mlt_coefs + 0;
             while (mlt_ptr < mlt_coefs + 640) {
-                for (j = *set1_ptr; j > 0; --j) {
+                for (int j = *set1_ptr; j > 0; --j) {
                     mlt_ptr_lo = mlt_ptr + 0;
                     mlt_ptr_hi = mlt_ptr + n;
                     mlt_ptr_mlo = mlt_ptr + (n / 2);
                     mlt_ptr_mhi = mlt_ptr + (n / 2);
-                    for (k = n / 4; k > 0; --k) {
+                    for (int k = n / 4; k > 0; --k) {
                         mlt_val_lo = *mlt_ptr_lo;
                         mlt_val_hi = *--mlt_ptr_hi;
                         mlt_val_mhi = *--mlt_ptr_mhi;
@@ -214,12 +196,12 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
                 }
                 set1_ptr++;
 
-                for (j = *set1_ptr; j > 0; --j) {
+                for (int j = *set1_ptr; j > 0; --j) {
                     mlt_ptr_lo = mlt_ptr + 0;
                     mlt_ptr_hi = mlt_ptr + n;
                     cos_ptr_lo = cos_ptr + 0;
                     sin_ptr_lo = sin_ptr + 0;
-                    for (k = n / 4; k > 0; --k) {
+                    for (int k = n / 4; k > 0; --k) {
                         cos_val = *cos_ptr_lo++;
                         sin_val = *sin_ptr_lo++;
                         mlt_val_lo = *mlt_ptr_lo;
@@ -248,89 +230,85 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
     /* rotation butterflies? (cos/sin 5 groups) */
     {
         int cos_val, sin_val;
-        const uint16_t *cos_ptr, *sin_ptr;
         int16_t mlt_val_lo, mlt_val_hi, mlt_val_mlo, mlt_val_mhi;
-        int16_t *mlt_ptr;
 
         /* n/cos-sin would continue from above but for clarity: */
-        cos_ptr = &imlt_cos_tables[320+160+80+40+20+10]; /* cos_table_1 */
-        sin_ptr = &imlt_sin_tables[320+160+80+40+20+10]; /* sin_table_1 */
+        const uint16_t* cos_ptr = &imlt_cos_tables[320+160+80+40+20+10]; /* cos_table_1 */
+        const uint16_t* sin_ptr = &imlt_sin_tables[320+160+80+40+20+10]; /* sin_table_1 */
 
-        {
-            n = 10;
-            mlt_ptr = mlt_coefs + 0;
-            while (mlt_ptr < mlt_coefs + 640) {
-                for (j = *set1_ptr; j > 0; --j) {
-                    mlt_val_lo = mlt_ptr[0];
-                    mlt_val_hi = mlt_ptr[n - 1];
-                    mlt_val_mlo = mlt_ptr[n / 2 - 1];
-                    mlt_val_mhi = mlt_ptr[n / 2];
-                    mlt_ptr[0] = mlt_val_lo + mlt_val_hi;
-                    mlt_ptr[n / 2] = mlt_val_lo - mlt_val_hi;
-                    mlt_ptr[n / 2 - 1] = mlt_val_mhi + mlt_val_mlo;
-                    mlt_ptr[n - 1] = mlt_val_mlo - mlt_val_mhi;
-
-                    mlt_val_lo = mlt_ptr[1];
-                    mlt_val_hi = mlt_ptr[n - 2];
-                    mlt_val_mlo = mlt_ptr[n / 2 - 2];
-                    mlt_val_mhi = mlt_ptr[n / 2 + 1];
-                    mlt_ptr[1] = mlt_val_hi + mlt_val_lo;
-                    mlt_ptr[n / 2 + 1] = mlt_val_lo - mlt_val_hi;
-                    mlt_ptr[n / 2 - 2] = mlt_val_mhi + mlt_val_mlo;
-                    mlt_ptr[n - 2] = mlt_val_mlo - mlt_val_mhi;
-
-                    mlt_val_lo = mlt_ptr[2];
-                    mlt_val_hi = mlt_ptr[n - 3];
-                    mlt_ptr[2] = mlt_val_hi + mlt_val_lo;
-                    mlt_ptr[n / 2 + 2] = mlt_val_lo - mlt_val_hi;
-
-                    mlt_ptr += n;
-                }
-
-                cos_val = cos_ptr[0];
-                sin_val = sin_ptr[0];
+        int n = 10;
+        int16_t* mlt_ptr = mlt_coefs + 0;
+        while (mlt_ptr < mlt_coefs + 640) {
+            for (int j = *set1_ptr; j > 0; --j) {
                 mlt_val_lo = mlt_ptr[0];
                 mlt_val_hi = mlt_ptr[n - 1];
-                mlt_ptr[0] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
-                mlt_ptr[n - 1] = (sin_val * mlt_val_lo - cos_val * mlt_val_hi + 32768) >> 16;
+                mlt_val_mlo = mlt_ptr[n / 2 - 1];
+                mlt_val_mhi = mlt_ptr[n / 2];
+                mlt_ptr[0] = mlt_val_lo + mlt_val_hi;
+                mlt_ptr[n / 2] = mlt_val_lo - mlt_val_hi;
+                mlt_ptr[n / 2 - 1] = mlt_val_mhi + mlt_val_mlo;
+                mlt_ptr[n - 1] = mlt_val_mlo - mlt_val_mhi;
 
-                cos_val = cos_ptr[1];
-                sin_val = sin_ptr[1];
                 mlt_val_lo = mlt_ptr[1];
                 mlt_val_hi = mlt_ptr[n - 2];
-                mlt_ptr[1] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
-                mlt_ptr[n - 2] = (sin_val * -mlt_val_lo + cos_val * mlt_val_hi + 32768) >> 16;
+                mlt_val_mlo = mlt_ptr[n / 2 - 2];
+                mlt_val_mhi = mlt_ptr[n / 2 + 1];
+                mlt_ptr[1] = mlt_val_hi + mlt_val_lo;
+                mlt_ptr[n / 2 + 1] = mlt_val_lo - mlt_val_hi;
+                mlt_ptr[n / 2 - 2] = mlt_val_mhi + mlt_val_mlo;
+                mlt_ptr[n - 2] = mlt_val_mlo - mlt_val_mhi;
 
-                cos_val = cos_ptr[2];
-                sin_val = sin_ptr[2];
                 mlt_val_lo = mlt_ptr[2];
                 mlt_val_hi = mlt_ptr[n - 3];
-                mlt_ptr[2] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
-                mlt_ptr[n - 3]= (sin_val * mlt_val_lo - cos_val * mlt_val_hi + 32768) >> 16;
-
-                cos_val = cos_ptr[3];
-                sin_val = sin_ptr[3];
-                mlt_val_lo = mlt_ptr[3];
-                mlt_val_hi = mlt_ptr[n - 4];
-                mlt_ptr[3] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
-                mlt_ptr[n - 4] = (sin_val * -mlt_val_lo + cos_val * mlt_val_hi + 32768) >> 16;
-
-                cos_val = cos_ptr[4];
-                sin_val = sin_ptr[4];
-                mlt_val_lo = mlt_ptr[4];
-                mlt_val_hi = mlt_ptr[n - 5];
-                mlt_ptr[4] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
-                mlt_ptr[n - 5] = (sin_val * mlt_val_lo - cos_val * mlt_val_hi + 32768) >> 16;
+                mlt_ptr[2] = mlt_val_hi + mlt_val_lo;
+                mlt_ptr[n / 2 + 2] = mlt_val_lo - mlt_val_hi;
 
                 mlt_ptr += n;
-                set1_ptr += 2;
             }
+
+            cos_val = cos_ptr[0];
+            sin_val = sin_ptr[0];
+            mlt_val_lo = mlt_ptr[0];
+            mlt_val_hi = mlt_ptr[n - 1];
+            mlt_ptr[0] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
+            mlt_ptr[n - 1] = (sin_val * mlt_val_lo - cos_val * mlt_val_hi + 32768) >> 16;
+
+            cos_val = cos_ptr[1];
+            sin_val = sin_ptr[1];
+            mlt_val_lo = mlt_ptr[1];
+            mlt_val_hi = mlt_ptr[n - 2];
+            mlt_ptr[1] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
+            mlt_ptr[n - 2] = (sin_val * -mlt_val_lo + cos_val * mlt_val_hi + 32768) >> 16;
+
+            cos_val = cos_ptr[2];
+            sin_val = sin_ptr[2];
+            mlt_val_lo = mlt_ptr[2];
+            mlt_val_hi = mlt_ptr[n - 3];
+            mlt_ptr[2] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
+            mlt_ptr[n - 3]= (sin_val * mlt_val_lo - cos_val * mlt_val_hi + 32768) >> 16;
+
+            cos_val = cos_ptr[3];
+            sin_val = sin_ptr[3];
+            mlt_val_lo = mlt_ptr[3];
+            mlt_val_hi = mlt_ptr[n - 4];
+            mlt_ptr[3] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
+            mlt_ptr[n - 4] = (sin_val * -mlt_val_lo + cos_val * mlt_val_hi + 32768) >> 16;
+
+            cos_val = cos_ptr[4];
+            sin_val = sin_ptr[4];
+            mlt_val_lo = mlt_ptr[4];
+            mlt_val_hi = mlt_ptr[n - 5];
+            mlt_ptr[4] = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
+            mlt_ptr[n - 5] = (sin_val * mlt_val_lo - cos_val * mlt_val_hi + 32768) >> 16;
+
+            mlt_ptr += n;
+            set1_ptr += 2;
         }
     }
 
 
-    mod_shift = mag_shift - 1;
-    sub_shift = 1;
+    int mod_shift = mag_shift - 1;
+    int sub_shift = 1;
     if (mod_shift >= 8)
         sub_shift = 2;
     mod_shift -= sub_shift;
@@ -338,13 +316,10 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
 
     /* dct core? */
     {
-        const int16_t *mlt_ptr;
-        int16_t *new_ptr;
-
-        mlt_ptr = mlt_coefs + 0;
-        new_ptr = new_samples + 0;
+        const int16_t* mlt_ptr = mlt_coefs + 0;
+        int16_t* new_ptr = new_samples + 0;
         while (1) {
-            for (i = *set1_ptr; i; --i) {
+            for (int i = *set1_ptr; i; --i) {
                 new_ptr[0] = (mlt_ptr[4] + mlt_ptr[3] + mlt_ptr[2] + mlt_ptr[1] + mlt_ptr[0]) >> sub_shift;
                 new_ptr[1] = (19261 * mlt_ptr[1] + 31164 * mlt_ptr[0] - 19261 * mlt_ptr[3] - 31164 * mlt_ptr[4]) >> (sub_shift + 15);
                 new_ptr[2] = (26510 * mlt_ptr[4] + 26510 * mlt_ptr[0] - 10126 * mlt_ptr[1] - 32768 * mlt_ptr[2] - 10126 * mlt_ptr[3]) >> (sub_shift + 15);
@@ -370,17 +345,12 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
 
     /* swapping and sum/diffs? */
     {
-        const uint8_t *set2_ptr;
-        int16_t *mlt_ptr, *new_ptr;
-        int16_t tmp1_val_a, tmp1_val_b;
-        int16_t *tmp0_ptr, *tmp1_ptr, *tmp1_ptr_lo, *tmp1_ptr_mlo, *tmp1_ptr_mhi, *tmp2_ptr;
+        const uint8_t* set2_ptr = imlt_set2_table;
 
-        set2_ptr = imlt_set2_table;
-
-        mlt_ptr = mlt_coefs + 0;
-        new_ptr = new_samples + 0;
+        int16_t* mlt_ptr = mlt_coefs + 0;
+        int16_t* new_ptr = new_samples + 0;
         while (new_ptr < new_samples + 640) {
-            for (i = *set2_ptr; i; --i) {
+            for (int i = *set2_ptr; i; --i) {
                 *mlt_ptr++ = new_ptr[0];
                 *mlt_ptr++ = new_ptr[5];
                 *mlt_ptr++ = new_ptr[1];
@@ -409,16 +379,18 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
         }
 
         /* below is some three way swapping, tmp ptrs change between mlt<>new */
-        tmp0_ptr = mlt_coefs + 640;
-        tmp1_ptr = new_samples + 640;
-        for (n = 20; n <= 160; n *= 2) {
+        int16_t* tmp0_ptr = mlt_coefs + 640;
+        int16_t* tmp1_ptr = new_samples + 640;
+        for (int n = 20; n <= 160; n *= 2) {
+            int16_t* tmp2_ptr;
+
             tmp2_ptr = tmp0_ptr + 0;
             tmp0_ptr = tmp1_ptr - 640;
             tmp1_ptr = tmp2_ptr - 640;
             do {
-                for (j = *set2_ptr; j > 0; --j) {
-                    tmp1_ptr_mhi = tmp1_ptr + (n / 2);
-                    for (k = n / 4; k > 0; --k) {
+                for (int j = *set2_ptr; j > 0; --j) {
+                    int16_t* tmp1_ptr_mhi = tmp1_ptr + (n / 2);
+                    for (int k = n / 4; k > 0; --k) {
                         *tmp0_ptr++ = *tmp1_ptr++;
                         *tmp0_ptr++ = *tmp1_ptr_mhi++;
                         *tmp0_ptr++ = *tmp1_ptr++;
@@ -431,8 +403,9 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
                 if (tmp1_ptr >= tmp2_ptr)
                     break;
 
-                tmp1_ptr_lo = tmp1_ptr + 0;
-                tmp1_ptr_mlo = tmp1_ptr + (n - 1);
+                int16_t tmp1_val_a, tmp1_val_b;
+                int16_t* tmp1_ptr_lo = tmp1_ptr + 0;
+                int16_t* tmp1_ptr_mlo = tmp1_ptr + (n - 1);
 
                 *tmp0_ptr++ = *tmp1_ptr_lo++;
 
@@ -440,7 +413,7 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
                 tmp1_val_b = *tmp1_ptr_mlo;
                 *tmp0_ptr++ = tmp1_val_b + tmp1_val_a;
                 *tmp0_ptr++ = tmp1_val_a - tmp1_val_b;
-                for (j = (n / 2 - 2) / 2; j > 0; --j) {
+                for (int j = (n / 2 - 2) / 2; j > 0; --j) {
                     tmp1_val_a = *tmp1_ptr_lo++;
                     tmp1_val_b = *--tmp1_ptr_mlo;
                     *tmp0_ptr++ = tmp1_val_a - tmp1_val_b;
@@ -461,7 +434,7 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
     /* final modifications and post scaling? */
     {
         int16_t mlt_val_lo, mlt_val_mhi, mlt_val_mlo, mlt_val_hi;
-        const int16_t *mlt_ptr_lo, *mlt_ptr_hi, *mlt_ptr_mlo, *mlt_ptr_mhi;
+        const int16_t* mlt_ptr_lo, *mlt_ptr_hi, *mlt_ptr_mlo, *mlt_ptr_mhi;
         int16_t *new_ptr;
 
         if (mod_shift <= 0) {
@@ -482,7 +455,7 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
             *new_ptr++ = (mlt_val_hi + mlt_val_mlo) << mod_shift;
             *new_ptr++ = (mlt_val_mlo - mlt_val_hi) << mod_shift;
 
-            for (i = 159; i > 0; --i) {
+            for (int i = 159; i > 0; --i) {
                 mlt_val_lo = *mlt_ptr_lo++;
                 mlt_val_mhi = *--mlt_ptr_mhi;
                 *new_ptr++ = (mlt_val_lo - mlt_val_mhi) << mod_shift;
@@ -513,7 +486,7 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
             *new_ptr++ = (mlt_val_hi + mlt_val_mlo) >> mod_shift;
             *new_ptr++ = (mlt_val_mlo - mlt_val_hi) >> mod_shift;
 
-            for (i = 159; i > 0; --i) {
+            for (int i = 159; i > 0; --i) {
                 mlt_val_lo = *mlt_ptr_lo++;
                 mlt_val_mhi = *--mlt_ptr_mhi;
                 *new_ptr++ = (mlt_val_lo - mlt_val_mhi) >> mod_shift;
@@ -555,18 +528,16 @@ static int rmlt_coefs_to_samples(int mag_shift, int16_t* mlt_coefs, int16_t* old
  *****************************************************************************/
 
 static inline int calc_offset(const int* absolute_region_power_index, int available_bits) {
-    int region, cat_index;
-    int offset, delta;
 
-    offset = -32;
-    delta = 32;
+    int offset = -32;
+    int delta = 32;
     do {
         int test_offset = offset + delta;
         int bits = 0;
 
         /* obtain a category for each region using the test offset */
-        for (region = 0; region < NUMBER_OF_REGIONS; region++)  {
-            cat_index = (test_offset - absolute_region_power_index[region]) / 2;
+        for (int region = 0; region < NUMBER_OF_REGIONS; region++)  {
+            int cat_index = (test_offset - absolute_region_power_index[region]) / 2;
             if (cat_index < 0)
                 cat_index = 0;
             else if (cat_index > NUM_CATEGORIES - 1)
@@ -588,10 +559,9 @@ static inline int calc_offset(const int* absolute_region_power_index, int availa
 }
 
 static inline void compute_raw_power_categories(int* power_categories, const int* absolute_region_power_index, int offset) {
-    int region, cat_index;
 
-    for (region = 0; region < NUMBER_OF_REGIONS; region++) {
-        cat_index = (offset - absolute_region_power_index[region]) / 2;
+    for (int region = 0; region < NUMBER_OF_REGIONS; region++) {
+        int cat_index = (offset - absolute_region_power_index[region]) / 2;
         if (cat_index < 0) 
             cat_index = 0;
         else if (cat_index > NUM_CATEGORIES - 1)
@@ -602,29 +572,27 @@ static inline void compute_raw_power_categories(int* power_categories, const int
 }
 
 static inline void comp_powercat_and_catbalance(int* power_categories, int* category_balances, const int* absolute_region_power_index, int available_bits, int offset) {
-    int region, ccp;
     int max_rate_categories[NUMBER_OF_REGIONS];
     int min_rate_categories[NUMBER_OF_REGIONS];
-    int temp_category_balances[2*NUM_CATEGORIZATION_CONTROL_POSSIBILITIES];
-    int expected_number_of_code_bits, max, min, max_rate_pointer, min_rate_pointer;
+    int temp_category_balances[2 * NUM_CATEGORIZATION_CONTROL_POSSIBILITIES];
 
 
     /* Namco uses power_categories directly instead of max_rate_categories, but we'll separate for clarity.
      * It also loads min_rate_categories and expected_number_of_code_bits in the previous region loop */
-    expected_number_of_code_bits = 0;
-    for (region = 0; region < NUMBER_OF_REGIONS; region++) {
+    int expected_number_of_code_bits = 0;
+    for (int region = 0; region < NUMBER_OF_REGIONS; region++) {
         int power_category = power_categories[region];
         max_rate_categories[region] = power_category;
         min_rate_categories[region] = power_category;
         expected_number_of_code_bits += expected_bits_table[power_category];
     }
 
-    max = expected_number_of_code_bits;
-    min = expected_number_of_code_bits;
-    max_rate_pointer = NUM_CATEGORIZATION_CONTROL_POSSIBILITIES;
-    min_rate_pointer = NUM_CATEGORIZATION_CONTROL_POSSIBILITIES;
+    int max = expected_number_of_code_bits;
+    int min = expected_number_of_code_bits;
+    int max_rate_pointer = NUM_CATEGORIZATION_CONTROL_POSSIBILITIES;
+    int min_rate_pointer = NUM_CATEGORIZATION_CONTROL_POSSIBILITIES;
 
-    for (ccp = 0; ccp < NUM_CATEGORIZATION_CONTROL_POSSIBILITIES - 1; ccp++) {
+    for (int ccp = 0; ccp < NUM_CATEGORIZATION_CONTROL_POSSIBILITIES - 1; ccp++) {
 
         if (max + min <= available_bits * 2) {
             int raw_min = 10000;
@@ -632,7 +600,7 @@ static inline void comp_powercat_and_catbalance(int* power_categories, int* cate
 
             /* Search from lowest freq regions to highest for best */
             /* region to reassign to a higher bit rate category.   */
-            for (region = 0; region < NUMBER_OF_REGIONS; region++)  {
+            for (int region = 0; region < NUMBER_OF_REGIONS; region++)  {
                 if (max_rate_categories[region] > 0) {
                     int tmp = (offset - absolute_region_power_index[region]) - (max_rate_categories[region] * 2);
                     if (tmp < raw_min) {
@@ -654,7 +622,7 @@ static inline void comp_powercat_and_catbalance(int* power_categories, int* cate
             int raw_max_index = NUMBER_OF_REGIONS - 1;
 
             /* Search from highest freq regions to lowest for best region to reassign to a lower bit rate category. */
-            for (region = NUMBER_OF_REGIONS - 1; region >= 0; region--)  {
+            for (int region = NUMBER_OF_REGIONS - 1; region >= 0; region--)  {
                 if (min_rate_categories[region] < NUM_CATEGORIES - 1) {
                     int tmp = (offset - absolute_region_power_index[region]) - (min_rate_categories[region] * 2);
                     if (tmp > raw_max) {
@@ -673,17 +641,16 @@ static inline void comp_powercat_and_catbalance(int* power_categories, int* cate
         }
     }
 
-    for (region = 0; region < NUMBER_OF_REGIONS; region++) {
+    for (int region = 0; region < NUMBER_OF_REGIONS; region++) {
         power_categories[region] = max_rate_categories[region];
     }
 
-    for (ccp = 0; ccp < NUM_CATEGORIZATION_CONTROL_POSSIBILITIES - 1; ccp++) {
+    for (int ccp = 0; ccp < NUM_CATEGORIZATION_CONTROL_POSSIBILITIES - 1; ccp++) {
         category_balances[ccp] = temp_category_balances[max_rate_pointer + ccp];
     }
 }
 
 static int categorize(int available_bits, const int* absolute_region_power_index, int* power_categories, int* category_balances) {
-    int offset;
 
     /* compensate increased bit usage for higher bitrates (used?) */
     if (available_bits > MAX_DCT_LENGTH) {
@@ -692,7 +659,7 @@ static int categorize(int available_bits, const int* absolute_region_power_index
 
     /* calculate category stuff (originally inline'd) */
 
-    offset = calc_offset(absolute_region_power_index, available_bits);
+    int offset = calc_offset(absolute_region_power_index, available_bits);
 
     compute_raw_power_categories(power_categories, absolute_region_power_index, offset);
 
@@ -702,7 +669,6 @@ static int categorize(int available_bits, const int* absolute_region_power_index
 }
 
 static inline void index_to_array(int index, int* array_cv, int category) {
-    int q, p;
     int max_bin_plus_one = max_bin_plus1[category];
     int inverse_of_max_bin_plus_one_scaled = max_bin_plus_one_inverse_scaled[category];
 
@@ -710,6 +676,7 @@ static inline void index_to_array(int index, int* array_cv, int category) {
      * (depending on pre-scaled tables), since this is called many times.
      * From tests it's not too noticeable though. */
 
+    int q, p;
     p = index;
     /* fills array (vector_dimension[category] - 1) times inversely */
     switch (category) {
@@ -803,31 +770,27 @@ static inline void index_to_array(int index, int* array_cv, int category) {
 }
 
 static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int* p_bitpos, int bit_count, uint32_t* p_random_value, int* decoder_region_standard_deviation, int* power_categories, int16_t* mlt_coefs) {
-    int16_t standard_deviation;
     int array_cv[MAX_VECTOR_DIMENSION];
-    int i, v, region, category, index;
-    uint32_t cur_u32, bitmask;
-    uint32_t* ptr_u32;
 
     /* bitreading setup */
-    ptr_u32 = &data_u32[(*p_bitpos >> 5)];
-    bitmask = 1 << (31 - (*p_bitpos & 0x1F));
-    cur_u32 = *ptr_u32;
+    uint32_t* ptr_u32 = &data_u32[(*p_bitpos >> 5)];
+    uint32_t bitmask = 1 << (31 - (*p_bitpos & 0x1F));
+    uint32_t cur_u32 = *ptr_u32;
     ptr_u32++;
 
 
     /* read MLT coefs per region, differently depending on the category config */
-    for (region = 0; region < NUMBER_OF_REGIONS; region++)  {
-        standard_deviation = decoder_region_standard_deviation[region];
-        category = power_categories[region];
+    for (int region = 0; region < NUMBER_OF_REGIONS; region++)  {
+        int16_t standard_deviation = decoder_region_standard_deviation[region];
+        int category = power_categories[region];
 
         /* lower categories encode MLT coefs based on vectors incides + huffman (?) */
         if (category < 7) {
             const int16_t* decoder_tree_ptr = table_of_decoder_tables[category];
             int16_t* decoder_mlt_ptr = &mlt_coefs[region * REGION_SIZE];
 
-            for (v = 0; v < number_of_vectors[category]; v++)  {
-                index = 0;
+            for (int v = 0; v < number_of_vectors[category]; v++)  {
+                int index = 0;
 
                 do {
                     int bit = (bitmask & cur_u32) != 0;
@@ -862,7 +825,7 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int* p_bitpos
 
                 /* vs refdec: sign reading slightly simplified */
 
-                for (i = 0; i < vector_dimension[category]; i++) {
+                for (int i = 0; i < vector_dimension[category]; i++) {
                     int decoder_mlt_value = 0;
                     int negative;
 
@@ -908,7 +871,7 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int* p_bitpos
 
             if (category >= 7) {
                 /* all coefs are noise-filled */
-                for (i = 0; i < REGION_SIZE; i++) {
+                for (int i = 0; i < REGION_SIZE; i++) {
                     {
                         if (random_value & 1) 
                             *decoder_mlt_ptr = noise_fill_pos;
@@ -921,7 +884,7 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int* p_bitpos
             }
             else {
                 /* some coefs are noise-filled */
-                for (i = 0; i < REGION_SIZE; i++)  {
+                for (int i = 0; i < REGION_SIZE; i++)  {
                     if (*decoder_mlt_ptr == 0) {
                         if (random_value & 1) 
                             *decoder_mlt_ptr = noise_fill_pos;
@@ -940,14 +903,13 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int* p_bitpos
 
 /* unpacks input buffer into MLT coefs */
 static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int* p_frame_size, */ int* p_mag_shift, int16_t* mlt_coefs, uint32_t* p_random_value, int test_errors) {
-    uint32_t data_u32[0x78/4 + 2];
+    uint32_t data_u32[0x78 / 4 + 2];
     int bitpos, expected_frame_size;
     int power_categories[NUMBER_OF_REGIONS];
-    int category_balances[NUM_CATEGORIZATION_CONTROL_POSSIBILITIES-1];
+    int category_balances[NUM_CATEGORIZATION_CONTROL_POSSIBILITIES - 1];
     int absolute_region_power_index[NUMBER_OF_REGIONS]; /* a.k.a. RMS_index */
     int decoder_region_standard_deviation[NUMBER_OF_REGIONS];
     uint16_t categorization_control;
-    int i;
     int res;
 
 
@@ -959,12 +921,12 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
         //p_frame_size = expected_frame_size; /* Namco returns this, for some reason */
 
         /* Siren14 data is packed into U16 LE, but Namco reads and stores them in a U32 LE temp array for their bitreading */
-        for (i = 0; i < (expected_frame_size >> 2); i++) {
+        for (int i = 0; i < (expected_frame_size >> 2); i++) {
             data_u32[i] = (data[0x04*i + 2] << 0) | (data[0x04*i + 3] << 8) | (data[0x04*i + 0] << 16) | (data[0x04*i + 1] << 24);
         }
         /* data32 also has extra ints probably against outside reads, which wasn't originally
          * memset'ed but we'll do just in case (doesn't seem to matter) */
-        for (i = (expected_frame_size >> 2); i < 0x78/4 + 2; i++) {
+        for (int i = (expected_frame_size >> 2); i < 0x78/4 + 2; i++) {
             data_u32[i] = 0;
         }
 
@@ -974,10 +936,9 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
     /* decode amplitude envelope scales */
     {
         int rms_index = 0; /* amplitudes are root-mean-square */
-        int region;
 
         /* get amplitude envelope (5b) for region 0 */
-        for (i = 0; i < 5; i++)  {
+        for (int i = 0; i < 5; i++)  {
             int bit = (data_u32[bitpos >> 5] >> (31 - (bitpos & 0x1F))) & 1;
             bitpos++;
 
@@ -986,7 +947,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
         absolute_region_power_index[0] = rms_index - ESF_ADJUSTMENT_TO_RMS_INDEX;
 
         /* get amplitudes for other regions, coded differentially based on region 0 (done with a temp array in refdec) */
-        for (region = 1; region < NUMBER_OF_REGIONS; region++) {
+        for (int region = 1; region < NUMBER_OF_REGIONS; region++) {
             int diff_index = 0;
             int region_index = region > 13 ? 13 - 1 : region - 1;
 
@@ -1005,7 +966,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
     /* read categorization info bits */
     {
         categorization_control = 0;
-        for (i = 0; i < NUM_CATEGORIZATION_CONTROL_BITS; i++) {
+        for (int i = 0; i < NUM_CATEGORIZATION_CONTROL_BITS; i++) {
             int bit = (data_u32[bitpos >> 5] >> (31 - (bitpos & 0x1F))) & 1;
             bitpos++;
 
@@ -1021,7 +982,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
 
     /* adjust power categories (rate_adjust_categories) */
     {
-        for (i = 0; i < categorization_control; i++) {
+        for (int i = 0; i < categorization_control; i++) {
             int region = category_balances[i];
             power_categories[region]++;
         }
@@ -1029,31 +990,36 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
 
     /* recover amplitude envelope deviation (done in decode_envelope in refdec) */
     {
-        int region, region_index, max_index /*, test_index*/;
+        int max_index;
 
         /* vs refdec: Namco *doesn't* calc test_index here, so resulting region_index
           * can be +-1 vs refdec, and final samples around +-10 (usually quieter).
          * Also reuses and mods absolute_region_power_index but we have decoder_region_standard_deviation for clarity */
 
-        //test_index = 0;
+        //int test_index = 0;
         max_index = 0;
-        for (region = 0; region < NUMBER_OF_REGIONS; region++) {
-            region_index = absolute_region_power_index[region];
-            if (max_index < region_index)
-                max_index = region_index;
-            //test_index += region_standard_deviation_table[region_index + REGION_POWER_TABLE_NUM_NEGATIVES];
+        for (int region = 0; region < NUMBER_OF_REGIONS; region++) {
+            int abs_region_index = absolute_region_power_index[region];
+            if (max_index < abs_region_index)
+                max_index = abs_region_index;
+            //test_index += region_standard_deviation_table[abs_region_index + REGION_POWER_TABLE_NUM_NEGATIVES];
         }
 
         max_index += REGION_POWER_TABLE_NUM_NEGATIVES;
-        region_index = 9;
+        int region_index = 9;
         while ((region_index >= 0) && (/*test_index >= 8 ||*/ max_index > 28)) {
             max_index -= 2;
             region_index--;
             //test_index /= 2;
         }
 
-        for (region = 0; region < NUMBER_OF_REGIONS; region++) {
+        for (int region = 0; region < NUMBER_OF_REGIONS; region++) {
             int rsd_index = absolute_region_power_index[region] + REGION_POWER_TABLE_NUM_NEGATIVES + region_index * 2;
+            // OG doesn't clamp this, which theretically could overflow (with test_errors set it does check absolute_region_power_index limits)
+            if (rsd_index >= REGION_POWER_TABLE_SIZE)
+                rsd_index = REGION_POWER_TABLE_SIZE - 1;
+            else if (rsd_index < 0)
+                rsd_index = 0;
             decoder_region_standard_deviation[region] = region_standard_deviation_table[rsd_index];
         }
 
@@ -1078,7 +1044,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
 
             /* frame must be padded with 1s after regular data */
             endpos = bitpos;
-            for (i = 0; i < bits_left; i++) {
+            for (int i = 0; i < bits_left; i++) {
                 int bit = (data_u32[endpos >> 5] >> (31 - (endpos & 0x1F))) & 1;
                 endpos++;
 
@@ -1089,6 +1055,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
             /* extra: test we aren't in the middle of padding (happens with bad keys, this test catches most)
              * After reading the whole frame, last bit position should land near last useful
              * data, a few bytes into padding, so check there aren't too many padding bits. */
+            int i;
             endpos = bitpos;
             test_bits = 8 * max_pad_bytes;
             if (test_bits > bitpos)
@@ -1111,7 +1078,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
                 return -2;
         }
 
-        for (i = 0; i < NUMBER_OF_REGIONS; i++) {
+        for (int i = 0; i < NUMBER_OF_REGIONS; i++) {
             if ((absolute_region_power_index[i] + ESF_ADJUSTMENT_TO_RMS_INDEX > 31) ||
                 (absolute_region_power_index[i] + ESF_ADJUSTMENT_TO_RMS_INDEX < -8))
               return -4;
@@ -1179,18 +1146,16 @@ int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples
 
     /* unpack data into MLT spectrum coefs */
     res = unpack_frame(handle->bit_rate, data, handle->frame_size, &mag_shift, handle->mlt_coefs, &handle->random_value, handle->test_errors);
-    if (res < 0) goto fail;
+    if (res < 0) return res;
 
     /* convert coefs to samples using reverse (inverse) MLT */
     res = rmlt_coefs_to_samples(mag_shift, handle->mlt_coefs, handle->old_samples, out_samples);
-    if (res < 0) goto fail;
+    if (res < 0) return res;
 
     /* Namco also sets number of codes/samples done from unpack_frame/rmlt (ptr arg),
      * but they seem unused */
 
     return 0;
-fail:
-    return res;
 }
 
 #if 0
@@ -1208,15 +1173,13 @@ int g7221_decode_empty(g7221_handle* handle, int16_t* out_samples) {
      * wouldn't need to be called. Doesn't seem to use encoder delay either. */
 
     res = unpack_frame(24000, empty_frame, 0x3c, &mag_shift, handle->mlt_coefs, &handle->random_value);
-    if (res) goto fail;
+    if (res) return false;
 
     /* convert coefs to samples using reverse (inverse) MLT */
     res = rmlt_coefs_to_samples(mag_shift, handle->mlt_coefs, handle->old_samples, out_samples);
-    if (res) goto fail;
+    if (res) return false;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 #endif
 
@@ -1244,10 +1207,9 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
     const int key_size = 192 / 8; /* only 192 bit mode */
     uint8_t temp_key[192 / 8];
     const char* mod_key = "Ua#oK3P94vdxX,ft*k-mnjoO"; /* constant for all platform/games */
-    int i;
 
     if (!handle)
-        goto fail;
+        return -1;
 
     /* disable, useful for testing? */
     if (key == NULL) {
@@ -1260,7 +1222,7 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
     /* init AES state (tables) or reuse if already exists */
     if (handle->aes == NULL) {
         handle->aes = s14aes_init();
-        if (!handle->aes) goto fail;
+        if (!handle->aes) return -1;
     }
 
     handle->test_errors = 1;
@@ -1268,7 +1230,7 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
     /* Base key is XORed probably against memdumps, as plain key would be part of the final AES key. However
      * roundkey is still in memdumps near AES state (~0x1310 from sbox table, that starts with 0x63,0x7c,0x77,0x7b...)
      * so it isn't too effective. XORing was originally done inside aes_expand_key during S14/S22 init. */
-    for (i = 0; i < key_size; i++) {
+    for (int i = 0; i < key_size; i++) {
         temp_key[i] = key[i] ^ mod_key[i];
     }
 
@@ -1276,6 +1238,4 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
     s14aes_set_key(handle->aes, temp_key);
 
     return 0;
-fail:
-    return -1;
 }

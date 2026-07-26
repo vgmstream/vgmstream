@@ -6,10 +6,8 @@
 void decode_xmd(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size) {
     uint8_t frame[0x15] = {0};
     off_t frame_offset;
-    int i, frames_in, sample_count = 0, samples_done = 0;
+    int frames_in, sample_count = 0, samples_done = 0;
     size_t bytes_per_frame, samples_per_frame;
-    int16_t hist1, hist2;
-    uint16_t scale;
 
 
     /* external interleave (variable size), mono */
@@ -21,9 +19,15 @@ void decode_xmd(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, 
     /* parse frame header */
     frame_offset = stream->offset + bytes_per_frame * frames_in;
     read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
-    hist2 = get_s16le(frame + 0x00);
-    hist1 = get_s16le(frame + 0x02);
-    scale = get_u16le(frame + 0x04); /* scale doesn't go too high though */
+
+    int16_t hist2  = get_s16le(frame + 0x00);
+    int16_t hist1  = get_s16le(frame + 0x02);
+    uint16_t scale = get_u16le(frame + 0x04); // scale doesn't go too high though
+
+    // Coefs are based on XA's filter 2 (using those creates hissing in some songs though)
+    // ex. 1.796875 * (1 << 14) = 0x7300, -0.8125 * (1 << 14) = -0x3400
+    int coef1 = 0x7298;
+    int coef2 = 0x3350;
 
     /* write header samples (needed) */
     if (sample_count >= first_sample && samples_done < samples_to_do) {
@@ -37,19 +41,17 @@ void decode_xmd(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, 
     }
     sample_count++;
 
+   
     /* decode nibbles */
-    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
         uint8_t nibbles = frame[0x06 + i/2];
         int32_t sample;
 
-        sample = i&1 ? /* low nibble first */
-                get_high_nibble_signed(nibbles):
-                 get_low_nibble_signed(nibbles);
-        /* Coefs are based on XA's filter 2 (using those creates hissing in some songs though)
-         * ex. 1.796875 * (1 << 14) = 0x7300, -0.8125 * (1 << 14) = -0x3400 */
-        sample = (sample*(scale<<14) + (hist1*0x7298) - (hist2*0x3350)) >> 14;
+        sample = get_nibble_signed(nibbles, i&1); // low nibble first
 
-        //new_sample = clamp16(new_sample); /* not needed */
+        sample = (sample * (scale << 14) + (hist1 * coef1) - (hist2 * coef2)) >> 14;
+        //sample = clamp16(sample); // not needed
+
         if (sample_count >= first_sample && samples_done < samples_to_do) {
             outbuf[samples_done * channelspacing] = (int16_t)sample;
             samples_done++;

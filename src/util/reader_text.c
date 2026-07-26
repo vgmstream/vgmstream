@@ -4,23 +4,28 @@
 
 
 size_t read_line(char* buf, int buf_size, off_t offset, STREAMFILE* sf, int* p_line_ok) {
+    off_t file_size = get_streamfile_size(sf); //TODO allow supply externally?
+    int extra_bytes = 0; // how many bytes over those in the buffer were read
+
+    int line_ok = false;
+    if (p_line_ok)
+        *p_line_ok = line_ok;
+
+    if (buf <= 0)
+        return 0;
+
     int i;
-    off_t file_size = get_streamfile_size(sf);
-    int extra_bytes = 0; /* how many bytes over those put in the buffer were read */
-
-    if (p_line_ok) *p_line_ok = 0;
-
-    for (i = 0; i < buf_size-1 && offset+i < file_size; i++) {
+    for (i = 0; i < buf_size - 1 && offset + i < file_size; i++) {
         char in_char = read_u8(offset+i, sf);
         /* check for end of line */
         if (in_char == 0x0d && read_u8(offset+i+1, sf) == 0x0a) { /* CRLF */
             extra_bytes = 2;
-            if (p_line_ok) *p_line_ok = 1;
+            line_ok = true;
             break;
         }
         else if (in_char == 0x0d || in_char == 0x0a) { /* CR or LF */
             extra_bytes = 1;
-            if (p_line_ok) *p_line_ok = 1;
+            line_ok = true;
             break;
         }
 
@@ -30,25 +35,27 @@ size_t read_line(char* buf, int buf_size, off_t offset, STREAMFILE* sf, int* p_l
     buf[i] = '\0';
 
     /* did we fill the buffer? */
-    if (i == buf_size) {
+    if (i == buf_size - 1) {
         char in_char = read_8bit(offset+i, sf);
         /* did the bytes we missed just happen to be the end of the line? */
         if (in_char == 0x0d && read_8bit(offset+i+1, sf) == 0x0a) { /* CRLF */
             extra_bytes = 2;
-            if (p_line_ok) *p_line_ok = 1;
+            line_ok = true;
         }
         else if (in_char == 0x0d || in_char == 0x0a) { /* CR or LF */
             extra_bytes = 1;
-            if (p_line_ok) *p_line_ok = 1;
+            line_ok = true;
         }
     }
 
     /* did we hit the file end? */
-    if (offset+i == file_size) {
+    if (offset + i == file_size) {
         /* then we did in fact finish reading the last line */
-        if (p_line_ok) *p_line_ok = 1;
+        line_ok = true;
     }
 
+    if (p_line_ok)
+        *p_line_ok = line_ok;
     return i + extra_bytes;
 }
 

@@ -2,9 +2,12 @@
 #include "log.h"
 #include "reader_sf.h"
 
-#define UTF_MAX_SCHEMA_SIZE       0x8000    /* arbitrary max */
-#define COLUMN_BITMASK_FLAG       0xf0
-#define COLUMN_BITMASK_TYPE       0x0f
+#define UTF_MAX_SCHEMA_SIZE     0x8000      // arbitrary max (typically much smaller)
+#define UTF_MAX_STRINGS_SIZE    0x80000     // arbitrary max (known max is ~0x20000)
+#define UTF_MAX_COLUMNS         256         // arbitrary max (~100 is not uncommon for .acb)
+#define UTF_MAX_ROWS            128000      // arbitrary max (unlikely but maybe for many subsongs)
+#define COLUMN_BITMASK_FLAG     0xF0
+#define COLUMN_BITMASK_TYPE     0x0F
 
 enum column_flag_t {
     COLUMN_FLAG_NAME            = 0x10,     /* column has name (may be empty) */
@@ -30,9 +33,24 @@ enum column_type_t {
     COLUMN_TYPE_UNDEFINED       = -1
 };
 
+typedef struct {
+    uint8_t flag;
+    uint8_t type;
+    const char* name;
+    uint32_t offset;
+} utf_column_t;
+
+/* @UTF table sections
+ * - base header: section sizes, column count, row count, row width, etc
+ * - DB schema: column name + type + value (offset to a constant within this section, or within rows section)
+ * - rows section: N rows of fixed width; each row stores data like 'u8 u32 u16 string vldata' (depending on columns)
+ * - string section: null-terminated strings, used for column names and string values
+ * - data section: variable length binary data, mainly used for VLDATA types
+ */
 struct utf_context {
     STREAMFILE* sf;
     uint32_t table_offset;
+    uint32_t stream_size;
 
     /* header */
     uint32_t table_size;
@@ -40,20 +58,15 @@ struct utf_context {
     uint16_t rows_offset;
     uint32_t strings_offset;
     uint32_t data_offset;
-    uint32_t name_offset;
+    uint32_t name_offset;       // table's name (like 'Header', 'TBLCSB')
     uint16_t columns;
     uint16_t row_width;
     uint32_t rows;
 
     uint8_t* schema_buf;
-    struct utf_column_t {
-        uint8_t flag;
-        uint8_t type;
-        const char* name;
-        uint32_t offset;
-    } *schema;
+    utf_column_t* schema;
 
-    /* derived */
+    /* derived, values within table */
     uint32_t schema_offset;
     uint32_t schema_size;
     uint32_t rows_size;
@@ -94,6 +107,17 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
     utf->rows           = get_u32be(buf + 0x1c);
 
     utf->schema_offset  = 0x20;
+    utf->stream_size = get_streamfile_size(sf);
+
+    // assumes sections are in order
+    if (utf->schema_offset > utf->rows_offset)
+        goto fail;
+    if (utf->rows_offset > utf->strings_offset)
+        goto fail;
+    if (utf->strings_offset > utf->data_offset)
+        goto fail;
+    if (utf->data_offset > utf->table_size)
+        goto fail;
     utf->schema_size    = utf->rows_offset - utf->schema_offset;
     utf->rows_size      = utf->strings_offset - utf->rows_offset;
     utf->strings_size   = utf->data_offset - utf->strings_offset;
@@ -105,16 +129,23 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
         vgm_logi("@UTF: unknown version\n");
         goto fail;
     }
-    if (utf->table_offset + utf->table_size > get_streamfile_size(sf))
+
+    if (utf->table_offset > utf->stream_size || utf->table_size > utf->stream_size - utf->table_offset)
         goto fail;
+    if (utf->schema_size >= UTF_MAX_SCHEMA_SIZE || utf->strings_size >= UTF_MAX_STRINGS_SIZE) // keel allocs sane
+        goto fail;
+
     if (utf->rows_offset > utf->table_size || utf->strings_offset > utf->table_size || utf->data_offset > utf->table_size)
         goto fail;
-    if (utf->strings_size <= 0 || utf->name_offset > utf->strings_size)
+    if (utf->strings_size <= 0 || utf->name_offset >= utf->strings_size) // all tables should have a name
         goto fail;
-    /* no rows is possible for empty tables (have schema and columns names but no data) [PES 2013 (PC)] */
+
+    // no rows is possible for empty tables (have schema and columns names but no data) [PES 2013 (PC)]
     if (utf->columns <= 0 /*|| utf->rows <= 0 || utf->rows_width <= 0*/)
         goto fail;
-    if (utf->schema_size >= UTF_MAX_SCHEMA_SIZE)
+    if (utf->columns >= UTF_MAX_COLUMNS || utf->columns >= UTF_MAX_ROWS)
+        goto fail;
+    if (utf->row_width > utf->rows_size || (uint64_t)utf->rows * utf->row_width > utf->rows_size)
         goto fail;
 
     /* load sections linearly (to optimize stream) */
@@ -128,7 +159,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
 
         /* row section: skip, mid to big (0x10000~0x50000) so not preloaded for now */
 
-        /* string section: low to mid size but used to return c-strings */
+        /* string section: low to mid size but used to return c-strings; extra char to avoid rogue null */
         utf->string_table = calloc(utf->strings_size + 1, sizeof(char));
         if (!utf->string_table) goto fail;
 
@@ -140,22 +171,32 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
 
     /* load column schema */
     {
-        int i;
-        uint32_t value_size, column_offset = 0;
-        int schema_pos = 0;
+        uint32_t value_size = 0x00;
+        uint32_t row_column_offset = 0x00; // "offset of column N, within the data reserved for a row"
+        uint32_t schema_offset = 0x00;
 
         utf->table_name = utf->string_table + utf->name_offset;
 
-        utf->schema = calloc(1, utf->columns * sizeof(struct utf_column_t));
+        utf->schema = calloc(1, utf->columns * sizeof(utf_column_t));
         if (!utf->schema) goto fail;
 
-        for (i = 0; i < utf->columns; i++) {
-            uint8_t info = get_u8(utf->schema_buf + schema_pos + 0x00);
-            uint32_t name_offset = get_u32be(utf->schema_buf + schema_pos + 0x01);
+        for (int i = 0; i < utf->columns; i++) {
+            uint8_t info;
+            uint32_t name_offset;
 
-            if (name_offset > utf->strings_size)
+            if (schema_offset + 0x05 > utf->schema_size)
                 goto fail;
-            schema_pos += 0x01 + 0x04;
+
+            info        =    get_u8(utf->schema_buf + schema_offset + 0x00);
+            name_offset = get_u32be(utf->schema_buf + schema_offset + 0x01);
+            schema_offset += 0x01 + 0x04;
+
+            // assumes strings can point to name 
+            // names are null-terminated within string section (no set lengths), but just in case on alloc we add an extra null to the string_table
+            if (name_offset > utf->strings_size) {
+                vgm_logi("@UTF: column name offset %x exceeds string table size %x\n", name_offset, utf->strings_size);
+                goto fail;
+            }
 
             utf->schema[i].flag = info & COLUMN_BITMASK_FLAG;
             utf->schema[i].type = info & COLUMN_BITMASK_TYPE;
@@ -195,11 +236,11 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
                     break;
                 case COLUMN_TYPE_UINT64:
                 case COLUMN_TYPE_SINT64:
-              //case COLUMN_TYPE_DOUBLE:
+              //case COLUMN_TYPE_DOUBLE: //not seen
                 case COLUMN_TYPE_VLDATA:
                     value_size = 0x08;
                     break;
-              //case COLUMN_TYPE_UINT128:
+              //case COLUMN_TYPE_UINT128: //not seen
               //    value_size = 0x16;
                 default:
                     vgm_logi("@UTF: unknown column type\n");
@@ -208,26 +249,47 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
 
             if (utf->schema[i].flag & COLUMN_FLAG_NAME) {
                 utf->schema[i].name = utf->string_table + name_offset;
+
+                // not sure if this can happen; name_offset is already validated above
+                if (name_offset == utf->strings_size) {
+                    vgm_logi("@UTF: column with no name (name_offset same as strings_size)\n");
+                    utf->schema[i].name = NULL;
+                }
             }
 
             if (utf->schema[i].flag & COLUMN_FLAG_DEFAULT) {
-                utf->schema[i].offset = schema_pos;
-                schema_pos += value_size;
+                utf->schema[i].offset = schema_offset;
+                schema_offset += value_size;
+
+                // values in the schema section
+                if (schema_offset > utf->schema_size) {
+                    vgm_logi("@UTF: default column offset over schema size\n");
+                    goto fail;
+                }
             }
             else if (utf->schema[i].flag & COLUMN_FLAG_ROW) {
-                utf->schema[i].offset = column_offset;
-                column_offset += value_size;
+                utf->schema[i].offset = row_column_offset;
+                row_column_offset += value_size;
+
+                // values in the rows section (column data for row N)
+                if (row_column_offset > utf->rows_size) {
+                    vgm_logi("@UTF: row column offset %x over row width %x\n", row_column_offset, utf->rows_size);
+                    goto fail;
+                }
+
+                // Should be 'row_column_offset > utf->row_width', but after HCA v3 was added UTFs Header-row's
+                // last columns point to blank data after row_width rather than using COLUMN_FLAG_DEFAULT (bug?).
             }
         }
     }
 
 #if 0
-    VGM_LOG("- %s\n", utf->table_name);
-    VGM_LOG(" utf_o=%08x (%x)\n", utf->table_offset, utf->table_size);
-    VGM_LOG(" sch_o=%08x (%x), c=%i\n", utf->table_offset + utf->schema_offset, utf->schema_size, utf->columns);
-    VGM_LOG(" row_o=%08x (%x), r=%i\n", utf->table_offset + utf->rows_offset, utf->rows_size, utf->rows);
-    VGM_LOG(" str_o=%08x (%x)\n", utf->table_offset + utf->strings_offset, utf->strings_size);
-    VGM_LOG(" dat_o=%08x (%x))\n", utf->table_offset + utf->data_offset, utf->data_size);
+    //;VGM_LOG("@UTF: table %s\n", utf->table_name);
+    //;VGM_LOG("@UTF: utf_o=%08x (%x)\n", utf->table_offset, utf->table_size);
+    //;VGM_LOG("@UTF: sch_o=%08x (%x), c=%i\n", utf->table_offset + utf->schema_offset, utf->schema_size, utf->columns);
+    //;VGM_LOG("@UTF: row_o=%08x (%x), r=%i\n", utf->table_offset + utf->rows_offset, utf->rows_size, utf->rows);
+    //;VGM_LOG("@UTF: str_o=%08x (%x)\n", utf->table_offset + utf->strings_offset, utf->strings_size);
+    //;VGM_LOG("@UTF: dat_o=%08x (%x))\n", utf->table_offset + utf->data_offset, utf->data_size);
 #endif
 
     /* write info */
@@ -252,11 +314,10 @@ void utf_close(utf_context* utf) {
 
 
 int utf_get_column(utf_context* utf, const char* column_name) {
-    int i;
 
     /* find target column */
-    for (i = 0; i < utf->columns; i++) {
-        struct utf_column_t* col = &utf->schema[i];
+    for (int i = 0; i < utf->columns; i++) {
+        utf_column_t* col = &utf->schema[i];
 
         if (col->name == NULL || strcmp(col->name, column_name) != 0)
             continue;
@@ -293,105 +354,101 @@ typedef struct {
     } value;
 } utf_result_t;
 
-static int utf_query(utf_context* utf, int row, int column, utf_result_t* result) {
+static bool utf_query(utf_context* utf, int row, int column, utf_result_t* result) {
 
     if (row >= utf->rows || row < 0)
-        goto fail;
+        return false;
     if (column >= utf->columns || column < 0)
-        goto fail;
+        return false;
 
     /* get target column */
-    {
-        struct utf_column_t* col = &utf->schema[column];
-        uint32_t data_offset = 0;
-        uint8_t* buf = NULL;
+    utf_column_t* col = &utf->schema[column];
+    uint32_t data_offset = 0;
+    uint8_t* buf = NULL;
 
-        result->type = col->type;
+    result->type = col->type;
 
-        if (col->flag & COLUMN_FLAG_DEFAULT) {
-            if (utf->schema_buf)
-                buf = utf->schema_buf + col->offset;
-            else
-                data_offset = utf->table_offset + utf->schema_offset + col->offset;
-        }
-        else if (col->flag & COLUMN_FLAG_ROW) {
-            data_offset = utf->table_offset + utf->rows_offset + row * utf->row_width + col->offset;
-        }
-        else {
-            /* shouldn't happen */
-            memset(&result->value, 0, sizeof(result->value));
-            return 1; /* ??? */
-        }
-
-
-        /* read row/constant value (use buf if available) */
-        switch (col->type) {
-            case COLUMN_TYPE_UINT8:
-                result->value.u8 = buf ? get_u8(buf) : read_u8(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_SINT8:
-                result->value.s8 = buf ? get_s8(buf) : read_s8(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_UINT16:
-                result->value.u16 = buf ? get_u16be(buf) : read_u16be(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_SINT16:
-                result->value.s16 = buf ? get_s16be(buf) : read_s16be(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_UINT32:
-                result->value.u32 = buf ? get_u32be(buf) : read_u32be(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_SINT32:
-                result->value.s32 = buf ? get_s32be(buf) : read_s32be(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_UINT64:
-                result->value.u64 = buf ? get_u64be(buf) : read_u64be(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_SINT64:
-                result->value.s64 = buf ? get_s64be(buf) : read_s64be(data_offset, utf->sf);
-                break;
-            case COLUMN_TYPE_FLOAT:
-                result->value.flt = buf ? get_f32be(buf) : read_f32be(data_offset, utf->sf);
-                break;
-#if 0
-            case COLUMN_TYPE_DOUBLE:
-                result->value.dbl = buf ? get_d64be(buf) : read_d64be(data_offset, utf->sf);
-                break;
-#endif
-            case COLUMN_TYPE_STRING: {
-                uint32_t name_offset = buf ? get_u32be(buf) : read_u32be(data_offset, utf->sf);
-                if (name_offset > utf->strings_size)
-                    goto fail;
-                result->value.str = utf->string_table + name_offset;
-                break;
-            }
-            case COLUMN_TYPE_VLDATA:
-                result->value.data.offset = buf ? get_u32be(buf + 0x0) : read_u32be(data_offset + 0x00, utf->sf);
-                result->value.data.size   = buf ? get_u32be(buf + 0x4) : read_u32be(data_offset + 0x04, utf->sf);
-                break;
-#if 0
-            case COLUMN_TYPE_UINT128:
-                result->value.value_u128.hi = buf ? get_u32be(buf + 0x0) : read_u64be(data_offset + 0x00, utf->sf);
-                result->value.value_u128.lo = buf ? get_u32be(buf + 0x4) : read_u64be(data_offset + 0x08, utf->sf);
-                break;
-#endif
-            default:
-                goto fail;
-        }
+    if (col->flag & COLUMN_FLAG_DEFAULT) {
+        if (utf->schema_buf)
+            buf = utf->schema_buf + col->offset;
+        else // can't happen but for reference
+            data_offset = utf->table_offset + utf->schema_offset + col->offset;
+    }
+    else if (col->flag & COLUMN_FLAG_ROW) {
+        data_offset = utf->table_offset + utf->rows_offset + row * utf->row_width + col->offset;
+    }
+    else {
+        /* shouldn't happen */
+        memset(&result->value, 0, sizeof(result->value));
+        return true; /* ??? */
     }
 
-    return 1;
-fail:
-    return 0;
+    /* read row/constant value (use buf if available) */
+    switch (col->type) {
+        case COLUMN_TYPE_UINT8:
+            result->value.u8 = buf ? get_u8(buf) : read_u8(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_SINT8:
+            result->value.s8 = buf ? get_s8(buf) : read_s8(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_UINT16:
+            result->value.u16 = buf ? get_u16be(buf) : read_u16be(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_SINT16:
+            result->value.s16 = buf ? get_s16be(buf) : read_s16be(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_UINT32:
+            result->value.u32 = buf ? get_u32be(buf) : read_u32be(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_SINT32:
+            result->value.s32 = buf ? get_s32be(buf) : read_s32be(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_UINT64:
+            result->value.u64 = buf ? get_u64be(buf) : read_u64be(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_SINT64:
+            result->value.s64 = buf ? get_s64be(buf) : read_s64be(data_offset, utf->sf);
+            break;
+        case COLUMN_TYPE_FLOAT:
+            result->value.flt = buf ? get_f32be(buf) : read_f32be(data_offset, utf->sf);
+            break;
+#if 0
+        case COLUMN_TYPE_DOUBLE:
+            result->value.dbl = buf ? get_d64be(buf) : read_d64be(data_offset, utf->sf);
+            break;
+#endif
+        case COLUMN_TYPE_STRING: {
+            uint32_t name_offset = buf ? get_u32be(buf) : read_u32be(data_offset, utf->sf);
+            if (name_offset > utf->strings_size)
+                return false;
+            result->value.str = utf->string_table + name_offset;
+            //TODO: check if string is valid (null-terminated within string section)
+            break;
+        }
+        case COLUMN_TYPE_VLDATA:
+            result->value.data.offset = buf ? get_u32be(buf + 0x0) : read_u32be(data_offset + 0x00, utf->sf);
+            result->value.data.size   = buf ? get_u32be(buf + 0x4) : read_u32be(data_offset + 0x04, utf->sf);
+            //TODO: check if offset+size is valid (within data section)
+            break;
+#if 0
+        case COLUMN_TYPE_UINT128:
+            result->value.value_u128.hi = buf ? get_u32be(buf + 0x0) : read_u64be(data_offset + 0x00, utf->sf);
+            result->value.value_u128.lo = buf ? get_u32be(buf + 0x4) : read_u64be(data_offset + 0x08, utf->sf);
+            break;
+#endif
+        default:
+            return false;
+    }
+
+    return true;
 }
 
 static int utf_query_value(utf_context* utf, int row, int column, void* value, enum column_type_t type) {
     utf_result_t result = {0};
-    int valid;
 
-    valid = utf_query(utf, row, column, &result);
+    bool valid = utf_query(utf, row, column, &result);
     if (!valid || result.type != type)
-        return 0;
+        return false;
 
     switch(result.type) {
         case COLUMN_TYPE_UINT8:  (*(uint8_t*)value)  = result.value.u8; break;
@@ -404,10 +461,10 @@ static int utf_query_value(utf_context* utf, int row, int column, void* value, e
         case COLUMN_TYPE_SINT64: (*(int64_t*)value)  = result.value.s64; break;
         case COLUMN_TYPE_STRING: (*(const char**)value) = result.value.str; break;
         default:
-            return 0;
+            return false;
     }
 
-    return 1;
+    return true;
 }
 
 int utf_query_col_s8(utf_context* utf, int row, int column, int8_t* value) {
@@ -440,15 +497,14 @@ int utf_query_col_string(utf_context* utf, int row, int column, const char** val
 
 int utf_query_col_data(utf_context* utf, int row, int column, uint32_t* p_offset, uint32_t* p_size) {
     utf_result_t result = {0};
-    int valid;
 
-    valid = utf_query(utf, row, column, &result);
+    bool valid = utf_query(utf, row, column, &result);
     if (!valid || result.type != COLUMN_TYPE_VLDATA)
-        return 0;
+        return false;
 
     if (p_offset) *p_offset = utf->table_offset + utf->data_offset + result.value.data.offset;
     if (p_size) *p_size = result.value.data.size;
-    return 1;
+    return true;
 }
 
 
