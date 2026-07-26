@@ -4,6 +4,9 @@
 
 #ifdef VGM_USE_FFMPEG
 
+// arbitrary max, approx max sum of atom chunks is ~0x400 (check instead of buf_len for overflows)
+#define MP4_MAX_TABLE_ENTRIES 0x4000
+
 typedef enum { MP4_KTAC, MP4_LYN } mp4_type_t;
 
 /**
@@ -514,13 +517,15 @@ static ffmpeg_codec_data* init_ffmpeg_mp4_custom(STREAMFILE* sf, mp4_custom_t* m
     STREAMFILE* temp_sf = NULL;
     int bytes;
     uint8_t* buf = NULL;
-    int buf_len = 0x800 + mp4->table_entries * 0x4; /* approx max sum of atom chunks is ~0x400 */
 
-    if (buf_len > 0x100000) /* ??? */
-        goto fail;
+    // arbitrary max, approx max sum of atom chunks is ~0x400 (check before buf_len for overflows)
+    if (mp4->table_entries >= MP4_MAX_TABLE_ENTRIES)
+        return NULL;
 
+    int buf_len = 0x800 + mp4->table_entries * 0x4;
     buf = calloc(1, buf_len);
     if (!buf) goto fail;
+
     bytes = make_m4a_header(buf, buf_len, mp4, sf, type); /* before changing stream_offset/size */
 
     switch(type) {

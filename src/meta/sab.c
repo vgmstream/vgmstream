@@ -25,7 +25,7 @@ typedef struct {
 } sab_header;
 
 
-static int parse_sab(STREAMFILE* sf, sab_header* sab);
+static bool parse_sab(STREAMFILE* sf, sab_header* sab);
 static VGMSTREAM* build_layered_vgmstream(STREAMFILE* sf, sab_header* sab);
 static void get_stream_name(char* stream_name, STREAMFILE* sf, int target_stream);
 
@@ -35,16 +35,17 @@ VGMSTREAM* init_vgmstream_sab(STREAMFILE* sf) {
     sab_header sab = {0};
 
 
-    /* .sab: main, .sob: cue (has config/names) */
+    /* checks*/
+    if (!is_id32be(0x00,sf, "CSW2") &&  // Windows
+        !is_id32be(0x00,sf, "CSP2") &&  // PS2
+        !is_id32be(0x00,sf, "CSX2"))    // Xbox
+        return NULL;
+    /* .sab: main + .sob: cue (has config/names) */
     if (!check_extensions(sf,"sab"))
-        goto fail;
-    if (read_u32be(0x00,sf) != 0x43535732 &&  /* "CSW2" (Windows) */
-        read_u32be(0x00,sf) != 0x43535032 &&  /* "CSP2" (PS2) */
-        read_u32be(0x00,sf) != 0x43535832)    /* "CSX2" (Xbox) */
-        goto fail;
+        return NULL;
 
     if (!parse_sab(sf, &sab))
-        goto fail;
+        return NULL;
 
     /* sab can be (both cases handled here):
      * - bank: multiple subsongs (each a different header)
@@ -123,23 +124,28 @@ end:
     close_streamfile(sf_info);
 }
 
-static int parse_sab(STREAMFILE* sf, sab_header* sab) {
+static bool parse_sab(STREAMFILE* sf, sab_header* sab) {
     off_t entry_offset;
 
-    sab->flags       = read_u32le(0x04,sf); /* upper byte is always 0x02 (version?) */
+    sab->flags       = read_u32le(0x04,sf); // upper byte is always 0x02 (version?)
     sab->sound_count = read_u32le(0x08,sf);
     sab->block_size  = read_u32le(0x0c,sf);
-    /* 0x10: number of blocks */
-    /* 0x14: file id? */
+    // 0x10: number of blocks
+    // 0x14: file id?
+    
+    if (sab->sound_count == 0)
+        return false;
+    if (sab->block_size == 0) // possible div by zero
+        return false;
 
-    sab->is_stream = sab->flags & 0x04; /* "not bank" */
-    sab->is_extra  = sab->flags & 0x10; /* not used in Worms 4 */
-    /* flags 1/2 are also common, no flags in banks */
+    sab->is_stream = sab->flags & 0x04; // "not bank"
+    sab->is_extra  = sab->flags & 0x10; // not used in Worms 4
+    // flags 1/2 are also common, no flags in banks
 
     sab->total_subsongs = sab->is_stream ? 1 : sab->sound_count;
     sab->target_subsong = sf->stream_index;
     if (sab->target_subsong == 0) sab->target_subsong = 1;
-    if (sab->target_subsong < 0 || sab->target_subsong > sab->total_subsongs || sab->total_subsongs < 1) goto fail;
+    if (sab->target_subsong < 0 || sab->target_subsong > sab->total_subsongs || sab->total_subsongs < 1) return false;
 
     /* stream config */
     entry_offset = 0x18 + 0x1c * (sab->target_subsong - 1);
@@ -165,9 +171,7 @@ static int parse_sab(STREAMFILE* sf, sab_header* sab) {
     if (sab->is_extra)
         sab->stream_offset += sab->block_size;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 static VGMSTREAM* build_vgmstream(STREAMFILE* sf, sab_header* sab) {

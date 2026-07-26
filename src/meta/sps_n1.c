@@ -36,8 +36,8 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
     type = read_u32(0x00,sf);
     uint32_t subfile_size = read_u32(0x04,sf);
     int sample_rate = read_u16(0x08,sf);
-    // 0x0a: flag? (stereo?)
-    // 0x0b: flag?
+    int flag1 = read_u8(0x0a,sf);
+    int flag2 = read_u8(0x0b,sf);
     // 0x0c: num_samples
     // newer games with loop section (>7?):
     // 0x10: loop start
@@ -47,12 +47,16 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
 
     if (sample_rate < 8000 || sample_rate > 48000) //arbitrary max
         return NULL;
+    // flag1 = usually 0/1 (stereo flag?)
+    // flag1 = rarely 0/1 [Cladun X2 (PSP), Legasista (PS3)]
+    if (flag1 > 0x01 || flag2 > 0x01)
+        return NULL;
 
     uint32_t subfile_offset = get_streamfile_size(sf) - subfile_size;
     if (subfile_offset <= 0 || subfile_offset > 0x1c)
         return NULL;
 
-    switch(type) {
+    switch (type) {
         case 1:
             init_vgmstream = init_vgmstream_vag;
             extension = "vag";
@@ -70,10 +74,11 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
 
         case 7:
             // init_vgmstream_ogg_vorbis (init_vgmstream_sps_n1_segmented)
+            // break;
         case 9:
             // init_vgmstream_opus_sps_n1
             // init_vgmstream_opus_std (init_vgmstream_sps_n1_segmented)
-
+            // break;
         default:
             return NULL;
     }
@@ -109,7 +114,7 @@ fail:
 /* Nippon Ichi SPS wrapper (segmented) [Penny-Punching Princess (Switch), Disgaea 4 Complete (PC)] */
 VGMSTREAM* init_vgmstream_sps_n1_segmented(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    size_t data_size, max_size;
+    uint32_t data_size, max_size;
     int loop_flag, type, sample_rate;
 
     init_vgmstream_t init_vgmstream = NULL;
@@ -213,23 +218,27 @@ VGMSTREAM* init_vgmstream_sps_n1_segmented(STREAMFILE* sf) {
     /* open each segment subfile */
     segment = 0;
     for (int i = 0; i < SEGMENT_MAX; i++) {
+        VGMSTREAM* vs = NULL;
+        STREAMFILE* temp_sf = NULL;
+
         if (!segment_sizes[i])
             continue;
 
-        STREAMFILE* temp_sf = setup_subfile_streamfile(sf, segment_offsets[i],segment_sizes[i], extension);
+        temp_sf = setup_subfile_streamfile(sf, segment_offsets[i],segment_sizes[i], extension);
         if (!temp_sf) goto fail;
 
-        data->segments[segment] = init_vgmstream(temp_sf);
+        vs = init_vgmstream(temp_sf);
         close_streamfile(temp_sf);
-        if (!data->segments[segment]) goto fail;
-
-        segment++;
+        if (!vs) goto fail;
 
         if (type == 9) {
             //TODO there are some trailing samples that must be removed for smooth loops, start skip seems ok
             //not correct for all files, no idea how to calculate
-            data->segments[segment]->num_samples -= 374;
+            vs->num_samples -= 374;
         }
+
+        data->segments[segment] = vs;
+        segment++;
     }
 
     /* setup segmented VGMSTREAMs */
