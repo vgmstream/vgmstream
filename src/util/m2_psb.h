@@ -15,10 +15,10 @@
 /* opaque struct */
 typedef struct psb_context_t psb_context_t;
 
-/* represents an object in the tree */
+/* represents a variable-sized object in the tree */
 typedef struct {
     psb_context_t* ctx;
-    void* data;
+    const void* data;
 } psb_node_t;
 
 
@@ -72,7 +72,7 @@ typedef union {
 } psb_result_t;
 
 /* generic result (returns all to 0 on failure) */
-psb_result_t psb_node_get_result(psb_node_t* node);
+psb_result_t psb_node_get_result(const psb_node_t* node);
 
 /* helpers */
 const char* psb_node_get_string(const psb_node_t* node, const char* key);
