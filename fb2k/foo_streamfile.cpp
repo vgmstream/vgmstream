@@ -34,7 +34,7 @@ typedef struct {
     uint8_t* buf;               /* data buffer */
     size_t buf_size;            /* max buffer size */
     size_t valid_size;          /* current buffer size */
-    size_t file_size;           /* buffered file size */
+    int64_t file_size;           /* buffered file size */
 } foo_priv_t;
 
 static libstreamfile_t* open_foo_streamfile_internal(const char* const filename, abort_callback* p_abort, t_filestats* stats);
@@ -277,10 +277,14 @@ static libstreamfile_t* open_foo_streamfile_from_file(service_ptr_t<file> m_file
     }
 
     /* cache file_size */
-    if (priv->m_file_opened)
+    if (priv->m_file_opened) {
         priv->file_size = priv->m_file->get_size(*priv->p_abort);
-    else
+        if (priv->file_size < 0) //???
+            goto fail; 
+    }
+    else {
         priv->file_size = 0;
+    }
 
     /* STDIO has an optimization to close unneeded FDs if file size is less than buffer,
      * but seems foobar doesn't need this (reuses FDs?) */

@@ -86,7 +86,7 @@ bool cli_replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmst
 
         /* copy result to buf again, so it can be used as format in next replace
          * (can be optimized with some pointer swapping but who cares about a few extra nanoseconds) */
-        strcpy(buf, tmp);
+        snprintf(buf, sizeof(buf), "%s", tmp);
     }
     while (1);
 

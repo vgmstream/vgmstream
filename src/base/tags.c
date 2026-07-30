@@ -241,33 +241,30 @@ fail:
 
 
 void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename) {
-    char *path;
-
     if (!tags)
         return;
 
     memset(tags, 0, sizeof(VGMSTREAM_TAGS));
 
-    //todo validate sizes and copy sensible max
+    // get base name
+    snprintf(tags->targetpath, sizeof(tags->targetpath), "%s", target_filename);
 
-    /* get base name */
-    strcpy(tags->targetpath, target_filename);
-
-    /* Windows CMD accepts both \\ and /, and maybe plugin uses either */
-    path = strrchr(tags->targetpath,'\\');
+    // Windows CMD accepts both \\ and /, and maybe plugin uses either
+    char *path = strrchr(tags->targetpath, '\\');
     if (!path) {
-        path = strrchr(tags->targetpath,'/');
+        path = strrchr(tags->targetpath, '/');
     }
+
     if (path != NULL) {
-        path[0] = '\0'; /* leave targetpath with path only */
+        path[0] = '\0'; // leave targetpath with path only
         path = path+1;
     }
 
     if (path) {
-        strcpy(tags->targetname, path);
+        snprintf(tags->targetname, sizeof(tags->targetname), "%s", path);
     } else {
         tags->targetpath[0] = '\0';
-        strcpy(tags->targetname, target_filename);
+        snprintf(tags->targetname, sizeof(tags->targetname), "%s", target_filename);
     }
     tags->targetname_len = strlen(tags->targetname);
 }
