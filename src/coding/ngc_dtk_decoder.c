@@ -12,12 +12,10 @@ static const int8_t dtk_coefs[16][2] = {
 };
 
 /* Nintendo GC Disc TracK streaming ADPCM (similar to XA) */
-void decode_ngc_dtk(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ngc_dtk(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame[0x20] = {0};
-    off_t frame_offset;
-    int i, frames_in, sample_count = 0;
+    int frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
-    int index, shift, coef1, coef2;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
 
@@ -29,17 +27,17 @@ void decode_ngc_dtk(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspaci
     first_sample = first_sample % samples_per_frame;
 
     /* parse frame L/R header (repeated at 0x03/04) */
-    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    off_t frame_offset = stream->offset + bytes_per_frame * frames_in;
     read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
-    index = (frame[channel] >> 4) & 0xf;
-    shift = (frame[channel] >> 0) & 0xf;
-    coef1 = dtk_coefs[index][0];
-    coef2 = dtk_coefs[index][1];
+    int index = (frame[channel & 0x01] >> 4) & 0xf;
+    int shift = (frame[channel & 0x01] >> 0) & 0xf;
+    int coef1 = dtk_coefs[index][0];
+    int coef2 = dtk_coefs[index][1];
     /* rare but happens, also repeated headers don't match (ex. Ikaruga (GC) SONG02.adp) */
     VGM_ASSERT_ONCE(index > 4 || shift > 12, "DTK: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
 
     /* decode nibbles */
-    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
         int sample, hist;
         uint8_t nibbles = frame[0x04 + i];
 
