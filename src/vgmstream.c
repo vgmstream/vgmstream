@@ -392,6 +392,8 @@ static bool merge_vgmstream(VGMSTREAM* opened_vgmstream, VGMSTREAM* new_vgmstrea
     /* checked outside but just in case */
     if (!opened_vgmstream || !new_vgmstream)
         goto fail;
+    if (dfs_pair < 0 || dfs_pair > 1)
+        goto fail;
     //if (opened_vgmstream->channels + new_vgmstream->channels != merged_channels || dfs_pair >= merged_channels)
     //    goto fail;
 
@@ -460,116 +462,118 @@ fail:
     return false;
 }
 
-/* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
- * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf) {
+
+static STREAMFILE* find_dual_file(STREAMFILE* sf, int* p_dfs_pair) {
+    /* pre-store dual info (kind of ugly this load_dual_file is relatively common for some formats, maybe it helps) */
+    typedef struct {
+        const char* suffix[2];
+        size_t suffix_len[2];
+        bool has_dot[2];
+    } dfs_pair_t;
+
     /* filename search pairs for dual file stereo */
-    static const char* const dfs_pairs[][2] = {
-        {"L","R"}, /* most common in .dsp and .vag */
-        {"l","r"}, /* same */
-        {"left","right"}, /* Freaky Flyers (GC) .adp, Velocity (PSP) .vag, Hyper Fighters (Wii) .dsp */
-        {"Left","Right"}, /* Geometry Wars: Galaxies (Wii) .dsp */
-        {".V0",".V1"}, /* Homura (PS2) */
-        {".L",".R"}, /* Crash Nitro Racing (PS2), Gradius V (PS2) */
-        {"_0.dsp","_1.dsp"}, /* Wario World (GC) */
-        {".adpcm","_NxEncoderOut_.adpcm"}, /* Kill la Kill: IF (Switch) */
-        {".adpcm","_2.adpcm"}, /* Desire: Remaster Version (Switch) */
+    static const dfs_pair_t dfs_pairs[] = {
+        {{"L","R"}, {1,1}, {false,false}},
+        {{"l","r"}, {1,1}, {false,false}},
+        {{"left","right"}, {4,5}, {false,false}},
+        {{"Left","Right"}, {4,5}, {false,false}},
+        {{".V0",".V1"}, {3,3}, {true,true}},
+        {{".L",".R"}, {2,2}, {true,true}},
+        {{"_0.dsp","_1.dsp"}, {6,6}, {true,true}},
+        {{".adpcm","_NxEncoderOut_.adpcm"}, {6,20}, {true,true}},
+        {{".adpcm","_2.adpcm"}, {6,8}, {true,true}},
     };
+
+    //char old_filename[PATH_LIMIT];
     char new_filename[PATH_LIMIT];
-    char* extension;
-    int dfs_pair = -1; /* -1=no stereo, 0=opened_vgmstream is left, 1=opened_vgmstream is right */
-    VGMSTREAM* new_vgmstream = NULL;
-    STREAMFILE* dual_sf = NULL;
-    int dfs_pair_count, extension_len, filename_len;
-    int sample_variance, loop_variance;
-
-    if (opened_vgmstream->channels != 1)
-        return;
-
-    /* custom codec/layouts aren't designed for this (should never get here anyway) */
-    if (opened_vgmstream->codec_data || opened_vgmstream->layout_data)
-        return;
-
-    //todo other layouts work but some stereo codecs do weird things
-    //if (opened_vgmstream->layout != layout_none) return;
 
     get_streamfile_name(sf, new_filename, sizeof(new_filename));
-    filename_len = strlen(new_filename);
+    size_t filename_len = strlen(new_filename);
     if (filename_len < 2)
-        return;
+        return NULL;
 
-    extension = (char *)filename_extension(new_filename);
+    const char* extension = filename_extension(new_filename);
     if (extension - new_filename >= 1 && extension[-1] == '.') /* [-1] is ok, yeah */
         extension--; /* must include "." */
-    extension_len = strlen(extension);
+    size_t extension_len = strlen(extension);
 
 
     /* find pair from base name and modify new_filename with the opposite (tries L>R then R>L) */
-    dfs_pair_count = (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]));
-    for (int i = 0; dfs_pair == -1 && i < dfs_pair_count; i++) {
-        for (int j = 0; dfs_pair == -1 && j < 2; j++) {
-            const char* this_suffix = dfs_pairs[i][j];
-            const char* that_suffix = dfs_pairs[i][j^1];
-            size_t this_suffix_len = strlen(dfs_pairs[i][j]);
-            size_t that_suffix_len = strlen(dfs_pairs[i][j^1]);
+    size_t dfs_pair_count = (sizeof(dfs_pairs) / sizeof(dfs_pairs[0]));
+    for (int i = 0; i < dfs_pair_count; i++) {
+        const dfs_pair_t* pair = &dfs_pairs[i];
 
-            //;VGM_LOG("DFS: l=%s, r=%s\n", this_suffix,that_suffix);
+        for (int ch = 0; ch < 2; ch++) {
+            const char* this_suffix = pair->suffix[ch   ];  // current
+            const char* that_suffix = pair->suffix[ch ^ 1]; // opposite
+            size_t this_suffix_len = pair->suffix_len[ch   ];
+            size_t that_suffix_len = pair->suffix_len[ch ^ 1];
+            bool has_dot = pair->has_dot[ch];
 
-            /* if suffix matches paste opposite suffix (+ terminator) to extension pointer, thus to new_filename */
-            if (filename_len > this_suffix_len && strchr(this_suffix, '.') != NULL) { /* same suffix with extension */
-                //;VGM_LOG("DFS: suf+ext %s vs %s len %i\n", new_filename, this_suffix, this_suffix_len);
-                if (memcmp(new_filename + (filename_len - this_suffix_len), this_suffix, this_suffix_len) == 0) {
-                    memcpy (new_filename + (filename_len - this_suffix_len), that_suffix,that_suffix_len+1);
-                    dfs_pair = j;
-                }
+            if (filename_len > this_suffix_len && has_dot) {
+                /* same suffix with extension: blah.L <> blah.R */
+
+                // check if this_suffix matches current extension
+                size_t pos = filename_len - this_suffix_len;
+                if (memcmp(new_filename + pos, this_suffix, this_suffix_len) != 0)
+                    continue;
+                if (pos + that_suffix_len + 1 > sizeof(new_filename))
+                    continue;
+                // overwrite with that_suffix + terminator
+                memcpy (new_filename + pos, that_suffix, that_suffix_len + 1);
             }
-            else if (filename_len - extension_len > this_suffix_len) { /* same suffix without extension */
-                //;VGM_LOG("DFS: suf-ext %s vs %s len %i\n", extension - this_suffix_len, this_suffix, this_suffix_len);
-                if (memcmp(extension - this_suffix_len, this_suffix,this_suffix_len) == 0) {
-                    memmove(extension + that_suffix_len - this_suffix_len, extension,extension_len+1); /* move old extension to end */
-                    memcpy (extension - this_suffix_len, that_suffix,that_suffix_len); /* overwrite with new suffix */
-                    dfs_pair = j;
-                }
+            else if (filename_len - extension_len > this_suffix_len) { 
+                /* same suffix without extension: blah_L.dsp <> blah_R.dsp */
+
+                // check if this_suffix matches last part of the file before extension
+                size_t pos = extension - new_filename - this_suffix_len;
+                if (memcmp(new_filename + pos, this_suffix, this_suffix_len) != 0)
+                    continue;
+                if (pos + that_suffix_len + extension_len + 1 > sizeof(new_filename))
+                    continue;
+
+                // overwrite with that_suffix, then move old extension to end + terminator
+                memcpy (new_filename + pos, that_suffix, that_suffix_len);
+                memmove(new_filename + pos + that_suffix_len, new_filename + pos + this_suffix_len, extension_len + 1);
+            }
+            else {
+                continue;
             }
 
-            if (dfs_pair != -1) {
-                //VGM_LOG("DFS: try %i: %s\n", dfs_pair, new_filename);
-                /* try to init other channel (new_filename now has the opposite name) */
-                dual_sf = open_streamfile(sf, new_filename);
-                if (!dual_sf) {
-                    /* restore filename and keep trying (if found it'll break and init) */
-                    dfs_pair = -1;
-                    get_streamfile_name(sf, new_filename, sizeof(new_filename));
-                }
+            //VGM_LOG("DFS: try %i: %s\n", dfs_pair, new_filename);
+            /* test if target pair exists (new_filename now has the opposite name) */
+            STREAMFILE* dual_sf = open_streamfile(sf, new_filename);
+            if (!dual_sf) {
+                /* restore filename and keep trying */
+                get_streamfile_name(sf, new_filename, sizeof(new_filename));
+                continue;
             }
+
+            // match found and open
+            //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
+            *p_dfs_pair = ch;
+            return dual_sf;
         }
     }
 
     /* filename didn't have a suitable L/R-pair name */
-    if (dfs_pair == -1)
-        return;
-    //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
+    return NULL;
+}
 
-    init_vgmstream_t init_vgmstream_function = get_vgmstream_format_init(opened_vgmstream->format_id);
-    if (init_vgmstream_function == NULL)
-        goto fail;
-
-    new_vgmstream = init_vgmstream_function(dual_sf); /* use the init function that just worked */
-    close_streamfile(dual_sf);
-    if (!new_vgmstream)
-        goto fail;
+static bool is_dual_file_valid(VGMSTREAM* old_vgmstream, VGMSTREAM* new_vgmstream) {
+    int sample_variance, loop_variance;
 
     /* see if we were able to open the file, and if everything matched nicely */
     if (!(new_vgmstream->channels == 1 &&
-            new_vgmstream->sample_rate == opened_vgmstream->sample_rate &&
-            new_vgmstream->meta_type   == opened_vgmstream->meta_type &&
-            new_vgmstream->coding_type == opened_vgmstream->coding_type &&
-            new_vgmstream->layout_type == opened_vgmstream->layout_type &&
+            new_vgmstream->sample_rate == old_vgmstream->sample_rate &&
+            new_vgmstream->meta_type   == old_vgmstream->meta_type &&
+            new_vgmstream->coding_type == old_vgmstream->coding_type &&
+            new_vgmstream->layout_type == old_vgmstream->layout_type &&
             /* check even if the layout doesn't use them, because it is
              * difficult to determine when it does, and they should be zero otherwise, anyway */
-            new_vgmstream->interleave_block_size == opened_vgmstream->interleave_block_size &&
-            new_vgmstream->interleave_last_block_size == opened_vgmstream->interleave_last_block_size)) {
-        goto fail;
+            new_vgmstream->interleave_block_size == old_vgmstream->interleave_block_size &&
+            new_vgmstream->interleave_last_block_size == old_vgmstream->interleave_last_block_size)) {
+        return false;
     }
 
     /* samples/loops should match even when there is no loop, except in special cases
@@ -580,7 +584,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf) {
     }
     else if (new_vgmstream->meta_type == meta_DSP_STD && new_vgmstream->sample_rate <= 24000) {
         loop_variance = 170000; /* rarely loop points are a bit apart, though usually only a few samples [Harvest Moon: Tree of Tranquility (Wii)] */
-        sample_variance = opened_vgmstream->loop_flag ? 1600 : 700; /* less common but loops don't reach end */
+        sample_variance = old_vgmstream->loop_flag ? 1600 : 700; /* less common but loops don't reach end */
     }
     else {
         loop_variance = 0;  /* otherwise should match exactly */
@@ -588,27 +592,64 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf) {
     }
 
     {
-        int ns_variance = new_vgmstream->num_samples - opened_vgmstream->num_samples;
+        int ns_variance = new_vgmstream->num_samples - old_vgmstream->num_samples;
 
         /* either channel may be bigger */
         if (abs(ns_variance) > sample_variance)
-            goto fail;
+            return false;
     }
 
     if (loop_variance >= 0) {
-        int ls_variance = new_vgmstream->loop_start_sample - opened_vgmstream->loop_start_sample;
-        int le_variance = new_vgmstream->loop_end_sample - opened_vgmstream->loop_end_sample;
+        int ls_variance = new_vgmstream->loop_start_sample - old_vgmstream->loop_start_sample;
+        int le_variance = new_vgmstream->loop_end_sample - old_vgmstream->loop_end_sample;
 
-        if (new_vgmstream->loop_flag != opened_vgmstream->loop_flag)
-            goto fail;
+        if (new_vgmstream->loop_flag != old_vgmstream->loop_flag)
+            return false;
 
         /* either channel may be bigger */
         if (abs(ls_variance) > loop_variance || abs(le_variance) > loop_variance)
-            goto fail;
+            return false;
     }
 
+    return true;
+}
+
+/* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
+ * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */
+static void try_dual_file_stereo(VGMSTREAM* old_vgmstream, STREAMFILE* sf) {
+    VGMSTREAM* new_vgmstream = NULL;
+    STREAMFILE* dual_sf = NULL;
+
+    if (old_vgmstream->channels != 1)
+        return;
+
+    /* custom codec/layouts aren't designed for this (should never get here anyway) */
+    if (old_vgmstream->codec_data || old_vgmstream->layout_data)
+        return;
+
+    /* other layouts work but some stereo codecs do weird things */
+    //if (opened_vgmstream->layout != layout_none)
+    //    return;
+
+    int dfs_pair = -1; // 0=opened_vgmstream is left, 1=opened_vgmstream is right
+    dual_sf = find_dual_file(sf, &dfs_pair);
+    if (!dual_sf)
+        return;
+
+    init_vgmstream_t init_vgmstream_function = get_vgmstream_format_init(old_vgmstream->format_id);
+    if (init_vgmstream_function == NULL)
+        goto fail;
+
+    new_vgmstream = init_vgmstream_function(dual_sf); /* use the init function that just worked */
+    close_streamfile(dual_sf);
+    if (!new_vgmstream)
+        goto fail;
+
+    if (!is_dual_file_valid(old_vgmstream, new_vgmstream))
+        goto fail;
+
     /* We seem to have a usable, matching file. Merge in the second channel. */
-    if (!merge_vgmstream(opened_vgmstream, new_vgmstream, dfs_pair))
+    if (!merge_vgmstream(old_vgmstream, new_vgmstream, dfs_pair))
         goto fail;
 
     return;
