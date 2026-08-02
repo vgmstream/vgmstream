@@ -560,6 +560,9 @@
     <ClInclude Include="util\spu_utils.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\string_utils.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\text_reader.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -2558,6 +2561,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\spu_utils.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\string_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\text_reader.c">
