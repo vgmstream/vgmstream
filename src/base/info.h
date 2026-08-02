@@ -5,7 +5,7 @@
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
-void describe_vgmstream(VGMSTREAM* vgmstream, char* description, int length);
+void describe_vgmstream(VGMSTREAM* vgmstream, char* dst, size_t dst_size);
 
 /* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream);

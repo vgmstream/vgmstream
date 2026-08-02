@@ -668,6 +668,12 @@ static bool parse_values(ubi_bao_header_t* bao) {
             bao->stream_subtype = 1;
     }
 
+    // div-by-zero below and early error detection
+    if (bao->channels <= 0 || bao->channels >= 128) {
+        VGM_LOG("UBI BAO: wrong channels %i at %x\n", bao->channels, bao->header_offset);
+        return false;
+    }
+
     //TODO: loop flag only?
     if (bao->type == TYPE_AUDIO && bao->codec == RAW_PSX && bao->cfg.v1_bao && bao->loop_flag) {
         bao->num_samples = bao->num_samples / bao->channels;

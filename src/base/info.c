@@ -1,11 +1,12 @@
 #include <ctype.h>
 #include "info.h"
-#include "../coding/coding.h"
-#include "../layout/layout.h"
 #include "mixing.h"
 #include "play_state.h"
+#include "../coding/coding.h"
+#include "../layout/layout.h"
 #include "../util/channel_mappings.h"
 #include "../util/sf_utils.h"
+#include "../util/string_utils.h"
 
 #define TEMPSIZE (256+32)
 
@@ -23,15 +24,15 @@ static void describe_get_time(int32_t samples, int sample_rate, double* p_time_m
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
-void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
-    char temp[TEMPSIZE];
+void describe_vgmstream(VGMSTREAM* vgmstream, char* dst, size_t dst_size) {
+    char tmp[TEMPSIZE];
+    size_t tmp_size = sizeof(tmp);
     double time_mm, time_ss;
 
-    desc[0] = '\0';
+    dst[0] = '\0';
 
     if (!vgmstream) {
-        snprintf(temp,TEMPSIZE, "NULL VGMSTREAM");
-        concatn(length,desc,temp);
+        strcat_v(dst, dst_size, "NULL VGMSTREAM");
         return;
     }
 
@@ -40,22 +41,23 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
     if (output_sample_rate == 0)
         output_sample_rate = input_sample_rate;
 
+    //TODO: improve to avoid strcat recalculating dst_len
 
-    snprintf(temp,TEMPSIZE, "sample rate: %d Hz\n", output_sample_rate);
-    concatn(length,desc,temp);
+    snprintf(tmp, tmp_size, "sample rate: %d Hz\n", output_sample_rate);
+    strcat_v(dst, dst_size, tmp);
 
-    snprintf(temp,TEMPSIZE, "channels: %d\n", vgmstream->channels);
-    concatn(length,desc,temp);
+    snprintf(tmp, tmp_size, "channels: %d\n", vgmstream->channels);
+    strcat_v(dst, dst_size, tmp);
 
     {
         int output_channels = 0;
         mixing_info(vgmstream, NULL, &output_channels);
 
         if (output_channels != vgmstream->channels) {
-            snprintf(temp,TEMPSIZE, "input channels: %d\n", vgmstream->channels); /* repeated but mainly for plugins */
-            concatn(length,desc,temp);
-            snprintf(temp,TEMPSIZE, "output channels: %d\n", output_channels);
-            concatn(length,desc,temp);
+            snprintf(tmp, tmp_size, "input channels: %d\n", vgmstream->channels); /* repeated but mainly for plugins */
+            strcat_v(dst, dst_size, tmp);
+            snprintf(tmp, tmp_size, "output channels: %d\n", output_channels);
+            strcat_v(dst, dst_size, tmp);
         }
     }
 
@@ -63,72 +65,70 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
         uint32_t cl = vgmstream->channel_layout;
 
         /* not "channel layout: " to avoid mixups with "layout: " */
-        snprintf(temp,TEMPSIZE, "channel mask: 0x%x /", vgmstream->channel_layout);
-        concatn(length,desc,temp);
-        if (cl & speaker_FL)    concatn(length,desc," FL");
-        if (cl & speaker_FR)    concatn(length,desc," FR");
-        if (cl & speaker_FC)    concatn(length,desc," FC");
-        if (cl & speaker_LFE)   concatn(length,desc," LFE");
-        if (cl & speaker_BL)    concatn(length,desc," BL");
-        if (cl & speaker_BR)    concatn(length,desc," BR");
-        if (cl & speaker_FLC)   concatn(length,desc," FLC"); //FCL is also common
-        if (cl & speaker_FRC)   concatn(length,desc," FRC"); //FCR is also common
-        if (cl & speaker_BC)    concatn(length,desc," BC");
-        if (cl & speaker_SL)    concatn(length,desc," SL");
-        if (cl & speaker_SR)    concatn(length,desc," SR");
-        if (cl & speaker_TC)    concatn(length,desc," TC");
-        if (cl & speaker_TFL)   concatn(length,desc," TFL");
-        if (cl & speaker_TFC)   concatn(length,desc," TFC");
-        if (cl & speaker_TFR)   concatn(length,desc," TFR");
-        if (cl & speaker_TBL)   concatn(length,desc," TBL");
-        if (cl & speaker_TBC)   concatn(length,desc," TBC");
-        if (cl & speaker_TBR)   concatn(length,desc," TBR");
-        concatn(length,desc,"\n");
+        snprintf(tmp, tmp_size, "channel mask: 0x%x /", vgmstream->channel_layout);
+        strcat_v(dst, dst_size, tmp);
+        if (cl & speaker_FL)    strcat_v(dst, dst_size," FL");
+        if (cl & speaker_FR)    strcat_v(dst, dst_size," FR");
+        if (cl & speaker_FC)    strcat_v(dst, dst_size," FC");
+        if (cl & speaker_LFE)   strcat_v(dst, dst_size," LFE");
+        if (cl & speaker_BL)    strcat_v(dst, dst_size," BL");
+        if (cl & speaker_BR)    strcat_v(dst, dst_size," BR");
+        if (cl & speaker_FLC)   strcat_v(dst, dst_size," FLC"); //FCL is also common
+        if (cl & speaker_FRC)   strcat_v(dst, dst_size," FRC"); //FCR is also common
+        if (cl & speaker_BC)    strcat_v(dst, dst_size," BC");
+        if (cl & speaker_SL)    strcat_v(dst, dst_size," SL");
+        if (cl & speaker_SR)    strcat_v(dst, dst_size," SR");
+        if (cl & speaker_TC)    strcat_v(dst, dst_size," TC");
+        if (cl & speaker_TFL)   strcat_v(dst, dst_size," TFL");
+        if (cl & speaker_TFC)   strcat_v(dst, dst_size," TFC");
+        if (cl & speaker_TFR)   strcat_v(dst, dst_size," TFR");
+        if (cl & speaker_TBL)   strcat_v(dst, dst_size," TBL");
+        if (cl & speaker_TBC)   strcat_v(dst, dst_size," TBC");
+        if (cl & speaker_TBR)   strcat_v(dst, dst_size," TBR");
+        strcat_v(dst, dst_size,"\n");
     }
 
     /* times mod sounds avoid round up to 60.0 */
     if (vgmstream->loop_start_sample >= 0 && vgmstream->loop_end_sample > vgmstream->loop_start_sample) {
         if (!vgmstream->loop_flag) {
-            concatn(length,desc,"looping: disabled\n");
+            strcat_v(dst, dst_size,"looping: disabled\n");
         }
 
         describe_get_time(vgmstream->loop_start_sample, output_sample_rate, &time_mm, &time_ss);
-        snprintf(temp,TEMPSIZE, "loop start: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_start_sample, time_mm, time_ss);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "loop start: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_start_sample, time_mm, time_ss);
+        strcat_v(dst, dst_size, tmp);
 
         describe_get_time(vgmstream->loop_end_sample, output_sample_rate, &time_mm, &time_ss);
-        snprintf(temp,TEMPSIZE, "loop end: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_end_sample, time_mm, time_ss);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "loop end: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_end_sample, time_mm, time_ss);
+        strcat_v(dst, dst_size, tmp);
     }
 
     describe_get_time(vgmstream->num_samples, input_sample_rate, &time_mm, &time_ss);
-    snprintf(temp,TEMPSIZE, "stream total samples: %d (%1.0f:%06.3f seconds)\n", vgmstream->num_samples, time_mm, time_ss);
-    concatn(length,desc,temp);
+    snprintf(tmp, tmp_size, "stream total samples: %d (%1.0f:%06.3f seconds)\n", vgmstream->num_samples, time_mm, time_ss);
+    strcat_v(dst, dst_size, tmp);
 
-    snprintf(temp,TEMPSIZE, "encoding: ");
-    concatn(length,desc,temp);
-    get_vgmstream_coding_description(vgmstream, temp, TEMPSIZE);
-    concatn(length,desc,temp);
-    concatn(length,desc,"\n");
+    strcat_v(dst, dst_size, "encoding: ");
+    get_vgmstream_coding_description(vgmstream, tmp, tmp_size);
+    strcat_v(dst, dst_size, tmp);
+    strcat_v(dst, dst_size, "\n");
 
-    snprintf(temp,TEMPSIZE, "layout: ");
-    concatn(length,desc,temp);
-    get_vgmstream_layout_description(vgmstream, temp, TEMPSIZE);
-    concatn(length, desc, temp);
-    concatn(length,desc,"\n");
+    strcat_v(dst, dst_size, "layout: ");
+    get_vgmstream_layout_description(vgmstream, tmp, tmp_size);
+    strcat_v(dst, dst_size, tmp);
+    strcat_v(dst, dst_size,"\n");
 
     if (vgmstream->layout_type == layout_interleave && vgmstream->channels > 1) {
-        snprintf(temp,TEMPSIZE, "interleave: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "interleave: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
+        strcat_v(dst, dst_size, tmp);
 
         if (vgmstream->interleave_first_block_size && vgmstream->interleave_first_block_size != vgmstream->interleave_block_size) {
-            snprintf(temp,TEMPSIZE, "interleave first block: %#x bytes\n", (int32_t)vgmstream->interleave_first_block_size);
-            concatn(length,desc,temp);
+            snprintf(tmp, tmp_size, "interleave first block: %#x bytes\n", (int32_t)vgmstream->interleave_first_block_size);
+            strcat_v(dst, dst_size, tmp);
         }
 
         if (vgmstream->interleave_last_block_size && vgmstream->interleave_last_block_size != vgmstream->interleave_block_size) {
-            snprintf(temp,TEMPSIZE, "interleave last block: %#x bytes\n", (int32_t)vgmstream->interleave_last_block_size);
-            concatn(length,desc,temp);
+            snprintf(tmp, tmp_size, "interleave last block: %#x bytes\n", (int32_t)vgmstream->interleave_last_block_size);
+            strcat_v(dst, dst_size, tmp);
         }
     }
 
@@ -145,37 +145,36 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
             case coding_WWISE_IMA:
             case coding_REF_IMA:
             case coding_PSX_cfg:
-                snprintf(temp,TEMPSIZE, "frame size: %#x bytes\n", frame_size);
-                concatn(length,desc,temp);
+                snprintf(tmp, tmp_size, "frame size: %#x bytes\n", frame_size);
+                strcat_v(dst, dst_size, tmp);
                 break;
             default:
                 break;
         }
     }
 
-    snprintf(temp,TEMPSIZE, "metadata from: ");
-    concatn(length,desc,temp);
-    get_vgmstream_meta_description(vgmstream, temp, TEMPSIZE);
-    concatn(length,desc,temp);
-    concatn(length,desc,"\n");
+    strcat_v(dst, dst_size, "metadata from: ");
+    get_vgmstream_meta_description(vgmstream, tmp, tmp_size);
+    strcat_v(dst, dst_size, tmp);
+    strcat_v(dst, dst_size,"\n");
 
-    snprintf(temp,TEMPSIZE, "bitrate: %d kbps\n", get_vgmstream_average_bitrate(vgmstream) / 1000);
-    concatn(length,desc,temp);
+    snprintf(tmp, tmp_size, "bitrate: %d kbps\n", get_vgmstream_average_bitrate(vgmstream) / 1000);
+    strcat_v(dst, dst_size, tmp);
 
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
-        snprintf(temp,TEMPSIZE, "stream count: %d\n", vgmstream->num_streams);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "stream count: %d\n", vgmstream->num_streams);
+        strcat_v(dst, dst_size, tmp);
     }
 
     if (vgmstream->num_streams > 1) {
-        snprintf(temp,TEMPSIZE, "stream index: %d\n", vgmstream->stream_index == 0 ? 1 : vgmstream->stream_index);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "stream index: %d\n", vgmstream->stream_index == 0 ? 1 : vgmstream->stream_index);
+        strcat_v(dst, dst_size, tmp);
     }
 
     if (vgmstream->stream_name[0] != '\0') {
-        snprintf(temp,TEMPSIZE, "stream name: %s\n", vgmstream->stream_name);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "stream name: %s\n", vgmstream->stream_name);
+        strcat_v(dst, dst_size, tmp);
     }
 
     sfmt_t sfmt = mixing_get_input_sample_type(vgmstream);
@@ -191,8 +190,8 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
             default: sfmt_desc = "???";
         }
 
-        snprintf(temp,TEMPSIZE, "sample type: %s\n", sfmt_desc);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "sample type: %s\n", sfmt_desc);
+        strcat_v(dst, dst_size, tmp);
     }
 
 
@@ -200,8 +199,8 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
         int32_t samples = vgmstream_get_samples(vgmstream);
 
         describe_get_time(samples, output_sample_rate, &time_mm, &time_ss);
-        snprintf(temp,TEMPSIZE, "play duration: %d samples (%1.0f:%06.3f seconds)\n", samples, time_mm, time_ss);
-        concatn(length,desc,temp);
+        snprintf(tmp, tmp_size, "play duration: %d samples (%1.0f:%06.3f seconds)\n", samples, time_mm, time_ss);
+        strcat_v(dst, dst_size, tmp);
     }
 
 }
@@ -220,14 +219,13 @@ typedef struct {
 } bitrate_info_t;
 
 static uint32_t hash_sf(STREAMFILE* sf) {
-    int i;
     char path[PATH_LIMIT];
-    uint32_t hash = 2166136261;
 
     get_streamfile_name(sf, path, sizeof(path));
 
     /* our favorite garbo hash a.k.a FNV-1 32b */
-    i = 0;
+    uint32_t hash = 2166136261;
+    int i = 0;
     while (path[i] != '\0') {
         char c = tolower(path[i]);
         hash = (hash * 16777619) ^ (uint8_t)c;
@@ -285,7 +283,6 @@ static int get_vgmstream_file_bitrate_from_streamfile(STREAMFILE* sf, int sample
 }
 
 static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t* br, int* p_uniques) {
-    int i, ch;
     int bitrate = 0;
 
     /* Recursively get bitrate and fill the list of streamfiles if needed (to filter),
@@ -306,7 +303,7 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
     else if (vgmstream->layout_type == layout_segmented) {
         int uniques = 0;
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
-        for (i = 0; i < data->segment_count; i++) {
+        for (int i = 0; i < data->segment_count; i++) {
             bitrate += get_vgmstream_file_bitrate_main(data->segments[i], br, &uniques);
         }
         if (uniques)
@@ -314,14 +311,14 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
     }
     else if (vgmstream->layout_type == layout_layered) {
         layered_layout_data *data = vgmstream->layout_data;
-        for (i = 0; i < data->layer_count; i++) {
+        for (int i = 0; i < data->layer_count; i++) {
             bitrate += get_vgmstream_file_bitrate_main(data->layers[i], br, NULL);
         }
     }
     else {
         /* Add channel bitrate if streamfile hasn't been used before, so bitrate doesn't count repeats
          * (like same STREAMFILE reopened per channel, also considering SFs may be wrapped). */
-        for (ch = 0; ch < vgmstream->channels; ch++) {
+        for (int ch = 0; ch < vgmstream->channels; ch++) {
             uint32_t hash_cur;
             int subsong_cur;
             STREAMFILE* sf_cur;
@@ -334,7 +331,7 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
             hash_cur = hash_sf(sf_cur);
             subsong_cur = vgmstream->stream_index;
 
-            for (i = 0; i < br->count; i++) {
+            for (int i = 0; i < br->count; i++) {
                 uint32_t hash_cmp = br->hash[i];
                 int subsong_cmp = br->subsong[i];
 
