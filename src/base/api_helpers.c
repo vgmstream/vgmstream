@@ -50,7 +50,9 @@ LIBVGMSTREAM_API int libvgmstream_format_describe(libvgmstream_t* lib, char* dst
     libvgmstream_priv_t* priv = lib->priv;
     if (!priv->vgmstream)
         return LIBVGMSTREAM_ERROR_GENERIC;
-
+    if (dst_size <= 0)
+        return LIBVGMSTREAM_ERROR_GENERIC;
+    
     describe_vgmstream(priv->vgmstream, dst, dst_size);
     return LIBVGMSTREAM_OK; //TODO return truncated chars
 }

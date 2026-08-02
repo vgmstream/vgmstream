@@ -101,8 +101,8 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
 
             /* write extra tags after all regular tags */
             if (tags->autotrack_on && !tags->autotrack_written) {
-                sprintf(tags->key, "%s", "TRACK");
-                sprintf(tags->val, "%i", tags->track_count);
+                snprintf(tags->key, sizeof(tags->key), "%s", "TRACK");
+                snprintf(tags->val, sizeof(tags->val), "%i", tags->track_count);
                 tags->autotrack_written = true;
                 return 1;
             }
@@ -118,8 +118,8 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                     path = tags->targetpath;
                 }
 
-                sprintf(tags->key, "%s", "ALBUM");
-                sprintf(tags->val, "%s", path+1);
+                snprintf(tags->key, sizeof(tags->key), "%s", "ALBUM");
+                snprintf(tags->val, sizeof(tags->val), "%s", path + 1);
                 tags->autoalbum_written = true;
                 return 1;
             }

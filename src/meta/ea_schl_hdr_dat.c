@@ -171,15 +171,13 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
         goto fail;
 
     if (num_params != 0) {
-        uint8_t val;
         char buf[8];
-        int i;
-        for (i = 0; i < num_params; i++) {
-            val = read_u8(0x10 + (0x02 + num_params) * (target_stream - 1) + 0x02 + i, sf);
+        for (int i = 0; i < num_params; i++) {
+            uint8_t val = read_u8(0x10 + (0x02 + num_params) * (target_stream - 1) + 0x02 + i, sf);
             snprintf(buf, sizeof(buf), "%u", val);
-            concatn(STREAM_NAME_SIZE, vgmstream->stream_name, buf);
+            strcat_v(vgmstream->stream_name, STREAM_NAME_SIZE, buf);
             if (i != num_params - 1)
-                concatn(STREAM_NAME_SIZE, vgmstream->stream_name, ", ");
+                strcat_v(vgmstream->stream_name, STREAM_NAME_SIZE, ", ");
         }
     }
 

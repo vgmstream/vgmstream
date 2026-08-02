@@ -3,6 +3,7 @@
 #include "txtp.h"
 #include "../util/text_reader.h"
 #include "../util/paths.h"
+#include "../util/string_utils.h"
 #include "../base/resampler.h"
 
 #define TXT_LINE_MAX 2048 /* some wwise .txtp get wordy */
@@ -391,7 +392,7 @@ static void add_settings(txtp_entry_t* current, txtp_entry_t* entry, const char*
     //*current = *cfg;
 
     if (filename)
-        strcpy(current->filename, filename);
+        strcpy_v(current->filename, sizeof(current->filename), filename);
 
 
     /* play config */

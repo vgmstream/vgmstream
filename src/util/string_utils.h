@@ -1,6 +1,7 @@
 #ifndef _STRING_UTILS_
 #define _STRING_UTILS_
 #include <stddef.h>
+#include <stdbool.h>
 
 /* ugly helpers since C strings functions are terrible */
 
@@ -27,5 +28,7 @@ void str_lowercase_v(char* dst, size_t dst_size);
 /* make dst lowercase. same as above
  */
 void str_uppercase_v(char* dst, size_t dst_size);
+
+bool str_is_uppercase(const char* str);
 
 #endif

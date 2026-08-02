@@ -1,5 +1,6 @@
 #include "../streamfile.h"
 #include "../util/vgmstream_limits.h"
+#include "../util/string_utils.h"
 
 typedef struct {
     STREAMFILE vt;
@@ -53,7 +54,8 @@ static void fakename_close(FAKENAME_STREAMFILE* sf) {
 STREAMFILE* open_fakename_streamfile(STREAMFILE* sf, const char* fakename, const char* fakeext) {
     FAKENAME_STREAMFILE* this_sf = NULL;
 
-    if (!sf || (!fakename && !fakeext)) return NULL;
+    if (!sf || (!fakename && !fakeext))
+        return NULL;
 
     this_sf = calloc(1, sizeof(FAKENAME_STREAMFILE));
     if (!this_sf) return NULL;
@@ -69,26 +71,38 @@ STREAMFILE* open_fakename_streamfile(STREAMFILE* sf, const char* fakename, const
 
     this_sf->inner_sf = sf;
 
-    /* copy passed name or retain current, and swap extension if expected */
+    // copy passed name or retain current, and swap extension if expected
+    // truncation is a bit odd when making a fakename, so reject it
     if (fakename) {
-        strcpy(this_sf->fakename, fakename);
-    } else {
+        int n = strcpy_v(this_sf->fakename, sizeof(this_sf->fakename), fakename);
+        if (n <= 0)
+            goto fail;
+    }
+    else {
         sf->get_name(sf, this_sf->fakename, PATH_LIMIT);
     }
 
     if (fakeext) {
         char* ext = strrchr(this_sf->fakename, '.');
         if (ext != NULL) {
-            ext[1] = '\0'; /* truncate past dot */
-        } else {
-            strcat(this_sf->fakename, "."); /* no extension = add dot */
+            ext[1] = '\0'; // truncate past dot
         }
-        strcat(this_sf->fakename, fakeext);
+        else {
+            int n = strcat_v(this_sf->fakename, sizeof(this_sf->fakename), "."); // no extension = add dot
+            if (n <= 0)
+                goto fail;
+        }
+        int n = strcat_v(this_sf->fakename, sizeof(this_sf->fakename), fakeext);
+        if (n <= 0)
+            goto fail;
     }
 
     this_sf->fakename_len = strlen(this_sf->fakename);
 
     return &this_sf->vt;
+fail:
+    free(this_sf);
+    return NULL;
 }
 
 STREAMFILE* open_fakename_streamfile_f(STREAMFILE* sf, const char* fakename, const char* fakeext) {

@@ -7,6 +7,7 @@
 #include "../util/endianness.h"
 #include "../util/paths.h"
 #include "../util/companion_files.h"
+#include "../util/string_utils.h"
 
 #define TXT_LINE_MAX 2048 /* probably ~1000 would be ok */
 #define TXT_LINE_KEY_MAX 128
@@ -754,7 +755,7 @@ fail:
 
 static VGMSTREAM* init_subfile(txth_header* txth) {
     VGMSTREAM* vgmstream = NULL;
-    char extension[PATH_LIMIT];
+    char extension[256];
     STREAMFILE* sf_sub = NULL;
 
 
@@ -777,8 +778,8 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
      * - etc
      * to avoid it we set a particular fake extension and detect it when reading .txth
      */
-    strcpy(extension, ".subfile_txth.");
-    strcat(extension, txth->subfile_extension);
+    strcpy_v(extension, sizeof(extension), ".subfile_txth.");
+    strcat_v(extension, sizeof(extension), txth->subfile_extension);
 
     if (txth->debug)
         vgm_logi("TXTH: subfile offset=%x, size=%x\n", txth->subfile_offset, txth->subfile_size);
@@ -869,7 +870,7 @@ static STREAMFILE* open_txth(STREAMFILE* sf) {
         return NULL; /* detect special case of subfile-within-subfile */
 
     base_ext = filename_extension(filename);
-    concatn(sizeof(filename), filename, ".txth");
+    strcat_v(filename, sizeof(filename), ".txth");
     txth_ext = filename_extension(filename);
 
     /* try "(path/)(name.ext).txth" */

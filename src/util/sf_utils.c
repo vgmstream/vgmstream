@@ -3,22 +3,10 @@
 #include "reader_sf.h"
 #include "paths.h"
 #include "log.h"
+#include "string_utils.h"
 
 
-static bool is_uppercase(const char* str) {
-    if (str == NULL || str[0] == '\0')
-        return false;
-
-    while (str[0] != '\0') {
-        char c = str[0];
-        if (c < 'A' || c > 'Z')
-            return false;
-        str++;
-    }
-
-    return true;
-}
-
+//TODO remove
 static void make_uppercase(char* str) {
     if (str == NULL)
         return;
@@ -33,31 +21,46 @@ static void make_uppercase(char* str) {
 }
 
 
-/* change pathname's extension to another (or add it if extensionless) */
-static void swap_extension(char* pathname, /*size_t*/ int pathname_len, const char* swap) {
-    char* extension = (char*)filename_extension(pathname);
+/* change pathname's extension to another, or add it if extensionless */
+static void swap_extension(char* dst, size_t dst_size, const char* new_ext) {
+    if (dst == NULL || dst_size == 0 || new_ext == NULL)
+        return;
+
+    char* extension = (char*)filename_extension(dst);
     if (!extension)
         return;
-    bool ext_upper = is_uppercase(extension);
 
-    //TODO: safeops
+    // probably unnecessary but might as well
+    ptrdiff_t dst_offset = extension - dst;
+    if (dst_offset < 0 || (size_t)dst_offset > dst_size)
+        return;
+    size_t extension_size = dst_size - (size_t)dst_offset;
+
+    bool ext_uppercase = new_ext[0] != '\0' && str_is_uppercase(extension);
+
     if (extension[0] == '\0') {
-        if (swap[0] != '\0') {
-            strcat(pathname, ".");
-            strcat(pathname, swap);
+        // dst has no extension, add new one
+        if (new_ext[0] != '\0') {
+            strcat_v(dst, dst_size, ".");
+            strcat_v(dst, dst_size, new_ext);
         }
     }
     else {
-        if (swap[0] != '\0') {
-            strcpy(extension, swap);
-        } else {
-            extension--;
-            extension[0] = '\0';
+        // dst has extension, replace with new one
+        if (new_ext[0] != '\0') {
+            strcpy_v(extension, extension_size, new_ext);
+        }
+        else {
+            // no extension, just remove original extension
+            if (extension > dst && extension[-1] == '.')
+                extension[-1] = '\0';
+            //extension--;
+            //extension[0] = '\0';
         }
     }
 
     // try to match original case so Linux may work
-    if (ext_upper) {
+    if (ext_uppercase) {
         make_uppercase(extension);
     }
 }
@@ -109,7 +112,7 @@ static STREAMFILE* open_streamfile_internal(STREAMFILE* sf, const char* filename
     if (path) {
         path[1] = '\0'; /* remove name after separator */
 
-        strcpy(partname, filename);
+        strcpy_v(partname, sizeof(partname), filename);
         fix_dir_separators(partname); /* normalize to DIR_SEPARATOR */
 
         /* normalize relative paths as don't work ok in some plugins */
@@ -135,10 +138,10 @@ static STREAMFILE* open_streamfile_internal(STREAMFILE* sf, const char* filename
             name = partname;
         }
 
-        strcat(fullname, name);
+        strcat_v(fullname, sizeof(fullname), name);
     }
     else {
-        strcpy(fullname, filename);
+        strcpy_v(fullname, sizeof(fullname), filename);
     }
 
     return open_streamfile(sf, fullname);
@@ -192,67 +195,64 @@ void get_streamfile_name(STREAMFILE* sf, char* buffer, size_t size) {
 }
 
 /* copies the filename without path */
-void get_streamfile_filename(STREAMFILE* sf, char* buffer, size_t size) {
+void get_streamfile_filename(STREAMFILE* sf, char* dst, size_t dst_size) {
     char foldername[PATH_LIMIT];
-    const char* path;
-
 
     get_streamfile_name(sf, foldername, sizeof(foldername));
 
-    //todo Windows CMD accepts both \\ and /, better way to handle this?
-    path = strrchr(foldername,'\\');
+    //TODO: Windows CMD accepts both \\ and /, better way to handle this?
+    const char* path = strrchr(foldername,'\\');
     if (!path)
-        path = strrchr(foldername,'/');
+        path = strrchr(foldername, '/');
     if (path != NULL)
-        path = path+1;
+        path = path + 1;
 
-    //todo validate sizes and copy sensible max
     if (path) {
-        strcpy(buffer, path);
-    } else {
-        strcpy(buffer, foldername);
+        strcpy_v(dst, dst_size, path);
+    }
+    else {
+        strcpy_v(dst, dst_size, foldername);
     }
 }
 
 /* copies the filename without path or extension */
-void get_streamfile_basename(STREAMFILE* sf, char* buffer, size_t size) {
-    char* ext;
+void get_streamfile_basename(STREAMFILE* sf, char* dst, size_t dst_size) {
 
-    get_streamfile_filename(sf, buffer, size);
+    get_streamfile_filename(sf, dst, dst_size);
 
-    ext = strrchr(buffer,'.');
+    char* ext = strrchr(dst, '.');
     if (ext) {
-        ext[0] = '\0'; /* remove .ext from buffer */
+        ext[0] = '\0'; // remove .ext from buffer
     }
 }
 
 /* copies path removing name (NULL when if filename has no path) */
-void get_streamfile_path(STREAMFILE* sf, char* buffer, size_t size) {
-    const char* path;
+void get_streamfile_path(STREAMFILE* sf, char* dst, size_t dst_size) {
 
-    get_streamfile_name(sf, buffer, size);
+    get_streamfile_name(sf, dst, dst_size);
 
-    path = strrchr(buffer,DIR_SEPARATOR);
-    if (path!=NULL) path = path+1; /* includes "/" */
+    const char* path = strrchr(dst,DIR_SEPARATOR);
+    if (path != NULL)
+        path = path + 1; // includes "/"
 
     if (path) {
-        buffer[path - buffer] = '\0';
-    } else {
-        buffer[0] = '\0';
+        dst[path - dst] = '\0';
+    }
+    else {
+        dst[0] = '\0';
     }
 }
 
 /* copies extension only */
-void get_streamfile_ext(STREAMFILE* sf, char* buffer, size_t size) {
+void get_streamfile_ext(STREAMFILE* sf, char* dst, size_t dst_size) {
     char filename[PATH_LIMIT];
-    const char* extension = NULL;
 
     get_streamfile_name(sf, filename, sizeof(filename));
-    extension = filename_extension(filename);
+    const char* extension = filename_extension(filename);
     if (!extension) {
-        buffer[0] = '\n';
+        dst[0] = '\n';
     }
     else {
-        strncpy(buffer, extension, size); //todo use something better
+        strcpy_v(dst, dst_size, extension);
     }
 }

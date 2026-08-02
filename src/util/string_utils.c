@@ -144,3 +144,18 @@ void str_uppercase_v(char* dst, size_t dst_size) {
         dst[dst_size - 1] = '\0';
     }
 }
+
+
+bool str_is_uppercase(const char* str) {
+    if (str == NULL || str[0] == '\0')
+        return false;
+
+    while (str[0] != '\0') {
+        char c = str[0];
+        if (c < 'A' || c > 'Z')
+            return false;
+        str++;
+    }
+
+    return true;
+}

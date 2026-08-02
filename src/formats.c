@@ -3,6 +3,7 @@
 #include "layout/layout.h"
 #include "base/plugins.h"
 #include "base/info.h"
+#include "util/string_utils.h"
 
 
 /* Defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
@@ -1556,19 +1557,19 @@ static const meta_info meta_info_list[] = {
         {meta_XMA_UE5,              "Unreal Engine 5 XMA header"},
 };
 
-void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
+void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* dst, size_t dst_size) {
 
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type == coding_FFmpeg) {
         /* recurse down for FFmpeg, but metas should set prefered/main codec, or maybe print a list of codecs */
         if (vgmstream->layout_type == layout_layered) {
             layered_layout_data* layout_data = vgmstream->layout_data;
-            get_vgmstream_coding_description(layout_data->layers[0], out, out_size);
+            get_vgmstream_coding_description(layout_data->layers[0], dst, dst_size);
             return;
         }
         else if (vgmstream->layout_type == layout_segmented) {
             segmented_layout_data* layout_data = vgmstream->layout_data;
-            get_vgmstream_coding_description(layout_data->segments[0], out, out_size);
+            get_vgmstream_coding_description(layout_data->segments[0], dst, dst_size);
             return;
         }
     }
@@ -1594,7 +1595,7 @@ void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t ou
         }
     }
 
-    strncpy(out, description, out_size);
+    strcpy_v(dst, dst_size, description);
 }
 
 static const char* get_layout_name(layout_t layout_type) {
@@ -1667,7 +1668,7 @@ static int get_layout_mixed_description(VGMSTREAM* vgmstream, char* dst, int dst
     return done;
 }
 
-void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
+void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* dst, size_t dst_size) {
     const char* description;
     bool mixed = false;
 
@@ -1678,23 +1679,23 @@ void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t ou
         layered_layout_data* data = vgmstream->layout_data;
         mixed = has_sublayouts(data->layers, data->layer_count);
         if (!mixed)
-            snprintf(out, out_size, "%s (%i layers)", description, data->layer_count);
+            snprintf(dst, dst_size, "%s (%i layers)", description, data->layer_count);
     }
     else if (vgmstream->layout_type == layout_segmented) {
         segmented_layout_data* data = vgmstream->layout_data;
         mixed = has_sublayouts(data->segments, data->segment_count);
         if (!mixed)
-            snprintf(out, out_size, "%s (%i segments)", description, data->segment_count);
+            snprintf(dst, dst_size, "%s (%i segments)", description, data->segment_count);
     }
     else {
-        snprintf(out, out_size, "%s", description);
+        snprintf(dst, dst_size, "%s", description);
     }
 
     if (mixed) {
         char tmp[256] = {0};
 
         get_layout_mixed_description(vgmstream, tmp, sizeof(tmp) - 1);
-        snprintf(out, out_size, "mixed (%s)", tmp);
+        snprintf(dst, dst_size, "mixed (%s)", tmp);
         return;
     }
 }
