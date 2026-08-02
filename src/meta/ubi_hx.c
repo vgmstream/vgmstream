@@ -3,6 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 #include "../util/chunks.h"
+#include "../util/string_utils.h"
 
 
 typedef enum { PCM, UBI, PSX, DSP, XIMA, ATRAC3, XMA2, MP3, SILENCE } ubi_hx_codec;
@@ -17,7 +18,7 @@ typedef struct {
     int header_index;           /* entry number within section2 */
     uint32_t header_offset;     /* entry offset within internal .HXx */
     uint32_t header_size;       /* entry offset within internal .HXx */
-    char class_name[255];
+    char class_name[256];
     size_t class_size;
     size_t stream_mode;
 
@@ -33,8 +34,8 @@ typedef struct {
 
     int is_external;
     char resource_name[0x28];   /* filename to the external stream */
-    char internal_name[255];    /* WavRes's assigned name */
-    char readable_name[255];    /* final subsong name */
+    char internal_name[256];    /* WavRes's assigned name */
+    char readable_name[256];    /* final subsong name */
 
 } ubi_hx_header;
 
@@ -93,9 +94,9 @@ static void build_readable_name(char* buf, size_t buf_size, ubi_hx_header* hx) {
         grp_name = "internal";
 
     if (hx->internal_name[0])
-        snprintf(buf,buf_size, "%s/%i/%08x-%08x/%s/%s", "hx", hx->header_index, hx->cuuid1,hx->cuuid2, grp_name, hx->internal_name);
+        snprintf(buf, buf_size, "%s/%i/%08x-%08x/%s/%s", "hx", hx->header_index, hx->cuuid1,hx->cuuid2, grp_name, hx->internal_name);
     else
-        snprintf(buf,buf_size, "%s/%i/%08x-%08x/%s", "hx", hx->header_index, hx->cuuid1,hx->cuuid2, grp_name);
+        snprintf(buf, buf_size, "%s/%i/%08x-%08x/%s", "hx", hx->header_index, hx->cuuid1,hx->cuuid2, grp_name);
 }
 
 #define TXT_LINE_MAX 0x1000
@@ -110,7 +111,7 @@ static int parse_name_bnh(ubi_hx_header* hx, STREAMFILE* sf, uint32_t cuuid1, ui
     sf_t = open_streamfile_by_ext(sf,"bnh");
     if (sf_t == NULL) goto fail;
 
-    snprintf(cuuid,sizeof(cuuid), "cuuid( 0x%08x, 0x%08x )", cuuid1, cuuid2);
+    snprintf(cuuid, sizeof(cuuid), "cuuid( 0x%08x, 0x%08x )", cuuid1, cuuid2);
 
     /* each .bnh line has a cuuid, a bunch of repeated fields and name (sometimes name is filename or "bad name") */
     while (txt_offset < get_streamfile_size(sf)) {
@@ -120,13 +121,13 @@ static int parse_name_bnh(ubi_hx_header* hx, STREAMFILE* sf, uint32_t cuuid1, ui
         if (!line_ok) break;
         txt_offset += bytes_read;
 
-        if (strncmp(line,cuuid,31) != 0)
+        if (strncmp(line, cuuid, 31) != 0)
             continue;
         if (bytes_read <= 79)
             goto fail;
 
         /* cuuid found, copy name (lines are fixed and always starts from the same position) */
-        strcpy(hx->internal_name, &line[79]);
+        strcpy_v(hx->internal_name, sizeof(hx->internal_name), &line[79]);
 
         close_streamfile(sf_t);
         return 1;
@@ -142,9 +143,9 @@ fail:
 static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
     read_u32_t read_u32 = hx->big_endian ? read_u32be : read_u32le;
     read_s32_t read_s32 = hx->big_endian ? read_s32be : read_s32le;
+    char class_name[256];
     uint32_t index_type, index_offset, offset;
-    int i, index_entries;
-    char class_name[255];
+    int index_entries;
 
 
     index_offset = read_u32(0x00, sf);
@@ -153,19 +154,19 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
 
     /* doesn't seem to have names (no way to link) */
     if (index_type == 0x01)
-        return 1;
+        return true;
 
     offset = index_offset + 0x0c;
-    for (i = 0; i < index_entries; i++) {
+    for (int i = 0; i < index_entries; i++) {
         off_t header_offset;
-        size_t class_size;
-        int j, link_count, language_count, is_found = 0;
-        uint32_t cuuid1, cuuid2;
+        int link_count, language_count, is_found = 0;
+        uint32_t class_size, cuuid1, cuuid2;
 
 
-        class_size = read_u32(offset + 0x00, sf);
-        if (class_size > sizeof(class_name)+1) goto fail;
-        read_string(class_name,class_size+1, offset + 0x04, sf); /* not null-terminated */
+        class_size = read_u32(offset + 0x00, sf); // not including null-terminator
+        if (class_size >= sizeof(class_name) - 1)
+            goto fail;
+        read_string(class_name, class_size + 1, offset + 0x04, sf);
         offset += 0x04 + class_size;
 
         cuuid1 = read_u32(offset + 0x00, sf);
@@ -183,7 +184,7 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
         else {
             link_count = read_s32(offset + 0x00, sf);
             offset += 0x04;
-            for (j = 0; j < link_count; j++) {
+            for (int j = 0; j < link_count; j++) {
                 uint32_t link_id1 = read_u32(offset + 0x00, sf);
                 uint32_t link_id2 = read_u32(offset + 0x04, sf);
 
@@ -195,7 +196,7 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
 
             language_count = read_s32(offset + 0x00, sf);
             offset += 0x04;
-            for (j = 0; j < language_count; j++) {
+            for (int j = 0; j < language_count; j++) {
                 uint32_t link_id1 = read_u32(offset + 0x08, sf);
                 uint32_t link_id2 = read_u32(offset + 0x0c, sf);
 
@@ -224,18 +225,18 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
             internal_size = read_u32(wavres_offset + 0x00, sf);
             /* Xbox has some kind of big size and "flags" has a value of 2, instead of 3/4 like other platforms */
             if (strcmp(class_name, "CXBoxWavResData") == 0 && internal_size > 0x100)
-                return 1;
+                return true;
             if (internal_size > sizeof(hx->internal_name)+1)
                 goto fail;
 
             /* usually 0 in consoles */
             if (internal_size != 0) {
                 read_string(hx->internal_name,internal_size+1, wavres_offset + 0x04, sf);
-                return 1;
+                return true;
             }
             else {
                 parse_name_bnh(hx, sf, cuuid1, cuuid2);
-                return 1; /* ignore error */
+                return true; /* ignore error */
             }
         }
     }
@@ -243,14 +244,14 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
     /* XIII GC has one subsong 718260C4 B7C67534 with empty index entry
      * (CGCWavResData with name does exist but its CGCWaveFileIdObj doesn't point to it) */
     if (!hx->is_external) {
-        strcpy(hx->internal_name,"?");
-        return 1;
+        strcpy_v(hx->internal_name, sizeof(hx->internal_name), "?");
+        return true;
     }
 
     VGM_LOG("UBI HX: name not found for CUUID %08x %08x\n", hx->cuuid1, hx->cuuid2);
 fail:
     vgm_logi("UBI HX: error parsing name at %x (report)\n", index_offset);
-    return 0;
+    return false;
 }
 
 
@@ -273,8 +274,9 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
     hx->header_size     = size;
 
     hx->class_size = read_u32(offset + 0x00, sf);
-    if (hx->class_size > sizeof(hx->class_name)+1) goto fail;
-    read_string(hx->class_name,hx->class_size+1, offset + 0x04, sf);
+    if (hx->class_size >= sizeof(hx->class_name) - 1) // not including null-terminator
+        goto fail;
+    read_string(hx->class_name, hx->class_size + 1, offset + 0x04, sf);
     offset += 0x04 + hx->class_size;
 
     hx->cuuid1  = read_u32(offset + 0x00, sf);
@@ -467,9 +469,13 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
             hx->codec       = XMA2;
             hx->channels    = read_u16(offset + 0x02, sf);
             hx->sample_rate = read_u32(offset + 0x04, sf);
-            hx->num_samples = read_s32(offset + 0x18, sf) / 0x02 / hx->channels;
+            hx->num_samples = read_s32(offset + 0x18, sf);
             cue_flag        = read_u32(offset + 0x34, sf);
             offset += 0x38;
+
+            if (hx->channels == 0)
+                goto fail;
+            hx->num_samples = hx->num_samples / 0x02 / hx->channels;
         }
         else {
             /* MSFC header */
@@ -483,11 +489,9 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
 
         /* skip cue table that sometimes exists in streams */
         if (cue_flag) {
-            int j;
-
             size_t cue_count = read_s32(offset, sf);
             offset += 0x04;
-            for (j = 0; j < cue_count; j++) {
+            for (int j = 0; j < cue_count; j++) {
                 /* 0x00: id? */
                 size_t description_size = read_u32(offset + 0x04, sf); /* for next string */
                 offset += 0x08 + description_size;
@@ -533,8 +537,8 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
     read_u32_t read_u32 = hx->big_endian ? read_u32be : read_u32le;
     read_s32_t read_s32 = hx->big_endian ? read_s32be : read_s32le;
     uint32_t index_offset, offset;
-    int i, index_entries;
-    char class_name[255];
+    int index_entries;
+    char class_name[256];
     uint32_t index_type;
 
 
@@ -555,18 +559,18 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
 
     index_entries = read_s32(index_offset + 0x08, sf);
     offset = index_offset + 0x0c;
-    for (i = 0; i < index_entries; i++) {
+    for (int i = 0; i < index_entries; i++) {
         uint32_t header_offset, class_size, header_size;
-        int j, unknown_count, link_count, language_count;
+        int unknown_count, link_count, language_count;
 
         //;VGM_LOG("ubi hx: index %i at %x\n", i, offset);
 
         /* parse index entries: offset to actual header plus some extra info also in the header */
 
-        class_size = read_u32(offset + 0x00, sf);
-        if (class_size > sizeof(class_name)+1) goto fail;
-
-        read_string(class_name,class_size+1, offset + 0x04, sf); /* not null-terminated */
+        class_size = read_u32(offset + 0x00, sf); // not including null-terminator
+        if (class_size >= sizeof(class_name) - 1)
+            goto fail;
+        read_string(class_name, class_size + 1, offset + 0x04, sf);
         offset += 0x04 + class_size;
 
         /* 0x00: id1+2 */
@@ -594,7 +598,7 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
             /* localized id list of WavRes (can use this list instead of the prev one) */
             language_count = read_s32(offset + 0x00, sf);
             offset += 0x04;
-            for (j = 0; j < language_count; j++) {
+            for (int j = 0; j < language_count; j++) {
                 /* 0x00: lang code, in reverse endianness: "en  ", "fr  ", etc */
                 /* 0x04: possibly count of ids for this lang */
                 /* 0x08: id1+2 */
@@ -607,7 +611,7 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
             }
         }
 
-        //todo figure out CProgramResData sequences
+        //TODO: figure out CProgramResData sequences
         // Format is pretty complex list of values and some offsets in between, then field names
         // then more values and finally a list of linked IDs Links are the same as in the index,
         // but doesn't seem to be a straight sequence list. Seems it can be used for other config too.
@@ -830,7 +834,7 @@ static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf
             goto fail;
     }
 
-    strcpy(vgmstream->stream_name, hx->readable_name);
+    strcpy_v(vgmstream->stream_name, STREAM_NAME_SIZE, hx->readable_name);
 
     if (!vgmstream_open_stream(vgmstream, sb, hx->stream_offset))
         goto fail;

@@ -190,8 +190,8 @@ int check_extensions(STREAMFILE* sf, const char* cmp_exts) {
 /* ************************************************************************* */
 
 /* copies name as-is (may include full path included) */
-void get_streamfile_name(STREAMFILE* sf, char* buffer, size_t size) {
-    sf->get_name(sf, buffer, size);
+void get_streamfile_name(STREAMFILE* sf, char* dst, size_t dst_size) {
+    sf->get_name(sf, dst, dst_size);
 }
 
 /* copies the filename without path */
