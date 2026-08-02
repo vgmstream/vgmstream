@@ -103,6 +103,8 @@ static void read_xps_name(VGMSTREAM* vgmstream, STREAMFILE* sf, int file_id) {
 
     /* main section + stream sections (usually same number but not always) */
     int entries = read_s32le(0x04,sf);
+    if (entries > 0x1000) // arbitrary max
+        return;
 
     /* "sid\0" entries: find name_id of file_id */
     uint32_t entry_offset = 0x10;
@@ -133,15 +135,17 @@ static void read_xps_name(VGMSTREAM* vgmstream, STREAMFILE* sf, int file_id) {
         int udss_name_id = read_s32le(entry_base+0x10,sf);
         if (udss_name_id == name_id) {
             off_t name_offset = entry_base + 0x10 + 0x08;
-            size_t name_size = entry_size - 0x08; /* includes null */
-            read_string(vgmstream->stream_name,name_size, name_offset,sf);
+            //size_t name_size = entry_size - 0x08; // includes null
+            // if (name_size >= STREAM_NAME_SIZE) name_size = STREAM_NAME_SIZE - 1;
+    
+            read_string(vgmstream->stream_name, STREAM_NAME_SIZE, name_offset, sf);
             return;
         }
     }
 }
 
 /* .XPS - From Software games banks [Metal Wolf Chaos (Xbox), Otogi (Xbox)] */
-VGMSTREAM * init_vgmstream_xps(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_xps(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_data = NULL;
 
