@@ -48,17 +48,6 @@ size_t align_size_to_block(size_t value, size_t block_align) {
     return (value + block_align - extra_size);
 }
 
-/* length is maximum length of dst. dst will always be null-terminated if
- * length > 0 */
-void concatn(int length, char * dst, const char * src) {
-    int i,j;
-    if (length <= 0) return;
-    for (i=0;i<length-1 && dst[i];i++);   /* find end of dst */
-    for (j=0;i<length-1 && src[j];i++,j++)
-        dst[i]=src[j];
-    dst[i]='\0';
-}
-
 bool check_subsongs(int* target_subsong, int total_subsongs) {
     if (*target_subsong == 0)
         *target_subsong = 1;

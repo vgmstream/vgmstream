@@ -55,8 +55,6 @@ size_t align_size_to_block(size_t value, size_t block_align);
  * extension in the original filename or the ending null byte if no extension */
 const char* filename_extension(const char* pathname);
 
-void concatn(int length, char * dst, const char * src);
-
 /* checks max subsongs and setups target */
 bool check_subsongs(int* target_subsong, int total_subsongs);
 
