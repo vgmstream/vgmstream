@@ -588,7 +588,9 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 read_s16_t read_s16 = txth.coef_big_endian ? read_s16be : read_s16le;
                 get_s16_t get_s16 =txth.coef_big_endian ? get_s16be : get_s16le;
 
-                if (txth.coef_table_set && vgmstream->channels > TXTH_COEF_TABLE_CHANNELS) {
+                if (txth.coef_table_set && (
+                        vgmstream->channels > TXTH_COEF_TABLE_CHANNELS || 
+                        txth.coef_spacing > 16 * 0x02)) {
                     goto fail;
                 }
 

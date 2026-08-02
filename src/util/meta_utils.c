@@ -45,7 +45,7 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
     vgmstream->allow_dual_stereo = h->allow_dual_stereo;
 
     if (h->name_offset)
-        read_string(vgmstream->stream_name, sizeof(vgmstream->stream_name), h->name_offset, h->sf ? h->sf : h->sf_head);
+        read_string(vgmstream->stream_name, STREAM_NAME_SIZE, h->name_offset, h->sf ? h->sf : h->sf_head);
     
     if (h->coding == coding_NGC_DSP && (h->sf || h->sf_head)) {
         if (h->coefs_offset || h->coefs_spacing)

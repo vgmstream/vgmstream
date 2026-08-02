@@ -154,9 +154,9 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
 
 
     /* get subheader and prepare offsets */
-    int redspark_pos;
-    int sub_offset, sub_size;
-    int head_pos;
+    uint32_t redspark_pos;
+    uint32_t head_pos;
+    uint32_t sub_offset, sub_size;
     if (data_offset == 0x30) {
         /* 'subspark', seen in a few sfx in Imabikisou (earlier version of banks) */
         /* at data offset (not encrypted):
@@ -168,8 +168,11 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
            at subchunk_size:
              another RedSpark with bank subflag
         */
-        /* base sub-RedSpark + reset flags */
         redspark_pos = data_size;
+        if (data_size > HEADER_MAX - data_offset)
+            return false;
+
+        /* base sub-RedSpark + reset flags */
         if (read_streamfile(buf + redspark_pos, data_size, base_size, sf) != base_size)
             return false;
         if (!is_new)
@@ -196,6 +199,8 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
     }
 
     /* read + decrypt rest of header */
+    if (sub_size > HEADER_MAX - sub_offset)
+        return false;
     if (read_streamfile(buf + sub_offset, sub_offset, sub_size, sf) != sub_size)
         return false;
     if (!is_new)
@@ -242,11 +247,11 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
         if (!check_subsongs(&target_subsong, h->total_subsongs))
             return false;
    
-        int target_pos = head_pos + 0x20 + (target_subsong - 1) * 0x04;
-        if (target_pos + 0x04 >= HEADER_MAX)
+        uint32_t target_pos = head_pos + 0x20 + (target_subsong - 1) * 0x04;
+        if (target_pos >= HEADER_MAX - 0x04)
             return false;
         target_pos = get_u32(buf + target_pos) + redspark_pos;
-        if (target_pos + 0x70 >= HEADER_MAX)
+        if (target_pos >= HEADER_MAX - 0x70)
             return false;
 
         h->stream_size      = get_u32(buf + target_pos + 0x04);
@@ -300,6 +305,8 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
                 01 string ("Loop Start" / "Loop End")
         */
 
+        if (head_pos >= HEADER_MAX - 0x20)
+            return false;
         h->sample_rate = get_u32(buf + head_pos + 0x0c);
         h->num_samples = get_u32(buf + head_pos + 0x10);
         h->channels = get_u8(buf + head_pos + 0x1e);
@@ -317,6 +324,8 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
             /* only two cue points */
             if (loop_cues != 0 && loop_cues != 2)
                 return false;
+            if (head_pos >= HEADER_MAX - 0x10)
+                return false;
             h->loop_start = get_u32(buf + head_pos + 0x04);
             h->loop_end = get_u32(buf + head_pos + 0x0c);
             head_pos += 0x10;
@@ -330,7 +339,10 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
     /* coefs from decrypted buf (could read hist but it's 0 in DSPs) */
     for (int ch = 0; ch < h->channels; ch++) {
         for (int i = 0; i < 16; i++) {
-            h->coefs[ch][i] = get_u16(buf + coef_offset + 0x2e * ch + i * 2);
+            uint32_t pos = coef_offset + 0x2e * ch + i * 2;
+            if (pos >= HEADER_MAX - 0x02)
+                return false;
+            h->coefs[ch][i] = get_u16(buf + pos);
         }
     }
 

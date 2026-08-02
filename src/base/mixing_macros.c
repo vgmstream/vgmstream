@@ -261,6 +261,8 @@ void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode)
         if (mode == MIX_MACRO_BGM && ch < max) {
             /* reduce a bit main channels (see below) */
             int channel_mixes = selected_channels / max;
+            if (channel_mixes <= 0) /* ??? */
+                channel_mixes = 1;
             if (current < selected_channels % (channel_mixes * max)) /* may be simplified? */
                 channel_mixes += 1;
             channel_mixes -= 1; /* better formula? */

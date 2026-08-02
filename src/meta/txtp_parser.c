@@ -1021,17 +1021,17 @@ fail:
 /* PARSER - BASE                                                               */
 /*******************************************************************************/
 
-static int is_substring(const char* val, const char* cmp) {
-    int n;
+static bool is_substring(const char* str, const char* cmp) {
     char subval[TXT_LINE_MAX];
 
     /* read string without trailing spaces or comments/commands */
-    if (sscanf(val, " %s%n[^ #\t\r\n]%n", subval, &n, &n) != 1)
-        return 0;
+    int n;
+    if (sscanf(str, " %"TXT_LINE_STR"s%n[^ #\t\r\n]%n", subval, &n, &n) != 1)
+        return false;
 
     if (0 != strcmp(subval,cmp))
-        return 0;
-    return n;
+        return false;
+    return n > 0;
 }
 
 static int parse_num(const char* val, uint32_t* out_value) {

@@ -550,65 +550,72 @@ fail:
 
 
 /* swap from LE to BE or the other way around */
-static int ffmpeg_fmt_chunk_swap_endian(uint8_t* chunk, uint32_t chunk_size, uint16_t codec) {
-    int i;
+static bool ffmpeg_fmt_chunk_swap_endian(uint8_t* buf, size_t buf_size, uint32_t chunk_size, uint16_t codec) {
+    if (chunk_size > buf_size)
+        return 0;
 
     switch(codec) {
         case 0x6501: 
         case 0x0165: /* XMA1 */
-            put_u16le(chunk + 0x00, get_u16be(chunk + 0x00)); /*FormatTag*/
-            put_u16le(chunk + 0x02, get_u16be(chunk + 0x02)); /*BitsPerSample*/
-            put_u16le(chunk + 0x04, get_u16be(chunk + 0x04)); /*EncodeOptions*/
-            put_u16le(chunk + 0x06, get_u16be(chunk + 0x06)); /*LargestSkip*/
-            put_u16le(chunk + 0x08, get_u16be(chunk + 0x08)); /*NumStreams*/
+            if (chunk_size < 0x0C + 0x14) // enough in buf
+                return false;
+            put_u16le(buf + 0x00, get_u16be(buf + 0x00)); /*FormatTag*/
+            put_u16le(buf + 0x02, get_u16be(buf + 0x02)); /*BitsPerSample*/
+            put_u16le(buf + 0x04, get_u16be(buf + 0x04)); /*EncodeOptions*/
+            put_u16le(buf + 0x06, get_u16be(buf + 0x06)); /*LargestSkip*/
+            put_u16le(buf + 0x08, get_u16be(buf + 0x08)); /*NumStreams*/
             // put_u8(chunk + 0x0a,    get_u8(chunk + 0x0a)); /*LoopCount*/
             // put_u8(chunk + 0x0b,    get_u8(chunk + 0x0b)); /*Version*/
-            for (i = 0xc; i < chunk_size; i += 0x14) { /* reverse endianness for each stream */
-                put_u32le(chunk + i + 0x00, get_u32be(chunk + i + 0x00)); /*PsuedoBytesPerSec*/
-                put_u32le(chunk + i + 0x04, get_u32be(chunk + i + 0x04)); /*SampleRate*/
-                put_u32le(chunk + i + 0x08, get_u32be(chunk + i + 0x08)); /*LoopStart*/
-                put_u32le(chunk + i + 0x0c, get_u32be(chunk + i + 0x0c)); /*LoopEnd*/
+
+            /* reverse endianness for each stream */
+            for (uint32_t i = 0x0C; i < chunk_size; i += 0x14) {
+                if (i + 0x14 > chunk_size)
+                    return false;
+                put_u32le(buf + i + 0x00, get_u32be(buf + i + 0x00)); /*PsuedoBytesPerSec*/
+                put_u32le(buf + i + 0x04, get_u32be(buf + i + 0x04)); /*SampleRate*/
+                put_u32le(buf + i + 0x08, get_u32be(buf + i + 0x08)); /*LoopStart*/
+                put_u32le(buf + i + 0x0c, get_u32be(buf + i + 0x0c)); /*LoopEnd*/
                 // put_u8(chunk + i + 0x10,    get_u8(chunk + i + 0x10)); /*SubframeData*/
                 // put_u8(chunk + i + 0x11,    get_u8(chunk + i + 0x11)); /*Channels*/
-                put_u16le(chunk + i + 0x12, get_u16be(chunk + i + 0x12)); /*ChannelMask*/
+                put_u16le(buf + i + 0x12, get_u16be(buf + i + 0x12)); /*ChannelMask*/
             }
             break;
 
         case 0x6601:
         case 0x0166: /* XMA2 */
-            put_u16le(chunk + 0x00, get_u16be(chunk + 0x00)); /*wFormatTag*/
-            put_u16le(chunk + 0x02, get_u16be(chunk + 0x02)); /*nChannels*/
-            put_u32le(chunk + 0x04, get_u32be(chunk + 0x04)); /*nSamplesPerSec*/
-            put_u32le(chunk + 0x08, get_u32be(chunk + 0x08)); /*nAvgBytesPerSec*/
-            put_u16le(chunk + 0x0c, get_u16be(chunk + 0x0c)); /*nBlockAlign*/
-            put_u16le(chunk + 0x0e, get_u16be(chunk + 0x0e)); /*wBitsPerSample*/
-            put_u16le(chunk + 0x10, get_u16be(chunk + 0x10)); /*cbSize*/
-            put_u16le(chunk + 0x12, get_u16be(chunk + 0x12)); /*NumStreams*/
-            put_u32le(chunk + 0x14, get_u32be(chunk + 0x14)); /*ChannelMask*/
-            put_u32le(chunk + 0x18, get_u32be(chunk + 0x18)); /*SamplesEncoded*/
-            put_u32le(chunk + 0x1c, get_u32be(chunk + 0x1c)); /*BytesPerBlock*/
-            put_u32le(chunk + 0x20, get_u32be(chunk + 0x20)); /*PlayBegin*/
-            put_u32le(chunk + 0x24, get_u32be(chunk + 0x24)); /*PlayLength*/
-            put_u32le(chunk + 0x28, get_u32be(chunk + 0x28)); /*LoopBegin*/
-            put_u32le(chunk + 0x2c, get_u32be(chunk + 0x2c)); /*LoopLength*/
+            if (chunk_size < 0x34) // enough in buf
+                return false;
+            put_u16le(buf + 0x00, get_u16be(buf + 0x00)); /*wFormatTag*/
+            put_u16le(buf + 0x02, get_u16be(buf + 0x02)); /*nChannels*/
+            put_u32le(buf + 0x04, get_u32be(buf + 0x04)); /*nSamplesPerSec*/
+            put_u32le(buf + 0x08, get_u32be(buf + 0x08)); /*nAvgBytesPerSec*/
+            put_u16le(buf + 0x0c, get_u16be(buf + 0x0c)); /*nBlockAlign*/
+            put_u16le(buf + 0x0e, get_u16be(buf + 0x0e)); /*wBitsPerSample*/
+            put_u16le(buf + 0x10, get_u16be(buf + 0x10)); /*cbSize*/
+            put_u16le(buf + 0x12, get_u16be(buf + 0x12)); /*NumStreams*/
+            put_u32le(buf + 0x14, get_u32be(buf + 0x14)); /*ChannelMask*/
+            put_u32le(buf + 0x18, get_u32be(buf + 0x18)); /*SamplesEncoded*/
+            put_u32le(buf + 0x1c, get_u32be(buf + 0x1c)); /*BytesPerBlock*/
+            put_u32le(buf + 0x20, get_u32be(buf + 0x20)); /*PlayBegin*/
+            put_u32le(buf + 0x24, get_u32be(buf + 0x24)); /*PlayLength*/
+            put_u32le(buf + 0x28, get_u32be(buf + 0x28)); /*LoopBegin*/
+            put_u32le(buf + 0x2c, get_u32be(buf + 0x2c)); /*LoopLength*/
             // put_u8(chunk + 0x30,    get_u8(chunk + 0x30)); /*LoopCount*/
             // put_u8(chunk + 0x31,    get_u8(chunk + 0x31)); /*EncoderVersion*/
-            put_u16le(chunk + 0x32, get_u16be(chunk + 0x32)); /*BlockCount*/
+            put_u16le(buf + 0x32, get_u16be(buf + 0x32)); /*BlockCount*/
             break;
 
         default:
-            goto fail;
+            return false;
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 
 /* Makes a XMA1/2 RIFF header using a "fmt " chunk (XMAWAVEFORMAT/XMA2WAVEFORMATEX) or "XMA2" chunk (XMA2WAVEFORMAT), as a base:
  * Useful to preserve the stream layout */
-static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, int buf_size, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size, int* p_is_xma1) {
+static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, size_t buf_size, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size, int* p_is_xma1) {
     if (chunk_size <= 0)
         return 0;
 
@@ -620,13 +627,16 @@ static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, int buf_size
         return 0;
 
     /* checks info from the chunk itself */
-    int is_xma1 = 0;
-    int is_xma2_old = buf[0x14] == 0x03 || buf[0x14] == 0x04;
+    bool is_xma1 = false;
+    bool is_xma2_old = buf[0x14] == 0x03 || buf[0x14] == 0x04;
     if (!is_xma2_old) {
-        uint16_t codec = get_u16le(buf+0x14);
-        int is_be = (codec > 0x1000);
-        if (is_be)
-            ffmpeg_fmt_chunk_swap_endian(buf+0x14, chunk_size, codec);
+        uint16_t codec = get_u16le(buf + 0x14);
+        bool is_be = (codec > 0x1000);
+        if (is_be) {
+            bool swap_ok = ffmpeg_fmt_chunk_swap_endian(buf + 0x14, buf_size - 0x14, chunk_size, codec);
+            if (!swap_ok)
+                return 0;
+        }
         is_xma1 = codec == 0x0165 || codec == 0x6501;
     }
 

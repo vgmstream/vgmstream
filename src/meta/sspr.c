@@ -31,7 +31,7 @@ VGMSTREAM* init_vgmstream_sspr(STREAMFILE* sf) {
 
     name_offset     = read_u32(0x10 + (target_subsong-1) * 0x10 + 0x00,sf);
     subfile_offset  = read_u32(0x10 + (target_subsong-1) * 0x10 + 0x04,sf);
-    name_size       = read_u32(0x10 + (target_subsong-1) * 0x10 + 0x08,sf);
+    name_size       = read_u32(0x10 + (target_subsong-1) * 0x10 + 0x08,sf); // not null-terminated
     subfile_size    = read_u32(0x10 + (target_subsong-1) * 0x10 + 0x0c,sf);
 
     extension = big_endian ? "at3" : "at9";
@@ -43,7 +43,7 @@ VGMSTREAM* init_vgmstream_sspr(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->num_streams = total_subsongs;
-    read_string(vgmstream->stream_name,name_size+1, name_offset,sf);
+    read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, name_size, name_offset, sf);
 
     close_streamfile(temp_sf);
     return vgmstream;
