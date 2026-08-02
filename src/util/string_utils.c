@@ -1,6 +1,7 @@
 #include "string_utils.h"
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 /* Attempt to create usable string functions.
  * 
@@ -112,3 +113,34 @@ int strcat_(char* dst, size_t dst_max, const char* src) {
     return (int)dst_len + n;
 }
 #endif
+
+
+void str_lowercase_v(char* dst, size_t dst_size) {
+    if (dst == NULL || dst_size == 0)
+        return;
+
+    size_t dst_len = 0;
+    while (dst_len < dst_size && dst[dst_len] != '\0') {
+        dst[dst_len] = (char)tolower((unsigned char)dst[dst_len]);
+        dst_len++;
+    }
+
+    if (dst_len == dst_size) {
+        dst[dst_size - 1] = '\0';
+    }
+}
+
+void str_uppercase_v(char* dst, size_t dst_size) {
+    if (dst == NULL || dst_size == 0)
+        return;
+
+    size_t dst_len = 0;
+    while (dst_len < dst_size && dst[dst_len] != '\0') {
+        dst[dst_len] = (char)toupper((unsigned char)dst[dst_len]);
+        dst_len++;
+    }
+
+    if (dst_len == dst_size) {
+        dst[dst_size - 1] = '\0';
+    }
+}
