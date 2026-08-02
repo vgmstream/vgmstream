@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/cri_utf.h"
+#include "../util/string_utils.h"
 
 
 /* ACB (Atom Cue sheet Binary) - CRI container of memory audio, often together with a .awb wave bank */
@@ -262,21 +263,6 @@ fail:
     return 0;
 }
 
-//todo safeops, avoid recalc lens 
-static void acb_cat(char* dst, int dst_max, const char* src) {
-    int dst_len = strlen(dst);
-    int src_len = strlen(dst);
-    if (dst_len + src_len > dst_max - 1)
-        return;
-    strcat(dst, src);
-}
-static void acb_cpy(char* dst, int dst_max, const char* src) {
-    int src_len = strlen(dst);
-    if (src_len > dst_max - 1)
-        return;
-    strcpy(dst, src);
-}
-
 static void add_acb_name(acb_header* acb, int8_t Streaming) {
     if (!acb->cuename_name) {
         //;VGM_LOG("acb: no name\n");
@@ -294,14 +280,14 @@ static void add_acb_name(acb_header* acb, int8_t Streaming) {
 
     /* since waveforms can be reused by cues, multiple names are a thing */
     if (acb->awbname_count) {
-        acb_cat(acb->name, sizeof(acb->name), "; ");
-        acb_cat(acb->name, sizeof(acb->name), acb->cuename_name);
+        strcat_v(acb->name, sizeof(acb->name), "; ");
+        strcat_v(acb->name, sizeof(acb->name), acb->cuename_name);
     }
     else {
-        acb_cpy(acb->name, sizeof(acb->name), acb->cuename_name);
+        strcpy_v(acb->name, sizeof(acb->name), acb->cuename_name);
     }
     if (Streaming == 2 && acb->is_memory) {
-        acb_cat(acb->name, sizeof(acb->name), " [pre]");
+        strcat_v(acb->name, sizeof(acb->name), " [pre]");
     }
 
     acb->awbname_list[acb->awbname_count] = acb->cuename_index;

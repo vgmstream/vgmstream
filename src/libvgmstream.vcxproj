@@ -242,6 +242,7 @@
     <ClInclude Include="util\reader_text.h" />
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\spu_utils.h" />
+    <ClInclude Include="util\string_utils.h" />
     <ClInclude Include="util\text_reader.h" />
     <ClInclude Include="util\vgmstream_limits.h" />
     <ClInclude Include="util\vorbis_codebooks.h" />
@@ -910,6 +911,7 @@
     <ClCompile Include="util\reader_text.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\spu_utils.c" />
+    <ClCompile Include="util\string_utils.c" />
     <ClCompile Include="util\text_reader.c" />
     <ClCompile Include="util\vorbis_codebooks.c" />
   </ItemGroup>

@@ -3,6 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 #include "../util/layout_utils.h"
+#include "../util/string_utils.h"
 #include "audiopkg_streamfile.h"
 
 // streams are defined as "hot" (memory) + "warm" (memory + stream?) + "cold" (stream) sample 'temperatures'.
@@ -650,22 +651,6 @@ static bool parse_names_descriptor(audiopkg_header_t* h, STREAMFILE* sf, uint32_
     return false;
 }
 
-//todo safeops, avoid recalc lens 
-static void v_strcat(char* dst, int dst_max, const char* src) {
-    int dst_len = strlen(dst);
-    int src_len = strlen(dst);
-    if (dst_len + src_len > dst_max - 1)
-        return;
-    strcat(dst, src);
-}
-#if 0
-static void v_strcpy(char* dst, int dst_max, const char* src) {
-    int src_len = strlen(dst);
-    if (src_len > dst_max - 1)
-        return;
-    strcpy(dst, src);
-}
-#endif
 
 // Assign names based on identifiers pointing to our stream.
 // In rare cases some streams don't have assigned names, probably an user mistake or just unused
@@ -701,10 +686,10 @@ static bool parse_names(audiopkg_header_t* h, STREAMFILE* sf) {
         bool string_used = parse_names_descriptor(h, sf, descriptor_offset, 0);
         if (string_used) {
             if (h->name_count)
-                v_strcat(h->name, sizeof(h->name), "; ");
+                strcat_v(h->name, sizeof(h->name), "; ");
 
             read_string(identifier, sizeof(identifier), string_offset, sf);
-            v_strcat(h->name, sizeof(h->name), identifier);
+            strcat_v(h->name, sizeof(h->name), identifier);
             h->name_count++;
         }
 

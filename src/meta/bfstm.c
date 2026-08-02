@@ -29,12 +29,12 @@ VGMSTREAM* init_vgmstream_bfstm(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "FSTM"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf,"bfstm"))
-        goto fail;
-    /* 0x06(2): header size (0x40)
-     * 0x08: version (0x00000400)
-     * 0x0c: file size */
+        return NULL;
+    // 0x06(2): header size (0x40)
+    // 0x08: version (0x00000400)
+    // 0x0c: file size
 
     /* check BOM */
     if (read_u16be(0x04, sf) == 0xFEFF) { /* Wii U games */
@@ -169,7 +169,6 @@ static off_t bfstm_set_regions(STREAMFILE* sf, VGMSTREAM* vgmstream, int region_
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     if (target_subsong > 1) {
-        int ch;
         off_t region_start, region_end, block_size;
         /* target region info */
         int32_t sample_start = read_s32(regn_offset + 0x20 + (target_subsong-2)*0x100 + 0x00, sf);
@@ -192,7 +191,7 @@ static off_t bfstm_set_regions(STREAMFILE* sf, VGMSTREAM* vgmstream, int region_
 
         /* adjust region to closest block + use interleave first to correctly skip to first sample */
         block_size = (vgmstream->interleave_block_size * vgmstream->channels);
-        if (region_start % block_size) {
+        if (block_size && region_start % block_size) {
             off_t region_skip = (region_start % block_size);
             //;VGM_LOG("BFSTM: new region start=%lx - %lx\n", region_start, region_skip);
 
@@ -208,7 +207,7 @@ static off_t bfstm_set_regions(STREAMFILE* sf, VGMSTREAM* vgmstream, int region_
         /* sample_end doesn't fall in last block, interleave last doesn't apply */
         {
             int32_t block_samples = dsp_bytes_to_samples(block_size, vgmstream->channels);
-            int32_t samples_align = vgmstream->num_samples / block_samples * block_samples;
+            int32_t samples_align = block_samples ? vgmstream->num_samples / block_samples * block_samples : 0;
             if (sample_end < samples_align)
                 vgmstream->interleave_last_block_size = 0;
         }
@@ -224,7 +223,7 @@ static off_t bfstm_set_regions(STREAMFILE* sf, VGMSTREAM* vgmstream, int region_
 
         /* region_start points to correct frame (when compared to ADPCM predictor), but not sure if hist
          * is for exact nibble rather than first (sounds ok though) */
-        for (ch = 0; ch < vgmstream->channels; ch++) {
+        for (int ch = 0; ch < vgmstream->channels; ch++) {
             /* 0x00: ADPCM predictor */
             vgmstream->ch[ch].adpcm_history1_16 = read_s16(adpcm_offset + 0x02 + 0x06*ch, sf);
             vgmstream->ch[ch].adpcm_history2_16 = read_s16(adpcm_offset + 0x04 + 0x06*ch, sf);

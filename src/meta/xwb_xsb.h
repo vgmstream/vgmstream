@@ -2,6 +2,7 @@
 #define _XWB_XSB_H_
 #include "meta.h"
 #include "../util/companion_files.h"
+#include "../util/string_utils.h"
 
 #define XSB_XACT1_0_MAX     5   // 0x05 // Unreal Championship (Xbox)
 #define XSB_XACT1_1_MAX     8   // 0x08 // The Sims 2 (Xbox)-v6, Die Hard: Vendetta (Xbox)-v8
@@ -63,24 +64,25 @@ static void xsb_check_stream(xsb_header* xsb, int stream_index, int wavebank_ind
     /* multiple names may correspond to a stream (ex. Blue Dragon), so we concat all */
     if (xsb->selected_stream == stream_index && (xsb->selected_wavebank == wavebank_index || wavebank_index == -1)) {
         char name[STREAM_NAME_SIZE];
-        size_t name_size;
 
-        name_size = read_string(name,sizeof(name), name_offset, sf); /* null-terminated */
+        size_t name_size = read_string(name,sizeof(name), name_offset, sf); // null-terminated
 
         if (xsb->name_len) {
             const char* cat = "; ";
             int cat_len = 2;
 
-            if (xsb->name_len + cat_len + name_size + 1 < STREAM_NAME_SIZE) {
-                strcat(xsb->name + xsb->name_len, cat);
-                strcat(xsb->name + xsb->name_len, name);
+            if (xsb->name_len + cat_len + name_size + 1 < sizeof(xsb->name)) {
+                strcat_v(xsb->name + xsb->name_len, sizeof(xsb->name) - xsb->name_len, cat);
+                strcat_v(xsb->name + xsb->name_len, sizeof(xsb->name) - xsb->name_len, name);
+                xsb->name_len += cat_len + name_size;
             }
         }
         else {
-            strcpy(xsb->name, name);
+            strcpy_v(xsb->name, sizeof(xsb->name), name);
+            xsb->name_len += name_size;
         }
-        xsb->name_len += name_size;
-        //xsb->parse_done = 1; /* uncomment this to stop reading after first name */
+
+        //xsb->parse_done = true; // uncomment this to stop reading after first name
         //;VGM_LOG("XSB: parse found stream=%i, wavebank=%i, name_offset=%lx\n", stream_index, wavebank_index, name_offset);
     }
 }

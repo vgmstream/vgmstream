@@ -118,7 +118,7 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                 if (!vgmstream) goto fail;
 
                 vgmstream->num_streams = total_subsongs;
-                read_string(vgmstream->stream_name, name_size, name_offset,sf);
+                read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, name_size, name_offset,sf);
 
                 // external .xss shouldn't have loop info though
                 if (loop_flag && !vgmstream->loop_flag) {
@@ -178,7 +178,7 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
             goto fail;
     }
 
-    read_string(vgmstream->stream_name, name_size, name_offset,sf);
+    read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, name_size, name_offset,sf);
 
     if (!vgmstream_open_stream(vgmstream, sf_body, stream_offset))
         goto fail;

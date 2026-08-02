@@ -105,7 +105,7 @@ mp4_aac_codec_data* init_mp4_aac(STREAMFILE* sf) {
     data->if_file.size = size;
 
     /* Big ol' kludge! */
-    sprintf( filename, "%p", &data->if_file );
+    snprintf(filename, sizeof(filename), "%p", &data->if_file );
     data->h_mp4file = MP4ReadProvider( filename, &mp4_file_provider );
     if ( !data->h_mp4file ) goto fail;
 

@@ -3,6 +3,7 @@
 #include "txtp.h"
 #include "../util/text_reader.h"
 #include "../util/paths.h"
+#include "../util/string_utils.h"
 #include "../base/resampler.h"
 
 #define TXT_LINE_MAX 2048 /* some wwise .txtp get wordy */
@@ -391,7 +392,7 @@ static void add_settings(txtp_entry_t* current, txtp_entry_t* entry, const char*
     //*current = *cfg;
 
     if (filename)
-        strcpy(current->filename, filename);
+        strcpy_v(current->filename, sizeof(current->filename), filename);
 
 
     /* play config */
@@ -1020,17 +1021,17 @@ fail:
 /* PARSER - BASE                                                               */
 /*******************************************************************************/
 
-static int is_substring(const char* val, const char* cmp) {
-    int n;
+static bool is_substring(const char* str, const char* cmp) {
     char subval[TXT_LINE_MAX];
 
     /* read string without trailing spaces or comments/commands */
-    if (sscanf(val, " %s%n[^ #\t\r\n]%n", subval, &n, &n) != 1)
-        return 0;
+    int n;
+    if (sscanf(str, " %"TXT_LINE_STR"s%n[^ #\t\r\n]%n", subval, &n, &n) != 1)
+        return false;
 
     if (0 != strcmp(subval,cmp))
-        return 0;
-    return n;
+        return false;
+    return n > 0;
 }
 
 static int parse_num(const char* val, uint32_t* out_value) {

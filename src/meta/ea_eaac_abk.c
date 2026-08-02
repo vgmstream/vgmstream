@@ -41,7 +41,7 @@ VGMSTREAM* init_vgmstream_ea_amb_eaac(STREAMFILE* sf) {
     abk_size = read_u32(0x04, sf);
 
     if (read_u32(0x0C, sf) != abk_size)
-        goto fail;
+        return NULL;
 
     /* in case stricter checks are needed: */
     //if (!is_id32be(abk_offset + abk_size, sf, "MOIR"))
@@ -92,7 +92,7 @@ static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf) {
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0)
-        goto fail;
+        return NULL;
 
     num_modules = read_u16(0x0A, sf);
     modules_table = read_u32(0x1C, sf);
@@ -101,8 +101,10 @@ static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf) {
     bnk_target_index = 0xFFFF;
     ast_offset = 0;
 
-    if (!bnk_offset || !is_id32be(bnk_offset, sf, "S10A"))
-        goto fail;
+    if (num_modules > 0x400) // arbitrary max but surely less than sample_tables
+        return NULL;
+    if (!is_id32be(bnk_offset, sf, "S10A"))
+        return NULL;
 
     /* set up some common values */
     if (modules_table == 0x5C) {
@@ -126,7 +128,8 @@ static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf) {
     for (uint32_t i = 0; i < num_modules; i++) {
         num_players = read_u8(modules_table + cfg_num_players_off, sf);
         module_data = read_u32(modules_table + cfg_module_data_off, sf);
-        if (num_players == 0xff) goto fail; /* EOF read */
+        if (num_players == 0xff)
+            goto fail; /* EOF read */
 
         for (uint32_t j = 0; j < num_players; j++) {
             player_offset = read_u32(modules_table + cfg_module_entry_size + 0x04 * j, sf);
@@ -144,6 +147,8 @@ static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf) {
             if (is_dupe)
                 continue;
 
+            if (num_sample_tables >= 0x400)
+                goto fail;
             sample_tables[num_sample_tables++] = samples_table;
             num_sounds = read_u32(samples_table, sf);
             if (num_sounds == 0xffffffff) goto fail; /* EOF read */

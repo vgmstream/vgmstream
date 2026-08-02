@@ -1,5 +1,6 @@
 #include "../vgmstream.h"
 #include "../util/log.h"
+#include "../util/string_utils.h"
 #include "plugins.h"
 #include "mixing.h"
 
@@ -73,12 +74,10 @@ int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
     return false;
 }
 
-void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM* vgmstream, vgmstream_title_t* cfg) {
-    const char* pos;
-    char* pos2;
+void vgmstream_get_title(char* buf, int buf_size, const char* filename, VGMSTREAM* vgmstream, vgmstream_title_t* cfg) {
     char temp[1024];
 
-    if (!buf || !buf_len)
+    if (!buf || buf_size <= 0)
         return;
 
     buf[0] = '\0';
@@ -86,7 +85,7 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
         return;
 
     /* name without path */
-    pos = strrchr(filename, '\\');
+    const char* pos = strrchr(filename, '\\');
     if (!pos)
         pos = strrchr(filename, '/');
     if (!pos)
@@ -100,11 +99,11 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
         if (subpos)
             pos = subpos + 1;
     }
-    strncpy(buf, pos, buf_len);
+    strcpy_v(buf, buf_size, pos);
 
     /* name without extension */
     if (cfg && cfg->remove_extension) {
-        pos2 = strrchr(buf, '.');
+        char* pos2 = strrchr(buf, '.');
         if (pos2 && strlen(pos2) < 15) /* too big extension = file name probably has a dot in the middle */
             pos2[0] = '\0';
     }
@@ -132,7 +131,7 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
                 snprintf(temp, sizeof(temp), "%s#1~%i", buf, total_subsongs);
             else
                 snprintf(temp, sizeof(temp), "%s#%i", buf, target_subsong);
-            strncpy(buf, temp, buf_len);
+            strcpy_v(buf, buf_size, temp);
         }
 
         /* show name for some cases */
@@ -144,11 +143,11 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
 
         if (stream_name[0] != '\0' && show_name) {
             snprintf(temp, sizeof(temp), "%s (%s)", buf, stream_name);
-            strncpy(buf, temp, buf_len);
+            strcpy_v(buf, buf_size, temp);
         }
     }
 
-    buf[buf_len - 1] = '\0';
+    buf[buf_size - 1] = '\0';
 }
 
 /* ****************************************** */

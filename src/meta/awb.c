@@ -96,7 +96,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
 
         bool meta_ok = load_meta_type(&meta, sf, subfile_offset);
         if (!meta_ok) { 
-            // try encrypted meta (loads key after reguylar cases since it's uncommon)
+            // try encrypted meta (loads key after regular cases since it's uncommon)
             uint64_t keycode = load_keycode(sf);
             if (keycode) {
 #ifdef VGM_USE_FFMPEG
@@ -123,6 +123,9 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, meta.extension);
             if (!temp_sf) goto fail;
         }
+
+        // don't pass AWB subsong index (ffmpeg/MP4 allows subsongs)
+        temp_sf->stream_index = 0;
 
         if (meta.init_vgmstream_subkey)
             vgmstream = meta.init_vgmstream_subkey(temp_sf, subkey);

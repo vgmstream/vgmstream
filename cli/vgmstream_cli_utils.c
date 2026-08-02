@@ -25,7 +25,7 @@ bool cli_replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmst
     char tmp[CLI_PATH_LIMIT];
 
 
-    /* file has a "%" > temp replace for sprintf */
+    /* file has a "%" > temp replace for snprintf */
     int n = snprintf(buf, sizeof(buf), "%s", cfg->outfilename_config);
     if (n <= 0 || n >= sizeof(buf)) // truncation
         return false;
@@ -57,7 +57,7 @@ bool cli_replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmst
         if (!pos)
             break;
 
-        /* use buf as format and copy formatted result to tmp (assuming sprintf's format must not overlap with dst) */
+        /* use buf as format and copy formatted result to tmp (assuming snprintf's format must not overlap with dst) */
         if (pos[1] == 'n') {
             pos[0] = '%';
             pos[1] = 's'; /* use %s */
@@ -86,7 +86,7 @@ bool cli_replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmst
 
         /* copy result to buf again, so it can be used as format in next replace
          * (can be optimized with some pointer swapping but who cares about a few extra nanoseconds) */
-        strcpy(buf, tmp);
+        snprintf(buf, sizeof(buf), "%s", tmp);
     }
     while (1);
 

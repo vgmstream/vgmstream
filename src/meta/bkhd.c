@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../util/chunks.h"
 #include "../util/endianness.h"
+#include "../util/string_utils.h"
 
 
 /* BKHD - Wwise soundbank container */
@@ -189,7 +190,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         else
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u", subfile_id);
         if (prefetch)
-            concatn(STREAM_NAME_SIZE, vgmstream->stream_name, " [pre]");
+            strcat_v(vgmstream->stream_name, STREAM_NAME_SIZE, " [pre]");
     }
 
     close_streamfile(temp_sf);

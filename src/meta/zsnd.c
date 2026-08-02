@@ -308,7 +308,7 @@ VGMSTREAM* init_vgmstream_zsnd(STREAMFILE* sf) {
     vgmstream->stream_size = stream_size;
 
     if (name_offset) {
-        read_string(vgmstream->stream_name,name_size, name_offset,sf);
+        read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, name_size, name_offset,sf);
     }
 
     temp_sf = setup_zsnd_streamfile(sf, start_offset, stream_size); /* fixes last interleave reads */

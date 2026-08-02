@@ -3,59 +3,68 @@
 #include "../vgmstream.h"
 #include "reader_text.h"
 #include "sf_utils.h"
+#include "string_utils.h"
 
 #define TXT_LINE_MAX 1024
 
 size_t read_key_file(uint8_t* buf, size_t buf_size, STREAMFILE* sf) {
     char keyname[PATH_LIMIT];
     char filename[PATH_LIMIT];
-    const char *path, *ext;
     STREAMFILE* sf_key = NULL;
     size_t keysize;
 
     get_streamfile_name(sf, filename, sizeof(filename));
+    fix_dir_separators(filename);
 
     if (strlen(filename)+4 > sizeof(keyname)) goto fail;
 
     /* try to open a keyfile using variations */
     {
+        const char *path, *ext;
+
         ext = strrchr(filename,'.');
-        if (ext!=NULL) ext = ext+1;
+        if (ext != NULL)
+            ext++;
 
         path = strrchr(filename, DIR_SEPARATOR);
-        if (path!=NULL) path = path+1;
+        if (path != NULL)
+            path++;
 
         /* "(name.ext)key" */
-        strcpy(keyname, filename);
-        strcat(keyname, "key");
-        sf_key = sf->open(sf, keyname, STREAMFILE_DEFAULT_BUFFER_SIZE);
+        strcpy_v(keyname, sizeof(keyname), filename);
+        strcat_v(keyname, sizeof(keyname), "key");
+
+        sf_key = open_streamfile(sf, keyname);
         if (sf_key) goto found;
 
         /* "(name.ext)KEY" */
         /*
-        strcpy(keyname+strlen(keyname)-3,"KEY");
-        sf_key = sf->open(sf, keyname, STREAMFILE_DEFAULT_BUFFER_SIZE);
+        strcpy_v(keyname + strlen(keyname) - 3, sizeof(keyname), "KEY");
+        sf_key = open_streamfile(sf, keyname);
         if (sf_key) goto found;
         */
 
 
         /* "(.ext)key" */
         if (path) {
-            strcpy(keyname, filename);
-            keyname[path-filename] = '\0';
-            strcat(keyname, ".");
-        } else {
-            strcpy(keyname, ".");
+            strcpy_v(keyname, sizeof(keyname), filename);
+            keyname[path - filename] = '\0';
+            strcat_v(keyname, sizeof(keyname), ".");
         }
-        if (ext) strcat(keyname, ext);
-        strcat(keyname, "key");
-        sf_key = sf->open(sf, keyname, STREAMFILE_DEFAULT_BUFFER_SIZE);
+        else {
+            strcpy_v(keyname, sizeof(keyname), ".");
+        }
+        if (ext)
+            strcat_v(keyname, sizeof(keyname), ext);
+        strcat_v(keyname, sizeof(keyname), "key");
+
+        sf_key = open_streamfile(sf, keyname);
         if (sf_key) goto found;
 
         /* "(.ext)KEY" */
         /*
-        strcpy(keyname+strlen(keyname)-3,"KEY");
-        sf_key = sf->open(sf, keyname, STREAMFILE_DEFAULT_BUFFER_SIZE);
+        strcpy_v(keyname + strlen(keyname) - 3, sizeof(keyname), "KEY");
+        sf_key = open_streamfile(sf, keyname);
         if (sf_key) goto found;
         */
 

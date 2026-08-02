@@ -555,8 +555,12 @@ static int play_compressed_file(const char* filename, song_config_t* cfg, const 
     char *cmd = NULL, *temp_file = NULL;
     FILE *in_fp, *out_fp;
 
-    cmd = malloc(strlen(filename) + 1024);
-    temp_file = malloc(strlen(filename) + 256);
+    size_t filename_len = strlen(filename);
+    size_t cmd_size = filename_len + 1024;
+    size_t temp_size = filename_len + 256;
+
+    cmd = malloc(cmd_size);
+    temp_file = malloc(temp_size);
 
     if (!cmd || !temp_file) {
         ret = -2;
@@ -577,7 +581,7 @@ static int play_compressed_file(const char* filename, song_config_t* cfg, const 
     else
         base_name = filename;
 
-    sprintf(temp_file, "%s/%s", temp_dir, base_name);
+    snprintf(temp_file, temp_size, "%s/%s", temp_dir, base_name);
 
     /* Chop off the compressed-file extension
      */
@@ -595,7 +599,7 @@ static int play_compressed_file(const char* filename, song_config_t* cfg, const 
 
         /* Don't put filenames into the system() arg; that's insecure!
          */
-        sprintf(cmd, "%s <&%d >&%d ", expand_cmd, fileno(in_fp), fileno(out_fp));
+        snprintf(cmd, cmd_size, "%s <&%d >&%d ", expand_cmd, fileno(in_fp), fileno(out_fp));
         ret = system(cmd);
 
         if (WIFSIGNALED(ret) && (WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))

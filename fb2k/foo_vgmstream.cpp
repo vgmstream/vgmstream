@@ -177,18 +177,23 @@ void input_vgmstream::put_into_tagfile(file_info& p_info, abort_callback& p_abor
 
     //TODO: use foobar's fancy-but-arcane string functions
     char tagfile_path[FOO_PATH_LIMIT];
-    strcpy(tagfile_path, filename);
+    int tagfile_len;
 
-    char* path = strrchr(tagfile_path, '\\');
-    if (path != NULL) {
-        path[1] = '\0';  // includes "\", remove after that from tagfile_path
-        strcat(tagfile_path, tagfile_name);
+    const char* filename_c = filename;
+    const char* tagfile_name_c = tagfile_name;
+    const char* last_slash = strrchr(filename_c, '\\');
+    if (last_slash != NULL) {
+        size_t dir_len = (size_t)(last_slash - filename_c) + 1;
+        if (dir_len >= sizeof(tagfile_path))
+            return;
+        tagfile_len = snprintf(tagfile_path, sizeof(tagfile_path), "%.*s%s", (int)dir_len, filename_c, tagfile_name_c);
     }
     else {
-        // possible?
-        strcpy(tagfile_path, tagfile_name);
+        tagfile_len = snprintf(tagfile_path, sizeof(tagfile_path), "%s", tagfile_name_c);
     }
-    
+    if (tagfile_len <= 0 || tagfile_len >= sizeof(tagfile_path))
+        return;
+
 
     libstreamfile_t* sf_tags = open_foo_streamfile(tagfile_path, &p_abort, NULL);
     if (sf_tags == NULL)

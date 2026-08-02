@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/string_utils.h"
 #include "sqex_streamfile.h"
 
 
@@ -361,15 +362,6 @@ fail:
     return NULL;
 }
 
-//todo safeops, avoid recalc lens 
-static void sead_cat(char* dst, int dst_max, const char* src) {
-    int dst_len = strlen(dst);
-    int src_len = strlen(dst);
-    if (dst_len + src_len > dst_max - 1)
-        return;
-    strcat(dst, src);
-}
-
 static void build_readable_sab_name(sead_header_t* sead, STREAMFILE* sf, uint32_t sndname_offset, uint32_t sndname_size) {
     char* buf = sead->readable_name;
     int buf_size = sizeof(sead->readable_name);
@@ -379,13 +371,13 @@ static void build_readable_sab_name(sead_header_t* sead, STREAMFILE* sf, uint32_
         read_string_sz(descriptor, sizeof(descriptor), sead->filename_size, sead->filename_offset, sf);
         read_string_sz(name, sizeof(name), sndname_size, sndname_offset, sf);
 
-        snprintf(buf,buf_size, "%s/%s", descriptor, name);
+        snprintf(buf, buf_size, "%s/%s", descriptor, name);
     }
     else { /* add */
         read_string_sz(name, sizeof(name), sndname_size, sndname_offset, sf);
 
-        sead_cat(buf, buf_size, "; ");
-        sead_cat(buf, buf_size, name);
+        strcat_v(buf, buf_size, "; ");
+        strcat_v(buf, buf_size, name);
     }
 }
 
