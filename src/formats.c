@@ -887,7 +887,7 @@ static const coding_info coding_info_list[] = {
         {coding_PSX_badflags,       "PlayStation 4-bit ADPCM (bad flags)"},
         {coding_PSX_cfg,            "PlayStation 4-bit ADPCM (configurable)"},
         {coding_PSX_pivotal,        "PlayStation 4-bit ADPCM (Pivotal)"},
-        {coding_HEVAG,              "Sony HEVAG 4-bit ADPCM"},
+        {coding_HEVAG,              "Sony HE-VAG 4-bit ADPCM"},
 
         {coding_EA_XA,              "Electronic Arts EA-XA 4-bit ADPCM v1"},
         {coding_EA_XA_int,          "Electronic Arts EA-XA 4-bit ADPCM v1 (mono/interleave)"},
