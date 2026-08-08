@@ -1,9 +1,10 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/meta_utils.h"
+#include "../util/spu_utils.h"
 
 
- /* XABp - cavia PS2 bank format [Drakengard 1/2 (PS2), Ghost in the Shell: SAC (PS2)] */
+ /* XABp - cavia PS2 bank format [Drakengard 1/2 (PS2), Ghost in the Shell: SAC (PS2), Resident Evil: Dead Aim (PS2)] */
 VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
 
@@ -31,9 +32,11 @@ VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf) {
 
     uint32_t head_offset = 0x10 + 0x20 * (h.target_subsong - 1);
     // 00: file id?
-    h.sample_rate   = read_s16le(head_offset + 0x16,sf);
+    h.sample_rate   = read_u16le(head_offset + 0x0e,sf);
     h.stream_offset = read_u32le(head_offset + 0x18, sf);
     // others: config? (can't make sense of them, don't seem quite like sizes/flags/etc)
+
+    h.sample_rate = spu2_pitch_to_sample_rate(h.sample_rate);
 
     h.channels = 1;
 
@@ -46,7 +49,7 @@ VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf) {
     h.sf_body = open_streamfile_by_ext(sf,"bd");
     if (!h.sf_body) goto fail;
 
-    // Entries/offsets aren't ordered .bd not it seems to have sizes (maybe mixes notes+streams into one)
+    // Entries/offsets aren't ordered .bd nor it seems to have sizes (maybe mixes notes+streams into one)
     // Since PS-ADPCM is wired to play until end frame end or loop, it's probably designed like that.
     // It also repeats entries (different ID but same config) but for now just prints it as is; this also happens in bigfiles.
     h.loop_flag = ps_find_stream_info(h.sf_body, h.stream_offset, bd_size - h.stream_offset, h.channels, h.interleave, &h.loop_start, &h.loop_end, &h.stream_size);
