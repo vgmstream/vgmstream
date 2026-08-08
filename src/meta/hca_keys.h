@@ -1673,6 +1673,9 @@ static const hcakey_info hcakey_list[] = {
     // Wizardry Variants Daphne (Android/PC)
     {427327583497},             // 000000637EB57509
 
+    // Genso Suikoden STAR LEAP (Android)
+    {310004001},                // 00000000127A4921
+
 };
 
 #endif
