@@ -390,8 +390,6 @@ VGMSTREAM* init_vgmstream_maxis_xa(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_caff(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_sab(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_exakt_sc(STREAMFILE* streamFile);

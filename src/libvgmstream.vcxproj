@@ -413,7 +413,6 @@
     <ClCompile Include="layout\blocked_hvqm4.c" />
     <ClCompile Include="layout\blocked_hwas.c" />
     <ClCompile Include="layout\blocked_mul.c" />
-    <ClCompile Include="layout\blocked_mxch.c" />
     <ClCompile Include="layout\blocked_ps2_iab.c" />
     <ClCompile Include="layout\blocked_rage_aud.c" />
     <ClCompile Include="layout\blocked_rws.c" />
@@ -691,7 +690,6 @@
     <ClCompile Include="meta\pasx.c" />
     <ClCompile Include="meta\pcm_kceje.c" />
     <ClCompile Include="meta\pcm_success.c" />
-    <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\pdt.c" />
     <ClCompile Include="meta\piff_tpcm.c" />
     <ClCompile Include="meta\plug.c" />

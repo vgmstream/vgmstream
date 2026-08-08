@@ -407,7 +407,6 @@ static const char* extension_list[] = {
     "mvb", //txth/reserved [Porsche Challenge (PS1)]
     "mwa", //txth/reserved [Fatal Frame (Xbox)]
     "mwv",
-    "mxst",
     "myspd",
 
     "n64",
@@ -1031,7 +1030,6 @@ static const layout_info layout_info_list[] = {
         {layout_segmented,              "segmented"},
         {layout_layered,                "layered"},
 
-        {layout_blocked_mxch,           "blocked (MxCh)"},
         {layout_blocked_ast,            "blocked (AST)"},
         {layout_blocked_halpst,         "blocked (HALPST)"},
         {layout_blocked_xa,             "blocked (XA)"},
@@ -1255,7 +1253,6 @@ static const meta_info meta_info_list[] = {
         {meta_VGV,                  "Human Head .VGV header"},
         {meta_GCUB,                 "Sega GCub header"},
         {meta_CAFF,                 "Apple Core Audio Format File header"},
-        {meta_PC_MXST,              "Lego Island MxSt Header"},
         {meta_SAB,                  "Sensaura SAB header"},
         {meta_MAXIS_XA,             "Maxis XA Header"},
         {meta_EXAKT_SC,             "assumed Activision / EXAKT SC by extension"},
