@@ -1914,15 +1914,15 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
     /* try "(name)#subsong: (val))" */
     ok = sscanf(line, " %"TXT_LINE_KEY_STR"[^\t#:]#%i : %"TXT_LINE_VAL_STR"[^\t#\r\n] ", key, &subsong, val);
     if (ok == 3 && subsong == txth->target_subsong) {
-        //;VGM_LOG("TXTH: name %s + subsong %i get\n", key, subsong);
+        //;VGM_LOG("TXTH: name %s + subsong %i get + val=%s\n", key, subsong, val);
         return 1;
     }
 
     /* try "(empty)#subsong: (val))" */
     key[0] = '\0';
-    ok = sscanf(line, " #%i: %"TXT_LINE_VAL_STR"[^\t#\r\n] ", &subsong, val);
+    ok = sscanf(line, " #%i : %"TXT_LINE_VAL_STR"[^\t#\r\n] ", &subsong, val);
     if (ok == 2 && subsong == txth->target_subsong) {
-        //;VGM_LOG("TXTH: default + subsong %i get\n", subsong);
+        //;VGM_LOG("TXTH: default + subsong %i get + val=%s\n", subsong, val);
         return 1;
     }
 
@@ -2010,7 +2010,7 @@ static bool parse_name_table(txth_header* txth, char* set_name) {
                     || is_string_match(fullname, key)) {
                 int n;
                 char subval[TXT_LINE_MAX];
-                const char *current = val;
+                const char* current = val;
 
                 while (current[0] != '\0') {
                     ok = sscanf(current, " %"TXT_LINE_STR"[^\t#\r\n,]%n ", subval, &n);
