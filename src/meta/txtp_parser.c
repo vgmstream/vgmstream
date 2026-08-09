@@ -899,26 +899,6 @@ fail:
 }
 
 
-static void clean_filename(char* filename) {
-    int i;
-    size_t len;
-
-    if (filename[0] == '\0')
-        return;
-
-    /* normalize paths */
-    fix_dir_separators(filename);
-
-    /* remove trailing spaces */
-    len = strlen(filename);
-    for (i = len-1; i > 0; i--) {
-        if (filename[i] != ' ')
-            break;
-        filename[i] = '\0';
-    }
-
-}
-
 //TODO see if entry can be set to &default/&entry[entry_count] to avoid add_settings
 static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
     txtp_entry_t entry = {0};
@@ -972,7 +952,7 @@ static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
 
     //;VGM_LOG("TXTP: output filename=%s\n", filename);
 
-    clean_filename(filename);
+    trim_path(filename);
     //;VGM_LOG("TXTP: clean filename='%s'\n", filename);
 
     /* settings that applies to final vgmstream */

@@ -220,10 +220,6 @@ static bool is_silent(const char* fn) {
     return fn[0] == '?';
 }
 
-static bool is_absolute(const char* fn) {
-    return fn[0] == '/' || fn[0] == '\\'  || fn[1] == ':';
-}
-
 /* open all entries and apply settings to resulting VGMSTREAMs */
 static bool parse_entries(txtp_header_t* txtp, STREAMFILE* sf) {
     bool has_silents = false;
@@ -250,12 +246,7 @@ static bool parse_entries(txtp_header_t* txtp, STREAMFILE* sf) {
             continue;
         }
 
-        /* absolute paths are detected for convenience, but since it's hard to unify all OSs
-         * and plugins, they aren't "officially" supported nor documented, thus may or may not work */
-        if (is_absolute(filename))
-            temp_sf = open_streamfile(sf, filename); /* from path as is */
-        else
-            temp_sf = open_streamfile_by_pathname(sf, filename); /* from current path */
+        temp_sf = open_streamfile_by_absname(sf, filename);
         if (!temp_sf) {
             vgm_logi("TXTP: cannot open %s\n", filename);
             goto fail;

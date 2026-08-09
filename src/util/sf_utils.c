@@ -6,65 +6,6 @@
 #include "string_utils.h"
 
 
-//TODO remove
-static void make_uppercase(char* str) {
-    if (str == NULL)
-        return;
-
-    while (str[0] != '\0') {
-        char c = str[0];
-        if (c >= 'a' && c <= 'z') {
-            str[0] = c - 0x20;
-        }
-        str++;
-    }
-}
-
-
-/* change pathname's extension to another, or add it if extensionless */
-static void swap_extension(char* dst, size_t dst_size, const char* new_ext) {
-    if (dst == NULL || dst_size == 0 || new_ext == NULL)
-        return;
-
-    char* extension = (char*)filename_extension(dst);
-    if (!extension)
-        return;
-
-    // probably unnecessary but might as well
-    ptrdiff_t dst_offset = extension - dst;
-    if (dst_offset < 0 || (size_t)dst_offset > dst_size)
-        return;
-    size_t extension_size = dst_size - (size_t)dst_offset;
-
-    bool ext_uppercase = new_ext[0] != '\0' && str_is_uppercase(extension);
-
-    if (extension[0] == '\0') {
-        // dst has no extension, add new one
-        if (new_ext[0] != '\0') {
-            strcat_v(dst, dst_size, ".");
-            strcat_v(dst, dst_size, new_ext);
-        }
-    }
-    else {
-        // dst has extension, replace with new one
-        if (new_ext[0] != '\0') {
-            strcpy_v(extension, extension_size, new_ext);
-        }
-        else {
-            // no extension, just remove original extension
-            if (extension > dst && extension[-1] == '.')
-                extension[-1] = '\0';
-            //extension--;
-            //extension[0] = '\0';
-        }
-    }
-
-    // try to match original case so Linux may work
-    if (ext_uppercase) {
-        make_uppercase(extension);
-    }
-}
-
 STREAMFILE* open_streamfile_by_ext(STREAMFILE* sf, const char* ext) {
     char filename[PATH_LIMIT];
 
@@ -77,71 +18,57 @@ STREAMFILE* open_streamfile_by_ext(STREAMFILE* sf, const char* ext) {
 
 static STREAMFILE* open_streamfile_internal(STREAMFILE* sf, const char* filename, bool allow_relpaths) {
     char fullname[PATH_LIMIT];
-    char partname[PATH_LIMIT];
-    char *path, *name, *otherpath;
 
-    if (!sf || !filename || !filename[0])
+    if (!sf || !filename || filename[0] == '\0')
         return NULL;
 
     // Some formats open companion files in current dir or subfolders. Relative paths are restricted by default
     // for better control access. Mainly for doc purposes (most formats wouldn't need that), since
     // the security risk of a format opening an arbitrary file is low given regular .m3u allow arbitrary paths
     // anyway, and without RCE it can't leave your system (and web player can't read the filesystem).
-    if (!allow_relpaths) {
-        // disallow relative or absolute paths (crafty users could mimic plugin's internal URIs though)
-        if (strstr(filename, "..") || strstr(filename, ":\\") || filename[0] == '/') {
-            VGM_LOG("SF: ignored relative path %s\n", filename);
-            return NULL;
-        }
+    if (!allow_relpaths && is_restricted_path(filename)) {
+        VGM_LOG("SF: ignored relative path %s\n", filename);
+        return NULL;
     }
 
+    char* path_end; // points to last slash
+    char separator;
+
+    /* prepare final name and detect separator + last slash */
     get_streamfile_name(sf, fullname, sizeof(fullname));
+    get_path_info(fullname, &path_end, &separator);
 
-    //todo normalize separators in a better way, safeops, improve copying
+    if (path_end) {
+        // original filename has a full path
+        path_end[1] = '\0'; // remove name after separator so it can be concat'd
+        size_t path_len = (int)(path_end - fullname);
 
-    /* check for non-normalized paths first (ex. txth) */
-    path = strrchr(fullname, '/');
-    otherpath = strrchr(fullname, '\\');
-    if (otherpath > path) { //todo cast to ptr?
-        /* foobar makes paths like "(fake protocol)://(windows path with \)".
-         * Hack to work around both separators, though probably foo_streamfile
-         * should just return and handle normalized paths without protocol. */
-        path = otherpath;
-    }
-
-    if (path) {
-        path[1] = '\0'; /* remove name after separator */
-
-        strcpy_v(partname, sizeof(partname), filename);
-        fix_dir_separators(partname); /* normalize to DIR_SEPARATOR */
-
-        /* normalize relative paths as don't work ok in some plugins */
-        if (partname[0] == '.' && partname[1] == DIR_SEPARATOR) { /* './name' */
-            name = partname + 2; /* ignore './' */
+        const char* name;        
+        if (filename[0] == '.' && (filename[1] == '\\' || filename[1] == '/')) {
+            // "./name": skip relative paths some plugins don't like them
+            name = filename + 2;
         }
-        else if (partname[0] == '.' && partname[1] == '.' && partname[2] == DIR_SEPARATOR) { /* '../name' */
-            char* pathprev;
-
-            path[0] = '\0'; /* remove last separator so next call works */
-            pathprev = strrchr(fullname,DIR_SEPARATOR);
-            if (pathprev) {
-                pathprev[1] = '\0'; /* remove prev dir after separator */
-                name = partname + 3; /* ignore '../' */
-            }
-            else { /* let plugin handle? */
-                path[0] = DIR_SEPARATOR;
-                name = partname;
-            }
-            /* could work with more relative paths but whatevs */
+        #if 0
+        else if (filename[0] == '.' && filename[1] == '.' && (filename[2] == '\\' || filename[2] == '/')) {
+            // '../name': could try to go back, but relative paths may be N levels deep
+            ...
         }
+        #endif
         else {
-            name = partname;
+            // others (ex. "name", "subdir/name", "../../name", etc): assume plugin can handle them
+            name = filename;
         }
 
         strcat_v(fullname, sizeof(fullname), name);
+        // concat'd name only
+        normalize_path(fullname + path_len, sizeof(fullname) - path_len, separator);
+
     }
     else {
+        // original filename has no path (for on CLI; plugins should have a full-ish path)
         strcpy_v(fullname, sizeof(fullname), filename);
+        // use OS default, just in case
+        normalize_path(fullname, sizeof(fullname), 0);
     }
 
     return open_streamfile(sf, fullname);
@@ -153,6 +80,17 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
 
 STREAMFILE* open_streamfile_by_pathname(STREAMFILE* sf, const char* filename) {
     return open_streamfile_internal(sf, filename, true);
+}
+
+STREAMFILE* open_streamfile_by_absname(STREAMFILE* sf, const char* filename) {
+    /* absolute paths are detected for convenience, but since it's hard to unify all OSs
+     * and plugins, they aren't "officially" supported nor documented, thus may or may not work */
+    if (is_path_absolute(filename)) {
+        return open_streamfile(sf, filename); // from path as is
+    }
+    else {
+        return open_streamfile_by_pathname(sf, filename); // from current path
+    }
 }
 
 /* ************************************************************************* */
@@ -189,7 +127,7 @@ int check_extensions(STREAMFILE* sf, const char* cmp_exts) {
 
 /* ************************************************************************* */
 
-/* copies name as-is (may include full path included) */
+/* copies name as-is (may include full path) */
 void get_streamfile_name(STREAMFILE* sf, char* dst, size_t dst_size) {
     sf->get_name(sf, dst, dst_size);
 }
@@ -226,22 +164,29 @@ void get_streamfile_basename(STREAMFILE* sf, char* dst, size_t dst_size) {
     }
 }
 
+#if 0 //untested
 /* copies path removing name (NULL when if filename has no path) */
 void get_streamfile_path(STREAMFILE* sf, char* dst, size_t dst_size) {
 
+    char* path_end; // points to last slash
+    char separator;
+
+    /* prepare final name and detect separator + last slash */
     get_streamfile_name(sf, dst, dst_size);
+    get_path_info(dst, &path_end, &separator);
 
     const char* path = strrchr(dst,DIR_SEPARATOR);
     if (path != NULL)
         path = path + 1; // includes "/"
 
     if (path) {
-        dst[path - dst] = '\0';
+        path_end[1] = '\0'; // remove name after separator
     }
     else {
         dst[0] = '\0';
     }
 }
+#endif
 
 /* copies extension only */
 void get_streamfile_ext(STREAMFILE* sf, char* dst, size_t dst_size) {
@@ -250,7 +195,7 @@ void get_streamfile_ext(STREAMFILE* sf, char* dst, size_t dst_size) {
     get_streamfile_name(sf, filename, sizeof(filename));
     const char* extension = filename_extension(filename);
     if (!extension) {
-        dst[0] = '\n';
+        dst[0] = '\0';
     }
     else {
         strcpy_v(dst, dst_size, extension);

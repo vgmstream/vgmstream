@@ -885,7 +885,7 @@ static STREAMFILE* open_txth(STREAMFILE* sf) {
 
     /* try "(path/)(.ext).txth" */
     if (base_ext) {
-        base_ext--; //get_streamfile_path(sf, filename, sizeof(filename));
+        base_ext--;
 
         sf_text = open_streamfile_by_filename(sf, base_ext);
         if (sf_text) return sf_text;
@@ -1150,21 +1150,6 @@ static int parse_endianness(txth_header* txth, const char* val, uint32_t* p_valu
     return 1;
 fail:
     return 0;
-}
-
-static int is_absolute(const char* fn) {
-    return fn[0] == '/' || fn[0] == '\\'  || fn[1] == ':';
-}
-
-static STREAMFILE* open_path_streamfile(STREAMFILE* sf, char* path) {
-    fix_dir_separators(path); /* clean paths */
-
-    /* absolute paths are detected for convenience, but since it's hard to unify all OSs
-    * and plugins, they aren't "officially" supported nor documented, thus may or may not work */
-    if (is_absolute(path))
-        return open_streamfile(sf, path); /* from path as is */
-    else
-        return open_streamfile_by_pathname(sf, path); /* from current path */
 }
 
 static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
@@ -1563,7 +1548,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_head_opened = true;
         }
         else { /* open file */
-            txth->sf_head = open_path_streamfile(txth->sf, val);
+            txth->sf_head = open_streamfile_by_absname(txth->sf, val);
             if (!txth->sf_head) goto fail;
             txth->sf_head_opened = true;
         }
@@ -1599,7 +1584,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_body_opened = true;
         }
         else { /* open file */
-            txth->sf_body = open_path_streamfile(txth->sf, val);
+            txth->sf_body = open_streamfile_by_absname(txth->sf, val);
             if (!txth->sf_body) goto fail;
             txth->sf_body_opened = true;
         }
