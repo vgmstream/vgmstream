@@ -1007,17 +1007,19 @@ void clHCA_SetKey(clHCA* hca, unsigned long long keycode) {
     }
 }
 
-static int clHCA_DecodeBlock_unpack(clHCA* hca, void *data, unsigned int size);
+static int clHCA_DecodeBlock_unpack(clHCA* hca, void* data, unsigned int size);
 static void clHCA_DecodeBlock_transform(clHCA* hca);
 
 
-int clHCA_TestBlock(clHCA* hca, void *data, unsigned int size) {
+int clHCA_TestBlock(clHCA* hca, void* data, unsigned int size) {
     const int frame_samples = HCA_SUBFRAMES * HCA_SAMPLES_PER_SUBFRAME;
     const float scale = 32768.0f;
     unsigned int i, ch, sf, s;
     int status;
     int clips = 0, blanks = 0, channel_blanks[HCA_MAX_CHANNELS] = {0};
     const unsigned char* buf = data;
+    int overread_bytes = 0;
+    int top_score;
 
     /* first blocks can be empty/silent, check all bytes but sync/crc */
     {
@@ -1040,28 +1042,45 @@ int clHCA_TestBlock(clHCA* hca, void *data, unsigned int size) {
     if (status < 0)
         return -1;
 
+
     /* detect data errors */
     {
-        int bits_max = hca->frame_size * 8;
+        int bits_max = size * 8;
+        int bits_used = status;
         int byte_start;
 
         /* Should read all frame sans end checksum (16b), but allow 14b as one frame was found to
          * read up to that (cross referenced with CRI's tools), perhaps some encoding hiccup
          * [World of Final Fantasy Maxima (Switch) am_ev21_0170 video] */
-        if (status + 14 > bits_max)
+        if (bits_used + 14 > bits_max)
             return HCA_ERROR_BITREADER;
 
-        /* leftover data after read bits in HCA is always null (up to end 16b checksum), so bad keys
-         * give garbage beyond those bits (data is decrypted at this point and size >= frame_size) */
-        byte_start = (status / 8) + (status % 8 ? 0x01 : 0);
+        /* Data after reading bits is null (up to end 16b checksum) before/after decryption, so bad
+         * keys give garbage beyond those bits (data is decrypted at this point and size >= frame_size) */
+        byte_start = (bits_used / 8) + (bits_used % 8 ? 0x01 : 0);
         /* maybe should memcmp with a null frame, unsure of max though, and in most cases
          * should fail fast (this check catches almost everything) */
-        for (i = byte_start; i < hca->frame_size - 0x02; i++) {
-            if (buf[i] != 0) {
+        for (i = byte_start; i < size - 0x02; i++) {
+            if (buf[i] != 0x00) {
                 return -1;
             }
         }
+
+        /* Decoder leaves unused frame data as blank. If the current position is in the middle of blank data
+         * it may have read a bit too much due to wrong decrypted values. Good keys also sometimes 'overread'
+         * a bit in silent-ish frames though, so don't reject outright. */
+        for (i = byte_start; i > 0x02; i--) {
+            if (buf[i] != 0x00)
+                break;
+            overread_bytes++;
+        }
     }
+
+    /* Other possibly useful checks (also see https://github.com/Youjose/CriCodecs)
+     * - frame_acceptable_noise_level <= 255: doesn't seem helpful with keys that look ok-ish but are wrong
+     * - number of delta scalefactors >= 64: directly failing may be better? (capped in v3.0 but surely not allowed)
+     */
+
 
     /* check decode results as (rarely) bad keys may still get here */
     clHCA_DecodeBlock_transform(hca);
@@ -1084,26 +1103,38 @@ int clHCA_TestBlock(clHCA* hca, void *data, unsigned int size) {
         }
     }
 
-    /* the more clips the less likely block was correctly decrypted */
-    if (clips == 1)
-        clips++; /* signal not full score */
-    if (clips > 1)
-        return clips;
-
     /* if block is silent result is not useful */
     if (blanks == hca->channels * frame_samples)
         return 0;
 
-    /* some bad keys make left channel null and right normal enough (due to joint stereo stuff);
-     * it's possible real keys could do this but don't give full marks just in case */
+    /* at this point key looks good enough (closer to 1 is better) */
+    top_score = 1;
+
+    /* the more clips the less likely block was correctly decrypted */
+    if (clips >= 1)
+        top_score += clips;
+
+    /* Some bad keys make left channel null and right normal enough (due to joint stereo stuff).
+     * It's possible real keys could do this, but don't give full marks just in case. */
     if (hca->channels >= 2) {
         /* only check main L/R, other channels like BL/BR are probably not useful */
         if (channel_blanks[0] == frame_samples && channel_blanks[1] != frame_samples) /* maybe should check max/min values? */
-            return 3;
+            top_score += 3;
+    }
+
+    //TODO: better calcs (would need to know how much non-blank data is in the frame)
+    /* More than a few blank frames is a bit odd, make score worse to let other keys kick in.
+     * Bad key may overreaad only 2 bytes and give score 1 otherwise, but good keys may also overread 1.
+     */
+    if (overread_bytes > 1) {
+        int score = overread_bytes;
+        if (score > 15)
+            score = 15;
+        top_score += score;
     }
 
     /* block may be correct (but wrong keys can get this too and should test more blocks) */
-    return 1;
+    return top_score;
 }
 
 void clHCA_DecodeReset(clHCA * hca) {
