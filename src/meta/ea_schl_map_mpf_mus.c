@@ -349,14 +349,15 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_schl_main(STREAMFILE* sf, const char
         if (version == 5 && bnk_index != 0) {
             /* HACK: open proper .mus now since open_mapfile_pair doesn't let us adjust the name */
             char filename[PATH_LIMIT], basename[PATH_LIMIT], ext[32];
-            int basename_len;
             STREAMFILE* sf_temp;
 
             get_streamfile_basename(sf_mus, basename, PATH_LIMIT);
-            basename_len = strlen(basename);
             get_streamfile_ext(sf_mus, ext, sizeof(ext));
 
             /* strip off 0 at the end */
+            size_t basename_len = strlen(basename);
+            if (basename_len <= 1) // not realistic but...
+                goto fail;
             basename[basename_len - 1] = '\0';
 
             /* append bank index to the name */
@@ -364,9 +365,10 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_schl_main(STREAMFILE* sf, const char
 
             sf_temp = open_streamfile_by_filename(sf_mus, filename);
             if (!sf_temp) goto fail;
-            bnk_total_sounds = read_u16(bnk_offset + 0x06, sf_temp);
             close_streamfile(sf_mus);
             sf_mus = sf_temp;
+
+            bnk_total_sounds = read_u16(bnk_offset + 0x06, sf_mus);
         }
 
         if (version == 5) {
