@@ -206,13 +206,14 @@ static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, uint32_t off
     if (data->header.signature != 0x08)
         goto fail;
     if (data->header.codes_per_subframe_last > UBI_CODES_PER_SUBFRAME_MAX ||
-        data->header.codes_per_subframe > UBI_CODES_PER_SUBFRAME_MAX)
+        data->header.codes_per_subframe > UBI_CODES_PER_SUBFRAME_MAX || 
+        (data->header.codes_per_subframe_last == 0 && data->header.codes_per_subframe == 0))
         goto fail;
     if (data->header.subframes_per_frame != UBI_SUBFRAMES_PER_FRAME_MAX)
         goto fail;
     if (data->header.bits_per_sample != 4 && data->header.bits_per_sample != 6)
         goto fail;
-    if (data->header.channels > UBI_CHANNELS_MAX || data->header.channels < UBI_CHANNELS_MIN)
+    if (data->header.channels < UBI_CHANNELS_MIN || data->header.channels > UBI_CHANNELS_MAX)
         goto fail;
 
     /* some kind of internal bug I guess, seen in a few subsongs in Rayman 3 PC demo */

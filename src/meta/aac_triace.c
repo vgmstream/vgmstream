@@ -20,26 +20,26 @@ typedef struct {
     uint32_t extra_offset;
     
     uint32_t name_offset;
-} aac_header;
+} aac_header_t;
 
-static int parse_aac(STREAMFILE* sf, aac_header* aac);
+static bool parse_aac(STREAMFILE* sf, aac_header_t* aac);
 
 
 /* AAC - tri-Ace (ASKA engine) Audio Container */
 VGMSTREAM* init_vgmstream_aac_triace(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    aac_header aac = {0};
+    aac_header_t aac = {0};
 
 
     /* checks */
     if (!is_id32be(0x00, sf, "AAC ") && !is_id32le(0x00, sf, "AAC "))
-        goto fail;
+        return NULL;
     /* .aac: actual extension, .laac: for players to avoid hijacking MP4/AAC */
     if (!check_extensions(sf, "aac,laac"))
-        goto fail;
+        return NULL;
 
     if (!parse_aac(sf, &aac))
-        goto fail;
+        return NULL;
 
 
     /* build the VGMSTREAM */
@@ -187,7 +187,7 @@ fail:
 
 
 /* DIR/dirn + WAVE chunk [Infinite Undiscovery (X360), Star Ocean 4 (X360)] */
-static int parse_aac_v1(STREAMFILE* sf, aac_header* aac) {
+static bool parse_aac_v1(STREAMFILE* sf, aac_header_t* aac) {
     off_t offset, test_offset, wave_offset;
     int target_subsong = sf->stream_index;
 
@@ -202,44 +202,42 @@ static int parse_aac_v1(STREAMFILE* sf, aac_header* aac) {
     /* 0x30+ DIR + dirn subsongs */
 
     if (!is_id32be(0x30, sf, "DIR "))
-        goto fail;
+        return false;
     aac->total_subsongs = read_u32be(0x40, sf);
 
     if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1) goto fail;
+    if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1)
+        return false;
 
-    {
-        int i;
-        offset = 0;
-        test_offset = 0x50;
-        for (i = 0; i < aac->total_subsongs; i++) {
-            uint32_t entry_type = read_u32be(test_offset + 0x00, sf);
-            uint32_t entry_size = read_u32be(test_offset + 0x04, sf);
+    offset = 0x00;
+    test_offset = 0x50;
+    for (int i = 0; i < aac->total_subsongs; i++) {
+        uint32_t entry_type = read_u32be(test_offset + 0x00, sf);
+        uint32_t entry_size = read_u32be(test_offset + 0x04, sf);
 
-            switch(entry_type) {
-                case 0x6469726E: /* "dirn" */
-                    if (i + 1 == target_subsong) {
-                        aac->name_offset = test_offset + 0x10;
-                        offset = read_u32be(test_offset + 0x90, sf); /* absolute */
-                    }
-                    break;
+        switch(entry_type) {
+            case 0x6469726E: /* "dirn" */
+                if (i + 1 == target_subsong) {
+                    aac->name_offset = test_offset + 0x10;
+                    offset = read_u32be(test_offset + 0x90, sf); /* absolute */
+                }
+                break;
 
-                default:
-                    goto fail;
-            }
-
-            test_offset += entry_size;
+            default:
+                return false;
         }
+
+        test_offset += entry_size;
     }
 
     if (!is_id32be(offset + 0x00, sf, "WAVE"))
-        goto fail;
+        return false;
     wave_offset = offset;
     offset += 0x10;
 
     {
         /* X360 */
-        int i, streams;
+        int streams;
         off_t strm_offset;
         
         /* 0x00: 0x0400 + song ID */
@@ -273,19 +271,17 @@ static int parse_aac_v1(STREAMFILE* sf, aac_header* aac) {
         
         /* channels depends on streams definitions, "strm" chunk (max 2ch per strm) */
         aac->channels = 0;
-        for (i = 0; i < streams; i++) {
+        for (int i = 0; i < streams; i++) {
             /* format: "strm", size, null, null, channels, ?, sample rate, encoder delay, samples, nulls  */
-            aac->channels += read_s8(offset + strm_offset + i*0x30 + 0x10, sf);
+            aac->channels += read_s8(offset + strm_offset + i * 0x30 + 0x10, sf);
         }
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 /* ASC + WAVE chunks [Resonance of Fate (X360/PS3), Star Ocean 4 (PS3)] */
-static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
+static bool parse_aac_v2(STREAMFILE* sf, aac_header_t* aac) {
     off_t offset, start, size, test_offset, asc_offset;
     int target_subsong = sf->stream_index;
 
@@ -306,7 +302,7 @@ static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
     if (is_id32be(start + 0x00, sf, "AMF ")) {
         /* GUID subsongs */
         if (!is_id32be(start + 0x10, sf, "head"))
-            goto fail;
+            return false;
         size = read_u32be(start + 0x10 + 0x10, sf);
 
         offset = 0;
@@ -349,25 +345,27 @@ static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
         }
     }
     else {
-        goto fail;
+        return false;
     }
 
-    if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1) goto fail;
+    if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1)
+        return false;
 
     if (!is_id32be(offset + 0x00, sf, "ASC "))
-        goto fail;
+        return false;
     asc_offset = offset;
 
     /* ASC section has offsets to "PLBK" chunk (?) and "WAVE" (header), may be followed by "VRC " (?) */
     /* 0x50: PLBK offset */
     offset += read_u32be(offset + 0x54, sf); /* WAVE offset */
     if (!is_id32be(offset + 0x00, sf, "WAVE"))
-        goto fail;
+        return false;
+
     offset += 0x10;
 
     if (read_u16be(offset + 0x00, sf) == 0x0400) {
         /* X360 */
-        int i, streams;
+        int streams;
 
         /* 0x00: 0x0400 + song ID? (0) */
         streams             = read_u16be(offset + 0x04, sf);
@@ -390,9 +388,9 @@ static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
 
         /* channels depends on streams definitions, "strm" chunk (max 2ch per strm) */
         aac->channels = 0;
-        for (i = 0; i < streams; i++) {
+        for (int i = 0; i < streams; i++) {
             /* format: "strm", size, null, null, channels, ?, sample rate, encoder delay, samples, nulls  */
-            aac->channels += read_s8(offset + 0x44 + i*0x30 + 0x10, sf);
+            aac->channels += read_s8(offset + 0x44 + i * 0x30 + 0x10, sf);
         }
 
         /* after streams and aligned to 0x10 is "Seek" table */
@@ -413,13 +411,11 @@ static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
 
     aac->loop_flag = (aac->loop_start != -1);
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
 /* AAOB + WAVE + WAVB chunks [Judas Code (Vita), Star Ocean Anamnesis (Android), Star Ocean 4 (PC)] */
-static int parse_aac_v3(STREAMFILE* sf, aac_header* aac) {
+static bool parse_aac_v3(STREAMFILE* sf, aac_header_t* aac) {
     off_t offset, size, test_offset;
     int target_subsong = sf->stream_index;
 
@@ -435,7 +431,7 @@ static int parse_aac_v3(STREAMFILE* sf, aac_header* aac) {
     /* 0x40: "WAVB" table (wave body, has offset + size per stream then data, not needed since offsets are elsewhere too) */
 
     if (!is_id32le(offset + 0x00, sf, "AAOB"))
-        goto fail;
+        return false;
     size = read_u32le(offset + 0x04, sf);
 
     if (target_subsong == 0) target_subsong = 1;
@@ -443,34 +439,33 @@ static int parse_aac_v3(STREAMFILE* sf, aac_header* aac) {
 
     /* AAOB may point to N AAO (headers) in SFX/voice packs, seems signaled with flag 0x80 at AAOB+0x10
      * but there is no subsong count or even max size (always 0x1000?) */
-    {
-        for (test_offset = offset + 0x20; offset + size; test_offset += 0x10) {
-            uint32_t entry_offset = read_u32le(test_offset + 0x00, sf);
-            /* 0x04: entry size */
+    for (test_offset = offset + 0x20; test_offset < offset + size; test_offset += 0x10) {
+        uint32_t entry_offset = read_u32le(test_offset + 0x00, sf);
+        /* 0x04: entry size */
 
-            if (entry_offset == get_id32be("AAO ")) /* reached end */
-                break;
+        if (entry_offset == get_id32be("AAO ")) /* reached end */
+            break;
 
-            if (entry_offset) { /* often 0 */
-                aac->total_subsongs++;
-                if (aac->total_subsongs == target_subsong) {
-                    offset += entry_offset;
-                }
+        if (entry_offset) { /* often 0 */
+            aac->total_subsongs++;
+            if (aac->total_subsongs == target_subsong) {
+                offset += entry_offset;
             }
         }
     }
 
-    if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1) goto fail;
+    if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1)
+        return false;
 
     if (!is_id32le(offset + 0x00, sf, "AAO "))
-        goto fail;
+        return false;
 
 
     /* AAO section has offsets to "PLBK" chunk (?) and "WAVE" (header) */
     /* 0x14: PLBK offset */
     offset += read_u32le(offset + 0x18, sf); /* WAVE offset */
     if (!is_id32le(offset + 0x00, sf, "WAVE"))
-        goto fail;
+        return false;
     offset += 0x10;
 
     /* 0x00: 0x00/01/01CC0000? */
@@ -494,25 +489,23 @@ static int parse_aac_v3(STREAMFILE* sf, aac_header* aac) {
 
     aac->loop_flag = (aac->loop_end > 0);
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
-static int parse_aac(STREAMFILE* sf, aac_header* aac) {
-    int ok = 0;
+static bool parse_aac(STREAMFILE* sf, aac_header_t* aac) {
+    bool ok = 0;
 
     /* try variations as format evolved over time
      * chunk headers are always: id + size + null + null (ids in machine endianness) */
 
     ok = parse_aac_v1(sf, aac);
-    if (ok) return 1;
+    if (ok) return true;
 
     ok = parse_aac_v2(sf, aac);
-    if (ok) return 1;
+    if (ok) return true;
 
     ok = parse_aac_v3(sf, aac);
-    if (ok) return 1;
+    if (ok) return true;
 
-    return 0;
+    return false;
 }

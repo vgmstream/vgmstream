@@ -136,7 +136,8 @@ ESLError MIOFile_Initialize(MIOFile* mf, io_callback_t* file) {
     EMC_RECORD_HEADER rh;
     uint8_t buf[0x40];
     int len, ok;
-    int size, to_read;
+    int to_read;
+    uint64_t size;
 
     file->seek(file->arg, 0, IO_CALLBACK_SEEK_SET);
 
@@ -181,8 +182,9 @@ ESLError MIOFile_Initialize(MIOFile* mf, io_callback_t* file) {
 
             /* common info */
             if (rh.nRecordID == get_id64le("FileHdr ")) {
+                if (rh.nRecLength > sizeof(buf) || rh.nRecLength != 0x14)
+                    goto fail;
                 to_read = rh.nRecLength;
-                if (to_read > sizeof(buf) || to_read != 0x14) goto fail;
 
                 len = file->read(buf, 1, to_read, file->arg);
                 if (len != to_read) goto fail;
@@ -196,8 +198,9 @@ ESLError MIOFile_Initialize(MIOFile* mf, io_callback_t* file) {
 
             /* audio header */
             if (rh.nRecordID == get_id64le("SoundInf")) {
+                if (rh.nRecLength > sizeof(buf) || rh.nRecLength != 0x28)
+                    goto fail;
                 to_read = rh.nRecLength;
-                if (to_read > sizeof(buf) || to_read != 0x28) goto fail;
 
                 len = file->read(buf, 1, to_read, file->arg);
                 if (len != to_read) goto fail;
@@ -228,8 +231,9 @@ ESLError MIOFile_Initialize(MIOFile* mf, io_callback_t* file) {
                  */
 
                 /* sometimes chunk exists with just size 0x02 (empty but probably for BOM) */
+                if (rh.nRecLength < 0x02 || rh.nRecLength > 0x10000)
+                    goto fail;
                 to_read = rh.nRecLength;
-                if (to_read < 0x02 || to_read > 0x10000) goto fail;
 
                 mf->desc = calloc(1, to_read + 2);
                 if (!mf->desc) goto fail;
@@ -273,6 +277,11 @@ ESLError MIOFile_Initialize(MIOFile* mf, io_callback_t* file) {
         /* packets are in "SoundStm" chunks ("ImageFrm" in images) */
         mf->start = file->tell(file->arg);
     }
+
+    /* extra arbitrary maxes */
+    if (mf->mioih.dwChannelCount > 64 || mf->mioih.dwBitsPerSample > 16)
+        goto fail;
+
 
     return eslErrSuccess;
 fail:
@@ -347,14 +356,16 @@ int MIOFile_GetTagLoop(MIOFile* mf, const char* tag) {
 }
 
 void* MIOFile_GetCurrentWaveBuffer(MIOFile* mf) {
-    int channels = mf->mioih.dwChannelCount;
-    int bps = mf->mioih.dwBitsPerSample;
-    int bytes_per_sample = channels * (bps / 8);
-    int chunk_samples = mf->miodh.dwSampleCount;
+    UDWORD bytes_per_sample = mf->mioih.dwChannelCount * (mf->mioih.dwBitsPerSample / 8);
+    UDWORD dwBytesAudio;
+
+    if (mf->miodh.dwSampleCount > MIO_PACKET_BYTES_MAX)
+        goto fail;
 
     /* usually same for all except less in last packet */
-    UDWORD dwBytesAudio = chunk_samples * bytes_per_sample;
-    if (dwBytesAudio > MIO_PACKET_BYTES_MAX) goto fail;
+    dwBytesAudio = mf->miodh.dwSampleCount * bytes_per_sample;
+    if (dwBytesAudio > MIO_PACKET_BYTES_MAX)
+        goto fail;
 
     if (dwBytesAudio > mf->ptrWaveBuf_len) {
         free(mf->ptrWaveBuf);
