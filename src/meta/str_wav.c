@@ -637,7 +637,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
          ) {
         /* 0x08: null */
         /* 0x0c: hashname */
-        strwav->num_samples = read_s32le(0x20,sf_h);
+        strwav->num_samples = read_s32le(0x20,sf_h); //TODO: seems slightly bigger than actual samples
         strwav->sample_rate = read_s32le(0x24,sf_h);
         /* 0x28: 16 bps */
         strwav->flags       = read_u32le(0x2c,sf_h);

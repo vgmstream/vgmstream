@@ -638,7 +638,7 @@ void decode_ms_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* out
         off_t header_offset = stream->offset + 0x04*frame_channel;
 
         hist1 =   read_s16le(header_offset+0x00,stream->streamfile);
-        step_index = read_u8(header_offset+0x02,stream->streamfile); /* 0x03: reserved */
+        step_index = read_s8(header_offset+0x02,stream->streamfile); /* 0x03: reserved */
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
@@ -693,7 +693,7 @@ void decode_ref_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t *
         off_t header_offset = stream->offset + 0x04*channel;
 
         hist1 =   read_s16le(header_offset+0x00,stream->streamfile);
-        step_index = read_u8(header_offset+0x02,stream->streamfile);
+        step_index = read_s8(header_offset+0x02,stream->streamfile);
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
@@ -763,7 +763,7 @@ void decode_xbox_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelsp
                 frame_offset + 0x00;
 
         hist1   = read_s16le(header_offset+0x00, stream->streamfile);
-        step_index = read_u8(header_offset+0x02, stream->streamfile);
+        step_index = read_s8(header_offset+0x02, stream->streamfile);
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
@@ -807,7 +807,7 @@ void decode_xbox_ima_mch(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int chann
         off_t header_offset = stream->offset + 0x24 * channelspacing * num_frame + 0x04 * channel;
 
         hist1   = read_s16le(header_offset+0x00, stream->streamfile);
-        step_index = read_u8(header_offset+0x02, stream->streamfile);
+        step_index = read_s8(header_offset+0x02, stream->streamfile);
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
@@ -852,7 +852,7 @@ void decode_xbox_ima_saber(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int chann
         off_t hist_offset = header_offset + channel * 0x02;
         off_t step_offset = header_offset + channelspacing * 0x02 + channel * 0x02;
         hist1   = read_s16le(hist_offset, stream->streamfile);
-        step_index = read_u8(step_offset, stream->streamfile);
+        step_index = read_s8(step_offset, stream->streamfile);
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
@@ -925,7 +925,7 @@ void decode_dat4_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelsp
         off_t header_offset = stream->offset;
 
         hist1 = read_s16le(header_offset,stream->streamfile);
-        step_index = read_u8(header_offset+2,stream->streamfile);
+        step_index = read_s8(header_offset+2,stream->streamfile);
         step_index = _clamp_s32(step_index, 0, 88); /* probably pre-adjusted */
     }
 
@@ -1022,7 +1022,7 @@ void decode_apple_ima4(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channel
         off_t header_offset = stream->offset + 0x22*num_frame;
 
         hist1 = (int16_t)(read_u16be(header_offset,stream->streamfile) & 0xff80);
-        step_index = read_u8(header_offset+1,stream->streamfile) & 0x7f;
+        step_index = read_s8(header_offset+1,stream->streamfile) & 0x7f;
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
     }
@@ -1055,7 +1055,7 @@ void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t *
         off_t step_offset = stream->offset + 0x02*channel + 0x02*vgmstream->channels;
 
         hist1   = read_s16le(hist_offset,stream->streamfile);
-        step_index = read_u8(step_offset,stream->streamfile);
+        step_index = read_s8(step_offset,stream->streamfile);
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
 
@@ -1105,7 +1105,7 @@ void decode_wwise_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* 
         off_t header_offset = stream->offset + 0x24*num_frame;
 
         hist1 = read_s16(header_offset,stream->streamfile);
-        step_index = read_u8(header_offset+2,stream->streamfile);
+        step_index = read_s8(header_offset+2,stream->streamfile);
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
 
@@ -1204,7 +1204,7 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
 
         int header_samples  = read_s16(offset + 0x0c, sf); // always 10 (per channel)
         hist1      = read_s16(offset + 0x0E + channel * 0x04, sf);
-        step_index =  read_u8(offset + 0x10 + channel * 0x04, sf);
+        step_index =  read_s8(offset + 0x10 + channel * 0x04, sf);
         offset += 0x0E + 0x08;
 
         if (version >= 3) {
@@ -1317,11 +1317,11 @@ void decode_hvqm4_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channels
         switch(frame_format) {
             case 1: /* combined hist+index */
                 hist1   = read_s16be(stream->offset + 0x02*channel_pos + 0x00,stream->streamfile) & 0xFFFFFF80;
-                step_index = read_u8(stream->offset + 0x02*channel_pos + 0x01,stream->streamfile) & 0x7f;
+                step_index = read_s8(stream->offset + 0x02*channel_pos + 0x01,stream->streamfile) & 0x7f;
                 break;
             case 3: /* separate hist+index */
                 hist1   = read_s16be(stream->offset + 0x03*channel_pos + 0x00,stream->streamfile);
-                step_index = read_u8(stream->offset + 0x03*channel_pos + 0x02,stream->streamfile);
+                step_index = read_s8(stream->offset + 0x03*channel_pos + 0x02,stream->streamfile);
                 break;
             case 2:  /* no hist/index (continues from previous frame) */
             default:
