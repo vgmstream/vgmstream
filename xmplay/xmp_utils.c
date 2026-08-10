@@ -48,15 +48,16 @@ void build_extension_list(char* extension_list, int list_size, DWORD version) {
     extension_list[written - 1] = '\0'; // remove last "/"
 }
 
-
 /* Get tags as an array of "key\0value\0", NULL-terminated.
  * Processes tags from the path alone (expects folders to be named in a particular way),
  * so of limited usefulness. */
 char* get_tags_from_filepath_info(libvgmstream_t* infostream, XMPFUNC_MISC* xmpf_misc, const char* filepath) {
+//TODO: multiple insecure ops + hard to understand + non-standard; maybe use as a base for !tags.m3u
+#if 0
     char* tags;
-    int pos = 0;
+    int pos = 0; //TODO: not validated to < 1024
 
-    tags = xmpf_misc->Alloc(1024);
+    tags = xmpf_misc->Alloc(1024); //TODO: not clear if this is ever Free'd
     memset(tags, 0x00, 1024);
 
     if (strlen(infostream->format->stream_name) > 0) {
@@ -109,7 +110,7 @@ char* get_tags_from_filepath_info(libvgmstream_t* infostream, XMPFUNC_MISC* xmpf
     {
         char tagline[1024];
         memset(tagline, 0x00, sizeof(tagline));
-        strncpy(tagline, start, end - start);
+        strncpy(tagline, start, end - start); //TODO: use snprintf
         
         char* alttitle_st;
         char* alttitle_ed;
@@ -127,7 +128,7 @@ char* get_tags_from_filepath_info(libvgmstream_t* infostream, XMPFUNC_MISC* xmpf
         if (strchr(tagline, '[') != NULL) //either alternative title or platform usually
         {
             alttitle_st = strchr(tagline, '[') + 1;
-            alttitle_ed = strchr(alttitle_st, ']');
+            alttitle_ed = strchr(alttitle_st, ']'); //TODO: result not checked and used below
             if (strchr(alttitle_st, '[') != NULL && strchr(alttitle_st, '[') > strchr(alttitle_st, '(')) //both might be present actually
             {
                 platform_st = strchr(alttitle_st, '[') + 1;
@@ -165,6 +166,8 @@ char* get_tags_from_filepath_info(libvgmstream_t* infostream, XMPFUNC_MISC* xmpf
         date_st = strchr(album_ed, '(') + 1; //first string in curly braces is usualy release date, I have one package with platform name there
         if (date_st == NULL)
             date_ed = NULL;
+
+        //TODO: potential null pointer deref (guarded by some logic above? hard to tell)
         if (date_st[0] >= 0x30 && date_st[0] <= 0x39 && date_st[1] >= 0x30 && date_st[1] <= 0x39) //check if it contains 2 digits
         {
             date_ed = strchr(date_st, ')');
@@ -235,14 +238,12 @@ char* get_tags_from_filepath_info(libvgmstream_t* infostream, XMPFUNC_MISC* xmpf
         {
             char combuf[256];
             memset(combuf, 0x00, sizeof(combuf));
-            char tmp[128];
-            memset(tmp, 0x00, sizeof(tmp));
+            char tmp[128] = {0};
             memcpy(tmp, company_st, company_ed - company_st);
             if (company2_st != NULL)
             {
-                char tmp2[128];
-                memset(tmp2, 0x00, sizeof(tmp2));
-                memcpy(tmp2, company2_st, company2_ed - company2_st);
+                char tmp2[128] = {0};
+                memcpy(tmp2, company2_st, company2_ed - company2_st); //TODO: validate sizes
                 sprintf(combuf, "\r\n\r\nDeveloper\t%s\r\nPublisher\t%s", tmp, tmp2);
             }
             else
@@ -256,4 +257,7 @@ char* get_tags_from_filepath_info(libvgmstream_t* infostream, XMPFUNC_MISC* xmpf
     }
 
     return tags; /* assuming XMPlay free()s this, since it Alloc()s it */
+#else
+    return NULL;
+#endif
 }
