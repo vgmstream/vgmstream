@@ -419,6 +419,8 @@ static int get_ea_1snh_ima_version(STREAMFILE* sf, off_t start_offset, const eac
 
     if (ea->type == 0xFF) /* bnk */
         return 0;
+    if (ea->channels == 0)
+        return 0;
 
     while (block_offset < file_size) {
         uint32_t id = read_u32be(block_offset+0x00,sf);

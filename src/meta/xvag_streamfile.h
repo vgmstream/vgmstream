@@ -138,6 +138,9 @@ static STREAMFILE* setup_xvag_streamfile(STREAMFILE* sf, off_t stream_offset, si
     io_data.physical_offset = stream_offset;
     io_data.logical_size = xvag_io_size(sf, &io_data); /* force init */
 
+    if (interleave_size == 0 || stream_count <= 0 || stream_number <= 0)
+        return NULL;
+
     if (io_data.logical_size == 0) {
         VGM_LOG("XVAG: wrong logical size\n");
         return NULL;

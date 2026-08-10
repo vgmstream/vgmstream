@@ -136,6 +136,8 @@ VGMSTREAM* init_vgmstream_sshd(STREAMFILE* sf) {
         /* detect loops the best we can; docs say those are loop block addresses,
          * but each maker does whatever (no games seem to use PS-ADPCM loop flags though) */
 
+        if (channels <= 0) //div by zero
+            return NULL;
 
         if (loop_start != 0xFFFFFFFF && loop_end == 0xFFFFFFFF) {
 

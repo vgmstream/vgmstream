@@ -13,7 +13,7 @@ VGMSTREAM* init_vgmstream_ghs(STREAMFILE* sf) {
     uint32_t stream_offset, stream_size = 0, stpr_offset = 0, loop_start_offset = 0, loop_end_offset = 0;
     uint32_t chunk_offset = 0, chunk_size = 0, block_size, at9_config_data = 0;
     int loop_flag = 0, channels, sample_rate;
-    int32_t num_samples, loop_start_sample, loop_end_sample;
+    int32_t num_samples, loop_start_sample = 0, loop_end_sample = 0;
     gtd_codec_t codec = NONE;
 
 

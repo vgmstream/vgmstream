@@ -60,14 +60,15 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
 
 
     if (read_u32le(0x00,sf) != 0x0000080d) /* audio file id */
-        goto fail;
+        return NULL;
+
     rws.file_size = read_u32le(0x04, sf); /* audio file size */
     if (rws.file_size + 0x0c != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
 
     /* checks */
     if (!check_extensions(sf,"rws"))
-        goto fail;
+        return NULL;
 
     /* Audio .RWS is made of file + header + data chunks (non-audio .RWS with other chunks exist).
      * Chunk format (LE): id, size, RW version, then data (version is repeated but same for all chunks).
@@ -76,15 +77,15 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
 
     /* parse audio chunks */
     if (read_u32le(0x0c,sf) != 0x0000080e) /* header id */
-        goto fail;
+        return NULL;
     rws.header_size = read_u32le(0x10, sf); /* header size */
 
     rws.data_offset = 0x0c + 0x0c + rws.header_size; /* usually 0x800 but not always */
     if (read_u32le(rws.data_offset + 0x00, sf) != 0x0000080f) /* data chunk id */
-        goto fail;
+        return NULL;
     rws.data_size = read_u32le(rws.data_offset + 0x04, sf); /* data chunk size */
     if (rws.data_size+0x0c + rws.data_offset != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
 
     /* inside header chunk (many unknown fields are probably IDs/config/garbage,
      * as two files of the same size vary a lot) */
@@ -110,6 +111,9 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
         /* 0x3c: 0? */
         /* 0x40-50: file uuid */
         offset += 0x50;
+
+        if (rws.total_segments <= 0 || rws.total_layers <= 0)
+            return NULL;
     }
 
     /* audio file name */
@@ -249,6 +253,9 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
     /* sometimes segment/layers go over file size in XBOX-IMA for no apparent reason, with usable_size bigger
      * than segment_layers_size yet data_size being correct (bug in RWS header? maybe stops decoding on file end) */
     {
+        if (rws.block_layers_size == 0)
+            return NULL;
+
         size_t expected_size = (rws.segment_layers_size / rws.block_layers_size) * (rws.block_size * rws.total_layers) / rws.total_layers;
         if (stream_size > expected_size) {
             VGM_LOG("RWS: readjusting wrong stream size %x vs expected %x\n", stream_size, expected_size);

@@ -63,6 +63,8 @@ static STREAMFILE* setup_nus3bank_streamfile(STREAMFILE* sf, off_t start) {
         pos = 0x0c;
         data_pos = 0;
         while (pos < sizeof(buf)) {
+            if (pos > sizeof(buf) - 0x08)
+                return NULL;
             chunk_type = get_u32be(buf + pos + 0x00) ^ chunk_key;
             chunk_size = get_u32be(buf + pos + 0x04) ^ chunk_key;
             chunk_size = swap_endian32(chunk_size);
@@ -89,6 +91,8 @@ static STREAMFILE* setup_nus3bank_streamfile(STREAMFILE* sf, off_t start) {
         pos = 0x0c; // after WAVE
 
         while (pos < data_pos) {
+            if (pos > sizeof(io_data.key) - 0x08)
+                return NULL;
             chunk_type = get_u32be(buf + pos + 0x00) ^ chunk_key;
             chunk_size = get_u32be(buf + pos + 0x04) ^ chunk_key;
             chunk_size = swap_endian32(chunk_size);
