@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/cri_utf.h"
+#include "../util/string_utils.h"
 
 
 /* CSB (Cue Sheet Binary?) - CRI container of memory audio, often together with a .cpk wave bank */
@@ -26,7 +27,7 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
     /* .csb is an early, simpler version of .acb+awb (see acb.c) used until ~2013?
      * Can stream from .cpk but this only loads memory data. */
     {
-        int rows, sdl_rows, sdl_row, i;
+        int rows, sdl_rows, sdl_row;
         const char* name;
         const char* row_name;
         const char* sdl_name;
@@ -52,7 +53,7 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
          * Subtable can be empty but still appear (0 rows).
          */
         sdl_row = -1;
-        for (i = 0; i < rows; i++) {
+        for (int i = 0; i < rows; i++) {
             if (!utf_query_string(utf, i, "name", &row_name))
                 goto fail;
             if (strcmp(row_name, "SOUND_ELEMENT") == 0) {
@@ -80,7 +81,7 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
         if (target_subsong == 0) target_subsong = 1;
 
         /* get target subsong */
-        for (i = 0; i < sdl_rows; i++) {
+        for (int i = 0; i < sdl_rows; i++) {
             uint8_t stream_flag;
 
             if (!utf_query_u8(utf_sdl, i, "stmflg", &stream_flag))
@@ -143,7 +144,7 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
     }
 
     vgmstream->num_streams = total_subsongs;
-    strncpy(vgmstream->stream_name, stream_name, STREAM_NAME_SIZE-1);
+    strcpy_v(vgmstream->stream_name, STREAM_NAME_SIZE, stream_name);
 
     utf_close(utf);
     utf_close(utf_sdl);

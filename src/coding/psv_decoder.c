@@ -3,17 +3,16 @@
 #include "../util.h"
 
 /**
- * Sony's HEVAG (High Efficiency VAG) ADPCM, used in Vita/PS4 games (hardware decoded).
+ * Sony's HE-VAG (High Efficiency VAG) ADPCM, used in Vita/PS4 games (hardware decoded).
  * Evolution of the regular VAG (same flags and frames), uses 4 history samples and a bigger table.
  *
- * Reverse engineered from PC tools, base int code by daemon1 (using K=2^13 aka coefs * 8192, 0.9375 > 7680,
- * ).
+ * Reverse engineered from PC tools, base int code by daemon1 (using K=2^13 aka coefs * 8192, 0.9375 > 7680).
  *
- * HEVAG is made to be compatible with original VAG, so table indexes <= 0x1c behave like old codec
+ * HE-VAG is made to be compatible with original VAG, so table indexes <= 0x1c behave like old codec
  * setting hist3/4 coefs to 0 (as a minor optimization og code won't mult hist3/4 in lower table indexes).
- * 
+ *
  * Original code uses SIMD to do 4 codes at once (unrolled doing 7 groups of 4 codes = 28 samples).
- * Tables are rather complex to (presumable) handle hist dependencies, and since it's VAG compatible
+ * Tables are rather complex to (presumably) handle hist dependencies, and since it's VAG compatible
  * should be the same (maybe rounding diffs?). Hist and output are floats (output converted to +-1.0
  * or +-32768.0 +-0.5 based on a flag). Code below just does it linearly 1 by 1 in pcm16.
  */
@@ -164,8 +163,7 @@ static const float scale_table_f[16] = {
 
 void decode_hevag(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     uint8_t frame[0x10] = {0};
-    off_t frame_offset;
-    int i, frames_in, sample_count = 0;
+    int frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
     int index, shift, flag;
     int32_t hist1 = stream->adpcm_history1_32;
@@ -181,8 +179,9 @@ void decode_hevag(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
     first_sample = first_sample % samples_per_frame;
 
     /* parse frame header */
-    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    off_t frame_offset = stream->offset + bytes_per_frame * frames_in;
     read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+
     index = (frame[0] >> 4) & 0xf;
     shift = (frame[0] >> 0) & 0xf;
     index = ((frame[1] >> 0) & 0xf0) | index;
@@ -196,7 +195,7 @@ void decode_hevag(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
 
 
     /* decode nibbles */
-    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t code, sample = 0;
 
         if (flag < 0x07) { /* with flag 0x07 decoded sample must be 0 */

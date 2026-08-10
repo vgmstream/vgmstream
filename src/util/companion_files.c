@@ -8,65 +8,35 @@
 #define TXT_LINE_MAX 1024
 
 size_t read_key_file(uint8_t* buf, size_t buf_size, STREAMFILE* sf) {
-    char keyname[PATH_LIMIT];
-    char filename[PATH_LIMIT];
     STREAMFILE* sf_key = NULL;
     size_t keysize;
 
-    get_streamfile_name(sf, filename, sizeof(filename));
-    fix_dir_separators(filename);
-
-    if (strlen(filename)+4 > sizeof(keyname)) goto fail;
-
     /* try to open a keyfile using variations */
     {
-        const char *path, *ext;
+        char keyname[PATH_LIMIT];
+        const char* keyname_dot;
 
-        ext = strrchr(filename,'.');
-        if (ext != NULL)
-            ext++;
-
-        path = strrchr(filename, DIR_SEPARATOR);
-        if (path != NULL)
-            path++;
-
-        /* "(name.ext)key" */
-        strcpy_v(keyname, sizeof(keyname), filename);
-        strcat_v(keyname, sizeof(keyname), "key");
-
-        sf_key = open_streamfile(sf, keyname);
-        if (sf_key) goto found;
-
-        /* "(name.ext)KEY" */
-        /*
-        strcpy_v(keyname + strlen(keyname) - 3, sizeof(keyname), "KEY");
-        sf_key = open_streamfile(sf, keyname);
-        if (sf_key) goto found;
-        */
-
-
-        /* "(.ext)key" */
-        if (path) {
-            strcpy_v(keyname, sizeof(keyname), filename);
-            keyname[path - filename] = '\0';
-            strcat_v(keyname, sizeof(keyname), ".");
+        // make "(name.ext)key"
+        get_streamfile_filename(sf, keyname, sizeof(keyname));
+        keyname_dot = strrchr(keyname, '.');
+        if (keyname_dot != NULL) {
+            strcat_v(keyname, sizeof(keyname), "key");
         }
         else {
-            strcpy_v(keyname, sizeof(keyname), ".");
+            // shouldn't be needed for extensionless files though
+            strcpy_v(keyname, sizeof(keyname), ".key");
         }
-        if (ext)
-            strcat_v(keyname, sizeof(keyname), ext);
-        strcat_v(keyname, sizeof(keyname), "key");
 
-        sf_key = open_streamfile(sf, keyname);
+        // open "(current-path)(name.ext)key"
+        sf_key = open_streamfile_by_filename(sf, keyname);
         if (sf_key) goto found;
 
-        /* "(.ext)KEY" */
-        /*
-        strcpy_v(keyname + strlen(keyname) - 3, sizeof(keyname), "KEY");
-        sf_key = open_streamfile(sf, keyname);
+        // open "(current-path)(.ext)key"
+        sf_key = open_streamfile_by_filename(sf, keyname_dot);
         if (sf_key) goto found;
-        */
+
+        // on Linux maybe could try to match case vs original extension, but for now just
+        // expect it to be like .HCAkey to avoid some extra opens
 
         goto fail;
     }

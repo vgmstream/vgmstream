@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/string_utils.h"
 
 
 /* .ISB - Creative ISACT (Interactive Spatial Audio Composition Tools) middleware [Psychonauts (PC), Mass Effect (multi)] */
@@ -16,18 +17,18 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "isb"))
-        goto fail;
+        return NULL;
 
     big_endian = read_u32be(0x00,sf) == get_id32be("FFIR"); /* PS3, most X360 */
     read_u32me = big_endian ? read_u32be : read_u32le; /* machine endianness... */
     read_u32ce = big_endian ? read_u32le : read_u32be; /* chunks change with endianness but this just reads as BE */
 
     if (read_u32ce(0x00,sf) != get_id32be("RIFF"))
-        goto fail;
+        return NULL;
     if (read_u32me(0x04,sf) + 0x08 != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
     if (read_u32ce(0x08,sf) != get_id32be("isbf"))
-        goto fail;
+        return NULL;
 
     /* some files have a companion .icb, seems to be a cue file pointing here */
 
@@ -91,7 +92,7 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
                                 }
                                 else if (subsubchunk_type == get_id32be("fldr")) {
                                     VGM_LOG("ISB: subfolder with subfolder at %lx\n", suboffset);
-                                    goto fail;
+                                    return NULL;
                                 }
 
                                 //break; /* there can be N subLIST+samps */
@@ -165,7 +166,7 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
         }
 
         if (start_offset == 0)
-            goto fail;
+            return NULL;
     }
 
 
@@ -197,10 +198,10 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
         read_string_utf16(nfld, nfld_size, nfld_offset, sf, big_endian);
 
         if (nfld[0] && name[0]) {
-            snprintf(vgmstream->stream_name,STREAM_NAME_SIZE, "%s/%s", nfld, name);
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", nfld, name);
         }
         else if (name[0]) {
-            snprintf(vgmstream->stream_name,STREAM_NAME_SIZE, "%s", name);
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", name);
         }
         /* there is also a "titl" for the bank, but it's just the filename so probably unwanted */
     }
@@ -232,7 +233,7 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
-            vgmstream->num_samples = pcm_bytes / channels / (bps/8);
+            vgmstream->num_samples = pcm_bytes_to_samples(pcm_bytes, channels, bps);
             break;
 #endif
 
@@ -250,7 +251,7 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = pcm_bytes / channels / (bps/8);
+            vgmstream->num_samples = pcm_bytes_to_samples(pcm_bytes, channels, bps);
             xma_fix_raw_samples(vgmstream, sf, start_offset, stream_size, fmt_offset, 1,1);
             break;
         }
@@ -258,8 +259,8 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
 
         case 0x05: {
             //TODO: improve
-            VGMSTREAM *temp_vgmstream = NULL;
-            STREAMFILE *temp_sf = NULL;
+            VGMSTREAM* temp_vgmstream = NULL;
+            STREAMFILE* temp_sf = NULL;
 
             temp_sf = setup_subfile_streamfile(sf, start_offset, stream_size, "msf");
             if (!temp_sf) goto fail;
@@ -269,7 +270,7 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
                 temp_vgmstream->num_streams = vgmstream->num_streams;
                 temp_vgmstream->stream_size = vgmstream->stream_size;
                 temp_vgmstream->meta_type = vgmstream->meta_type;
-                strcpy(temp_vgmstream->stream_name, vgmstream->stream_name);
+                strcpy_v(temp_vgmstream->stream_name, STREAM_NAME_SIZE, vgmstream->stream_name);
 
                 close_streamfile(temp_sf);
                 close_vgmstream(vgmstream);

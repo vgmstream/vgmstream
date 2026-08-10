@@ -58,7 +58,6 @@ rc_t render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_interleave:
             rc = render_layout_interleave(sbuf, vgmstream);
             break;
-        case layout_blocked_mxch:
         case layout_blocked_ast:
         case layout_blocked_halpst:
         case layout_blocked_xa:
@@ -332,6 +331,15 @@ static rc_t setup_buf(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     int max_samples = sbuf->samples;
     if (buf_samples > max_samples && max_samples > 0)
         buf_samples = max_samples;
+
+    vgmstream_state_t* state = vgmstream->state;
+    int buf_samples = 1024;
+    int channels = vgmstream->channels; // base decoder channels, no need to apply mixing
+    int target_size = buf_samples * channels * sizeof(float);
+
+    bool alloc_ok = prealloc_buf(&state->tmpbuf, &state->tmpbuf_size, target_size);
+    if (!alloc_ok) return;
+
 
     if (buf_samples == 0) {
         VGM_LOG("RENDER: no samples to render\n");

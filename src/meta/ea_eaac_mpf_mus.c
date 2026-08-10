@@ -3,6 +3,7 @@
 #include "../layout/layout.h"
 #include "../util/layout_utils.h"
 #include "../util/companion_files.h"
+#include "../util/string_utils.h"
 
 
 static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac_main(STREAMFILE* sf, const char* mus_name);
@@ -137,7 +138,9 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac_main(STREAMFILE* sf, const char
     }
 
     /* open MUS file that matches this track */
-    sf_mus = mus_name ? open_streamfile_by_filename(sf, mus_name) : open_mapfile_pair(sf, i);//, num_tracks
+    sf_mus = mus_name ? 
+        open_streamfile_by_filename(sf, mus_name) : 
+        open_mapfile_pair(sf, i);//, num_tracks
     if (!sf_mus) goto fail;
 
     /* sample offsets table is still there but it just holds SNS offsets, we only need it for RAM sound indexes */
@@ -151,14 +154,15 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac_main(STREAMFILE* sf, const char
         if (bnk_index != 0) {
             /* HACK: open proper .mus now since open_mapfile_pair doesn't let us adjust the name */
             char filename[PATH_LIMIT], basename[PATH_LIMIT], ext[32];
-            int basename_len;
-            STREAMFILE* sf_temp;
+            STREAMFILE* sf_temp = NULL;
 
             get_streamfile_basename(sf_mus, basename, PATH_LIMIT);
-            basename_len = strlen(basename);
             get_streamfile_ext(sf_mus, ext, sizeof(ext));
 
             /* strip off 0 at the end */
+            size_t basename_len = strlen(basename);
+            if (basename_len <= 1) // not realistic but...
+                goto fail;
             basename[basename_len - 1] = '\0';
 
             /* append bank index to the name */
@@ -332,11 +336,8 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
                             "trick_alps0.mus,"
                             "trick_lhotse0.mus"}
     };
-    STREAMFILE *sf_mus = NULL;
+    STREAMFILE* sf_mus = NULL;
     char file_name[PATH_LIMIT];
-    int pair_count = (sizeof(mapfile_pairs) / sizeof(mapfile_pairs[0]));
-    int i, j;
-    size_t file_len, map_len;
 
     /* try parsing TXTM if present */
     sf_mus = read_filemap_file(sf, track);
@@ -349,15 +350,15 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
     }
 
     get_streamfile_filename(sf, file_name, PATH_LIMIT);
-    file_len = strlen(file_name);
+    size_t file_len = strlen(file_name);
 
-    for (i = 0; i < pair_count; i++) {
-        const char *map_name = mapfile_pairs[i][0];
-        const char *mus_name = mapfile_pairs[i][1];
-        char buf[PATH_LIMIT] = { 0 };
-        char *pch;
+    const int pair_count = (sizeof(mapfile_pairs) / sizeof(mapfile_pairs[0]));
+    for (int i = 0; i < pair_count; i++) {
+        const char* map_name = mapfile_pairs[i][0];
+        const char* mus_name = mapfile_pairs[i][1];
+        char buf[PATH_LIMIT] = {0};
         int use_mask = 0;
-        map_len = strlen(map_name);
+        size_t map_len = strlen(map_name);
 
         /* replace map_name with expected mus_name */
         if (file_len < map_len)
@@ -375,18 +376,19 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
                 continue;
         }
 
-        strncpy(buf, mus_name, PATH_LIMIT - 1);
-        pch = strtok(buf, ","); //TODO: not thread safe in std C
-        for (j = 0; j < track && pch; j++) {
+        strcpy_v(buf, sizeof(buf), mus_name);
+        char* pch = strtok(buf, ","); //TODO: not thread safe in std C
+        for (int j = 0; j < track && pch; j++) {
             pch = strtok(NULL, ",");
         }
         if (!pch) continue; /* invalid track */
 
         if (use_mask) {
             file_name[file_len - map_len] = '\0';
-            strncat(file_name, pch + 1, PATH_LIMIT - 1);
-        } else {
-            strncpy(file_name, pch, PATH_LIMIT - 1);
+            strcat_v(file_name, sizeof(file_name), pch + 1);
+        }
+        else {
+            strcpy_v(file_name, sizeof(file_name), pch);
         }
 
         sf_mus = open_streamfile_by_filename(sf, file_name);
@@ -398,7 +400,7 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
     /* hack when when multiple maps point to the same mus, uses name before "+"
      * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ */
     {
-        char *mod_name = strchr(file_name, '+');
+        char* mod_name = strchr(file_name, '+');
         if (mod_name) {
             mod_name[0] = '\0';
             sf_mus = open_streamfile_by_filename(sf, file_name);

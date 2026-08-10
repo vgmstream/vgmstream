@@ -350,6 +350,18 @@ static int ubi_sb_io_init(STREAMFILE* sf, ubi_sb_io_data* data) {
             goto fail;
     }
 
+    /* just in case some headers may use less layers that stream has */
+    VGM_ASSERT(data->layer_count != data->layer_max, "UBI SB: non-matching layer counts\n");
+    if (data->layer_count > data->layer_max) {
+        VGM_LOG("UBI SB: layer count bigger than layer max\n");
+        goto fail;
+    }
+
+    // arbitrary max 
+    if (data->layer_max > 64) {
+        goto fail;
+    }
+
     /* get base size to simplify later parsing */
     data->header_size = data->header_data_start;
     if (data->header_sizes_start) {
@@ -361,13 +373,6 @@ static int ubi_sb_io_init(STREAMFILE* sf, ubi_sb_io_data* data) {
     /* force read header block */
     data->logical_offset = -1;
     
-    /* just in case some headers may use less layers that stream has */
-    VGM_ASSERT(data->layer_count != data->layer_max, "UBI SB: non-matching layer counts\n");
-    if (data->layer_count > data->layer_max) {
-        VGM_LOG("UBI SB: layer count bigger than layer max\n");
-        goto fail;
-    }
-
     /* Common layer quirks:
      * - layer format depends on its own version and not on platform or DARE engine version
      * - codec header may be in the layer header, or in the first block

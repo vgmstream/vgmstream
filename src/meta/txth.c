@@ -885,7 +885,7 @@ static STREAMFILE* open_txth(STREAMFILE* sf) {
 
     /* try "(path/)(.ext).txth" */
     if (base_ext) {
-        base_ext--; //get_streamfile_path(sf, filename, sizeof(filename));
+        base_ext--;
 
         sf_text = open_streamfile_by_filename(sf, base_ext);
         if (sf_text) return sf_text;
@@ -1150,21 +1150,6 @@ static int parse_endianness(txth_header* txth, const char* val, uint32_t* p_valu
     return 1;
 fail:
     return 0;
-}
-
-static int is_absolute(const char* fn) {
-    return fn[0] == '/' || fn[0] == '\\'  || fn[1] == ':';
-}
-
-static STREAMFILE* open_path_streamfile(STREAMFILE* sf, char* path) {
-    fix_dir_separators(path); /* clean paths */
-
-    /* absolute paths are detected for convenience, but since it's hard to unify all OSs
-    * and plugins, they aren't "officially" supported nor documented, thus may or may not work */
-    if (is_absolute(path))
-        return open_streamfile(sf, path); /* from path as is */
-    else
-        return open_streamfile_by_pathname(sf, path); /* from current path */
 }
 
 static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
@@ -1563,7 +1548,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_head_opened = true;
         }
         else { /* open file */
-            txth->sf_head = open_path_streamfile(txth->sf, val);
+            txth->sf_head = open_streamfile_by_absname(txth->sf, val);
             if (!txth->sf_head) goto fail;
             txth->sf_head_opened = true;
         }
@@ -1599,7 +1584,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_body_opened = true;
         }
         else { /* open file */
-            txth->sf_body = open_path_streamfile(txth->sf, val);
+            txth->sf_body = open_streamfile_by_absname(txth->sf, val);
             if (!txth->sf_body) goto fail;
             txth->sf_body_opened = true;
         }
@@ -1914,15 +1899,15 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
     /* try "(name)#subsong: (val))" */
     ok = sscanf(line, " %"TXT_LINE_KEY_STR"[^\t#:]#%i : %"TXT_LINE_VAL_STR"[^\t#\r\n] ", key, &subsong, val);
     if (ok == 3 && subsong == txth->target_subsong) {
-        //;VGM_LOG("TXTH: name %s + subsong %i get\n", key, subsong);
+        //;VGM_LOG("TXTH: name %s + subsong %i get + val=%s\n", key, subsong, val);
         return 1;
     }
 
     /* try "(empty)#subsong: (val))" */
     key[0] = '\0';
-    ok = sscanf(line, " #%i: %"TXT_LINE_VAL_STR"[^\t#\r\n] ", &subsong, val);
+    ok = sscanf(line, " #%i : %"TXT_LINE_VAL_STR"[^\t#\r\n] ", &subsong, val);
     if (ok == 2 && subsong == txth->target_subsong) {
-        //;VGM_LOG("TXTH: default + subsong %i get\n", subsong);
+        //;VGM_LOG("TXTH: default + subsong %i get + val=%s\n", subsong, val);
         return 1;
     }
 
@@ -2010,7 +1995,7 @@ static bool parse_name_table(txth_header* txth, char* set_name) {
                     || is_string_match(fullname, key)) {
                 int n;
                 char subval[TXT_LINE_MAX];
-                const char *current = val;
+                const char* current = val;
 
                 while (current[0] != '\0') {
                     ok = sscanf(current, " %"TXT_LINE_STR"[^\t#\r\n,]%n ", subval, &n);

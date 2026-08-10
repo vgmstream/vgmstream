@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/string_utils.h"
 #include "idtech_streamfile.h"
-#include <string.h>
 
 
 /* mzrt - id Tech 4.5 audio found in .resource bigfiles (w/ internal filenames) [Doom 3 BFG edition (PC/PS3/X360)] */
@@ -14,12 +14,12 @@ VGMSTREAM* init_vgmstream_mzrt_v0(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "mzrt"))
-        goto fail;
-    if (read_u32be(0x04, sf) != 0) /* version */
-        goto fail;
+        return NULL;
+    if (read_u32be(0x04, sf) != 0) // version
+        return NULL;
 
     if (!check_extensions(sf, "idwav,idmsf,idxma"))
-        goto fail;
+        return NULL;
 
 
     /* this format is bizarrely mis-aligned (and mis-designed too) */
@@ -165,12 +165,12 @@ VGMSTREAM* init_vgmstream_mzrt_v1(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "mzrt"))
-        goto fail;
-    if (read_u32be(0x04, sf) != 1) /* version */
-        goto fail;
+        return NULL;
+    if (read_u32be(0x04, sf) != 1) // version
+        return NULL;
 
     if (!check_extensions(sf, "idmsf")) //idmsa: untested
-        goto fail;
+        return NULL;
 
     type = read_s32be(0x09,sf);
     if (type == 0) { /* Rage */
@@ -312,19 +312,19 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "bsnf"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "bsnd"))
-        goto fail;
+        return NULL;
 
     num_languages = read_u32be(0x04, sf);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > num_languages || num_languages < 1)
-        goto fail;
+        return NULL;
 
     offset = 0x08 + (target_subsong - 1) * 0x18;
 
-    read_string(language, 0x10, offset + 0x00, sf);
+    read_string(language, sizeof(language), offset + 0x00, sf);
     stream_size = read_u32be(offset + 0x10, sf);
     offset = read_u32be(offset + 0x14, sf); /* absolute but typically right after this */
 
@@ -364,8 +364,8 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
         get_streamfile_basename(sf, filename, sizeof(filename));
 
         if (language[0] != '\0') {
-            strcat(filename, "_");
-            strcat(filename, language);
+            strcat_v(filename, sizeof(filename), "_");
+            strcat_v(filename, sizeof(filename), language);
         }
 
         sb = open_streamfile_by_filename(sf, filename);

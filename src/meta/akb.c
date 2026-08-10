@@ -8,22 +8,23 @@ VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, extradata_offset = 0;
     size_t stream_size, header_size, subheader_size = 0, extradata_size = 0;
-    int loop_flag = 0, channels, codec, sample_rate, version, flags = 0;
+    int loop_flag = 0, channels, codec, sample_rate;
     int num_samples, loop_start, loop_end;
+    uint8_t flags = 0, version;
 
 
     /* checks */
     if (!is_id32be(0x00,sf, "AKB "))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "akb"))
-        goto fail;
+        return NULL;
 
     version = read_u8(0x04,sf); /* 00=TWEWY, 02=DQs, 03=FFAgito */
     /* 0x05(1); unused? */
     header_size = read_u16le(0x06,sf);
     if (read_u32le(0x08,sf) != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
 
     /* material info, though can only hold 1 */
     codec       =    read_u8(0x0c,sf);
@@ -147,7 +148,7 @@ VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x06: { /* M4A with AAC [The World Ends with You (iPad)] */
-            vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset,stream_size-start_offset);
+            vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset, stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -186,20 +187,21 @@ VGMSTREAM* init_vgmstream_akb2(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, material_offset, extradata_offset;
     size_t material_size, extradata_size, stream_size;
-    int loop_flag = 0, channel_count, flags, codec, sample_rate, num_samples, loop_start, loop_end;
+    int loop_flag = 0, channels, codec, sample_rate, num_samples, loop_start, loop_end;
     int total_subsongs, target_subsong = sf->stream_index;
+    uint8_t flags;
 
 
     /* checks */
     if (!is_id32be(0x00,sf, "AKB2"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "akb"))
-        goto fail;
+        return NULL;
 
     /* 0x04: version */
     if (read_u32le(0x08,sf) != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
 
     /* parse tables */
     {
@@ -226,7 +228,7 @@ VGMSTREAM* init_vgmstream_akb2(STREAMFILE* sf) {
     /** stream header (material) **/
     /* 0x00: 0? */
     codec           =    read_u8(material_offset+0x01,sf);
-    channel_count   =    read_u8(material_offset+0x02,sf);
+    channels        =    read_u8(material_offset+0x02,sf);
     flags           =    read_u8(material_offset+0x03,sf);
     material_size   = read_u16le(material_offset+0x04,sf);
     sample_rate     = read_u16le(material_offset+0x06,sf);
@@ -244,11 +246,11 @@ VGMSTREAM* init_vgmstream_akb2(STREAMFILE* sf) {
 
     /* encrypted, not seen (see AKB flags) */
     if (flags & 0x08)
-        goto fail;
+        return NULL;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;

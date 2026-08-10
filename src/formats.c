@@ -407,7 +407,6 @@ static const char* extension_list[] = {
     "mvb", //txth/reserved [Porsche Challenge (PS1)]
     "mwa", //txth/reserved [Fatal Frame (Xbox)]
     "mwv",
-    "mxst",
     "myspd",
 
     "n64",
@@ -887,7 +886,7 @@ static const coding_info coding_info_list[] = {
         {coding_PSX_badflags,       "PlayStation 4-bit ADPCM (bad flags)"},
         {coding_PSX_cfg,            "PlayStation 4-bit ADPCM (configurable)"},
         {coding_PSX_pivotal,        "PlayStation 4-bit ADPCM (Pivotal)"},
-        {coding_HEVAG,              "Sony HEVAG 4-bit ADPCM"},
+        {coding_HEVAG,              "Sony HE-VAG 4-bit ADPCM"},
 
         {coding_EA_XA,              "Electronic Arts EA-XA 4-bit ADPCM v1"},
         {coding_EA_XA_int,          "Electronic Arts EA-XA 4-bit ADPCM v1 (mono/interleave)"},
@@ -1031,7 +1030,6 @@ static const layout_info layout_info_list[] = {
         {layout_segmented,              "segmented"},
         {layout_layered,                "layered"},
 
-        {layout_blocked_mxch,           "blocked (MxCh)"},
         {layout_blocked_ast,            "blocked (AST)"},
         {layout_blocked_halpst,         "blocked (HALPST)"},
         {layout_blocked_xa,             "blocked (XA)"},
@@ -1255,7 +1253,6 @@ static const meta_info meta_info_list[] = {
         {meta_VGV,                  "Human Head .VGV header"},
         {meta_GCUB,                 "Sega GCub header"},
         {meta_CAFF,                 "Apple Core Audio Format File header"},
-        {meta_PC_MXST,              "Lego Island MxSt Header"},
         {meta_SAB,                  "Sensaura SAB header"},
         {meta_MAXIS_XA,             "Maxis XA Header"},
         {meta_EXAKT_SC,             "assumed Activision / EXAKT SC by extension"},

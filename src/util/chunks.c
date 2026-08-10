@@ -1,36 +1,48 @@
 #include "chunks.h"
 #include "reader_sf.h"
+#include "endianness.h"
 
 
 bool next_chunk(chunk_t* chunk, STREAMFILE* sf) {
-    uint32_t (*read_u32type)(off_t,STREAMFILE*) = !chunk->le_type ? read_u32be : read_u32le;
-    uint32_t (*read_u32size)(off_t,STREAMFILE*) = chunk->be_size ? read_u32be : read_u32le;
+    read_u32_t read_u32type = get_read_u32(!chunk->le_type);
+    read_u32_t read_u32size = get_read_u32(chunk->be_size);
+
+    // can be used to signal "stop"
+    if (chunk->current == 0xFFFFFFFF)
+        return false;
 
     if (chunk->max == 0)
         chunk->max = get_streamfile_size(sf);
 
     if (chunk->current >= chunk->max)
         return false;
-    /* can be used to signal "stop" */
-    if (chunk->current < 0)
+
+    uint32_t remaining = chunk->max - chunk->current;
+    if (remaining < 0x08)
         return false;
 
     chunk->type = read_u32type(chunk->current + 0x00,sf);
     chunk->size = read_u32size(chunk->current + 0x04,sf);
 
-    chunk->offset = chunk->current + 0x04 + 0x04;
-    chunk->current += chunk->full_size ? chunk->size : 0x08 + chunk->size;
-    //;VGM_LOG("CHUNK: %x, %x, %x\n", dc.offset, chunk->type, chunk->size);
-
-    /* enforce 16-bit chunk alignment */
-    if (chunk->alignment && (chunk->size & 0x01))
-        chunk->current++;
-
-    /* read past data */
+    // read past data
     if (chunk->type == 0xFFFFFFFF || chunk->size == 0xFFFFFFFF)
         return false;
 
-    /* empty chunk with 0 size is ok, seen in some formats (XVAG uses it as end marker, Wwise in JUNK) */
+    if (chunk->size > remaining - 0x08)
+        return false;
+
+    chunk->offset = chunk->current + 0x08;
+    chunk->current += chunk->full_size ? chunk->size : 0x08 + chunk->size;
+    //;VGM_LOG("CHUNK: %x, %x, %x\n", dc.offset, chunk->type, chunk->size);
+
+    // enforce 16-bit chunk alignment as per spec, where chunk_size may be odd (0x11) but must be
+    // set to even (0x12) (typically pre-padded though). At EOF may not use padding.
+    if (chunk->alignment && (chunk->size & 0x01)) {
+        if (chunk->current < chunk->max)
+            chunk->current++;
+    }
+
+    // empty chunk with 0 size is ok, seen in some formats (XVAG uses it as end marker, Wwise in JUNK)
     if (chunk->type == 0 /*|| chunk->size == 0*/)
         return false;
 

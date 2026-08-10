@@ -5,6 +5,7 @@
 
 #define AWC_MAX_MUSIC_CHANNELS 32 // seen ~24
 #define AWC_FRAME_SIZE 0x800
+#define AWC_MAX_ENTRIES 65535 // arbitrary max (sometimes +1024)
 
 /* ************************************************************************* */
 
@@ -115,6 +116,14 @@ static bool read_awc_block(STREAMFILE* sf, awc_block_info_t* bi) {
             bi->blk[ch].channel_size   = read_u32(offset + 0x14, sf);
         }
 
+        // avoid weird offsets
+        if (bi->blk[ch].entries < 0 || bi->blk[ch].entries >= AWC_MAX_ENTRIES)
+            return false;
+#if 0 
+        // inaccurate
+        if (bi->blk[ch].start_entry > bi->blk[ch].entries) 
+            return false; 
+#endif
         offset += channel_entry_size;
     }
 

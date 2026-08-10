@@ -65,7 +65,6 @@ rc_t render_layout_blocked(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 void block_update(off_t block_offset, VGMSTREAM* vgmstream);
 
 void block_update_ast(off_t block_ofset, VGMSTREAM* vgmstream);
-void block_update_mxch(off_t block_ofset, VGMSTREAM* vgmstream);
 void block_update_halpst(off_t block_ofset, VGMSTREAM* vgmstream);
 void block_update_xa(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_schl(off_t block_offset, VGMSTREAM* vgmstream);

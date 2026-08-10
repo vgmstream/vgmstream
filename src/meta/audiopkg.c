@@ -167,6 +167,10 @@ static VGMSTREAM* init_vgmstream_audiopkg_main(STREAMFILE* sf, audiopkg_header_t
                 goto fail;
             }
 
+            if (h->stream_size < 0x200) {
+                goto fail;
+            }
+
             // some The Hobbit (GC) file have issues, probably skipped/synced
             // (engine seems to use Miles Sound System for MPEG)
 

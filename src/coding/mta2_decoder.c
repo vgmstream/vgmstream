@@ -47,7 +47,7 @@ static const int mta2_scales[32] = {
 
 /* decodes a block for a channel */
 void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int config) {
-    uint8_t frame[0x10 + 0x90*8] = {0};
+    uint8_t frame[0x10 + 0x90 * 8] = {0};
     int samples_done = 0, sample_count = 0, channel_block_samples, channel_first_sample, frame_size = 0;
     int i, group, row, col;
     int track_channel;
@@ -60,6 +60,8 @@ void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing,
         frame_size = 0x90 * channelspacing;
         track_channel = channel;
         head_size = 0x00;
+        if (frame_size > sizeof(frame))
+            return;
     }
     else {
         /* track info (bgm): parse header and skip tracks that our current channel doesn't belong to */

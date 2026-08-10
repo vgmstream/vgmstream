@@ -231,8 +231,7 @@ typedef enum {
     layout_blocked_filp,
     layout_blocked_ea_swvr,
     layout_blocked_adm,
-    layout_blocked_mxch,
-    layout_blocked_rage_aud,    /* Rockstar AUD blocks */
+    layout_blocked_rage_aud,
     layout_blocked_ps2_iab,
     layout_blocked_vs_str,
     layout_blocked_rws,
@@ -431,7 +430,6 @@ typedef enum {
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
     meta_XNB,               /* XNA Game Studio 4.0 */
-    meta_PC_MXST,           /* Lego Island MxSt */
     meta_SAB,               /* Worms 4 Mayhem SAB+SOB file */
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* Visual Art's NWA w/ NWAINFO.INI for looping */

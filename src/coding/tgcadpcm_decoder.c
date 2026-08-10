@@ -1,4 +1,5 @@
 #include "coding.h"
+#include "../util.h"
 
 /* Decodes SunPlus' ADPCM codec used on the Tiger Game.com.
  * Highly improved, optimised signed 16-bit version of the algorithm. */
@@ -26,22 +27,23 @@ static const uint8_t next_step[8][16] =
     { 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7 }
 };
 
-void decode_tgc(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int32_t first_sample, int32_t samples_to_do)
-{
-    for (int i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count++)
-    {
-        uint8_t nibble = ((uint8_t)read_8bit(stream->offset + i/2, stream->streamfile) >>
-            (i & 1 ? 4 : 0)) & 0xf;
+void decode_tgc(VGMSTREAMCHANNEL* stream, short* outbuf, int32_t first_sample, int32_t samples_to_do) {
+    stream->adpcm_step_index = clamp_s32(stream->adpcm_step_index, 0, 7);
+
+    int sample_count = 0;
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
+        uint8_t nibble = read_u8(stream->offset + i / 2, stream->streamfile);
+        nibble = nibble >> (i & 1 ? 4 : 0) & 0x0F;
 
         stream->adpcm_history1_32 += slope_table[stream->adpcm_step_index][nibble];
         stream->adpcm_step_index   = next_step  [stream->adpcm_step_index][nibble];
 
         if (stream->adpcm_history1_32 < -32768)
             stream->adpcm_history1_32 = -32768;
-
-        if (stream->adpcm_history1_32 > 32767)
+        else if (stream->adpcm_history1_32 > 32767)
             stream->adpcm_history1_32 = 32767;
 
-        outbuf[sample_count] = (sample_t)stream->adpcm_history1_32;
+        outbuf[sample_count] = (short)stream->adpcm_history1_32;
+        sample_count++;
     }
 }

@@ -39,7 +39,7 @@ static STREAMFILE* setup_bgm_streamfile(STREAMFILE *sf, off_t start, uint8_t* ke
 
     io_data.start = start;
     io_data.key_len = key_len;
-    if (key_len > sizeof(io_data.key))
+    if (key_len <= 0 || key_len > sizeof(io_data.key))
         return NULL;
     memcpy(io_data.key, key, key_len);
 
