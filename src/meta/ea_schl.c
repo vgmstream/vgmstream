@@ -107,6 +107,12 @@
 
 #define EA_MAX_CHANNELS             6
 
+// flags for vgmstream
+#define EA_FLAGS_BLOCK_SIZE_BE  0x01    // block sizes are big endian (unusual)
+#define EA_FLAGS_BLOCK_ADPCM    0x02    // blocks have extra ADPCM config
+#define EA_FLAGS_BLOCK_OFFSETS  0x04    // block have offsets
+#define EA_FLAGS_LANG_MASK      0xFFFF  // upper 16 bits are used to store language id (not exactly a flag)
+
 typedef struct {
     int32_t num_samples;
     int32_t sample_rate;
@@ -128,8 +134,8 @@ typedef struct {
 
     int big_endian;
     int loop_flag;
-    int codec_config;
     int use_pcm_blocks;
+    uint32_t block_config;
 
     size_t stream_size;
 } ea_header;
@@ -170,12 +176,12 @@ static VGMSTREAM* parse_schl_block(STREAMFILE* sf, off_t offset) {
      * so only header sub-id will be read and other langs skipped */
     header_id = read_u32be(offset + 0x00, sf);
     if ((header_id & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER) {
-        ea.codec_config |= (header_id & 0xFFFF) << 16;
+        ea.block_config |= (header_id & EA_FLAGS_LANG_MASK) << 16;
     }
 
     if (guess_endian32(offset + 0x04, sf)) { /* size is always LE, except in early SS/MAC */
         header_size = read_u32be(offset + 0x04, sf);
-        ea.codec_config |= 0x02;
+        ea.block_config |= EA_FLAGS_BLOCK_SIZE_BE;
     }
     else {
         header_size = read_u32le(offset + 0x04, sf);
@@ -310,7 +316,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
     vgmstream->loop_end_sample = ea->loop_end;
 
     vgmstream->codec_endian = ea->big_endian;
-    vgmstream->codec_config = ea->codec_config;
+    vgmstream->layout_config = ea->block_config;
 
     vgmstream->meta_type = is_bnk ? meta_EA_BNK : meta_EA_SCHL;
     vgmstream->layout_type = is_bnk ? layout_none : layout_blocked_ea_schl;
@@ -478,7 +484,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
 
     if (is_bnk) {
         /* BNKs usually have absolute offsets for all channels ("full" interleave) except in some versions */
-        if (!(ea->codec_config & 0x04)) {
+        if (!(ea->block_config & EA_FLAGS_BLOCK_OFFSETS)) {
             switch (vgmstream->coding_type) {
                 case coding_EA_XA:
                     /* shared (stereo version) */
@@ -960,19 +966,19 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     if (!is_bnk) {
         if (ea->codec2 == EA_CODEC2_GCADPCM) {
             if (ea->platform == EA_PLATFORM_3DS)
-                ea->codec_config |= 0x01;
+                ea->block_config |= EA_FLAGS_BLOCK_ADPCM;
         }
         else if (ea->codec2 == EA_CODEC2_EAXA) {
             /* EA-XA has ADPCM hist in the original version */
             if (!ea->use_pcm_blocks)
-                ea->codec_config |= 0x01;
+                ea->block_config |= EA_FLAGS_BLOCK_ADPCM;
         }
     }
 
     if (ea->version > EA_VERSION_V0) {
         /* v0 needs channel offsets to be manually calculated
          * v1+ always has split channels and provides channel offsets */
-        ea->codec_config |= 0x04;
+        ea->block_config |= EA_FLAGS_BLOCK_OFFSETS;
     }
 
     return offset;
@@ -1022,7 +1028,7 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* sf, off_t start_offset,
     size_t file_size = get_streamfile_size(sf);
     off_t block_offset = start_offset;
     read_u32_t read_u32 = ea->big_endian ? read_u32be : read_u32le;
-    uint32_t header_lang = (ea->codec_config >> 16) & 0xFFFF;
+    uint32_t header_lang = (ea->block_config >> 16) & 0xFFFF;
 
     while (block_offset < file_size) {
         uint32_t block_id, block_size;

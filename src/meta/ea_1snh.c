@@ -8,6 +8,9 @@
 #define EA_CODEC_IMA            0x02
 #define EA_CODEC_PSX            0xFF //fake value
 
+// flags for vgmstream
+#define EA_FLAGS_BLOCK_ADPCM    0x01    // blocks have extra ADPCM config
+
 typedef struct {
     int32_t sample_rate;
     uint8_t bits;
@@ -22,32 +25,33 @@ typedef struct {
 
     uint32_t base_size;
 
-    int big_endian;
-    int loop_flag;
-    int is_sead;
-    int codec_config;
-    int is_bank;
+    bool big_endian;
+    bool loop_flag;
+    bool is_sead;
+    bool is_bank;
+    uint32_t block_config;
     int total_subsongs;
-} eacs_header;
+} eacs_header_t;
 
-static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t begin_offset);
-static VGMSTREAM* init_vgmstream_main(STREAMFILE* sf, eacs_header* ea);
+static int parse_header(STREAMFILE* sf, eacs_header_t* ea, uint32_t begin_offset);
+static VGMSTREAM* init_vgmstream_main(STREAMFILE* sf, eacs_header_t* ea);
 
-static void set_ea_1snh_num_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, eacs_header* ea, int find_loop);
-static int get_ea_1snh_ima_version(STREAMFILE* sf, off_t start_offset, const eacs_header* ea);
+static void set_ea_1snh_num_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, eacs_header_t* ea, int find_loop);
+static uint32_t get_ea_1snh_ima_flag(STREAMFILE* sf, off_t start_offset, const eacs_header_t* ea);
 
 /* EA 1SNh - from early EA games, stream (~1996, ex. Need for Speed) */
 VGMSTREAM* init_vgmstream_ea_1snh(STREAMFILE* sf) {
-    eacs_header ea = {0};
-    off_t offset = 0x00, eacs_offset;
     VGMSTREAM* vgmstream = NULL;
+    off_t offset = 0x00, eacs_offset;
+    eacs_header_t ea = {0};
 
 
     /* checks */
     /* in TGV videos, either TGVk or 1SNh block comes first */
     if (is_id32be(0x00, sf, "TGVk")) {
         offset = read_u32be(0x04, sf);
-    } else if (is_id32be(0x00, sf, "kVGT")) {
+    }
+    else if (is_id32be(0x00, sf, "kVGT")) {
         offset = read_u32le(0x04, sf);
     }
 
@@ -98,7 +102,7 @@ fail:
 
 /* EA EACS - from early EA games, bank (~1996, ex. Need for Speed) */
 VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
-    eacs_header ea = {0};
+    eacs_header_t ea = {0};
     off_t eacs_offset;
 
 
@@ -124,7 +128,6 @@ VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
     }
     else if (read_u32be(0x00,sf) == 0x00) {
         /* multi bank variant */
-        int i;
         int target_subsong = sf->stream_index;
 
         if (target_subsong == 0) target_subsong = 1;
@@ -133,7 +136,7 @@ VGMSTREAM* init_vgmstream_ea_eacs(STREAMFILE* sf) {
         /* offsets to EACSs are scattered in the first 0x200, then 0x28 info + EACS per subsong.
          * This looks dumb but seems like the only way. */
         eacs_offset = 0;
-        for (i = 0x00; i < 0x200; i += 0x04) {
+        for (int i = 0x00; i < 0x200; i += 0x04) {
             off_t bank_offset = read_u32le(i, sf);
             if (bank_offset == 0)
                 continue;
@@ -168,7 +171,7 @@ fail:
 /* EA CRDF - crowd banks (later games use CRDl without audio) */
 VGMSTREAM* init_vgmstream_ea_crdf(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    eacs_header ea = {0};
+    eacs_header_t ea = {0};
     off_t eacs_offset;
     int total_subsongs, target_subsong = sf->stream_index;
 
@@ -232,7 +235,7 @@ fail:
 }
 
 
-static VGMSTREAM* init_vgmstream_main(STREAMFILE* sf, eacs_header* ea) {
+static VGMSTREAM* init_vgmstream_main(STREAMFILE* sf, eacs_header_t* ea) {
     VGMSTREAM* vgmstream = NULL;
 
 
@@ -263,12 +266,12 @@ static VGMSTREAM* init_vgmstream_main(STREAMFILE* sf, eacs_header* ea) {
         case EA_CODEC_IMA: /* Need for Speed (PC) */
             if (ea->bits && ea->bits != 2) goto fail; /* only in EACS */
             vgmstream->coding_type = coding_DVI_IMA; /* stereo/mono, high nibble first */
-            vgmstream->codec_config = ea->codec_config;
+            vgmstream->layout_config = ea->block_config;
             break;
 
         case EA_CODEC_PSX: /* Need for Speed (PS1) */
             vgmstream->coding_type = coding_PSX;
-            vgmstream->codec_config = ea->codec_config;
+            vgmstream->layout_config = ea->block_config;
             break;
 
         default:
@@ -286,7 +289,7 @@ fail:
     return NULL;
 }
 
-static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t offset) {
+static int parse_header(STREAMFILE* sf, eacs_header_t* ea, uint32_t offset) {
     /* audio header endianness doesn't always match block headers, use sample rate to detect */
     read_s32_t read_s32;
 
@@ -313,7 +316,7 @@ static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t offset) {
             ea->data_offset = 0;
 
         if (ea->codec == EA_CODEC_IMA)
-            ea->codec_config = get_ea_1snh_ima_version(sf, 0x00, ea);
+            ea->block_config |= get_ea_1snh_ima_flag(sf, 0x00, ea);
         /* EACS banks with empty values exist but will be rejected later */
     }
     else if (ea->is_sead) {
@@ -326,14 +329,14 @@ static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t offset) {
         ea->codec       = read_s32(offset+0x08, sf);
 
         if (ea->codec == EA_CODEC_IMA)
-            ea->codec_config = get_ea_1snh_ima_version(sf, 0x00, ea);
+            ea->block_config |= get_ea_1snh_ima_flag(sf, 0x00, ea);
     }
     else if (ea->base_size == 0x2c) {
         /* [NBA Live 96 (PS1), Need for Speed (PS1)] */
         ea->sample_rate = read_s32le(offset+0x00, sf);
         ea->channels    =  read_u8(offset+0x18, sf);
         ea->codec       = EA_CODEC_PSX;
-        ea->codec_config = 0;
+        ea->block_config = 0;
     }
     else if (ea->base_size == 0x30) {
         /* [FIFA 97 (PS1), Triple Play 97 (PS1)] */
@@ -341,7 +344,7 @@ static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t offset) {
         ea->sample_rate = read_s32le(offset+0x04, sf);
         ea->channels    =  read_u8(offset+0x1c, sf);
         ea->codec       = EA_CODEC_PSX;
-        ea->codec_config = 1;
+        ea->block_config |= EA_FLAGS_BLOCK_ADPCM;
     }
     else {
         //TODO: test
@@ -356,7 +359,7 @@ static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t offset) {
         ea->type        =  read_u8(offset + 0x0b, sf); /* block type? 0=1SNh, -1=bank */
 
         if (ea->codec == EA_CODEC_IMA)
-            ea->codec_config = get_ea_1snh_ima_version(sf, 0x00, ea);
+            ea->block_config |= get_ea_1snh_ima_flag(sf, 0x00, ea);
     }
 
     ea->loop_flag = (ea->loop_end > 0);
@@ -365,7 +368,7 @@ static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t offset) {
 }
 
 /* get total samples by parsing block headers, needed when EACS isn't present */
-static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE* sf, eacs_header* ea, int find_loop) {
+static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE* sf, eacs_header_t* ea, int find_loop) {
     int32_t num_samples = 0, block_id;
     size_t file_size;
     read_s32_t read_s32 = ea->big_endian ? read_s32be : read_s32le;
@@ -412,7 +415,7 @@ static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE* sf, eacs_h
 }
 
 /* find codec version used, with or without ADPCM hist per block */
-static int get_ea_1snh_ima_version(STREAMFILE* sf, off_t start_offset, const eacs_header* ea) {
+static uint32_t get_ea_1snh_ima_flag(STREAMFILE* sf, off_t start_offset, const eacs_header_t* ea) {
     off_t block_offset = start_offset;
     size_t file_size = get_streamfile_size(sf);
     read_s32_t read_s32 = ea->big_endian ? read_s32be : read_s32le;
@@ -423,7 +426,7 @@ static int get_ea_1snh_ima_version(STREAMFILE* sf, off_t start_offset, const eac
         return 0;
 
     while (block_offset < file_size) {
-        uint32_t id = read_u32be(block_offset+0x00,sf);
+        uint32_t block_type = read_u32be(block_offset+0x00,sf);
         size_t block_size;
 
         /* BE in SAT, but one file may have both BE and LE chunks */
@@ -435,12 +438,12 @@ static int get_ea_1snh_ima_version(STREAMFILE* sf, off_t start_offset, const eac
         if (block_size == 0 || block_size == -1)
             break;
 
-        if (id == get_id32be("1SNd") || id == get_id32be("SNDC")) {
+        if (block_type == get_id32be("1SNd") || block_type == get_id32be("SNDC")) {
             int32_t ima_samples = read_s32(block_offset + 0x08, sf);
             int32_t expected_samples = (block_size - 0x08 - 0x04 - 0x08*ea->channels) * 2 / ea->channels;
 
             if (ima_samples == expected_samples) {
-                return 1; /* has ADPCM hist (hopefully) */
+                return EA_FLAGS_BLOCK_ADPCM; /* has ADPCM hist (hopefully) */
             }
         }
 

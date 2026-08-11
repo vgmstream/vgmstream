@@ -3,12 +3,12 @@
 #include "../vgmstream.h"
 #include "../util/endianness.h"
 
+// flags for vgmstream
+#define EA_FLAGS_BLOCK_ADPCM    0x01    // blocks have extra ADPCM config
+
 /* set up for the block at the given offset */
 void block_update_ea_1snh(off_t block_offset, VGMSTREAM* vgmstream) {
     STREAMFILE* sf = vgmstream->ch[0].streamfile;
-    int i;
-    uint32_t block_id;
-    size_t block_size = 0, block_header = 0, audio_size = 0;
     read_s32_t read_s32 = vgmstream->codec_endian ? read_s32be : read_s32le;
 
 
@@ -20,7 +20,8 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM* vgmstream) {
         return;
     }
 
-    block_id = read_u32be(block_offset + 0x00, sf);
+    uint32_t block_type = read_u32be(block_offset + 0x00, sf);
+    uint32_t block_size = 0, block_header = 0;
 
     /* BE in SAT, but one file may have both BE and LE chunks [FIFA 98 (SAT): movie LE, audio BE] */
     if (guess_endian32(block_offset + 0x04, sf))
@@ -30,19 +31,19 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM* vgmstream) {
 
     block_header = 0;
 
-    if (block_id == get_id32be("1SNh") || block_id == get_id32be("SEAD")) {  /* audio header */
-        int is_sead = (block_id == get_id32be("SEAD"));
-        int is_eacs = is_id32be(block_offset + 0x08, sf, "EACS");
-        int is_zero = read_u32be(block_offset + 0x08, sf) == 0x00;
+    if (block_type == get_id32be("1SNh") || block_type == get_id32be("SEAD")) {  /* audio header */
+        bool is_sead = (block_type == get_id32be("SEAD"));
+        bool is_eacs = is_id32be(block_offset + 0x08, sf, "EACS");
+        bool is_zero = read_u32be(block_offset + 0x08, sf) == 0x00;
 
         block_header = (is_eacs || is_zero) ? 0x28 : (is_sead ? 0x14 : 0x2c);
         if (block_header >= block_size) /* sometimes has audio data after header */
             block_header = 0;
     }
-    else if (block_id == get_id32be("1SNd") || block_id == get_id32be("SNDC")) {
+    else if (block_type == get_id32be("1SNd") || block_type == get_id32be("SNDC")) {
         block_header = 0x08;
     }
-    else if (block_id == 0x00000000 || block_id == 0xFFFFFFFF || block_id == get_id32be("1SNe")) { /* EOF */
+    else if (block_type == 0x00000000 || block_type == 0xFFFFFFFF || block_type == get_id32be("1SNe")) { /* EOF */
         vgmstream->current_block_samples = -1;
         return;
     }
@@ -55,54 +56,55 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM* vgmstream) {
         return;
     }
 
-    audio_size = block_size - block_header;
+    size_t audio_size = block_size - block_header;
+    int channels = vgmstream->channels;
 
     /* set new channel offsets and block sizes */
     switch(vgmstream->coding_type) {
         case coding_PCM8_int:
         case coding_ULAW_int:
-            vgmstream->current_block_samples = pcm_bytes_to_samples(audio_size, vgmstream->channels, 8);
-            for (i=0;i<vgmstream->channels;i++) {
+            vgmstream->current_block_samples = pcm8_bytes_to_samples(audio_size, channels);
+            for (int i = 0; i < channels; i++) {
                 vgmstream->ch[i].offset = block_offset + block_header + i;
             }
             break;
 
         case coding_PCM16_int:
-            vgmstream->current_block_samples = pcm_bytes_to_samples(audio_size, vgmstream->channels, 16);
-            for (i=0;i<vgmstream->channels;i++) {
+            vgmstream->current_block_samples = pcm16_bytes_to_samples(audio_size, channels);
+            for (int i = 0; i < channels; i++) {
                 vgmstream->ch[i].offset = block_offset + block_header + (i*2);
             }
             break;
 
         case coding_PSX:
-            if (vgmstream->codec_config == 1)  {/* extra field */
+            if (vgmstream->layout_config & EA_FLAGS_BLOCK_ADPCM)  {/* extra field */
                 block_header += 0x04;
                 audio_size -= 0x04;
             }
 
-            vgmstream->current_block_samples = ps_bytes_to_samples(audio_size, vgmstream->channels);
-            for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].offset = block_offset + block_header + i*(audio_size/vgmstream->channels);
+            vgmstream->current_block_samples = ps_bytes_to_samples(audio_size, channels);
+            for (int i = 0; i < channels; i++) {
+                vgmstream->ch[i].offset = block_offset + block_header + i * (audio_size / channels);
             }
             break;
 
         case coding_DVI_IMA:
-            if (vgmstream->codec_config == 1) { /* ADPCM hist */
+            if (vgmstream->layout_config & EA_FLAGS_BLOCK_ADPCM) { /* ADPCM hist */
                 vgmstream->current_block_samples = read_s32(block_offset + block_header, sf);
 
-                for(i = 0; i < vgmstream->channels; i++) {
+                for(int i = 0; i < channels; i++) {
                     off_t adpcm_offset = block_offset + block_header + 0x04;
-                    vgmstream->ch[i].adpcm_step_index  = read_s32(adpcm_offset + i*0x04 + 0x00*vgmstream->channels, sf);
-                    vgmstream->ch[i].adpcm_history1_32 = read_s32(adpcm_offset + i*0x04 + 0x04*vgmstream->channels, sf);
-                    vgmstream->ch[i].offset = adpcm_offset + 0x08*vgmstream->channels;
+                    vgmstream->ch[i].adpcm_step_index  = read_s32(adpcm_offset + i * 0x04 + 0x00 * channels, sf);
+                    vgmstream->ch[i].adpcm_history1_32 = read_s32(adpcm_offset + i * 0x04 + 0x04 * channels, sf);
+                    vgmstream->ch[i].offset = adpcm_offset + 0x08*channels;
                 }
 
-                //VGM_ASSERT(vgmstream->current_block_samples != (block_size - block_header - 0x04 - 0x08*vgmstream->channels) * 2 / vgmstream->channels,
+                //VGM_ASSERT(vgmstream->current_block_samples != (block_size - block_header - 0x04 - 0x08*channels) * 2 / channels,
                 //           "EA 1SHN blocked: different expected vs block num samples at %lx\n", block_offset);
             }
             else {
-                vgmstream->current_block_samples = ima_bytes_to_samples(audio_size, vgmstream->channels);
-                for(i = 0; i < vgmstream->channels; i++) {
+                vgmstream->current_block_samples = ima_bytes_to_samples(audio_size, channels);
+                for(int i = 0; i < channels; i++) {
                     vgmstream->ch[i].offset = block_offset + block_header;
                 }
             }
