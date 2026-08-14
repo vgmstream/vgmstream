@@ -9,7 +9,7 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
     char bank_name[0x22+1], stream_name[0x20+1], file_name[STREAM_NAME_SIZE];
     off_t start_offset, header_offset, name_offset;
     size_t stream_size;
-    uint32_t channel_count, sample_rate, num_samples, version, codec, tracks;
+    uint32_t channels, sample_rate, num_samples, version, codec, tracks;
     int big_endian, loop_flag, total_subsongs, target_subsong = sf->stream_index;
     read_u32_t read_u32;
 
@@ -70,40 +70,42 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
         case 0x03: /* PCM16 */
             switch(version) {
                 case 0x03: /* Geometry Wars (PC) */
-                    sample_rate     = read_u32(header_offset+0x38, sf);
-                    channel_count   = read_u32(header_offset+0x40, sf);
+                    sample_rate = read_u32(header_offset+0x38, sf);
+                    channels    = read_u32(header_offset+0x40, sf);
                     /* no actual flag, just loop +15sec songs */
-                    loop_flag = (pcm_bytes_to_samples(stream_size, channel_count, 16) > 15*sample_rate);
+                    loop_flag = (pcm_bytes_to_samples(stream_size, channels, 16) > 15*sample_rate);
                     break;
 
                 case 0x04: /* Project Gotham Racing 4 (X360) */
-                    sample_rate     = read_u32(header_offset+0x3c, sf);
-                    channel_count   = read_u32(header_offset+0x44, sf);
-                    loop_flag       =  read_u8(header_offset+0x4b, sf);
+                    sample_rate = read_u32(header_offset+0x3c, sf);
+                    channels    = read_u32(header_offset+0x44, sf);
+                    loop_flag   =  read_u8(header_offset+0x4b, sf);
                     break;
 
                 case 0x05: /* Blur 2 (X360) */
-                    sample_rate     = read_u32(header_offset+0x40, sf);
-                    channel_count   = read_u32(header_offset+0x48, sf);
-                    loop_flag       =  read_u8(header_offset+0x50, sf) != 0;
+                    sample_rate = read_u32(header_offset+0x40, sf);
+                    channels    = read_u32(header_offset+0x48, sf);
+                    loop_flag   =  read_u8(header_offset+0x50, sf) != 0;
                     break;
 
                 default:
                     goto fail;
             }
 
-            num_samples = pcm_bytes_to_samples(stream_size, channel_count, 16);
+            num_samples = pcm_bytes_to_samples(stream_size, channels, 16);
             break;
 
         case 0x07: /* PSX ADPCM (0x21 frame size) */
             if (version == 0x04 && read_u32(header_offset + 0x3c, sf) != 0) {
                 /* The Club (PS3), Blur (Prototype) (PS3) */
                 sample_rate     = read_u32(header_offset+0x3c, sf);
-                channel_count   = read_u32(header_offset+0x44, sf);
+                channels        = read_u32(header_offset+0x44, sf);
                 loop_flag       =  read_u8(header_offset+0x4b, sf);
 
+                if (channels < 1) // div-by-zero
+                    goto fail;
                 /* mini-header at the start of the stream */
-                num_samples     = read_u32le(start_offset+0x04, sf) / channel_count;
+                num_samples     = read_u32le(start_offset+0x04, sf) / channels;
                 start_offset   += read_u32le(start_offset+0x00, sf); /* 0x08 */
                 break;
             }
@@ -115,10 +117,10 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
                     num_samples     = read_u32(header_offset+0x44, sf);
                     loop_flag       =  read_u8(header_offset+0x48, sf);
                     tracks          =  read_u8(header_offset+0x49, sf);
-                    channel_count   =  read_u8(header_offset+0x4b, sf);
+                    channels        =  read_u8(header_offset+0x4b, sf);
 
                     if (tracks) {
-                        channel_count = channel_count * tracks;
+                        channels = channels * tracks;
                     }
                     break;
 
@@ -131,15 +133,15 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
         case 0x09: /* XMA2 */
             switch(version) {
                 case 0x04: /* Project Gotham Racing 4 (X360) */
-                    sample_rate     = read_u32(header_offset+0x3c, sf);
-                    channel_count   = read_u32(header_offset+0x44, sf);
-                    loop_flag       =  read_u8(header_offset+0x54, sf) != 0;
+                    sample_rate = read_u32(header_offset+0x3c, sf);
+                    channels    = read_u32(header_offset+0x44, sf);
+                    loop_flag   =  read_u8(header_offset+0x54, sf) != 0;
                     break;
 
                 case 0x05: /* James Bond 007: Blood Stone (X360) */
-                    sample_rate     = read_u32(header_offset+0x40, sf);
-                    channel_count   = read_u32(header_offset+0x48, sf);
-                    loop_flag       =  read_u8(header_offset+0x58, sf) != 0;
+                    sample_rate = read_u32(header_offset+0x40, sf);
+                    channels    = read_u32(header_offset+0x48, sf);
+                    loop_flag   =  read_u8(header_offset+0x58, sf) != 0;
                     break;
 
                 default:
@@ -156,7 +158,7 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_BAF;
@@ -196,7 +198,7 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
                 ms_sample_data msd = {0};
 
                 msd.xma_version  = is_xma1 ? 1 : 2;
-                msd.channels     = channel_count;
+                msd.channels     = channels;
                 msd.data_offset  = start_offset;
                 msd.data_size    = stream_size;
                 msd.loop_flag    = loop_flag;
@@ -234,7 +236,7 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
                 if (!vgmstream->codec_data) goto fail;
             }
 
-            xma_fix_raw_samples_ch(vgmstream, sf, start_offset, stream_size, channel_count, 1,1);
+            xma_fix_raw_samples_ch(vgmstream, sf, start_offset, stream_size, channels, 1,1);
             break;
         }
 #endif

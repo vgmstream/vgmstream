@@ -6,43 +6,39 @@
 /* for reading integers inexplicably packed into 80-bit ('double extended') floats, AKA:
  * "80 bit IEEE Standard 754 floating point number (Standard AppleNumeric Environment [SANE] data type Extended)" */
 static uint32_t read_f80be(off_t offset, STREAMFILE* sf) {
-    uint8_t buf[0x0a];
-    int32_t exponent;
-    int32_t mantissa;
-    int i;
+    uint8_t buf[0x0A];
 
     if (read_streamfile(buf, offset, sizeof(buf), sf) != sizeof(buf))
         return 0;
 
-    exponent = ((buf[0]<<8) | (buf[1])) & 0x7fff;
+    int32_t exponent = ((buf[0]<<8) | (buf[1])) & 0x7fff;
     exponent -= 16383;
 
-    mantissa = 0;
-    for (i = 0; i < 8; i++) {
-        int32_t shift = exponent-7-i*8;
+    int32_t mantissa = 0;
+    for (int i = 0; i < 8; i++) {
+        int32_t shift = exponent - 7 - i * 8;
         if (shift >= 0)
             mantissa |= buf[i+2] << shift;
         else if (shift > -8)
             mantissa |= buf[i+2] >> -shift;
     }
 
-    return mantissa * ((buf[0]&0x80) ? -1 : 1);
+    if (buf[0] & 0x80)
+        mantissa = -mantissa;
+
+    return mantissa;
 }
 
 static uint32_t find_marker(STREAMFILE* sf, off_t mark_offset, int marker_id) {
-    uint16_t marker_count;
-    off_t marker_offset;
-    int i;
 
-    marker_count = read_u16be(mark_offset + 0x00,sf);
-    marker_offset = mark_offset + 0x02;
-    for (i = 0; i < marker_count; i++) {
-        int name_length;
-        
+    uint16_t marker_count = read_u16be(mark_offset + 0x00,sf);
+    off_t marker_offset = mark_offset + 0x02;
+    for (int i = 0; i < marker_count; i++) {
+
         if (read_u16be(marker_offset + 0x00, sf) == marker_id)
             return read_u32be(marker_offset + 0x02,sf);
 
-        name_length = read_u8(marker_offset + 0x06,sf) + 1;
+        int name_length = read_u8(marker_offset + 0x06,sf) + 1;
         if (name_length % 2) name_length++;
         marker_offset += 0x06 + name_length;
     }
@@ -50,17 +46,20 @@ static uint32_t find_marker(STREAMFILE* sf, off_t mark_offset, int marker_id) {
     return -1;
 }
 
-static int is_str(const char* str, int len, off_t offset, STREAMFILE* sf) {
-    uint8_t buf[0x100];
+static bool is_str(const char* base_str, size_t str_len, off_t offset, STREAMFILE* sf) {
+    char buf[0x100];
 
-    if (len == 0)
-        len = strlen(str);
+    size_t base_len = strlen(base_str);
+    if (str_len == 0)
+        str_len = base_len;
+    else if (base_len != str_len)
+        return false;
 
-    if (len > sizeof(buf))
-        return 0;
-    if (read_streamfile(buf, offset, len, sf) != len)
-        return 0;
-    return memcmp(buf, str, len) == 0; /* memcmp to allow "AB\0\0" */
+    size_t read = read_string_sz(buf, sizeof(buf), str_len, offset, sf);
+    if (read != str_len)
+        return false;
+
+    return strcmp(base_str, buf) == 0;
 }
 
 

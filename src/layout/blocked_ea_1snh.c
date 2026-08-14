@@ -29,30 +29,39 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM* vgmstream) {
     else
         block_size = read_u32le(block_offset + 0x04, sf);
 
-    block_header = 0;
+    block_header = 0x00;
 
-    if (block_type == get_id32be("1SNh") || block_type == get_id32be("SEAD")) {  /* audio header */
+    if (block_type == 0x00000000 || block_type == 0xFFFFFFFF || block_type == get_id32be("1SNe")) { /* EOF */
+        vgmstream->current_block_samples = -1;
+        return;
+    }
+
+    // audio header 
+    if (block_type == get_id32be("1SNh") || block_type == get_id32be("SEAD")) {
         bool is_sead = (block_type == get_id32be("SEAD"));
         bool is_eacs = is_id32be(block_offset + 0x08, sf, "EACS");
         bool is_zero = read_u32be(block_offset + 0x08, sf) == 0x00;
 
         block_header = (is_eacs || is_zero) ? 0x28 : (is_sead ? 0x14 : 0x2c);
         if (block_header >= block_size) /* sometimes has audio data after header */
-            block_header = 0;
+            block_header = 0x00;
     }
     else if (block_type == get_id32be("1SNd") || block_type == get_id32be("SNDC")) {
         block_header = 0x08;
     }
-    else if (block_type == 0x00000000 || block_type == 0xFFFFFFFF || block_type == get_id32be("1SNe")) { /* EOF */
-        vgmstream->current_block_samples = -1;
-        return;
-    }
 
     vgmstream->current_block_offset = block_offset;
     vgmstream->next_block_offset    = block_offset + block_size;
-    if (block_header == 0) {
-        /* no audio data, skip this block */
+
+    // no audio data, skip this block
+    if (block_header == 0x00) {
         vgmstream->current_block_samples = 0;
+        return;
+    }
+
+    // ???
+    if (block_size <= block_header) {
+        vgmstream->current_block_samples = -1;
         return;
     }
 

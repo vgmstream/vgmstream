@@ -49,10 +49,10 @@ void decode_vadpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacin
 
     scale = 1 << scale;
 
-    VGM_ASSERT_ONCE(index > 8, "DSP: incorrect index at %x\n", (uint32_t)frame_offset);
-    if (index > 8) /* assumed */
-        index = 8;
-    coefs = &stream->vadpcm_coefs[index * (order*8) + 0];
+    VGM_ASSERT_ONCE(index > 7, "DSP: incorrect index at %x\n", (uint32_t)frame_offset);
+    if (index > 7) /* assumed */
+        index = 7;
+    coefs = &stream->vadpcm_coefs[index * (order * 8) + 0];
 
 
     /* read and pre-scale all nibbles, since groups of 8 are needed */
@@ -78,13 +78,13 @@ void decode_vadpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacin
         int16_t* sf_out = &out[j*8];
 
         /* works with 8 samples at a time, related in twisted ways */
-        for( i = 0; i < 8; i++) {
+        for(i = 0; i < 8; i++) {
             int sample, delta = 0;
 
             /* in practice: delta = coefs[0][i] * hist[6] + coefs[1][i] * hist[7],
              * much like XA's coef1*hist1 + coef2*hist2 but with multi coefs */
             for (o = 0; o < order; o++) {
-                delta += coefs[o*8 + i] * hist[(8 - order) + o];
+                delta += coefs[o * 8 + i] * hist[(8 - order) + o];
             }
 
             /* adds all previous samples */

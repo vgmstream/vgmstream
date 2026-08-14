@@ -31,4 +31,9 @@ void str_uppercase_v(char* dst, size_t dst_size);
 
 bool str_is_uppercase(const char* str);
 
+/* check if 'str' starts with 'preffix' (case insensitive)
+ * Ex. Banana + bana -> true; banana + bana2 -> false; bana + banana -> false
+ */
+bool str_startswith_ci(const char* str, const char* preffix);
+
 #endif

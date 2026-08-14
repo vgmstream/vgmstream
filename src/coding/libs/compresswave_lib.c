@@ -504,8 +504,8 @@ typedef struct {
   int64_t LoopStart;        // loop start/end position
   int64_t LoopEnd;
   uint8_t LoopCount;        // loop times
-  char MusicTitle[128*2];   // song name
-  char MusicArtist[128*2];  // composer
+  char MusicTitle[127+1];   // song name
+  char MusicArtist[127+1];  // composer
 } PRESSWAVEDATAHED;
 
 //for writting
@@ -800,10 +800,22 @@ static void TStream_Read_PRESSWAVEDATAHED(TStream* self, PRESSWAVEDATAHED* Hed) 
     Hed->LoopEnd        = get_u64le(buf + 0x428);
     Hed->LoopCount      = get_u8   (buf + 0x430);
 
+    // 0x80 pascal strings (name size 0x01 + non-null terminated data 0x7F) x2
     len = get_u8  (buf + 0x431);
+    if (len > 127) //format max
+        len = 127;
+    if (len > sizeof(Hed->MusicTitle) - 1)
+        len = sizeof(Hed->MusicTitle) - 1;
     memcpy(Hed->MusicTitle, buf + 0x432, len);
+    Hed->MusicTitle[len] = '\0';
+
     len = get_u8 (buf + 0x4B1);
+    if (len > 127) //format max
+        len = 127;
+    if (len > sizeof(Hed->MusicArtist) - 1)
+        len = sizeof(Hed->MusicArtist) - 1;
     memcpy(Hed->MusicArtist, buf + 0x4B2, len);
+    Hed->MusicArtist[len] = '\0';
 
     /* 0x538: huffman table */
     /* 0x948: data start */
