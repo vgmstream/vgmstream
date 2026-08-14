@@ -81,8 +81,9 @@ VGMSTREAM* init_vgmstream_ea_bnk(STREAMFILE* sf) {
      * .abk: GoldenEye - Rogue Agent
      * .ast: FIFA 2004 (inside .big)
      * .cat: FIFA 2000 (PC, chant.cat)
+     * .gen: Triple Play 99 (PC)
      * (extensionless): The Sims 2 spinoffs (PSP) */
-    if (!check_extensions(sf, "bnk,sdt,hdt,ldt,abk,ast,cat,"))
+    if (!check_extensions(sf, "bnk,sdt,hdt,ldt,abk,ast,cat,gen,"))
         return NULL;
 
     if (target_stream == 0) target_stream = 1;

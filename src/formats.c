@@ -224,6 +224,7 @@ static const char* extension_list[] = {
     "gcub",
     "gcw",
     "ged",
+    "gen",
     "genh",
     "gin",
     "gmd",  //txth/semi [High Voltage games: Charlie and the Chocolate Factory (GC), Zathura (GC)]
