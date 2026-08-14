@@ -3,16 +3,23 @@
 #include "../vgmstream.h"
 #include "../util/endianness.h"
 
+// flags for vgmstream
+#define EA_FLAGS_BLOCK_SIZE_BE  0x01    // block sizes are big endian (unusual)
+#define EA_FLAGS_BLOCK_ADPCM    0x02    // blocks have extra ADPCM config
+#define EA_FLAGS_BLOCK_OFFSETS  0x04    // block have offsets
+#define EA_FLAGS_LANG_MASK      0xFFFF  // upper 16 bits are used to store language id (not exactly a flag)
+
+
 /* parse EA style blocks, id+size+samples+data */
 void block_update_ea_schl(off_t block_offset, VGMSTREAM* vgmstream) {
     STREAMFILE* sf = vgmstream->ch[0].streamfile;
-    size_t block_size, block_samples;
+    size_t block_samples;
     read_u32_t read_u32 = get_read_u32(vgmstream->codec_endian);
 
-    uint32_t flag_lang = (vgmstream->codec_config >> 16) & 0xFFFF;
-    bool flag_adpcm = (vgmstream->codec_config & 0x01);
-    bool flag_be = (vgmstream->codec_config & 0x02);
-    bool flag_offsets = (vgmstream->codec_config & 0x04);
+    bool flag_size_be = (vgmstream->layout_config & EA_FLAGS_BLOCK_SIZE_BE);
+    bool flag_adpcm = (vgmstream->layout_config & EA_FLAGS_BLOCK_ADPCM);
+    bool flag_offsets = (vgmstream->layout_config & EA_FLAGS_BLOCK_OFFSETS);
+    uint32_t flag_lang = (vgmstream->layout_config >> 16) & EA_FLAGS_LANG_MASK;
 
 
     /* EOF reads: signal we have nothing and let the layout fail */
@@ -24,30 +31,34 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM* vgmstream) {
     }
 
     /* read a single block */
-    {
-        uint32_t block_id = read_u32be(block_offset+0x00,sf);
+    uint32_t block_type = read_u32be(block_offset+0x00,sf);
+    uint32_t block_size;
 
-        // size is always LE, except in early SS/MAC
-        if (flag_be)
-            block_size = read_u32be(block_offset + 0x04,sf);
-        else
-            block_size = read_u32le(block_offset + 0x04,sf);
+    // size is always LE, except in early SS/MAC
+    if (flag_size_be)
+        block_size = read_u32be(block_offset + 0x04,sf);
+    else
+        block_size = read_u32le(block_offset + 0x04,sf);
 
-        // accept "SCDl" or "SDxx" audio chunk and ignore others (audio "SCHl/SCCl/...", non-target lang, video "pIQT/MADk/...", etc)
-        if (block_id == get_id32be("SCDl") || block_id == (get_id32be("SD\0\0") | flag_lang)) {
-            if (vgmstream->coding_type == coding_PSX)
-                block_samples = ps_bytes_to_samples(block_size - 0x10, vgmstream->channels);
-            else
-                block_samples = read_u32(block_offset+0x08,sf);
+    if (block_type == 0x00000000 || block_type == 0xFFFFFFFF || block_type == get_id32be("SCEl")) { // EOF
+        vgmstream->current_block_samples = -1;
+        return;
+    }
+
+    // accept "SCDl" or "SDxx" audio chunks and ignore others (audio "SCHl/SCCl/...", non-target lang, video "pIQT/MADk/...", etc)
+    if (block_type == get_id32be("SCDl") || block_type == (get_id32be("SD\0\0") | flag_lang)) {
+        if (block_size < 0x10) {
+            block_samples = 0; //???
+        }
+        else if (vgmstream->coding_type == coding_PSX) {
+            block_samples = ps_bytes_to_samples(block_size - 0x10, vgmstream->channels);
         }
         else {
-            block_samples = 0; // layout ignores this
+            block_samples = read_u32(block_offset+0x08,sf);
         }
-
-        if (block_id == 0x00000000 || block_id == 0xFFFFFFFF || block_id == get_id32be("SCEl")) { // EOF
-            vgmstream->current_block_samples = -1;
-            return;
-        }
+    }
+    else {
+        block_samples = 0; // layout ignores this
     }
 
 

@@ -81,8 +81,9 @@ VGMSTREAM* init_vgmstream_ea_bnk(STREAMFILE* sf) {
      * .abk: GoldenEye - Rogue Agent
      * .ast: FIFA 2004 (inside .big)
      * .cat: FIFA 2000 (PC, chant.cat)
+     * .gen: Triple Play 99 (PC)
      * (extensionless): The Sims 2 spinoffs (PSP) */
-    if (!check_extensions(sf, "bnk,sdt,hdt,ldt,abk,ast,cat,"))
+    if (!check_extensions(sf, "bnk,sdt,hdt,ldt,abk,ast,cat,gen,"))
         return NULL;
 
     if (target_stream == 0) target_stream = 1;
@@ -130,16 +131,16 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
 
     /* find starting valid header for the parser */
     while (offset < get_streamfile_size(sf)) {
-        uint32_t block_id = read_u32be(offset + 0x00, sf);
+        uint32_t block_type = read_u32be(offset + 0x00, sf);
         uint32_t block_size = read_u32(offset + 0x04, sf);
 
         /* find "SCHl" or "SHxx" blocks */
-        if ((block_id == EA_BLOCKID_HEADER) || ((block_id & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER)) {
+        if ((block_type == EA_BLOCKID_HEADER) || ((block_type & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER)) {
             start_offset = offset;
             break;
         }
 
-        if (block_size == 0xFFFFFFFF)
+        if (block_size == 0 || block_size == 0xFFFFFFFF)
             goto fail;
         if (blocks_done > 10)
             goto fail; /* unlikely to contain music */
@@ -156,13 +157,16 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     if (target_subsong == 0) target_subsong = 1;
     offset = start_offset;
     while (offset < get_streamfile_size(sf)) {
-        uint32_t block_id = read_u32be(offset + 0x00, sf);
+        uint32_t block_type = read_u32be(offset + 0x00, sf);
         uint32_t block_size = read_u32(offset + 0x04, sf);
 
         /* no more subsongs (assumes all SHxx headers go together) */
-        if (((block_id & 0xFFFF0000) != EA_BLOCKID_LOC_HEADER)) {
+        if (((block_type & 0xFFFF0000) != EA_BLOCKID_LOC_HEADER)) {
             break;
         }
+
+        if (block_size == 0)
+            goto fail;
 
         if (target_subsong == total_subsongs) {
             start_offset = offset;

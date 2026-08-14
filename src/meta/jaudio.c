@@ -299,11 +299,14 @@ VGMSTREAM* init_vgmstream_jaudio_bx(STREAMFILE* sf) {
     return init_vgmstream_jaudio(sf, &hdr);
 }
 
+#define JAUDIO_MAX_DEPTH 3 // arbitrary max
 
-static bool parse_jaudio_baa(STREAMFILE* sf, meta_header_t* hdr, uint32_t base_offset, uint32_t max_offset) {
+static bool parse_jaudio_baa(STREAMFILE* sf, meta_header_t* hdr, uint32_t base_offset, uint32_t max_offset, int depth) {
     enum baa_chunks_t { 
         bst_ = 0x62737420, bstn = 0x6273746E, bsc_ = 0x62736320, ws__ = 0x77732020, bnk_ = 0x626E6B20, bfst = 0x62736674, bms_ = 0x626D7320, baac = 0x62616163, bfca = 0x62666361,
     };
+    if (depth > JAUDIO_MAX_DEPTH)
+        return false;
 
     uint32_t offset = base_offset;
     if (!is_id32be(offset, sf, "AA_<"))
@@ -360,7 +363,9 @@ static bool parse_jaudio_baa(STREAMFILE* sf, meta_header_t* hdr, uint32_t base_o
                     uint32_t baa_offset = read_u32be(sub_offset, sf) + baac_offset;
                     sub_offset += 0x04;
 
-                    bool ok = parse_jaudio_baa(sf, hdr, baa_offset, baac_end);
+                    if (baa_offset == base_offset)
+                        return false;
+                    bool ok = parse_jaudio_baa(sf, hdr, baa_offset, baac_end, depth + 1);
                     if (!ok) return false;
                 }
 
@@ -394,7 +399,7 @@ VGMSTREAM* init_vgmstream_jaudio_baa(STREAMFILE* sf) {
     uint32_t max_offset = get_streamfile_size(sf);
     uint32_t offset = 0x00;
 
-    bool ok = parse_jaudio_baa(sf, &hdr, offset, max_offset);
+    bool ok = parse_jaudio_baa(sf, &hdr, offset, max_offset, 0);
     if (!ok) return NULL;
 
     return init_vgmstream_jaudio(sf, &hdr);

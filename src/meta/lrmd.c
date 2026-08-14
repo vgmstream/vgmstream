@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/string_utils.h"
 #include "lrmd_streamfile.h"
 
 /* LRMD - Sony/SCEI's format (Loco Roco Music Data?) [LocoRoco 2 (PSP), LocoRoco: Midnight Carnival (PSP)] */
@@ -62,11 +63,10 @@ VGMSTREAM* init_vgmstream_lrmd(STREAMFILE* sf) {
 
     /* section1: layer config */
     {
-        int i;
         int frame_size = max_chunk / layers / 2; /* even for songs with mono layers */
 
         chunk_size = 0;
-        for (i = 0; i < layers; i++) {
+        for (int i = 0; i < layers; i++) {
             off_t header_offset = section1_offset + i * 0x18;
             int layer_channels;
 
@@ -145,12 +145,11 @@ VGMSTREAM* init_vgmstream_lrmd(STREAMFILE* sf) {
 
     /* name custom main + layer name */
     {
-        int name_len = read_string(vgmstream->stream_name, STREAM_NAME_SIZE - 1, basename_offset, sf);
-
-        strcat(vgmstream->stream_name, "/");
-        name_len++;
-
-        read_string(vgmstream->stream_name + name_len, STREAM_NAME_SIZE - name_len, subname_offset, sf);
+        char main_name[256];
+        char layr_name[256];
+        read_string(main_name, sizeof(main_name), basename_offset, sf);
+        read_string(layr_name, sizeof(layr_name), subname_offset, sf);
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", main_name, layr_name);
     }
 
     if (!vgmstream_open_stream(vgmstream, temp_sf, stream_offset))

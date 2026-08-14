@@ -17,7 +17,7 @@ typedef struct {
     int32_t num_samples;
 } adm_header_t;
 
-static int parse_adm(adm_header_t* adm, STREAMFILE* sf);
+static bool parse_adm(adm_header_t* adm, STREAMFILE* sf);
 
 static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int file_version);
 
@@ -59,7 +59,7 @@ static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int file_version) {
     adm.file_version = file_version;
 
     if (!parse_adm(&adm, sf))
-        goto fail;
+        return NULL;
 
 
     /* build the VGMSTREAM */
@@ -98,30 +98,34 @@ fail:
 }
 
 
-static int parse_type(adm_header_t* adm, STREAMFILE* sf, uint32_t offset) {
+static int parse_type(adm_header_t* adm, STREAMFILE* sf, uint32_t offset, int depth) {
+    depth++;
+ 
+    // arbitrary max (instead of depth maybe could validate expected chunk)
+    if (depth > 5)
+        return false;
 
     /* ADM2 chunks */
     if (is_id32be(offset, sf, "GRN1") && adm->file_version == 2) {
-        /* 0x74: offset to floats? */
+        // 0x74: offset to floats?
         offset = read_u32le(offset + 0x78, sf);
-        if (!parse_type(adm, sf, offset)) /* SMP1 */
-            goto fail;
+        if (!parse_type(adm, sf, offset, depth)) // SMP1
+            return false;
     }
     else if (is_id32be(offset, sf, "SMP1")) {
         adm->total_subsongs++;
 
         if (adm->target_subsong == adm->total_subsongs) {
-            /* 0x04 always 0 */
-            /* 0x08 version? (0x00030000) */
+            // 0x04 always 0
+            // 0x08 version? (0x00030000)
             adm->channels = read_u16le(offset + 0x0c, sf);
-            /* 0x0e 0x0001? */
-            /* 0x10 header size (0x2c) */
+            // 0x0e 0x0001?
+            // 0x10 header size (0x2c)
             adm->sample_rate = read_s32le(offset + 0x14, sf);
             adm->num_samples = read_s32le(offset + 0x18, sf);
             adm->stream_size = read_u32le(offset + 0x1c, sf);
             adm->stream_offset = read_u32le(offset + 0x20, sf);
-            /* rest: null */
-            VGM_LOG("so=%x %x\n", adm->stream_size, adm->stream_offset);
+            // rest: null
         }
     }
 
@@ -129,113 +133,120 @@ static int parse_type(adm_header_t* adm, STREAMFILE* sf, uint32_t offset) {
     else if (is_id32be(offset, sf, "RMP1")) {
         off_t next_offset;
         next_offset = read_u32le(offset + 0x1c, sf);
-        if (!parse_type(adm, sf, next_offset)) /* SMB1 */
-            goto fail;
+        if (!parse_type(adm, sf, next_offset, depth)) // SMB1
+            return false;
         next_offset = read_u32le(offset + 0x24, sf);
-        if (!parse_type(adm, sf, next_offset)) /* GRN1 */
-            goto fail;
+        if (!parse_type(adm, sf, next_offset, depth)) // GRN1
+            return false;
     }
     else if (is_id32be(offset, sf, "GRN1") && adm->file_version == 3) {
         offset = read_u32le(offset + 0x5c, sf);
-        if (!parse_type(adm, sf, offset)) /* SMP2 */
-            goto fail;
+        if (!parse_type(adm, sf, offset, depth)) // SMP2
+            return false;
     }
     else if (is_id32be(offset, sf, "SMB1")) {
         uint32_t table_count  = read_u32le(offset + 0x10, sf);
         uint32_t table_offset = read_u32le(offset + 0x18, sf);
-        int i;
 
-        for (i = 0; i < table_count; i++) {
+        for (int i = 0; i < table_count; i++) {
             /* 16-bit value after smp2_unk rarely have non-zero values [PUBG Lite] */
             uint16_t smp2_unk    = read_u16le(table_offset + i * 0x08 + 0x00, sf);
             uint32_t smp2_offset = read_u32le(table_offset + i * 0x08 + 0x04, sf);
 
             if (smp2_unk != 1)
-                goto fail;
+                return false;
 
-            if (!parse_type(adm, sf, smp2_offset)) /* SMP2 */
-                goto fail;
+            if (!parse_type(adm, sf, smp2_offset, depth)) // SMP2
+                return false;
         }
     }
     else if (is_id32be(offset, sf, "SMP2")) {
         adm->total_subsongs++;
 
         if (adm->target_subsong == adm->total_subsongs) {
-            /* 0x04 always 0 */
-            /* 0x08 version? (0x00040000) */
+            // 0x04 always 0
+            // 0x08 version? (0x00040000)
             adm->channels = read_u32le(offset + 0x0c, sf); /* usually 4, with different sounds*/
-            /* 0x10 float pitch? */
-            /* 0x14 int pitch? */
-            /* 0x18 0x0001? */
-            /* 0x1a header size (0x30) */
+            // 0x10 float pitch?
+            // 0x14 int pitch?
+            // 0x18 0x0001?
+            // 0x1a header size (0x30)
             adm->sample_rate = read_s32le(offset + 0x1c, sf);
             adm->num_samples = read_s32le(offset + 0x20, sf);
             adm->stream_size = read_u32le(offset + 0x24, sf);
-            /* 0x28 1? */
+            // 0x28 1?
             adm->stream_offset = read_u32le(offset + 0x2c, sf);
         }
     }
     else {
         VGM_LOG("ADM: unknown at %x\n", offset);
-        goto fail;
+        return false;
     }
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
-static int parse_adm(adm_header_t* adm, STREAMFILE* sf) {
+static bool parse_adm(adm_header_t* adm, STREAMFILE* sf) {
     uint32_t offset;
 
-    /* 0x04: null */
-    adm->header_version = read_u32le(0x08, sf); /* ADM2: 0x00050000, ADM3: 0x00060000 (older) / 0x00070000 (2023) */
-    /* 0x0c: header size */
-    /* 0x10: data start */
-    /* rest unknown, looks mostly the same between files (some floats and stuff) */
+    // 0x04: null
+    adm->header_version = read_u32le(0x08, sf); // ADM2: 0x00050000, ADM3: 0x00060000 (older) / 0x00070000 (2023)
+    // 0x0c: header size
+    // 0x10: data start
+    // rest unknown, looks mostly the same between files (some floats and stuff)
 
+    int depth = 0;
     switch(adm->file_version) {
         case 2:
             /* low to high */
             offset = read_u32le(0x104, sf);
-            if (!parse_type(adm, sf, offset)) goto fail; /* GRN1 */
+            if (!parse_type(adm, sf, offset, depth)) // GRN1
+                return false;
 
             /* high to low */
             offset = read_u32le(0x108, sf);
-            if (!parse_type(adm, sf, offset)) goto fail; /* GRN1 */
+            if (!parse_type(adm, sf, offset, depth)) // GRN1
+                return false;
 
             /* idle engine */
             offset = read_u32le(0x10c, sf);
-            if (!parse_type(adm, sf, offset)) goto fail; /* SMP1 */
+            if (!parse_type(adm, sf, offset, depth)) // SMP1
+                return false;
+
             break;
 
         case 3:
             /* higher ramp, N samples from low to high */
             offset = read_u32le(0x0FC, sf);
-            if (!parse_type(adm, sf, offset)) goto fail; /* RMP1 */
-            if (read_u32le(0x100, sf) != 1) goto fail;
+            if (!parse_type(adm, sf, offset, depth)) // RMP1
+                return false;
+            if (read_u32le(0x100, sf) != 1)
+                return false;
 
             /* lower ramp, also N samples */
             offset = read_u32le(0x104, sf);
-            if (!parse_type(adm, sf, offset)) goto fail; /* RMP1 */
-            if (read_u32le(0x108, sf) != 1) goto fail;
+            if (!parse_type(adm, sf, offset, depth)) // RMP1
+                return false;
+            if (read_u32le(0x108, sf) != 1)
+                return false;
 
             /* idle engine */
             offset = read_u32le(0x10c, sf);
             if (offset != 0) { /* may not exist */
-                if (!parse_type(adm, sf, offset)) goto fail; /* SMP2 */
-                if (read_u32le(0x110, sf) != 1) goto fail;
+                if (!parse_type(adm, sf, offset, depth)) // SMP2
+                    return false;
+                if (read_u32le(0x110, sf) != 1)
+                    return false;
             }
+
             break;
 
         default:
-            goto fail;
+            return false;
     }
 
     if (adm->target_subsong < 0 || adm->target_subsong > adm->total_subsongs || adm->total_subsongs < 1)
-        goto fail;
+        return false;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }

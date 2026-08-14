@@ -3,6 +3,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifdef _MSC_VER
+    #define strncasecmp _strnicmp
+#endif
+
 /* Attempt to create usable string functions.
  * 
  * To recap in C we have:
@@ -158,4 +162,10 @@ bool str_is_uppercase(const char* str) {
     }
 
     return true;
+}
+
+bool str_startswith_ci(const char* str, const char* preffix) {
+    // Assuming both are null-terminated this should be safe.
+    // If main is shorter than sub, it'll encounter \0 and return false.
+    return strncasecmp(str, preffix, strlen(preffix)) == 0;
 }

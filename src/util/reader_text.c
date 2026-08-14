@@ -72,34 +72,46 @@ size_t read_bom(STREAMFILE* sf) {
     return 0x00;
 }
 
-size_t read_string_sz(char* buf, size_t buf_size, size_t string_size, off_t offset, STREAMFILE* sf) {
 
-    // read up to buf, or stop before if size is set; in either case will stop at 0x00
-    size_t max_size = buf_size;
-    if (string_size > 0 && string_size < max_size)
-        max_size = string_size + 1;
+// read up to buf_size, or up to str_size; in either case it will stop
+// at \0 and will null-terminate if end is found without null. ex.:
+// - "string\0" + buf_size = 8 -> reads 7 = "string\0"
+// - "string\0" + buf_size = 5 -> reads 5 = "stri\0" (but last char becomes null)
+// - "string\0" + str_size = 4 -> reads 4 = "stri\0" (buf has 5)
+// - "string\0" + buf_size = 4 + str_size = 4 -> reads 4 = "str\0" (but last char becomes null)
+size_t read_string_sz(char* buf, size_t buf_size, size_t str_size, off_t offset, STREAMFILE* sf) {
+    if (buf && buf_size == 0)
+        return 0;
 
-    for (size_t pos = 0; pos < max_size; pos++) {
+    size_t pos;
+    for (pos = 0; pos < buf_size; pos++) {
+        // str_size has been read + extra null added
+        if (str_size && pos == str_size) {
+            if (buf) buf[pos] = '\0';
+            return pos;
+        }
+
         uint8_t byte = read_u8(offset + pos, sf);
         if (buf) buf[pos] = (char)byte;
 
-        // done
+        // found null in file
         if (byte == '\0')
-            return pos;
+            return pos; // + 1;
 
-        // null at maxsize and don't validate (expected to be garbage)
-        if (pos + 1 == max_size) {
+
+        // reached allowed max
+        if (pos == buf_size - 1) {
             if (buf) buf[pos] = '\0';
-            return max_size;
+            return pos; // + 1;
         }
 
-        // UTF-8 only goes to 0x7F, but allow a bunch of Windows-1252 codes that some games use
+        // allow a bunch of Windows-1252 codes that some games use
         if (byte < 0x20 || byte > 0xF0)
             break;
     }
 
-    // error or wrong max_size
-    if (buf) buf[0] = '\0';
+    // error or max_size reached
+    if (buf) buf[pos] = '\0';
     return 0;
 }
 
