@@ -3,6 +3,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifdef _MSC_VER
+    #define strncasecmp _strnicmp
+#endif
+
 /* Attempt to create usable string functions.
  * 
  * To recap in C we have:
