@@ -100,7 +100,8 @@ VGMSTREAM* init_vgmstream_skex(STREAMFILE* sf) {
 
         case 0x2040:    // MLB 2005 (PS2)
         case 0x2070:    // MLB 2006 (PS2), NBA 06 (PS2), MLB (PSP)
-        case 0x3000: {  // Syphon Filter: Dark Mirror (PS2/PSP), Syphon Filter: Logan's Shadow (PSP)
+        case 0x3000:    // Syphon Filter: Dark Mirror (PS2/PSP), Syphon Filter: Logan's Shadow (PSP)
+        case 0x3200: {  // NBA 08 (PS2)
             uint32_t offset = head_offset;
 
             // 00: header id
