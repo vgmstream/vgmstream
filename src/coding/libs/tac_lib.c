@@ -2,7 +2,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
 
 /* tri-Ace PS2 DCT-style codec.
  *
@@ -45,10 +44,11 @@
 //#define TAC_MAX_FRAME_SIZE  0x300 /* typically around ~0x1d0, observed max is ~0x2e2 */
 #define TAC_CODED_BANDS     27
 #define TAC_CODED_COEFS     32
-#define TAC_TOTAL_POINTS    32 /* not sure about this term */
+#define TAC_TOTAL_POINTS    32 // not sure about this term
 #define TAC_SCALE_TABLE_MAX_INDEX 511
 #define TAC_RANGE_FREQUENCY_BITS 14
 #define TAC_RANGE_FREQUENCY_SIZE (1u << TAC_RANGE_FREQUENCY_BITS) // 16384
+#define TAC_MAX_CODES       892 // max per channel 27 * 32 = 864 + 27 + 1 = 892, which does happen often
 
 struct tac_handle_t {
     /* base header */
@@ -62,7 +62,7 @@ struct tac_handle_t {
     /* range coding state */
     uint16_t symbol_frequency[257]; /* init once */
     int16_t code_history[TAC_CHANNELS][32]; /* saved between (some) frames */
-    int16_t cumulative_frequency[258]; /* init once */
+    uint16_t cumulative_frequency[258]; /* init once */
     uint8_t symbol_lookup[TAC_RANGE_FREQUENCY_SIZE - 1]; /* init once */
 
     int16_t codes[TAC_CHANNELS][TAC_FRAME_SAMPLES];
@@ -926,8 +926,13 @@ static void finalize_output(tac_handle_t* h) {
     }
 }
 
-/* read range-coding codes for all channels (max per channel 27*32 = 864 + 27 + 1 = 892) */
-static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_hist, uint32_t base_code) {
+/* Read range-coding codes for all channels. */
+static int read_codes(tac_handle_t* h, const uint8_t* ptr, size_t ptr_size, uint16_t use_code_hist, uint32_t base_code) {
+    if (ptr_size == 0)
+        return -1;
+
+    // OG code doesn't check div-by-zero or overreads like below; presumably frame's CRC16 was accepted as ok enough
+    const uint8_t* end = ptr + ptr_size;
     int total_codes = 0;
 
     uint32_t code = base_code; // current encoded position
@@ -941,8 +946,13 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
         for (code_index = 0; code_index < max_codes; code_index++) {
             range = range >> 14; // scale to 14-bit
 
-            // map code from current range to symbol
-            uint32_t symbol = h->symbol_lookup[(code - lower) / range];
+            // map code from current range to base symbol, that doubles as 8-bit index (safe below)
+            if (range == 0)
+                return -1;
+            uint32_t loopup_index = (code - lower) / range;
+            if (loopup_index >= TAC_RANGE_FREQUENCY_SIZE - 1)
+                return -1;
+            uint32_t symbol = h->symbol_lookup[loopup_index];
 
             // narrow interval
             lower += h->cumulative_frequency[symbol] * range;
@@ -951,6 +961,8 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
             // read code + rescale when lower's high byte matches upper's?
             // (lower >> 24) == ((lower + range) >> 24)
             while (0xFFFFFF >= (lower ^ (lower + range))) {
+                if (ptr >= end)
+                    return -1;
                 code = (code << 8) | (*ptr++);
                 range = (range << 8);
                 lower = (lower << 8);
@@ -958,6 +970,8 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
 
             // read code + rescale when range is small
             while (0xFFFF >= range) {
+                if (ptr >= end)
+                    return -1;
                 code = (code << 8) | (*ptr++);
                 range = (((~lower) + 1) & 0xFFFF) << 8;
                 lower = (lower << 8);
@@ -969,13 +983,17 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
 
                 range = range >> (is_extended ? 8 : 13);
 
+                if (range == 0)
+                    return -1;
                 symbol = (code - lower) / range; // re-scale symbol with new range?
-                lower = lower + (symbol * range);
+                lower += (symbol * range);
                 if (is_extended)
                     symbol += 0xFE;
 
                 // read code + rescale, same as before
                 while (0xFFFFFF >= (lower ^ (lower + range))) {
+                    if (ptr >= end)
+                        return -1;
                     code = (code << 8) | (*ptr++);
                     range = (range << 8);
                     lower = (lower << 8);
@@ -983,6 +1001,8 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
 
                 // read code + rescale, same as before
                 while (0xFFFF >= range) {
+                    if (ptr >= end)
+                        return -1;
                     code = (code << 8) | (*ptr++);
                     range = (((~lower) + 1) & 0xFFFF) << 8;
                     lower = (lower << 8);
@@ -992,7 +1012,7 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
             // convert unsigned symbol to signed: 0 to 0, 1 to -1, 2 to 1, 3 -> -2, 4 to 2...
             int16_t value = 0;
             if (symbol & 1) {
-                value = -((((int16_t)symbol) + 1) / 2);
+                value = -((((int16_t)symbol) + 1) / 2); // '-((symbol + 1) / 2)'?
             }
             else {
                 value = symbol / 2;
@@ -1007,7 +1027,7 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
 
                 h->code_history[ch][code_index] = value;
 
-                // signal more codes in frame
+                // signal more codes in frame ('value != 0' is equivalent?)
                 if (code_index != 0 && (value << 16) != 0) {
                     max_codes += 32;
                 }
@@ -1017,6 +1037,11 @@ static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t use_code_his
         }
 
         total_codes += code_index;
+
+        // extra (not in OG code): typically unnecessary because encoder signals empty bands to skip codes, but for completeness
+        for (int i = code_index; i < TAC_MAX_CODES; i++) {
+            h->codes[ch][i] = 0;
+        }
     }
 
     return total_codes;
@@ -1120,7 +1145,7 @@ static int init_range(tac_handle_t* h, const uint8_t* buf) {
 
     // Initialize cumulative frequency, [n] = sum(symbol_frequency[0 .. n-1])
     // ex.: with symbol_frequencies 0=5, 1=3, 2=7...  this makes 'bounds',
-    //  where cumulative_frequency 0=0, 1=5, 2=8, 3=15... meaning ranges 0..4, 5..7, 8..14. etc
+    //      where cumulative_frequency 0=0, 1=5, 2=8, 3=15... meaning ranges 0..4, 5..7, 8..14. etc
     h->cumulative_frequency[0] = 0;
     for (int i = 0; i < 257; i++) {
         h->cumulative_frequency[i + 1] = h->cumulative_frequency[i] + h->symbol_frequency[i];
@@ -1227,15 +1252,15 @@ int tac_decode_frame(tac_handle_t* handle, const uint8_t* block) {
         return TAC_PROCESS_ERROR_SIZE;
 
 
-    /* read new frame */
+    /* read new frame within block */
     {
         const uint8_t* buf = &block[pos]; // current frame
         uint16_t frame_crc      = get_u16le(buf + 0x00); // checksum of data starting at 0x04
         uint16_t use_code_hist  = get_u16le(buf + 0x02) >> 15; // 0 every 64th frame, 1 for others
         uint16_t frame_size     = get_u16le(buf + 0x02) & 0x7FFF; // not including base header (0x08)
         uint16_t frame_id       = get_u16le(buf + 0x04); // current number
-        uint16_t frame_codes    = get_u16le(buf + 0x06); // decoded length
-        uint32_t base_code      = get_u32be(buf + 0x08); // table setup
+        uint16_t frame_codes    = get_u16le(buf + 0x06); // for both channels
+        uint32_t base_code      = get_u32be(buf + 0x08); // range setup
 
         if (frame_id != handle->frame_number)
             return TAC_PROCESS_ERROR_ID;
@@ -1252,11 +1277,11 @@ int tac_decode_frame(tac_handle_t* handle, const uint8_t* block) {
             return TAC_PROCESS_ERROR_CRC;
 
         /* extract frame codes */
-        uint16_t codes_read = read_codes(handle, buf + 0x0C, use_code_hist, base_code);
+        uint16_t codes_read = read_codes(handle, buf + 0x0C, frame_size, use_code_hist, base_code);
         if (codes_read != frame_codes)
             return TAC_PROCESS_ERROR_CODES;
 
-        /* main decode */
+        /* main frame decode */
         decode_vu1(handle);
 
         /* post process */
