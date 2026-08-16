@@ -116,6 +116,7 @@
     <ClInclude Include="coding\libs\circus_vq_lib.h" />
     <ClInclude Include="coding\libs\circus_vq_lzxpcm.h" />
     <ClInclude Include="coding\libs\clhca.h" />
+    <ClInclude Include="coding\libs\clhca_data.h" />
     <ClInclude Include="coding\libs\compresswave_lib.h" />
     <ClInclude Include="coding\libs\g7221_aes.h" />
     <ClInclude Include="coding\libs\g7221_data.h" />
