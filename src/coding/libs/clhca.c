@@ -82,6 +82,9 @@
 //--------------------------------------------------
 typedef enum { DISCRETE = 0, STEREO_PRIMARY = 1, STEREO_SECONDARY = 2 } channel_type_t;
 
+
+/* lib only saves 1 spectra subframe at a time, and original order is:
+ *  spectra, gain, scalefactors, resolution, noises, intensity, dirty_flag, type, coded/valid/noise_count */
 typedef struct stChannel {
     /* HCA channel config */
     channel_type_t type;
@@ -204,7 +207,7 @@ static unsigned short crc16_checksum(const unsigned char* data, unsigned int siz
 //--------------------------------------------------
 // Bitstream reader
 //--------------------------------------------------
-static void bitreader_init(clData* br, const void *data, int size) {
+static void bitreader_init(clData* br, const void* data, int size) {
     br->data = data;
     br->size = size * 8;
     br->bit = 0;
@@ -287,7 +290,7 @@ static void bitreader_skip(clData* br, int bitsize) {
 // API/Utilities
 //--------------------------------------------------
 
-int clHCA_isOurFile(const void *data, unsigned int size) {
+int clHCA_isOurFile(const void* data, unsigned int size) {
     clData br;
     unsigned int header_size = 0;
 
@@ -305,7 +308,7 @@ int clHCA_isOurFile(const void *data, unsigned int size) {
     return header_size;
 }
 
-int clHCA_getInfo(clHCA* hca, clHCA_stInfo *info) {
+int clHCA_getInfo(clHCA* hca, clHCA_stInfo* info) {
     if (!hca || !info || !hca->is_valid)
         return HCA_ERROR_PARAMS;
 
@@ -337,9 +340,10 @@ int clHCA_getInfo(clHCA* hca, clHCA_stInfo *info) {
 //HCADecoder_DecodeBlockInt32
 void clHCA_ReadSamples16(clHCA* hca, short* samples) {
     const float scale_f = 32768.0f;
+    int i;
 
     /* PCM output is generally unused, but lib functions seem to use SIMD for f32 to s32 + round to zero */
-    for (int i = 0; i < HCA_SUBFRAMES; i++) {
+    for (i = 0; i < HCA_SUBFRAMES; i++) {
         for (int j = 0; j < HCA_SAMPLES_PER_SUBFRAME; j++) {
             for (int k = 0; k < hca->channels; k++) {
                 float f = hca->channel[k].wave[i][j];
@@ -356,9 +360,10 @@ void clHCA_ReadSamples16(clHCA* hca, short* samples) {
 }
 
 void clHCA_ReadSamples(clHCA* hca, float* samples) {
+    int i;
 
     /* interleave output */
-    for (int i = 0; i < HCA_SUBFRAMES; i++) {
+    for (i = 0; i < HCA_SUBFRAMES; i++) {
         for (int j = 0; j < HCA_SAMPLES_PER_SUBFRAME; j++) {
             for (int k = 0; k < hca->channels; k++) {
                 float f = hca->channel[k].wave[i][j];
@@ -464,7 +469,8 @@ static void ath_init0(unsigned char* ath_curve) {
 }
 
 static void ath_init1(unsigned char* ath_curve, unsigned int sample_rate) {
-    unsigned int i, index;
+    int i;
+    unsigned int index;
     unsigned int acc = 0;
 
     /* scale ATH curve depending on frequency */
@@ -499,7 +505,7 @@ static int ath_init(unsigned char* ath_curve, int type, unsigned int sample_rate
 // Encryption
 //--------------------------------------------------
 static void cipher_decrypt(unsigned char* cipher_table, unsigned char* data, int size) {
-    unsigned int i;
+    int i;
 
     for (i = 0; i < size; i++) {
         data[i] = cipher_table[data[i]];
@@ -507,7 +513,7 @@ static void cipher_decrypt(unsigned char* cipher_table, unsigned char* data, int
 }
 
 static void cipher_init0(unsigned char* cipher_table) {
-    unsigned int i;
+    int i;
 
     /* no encryption */
     for (i = 0; i < 256; i++) {
@@ -518,7 +524,7 @@ static void cipher_init0(unsigned char* cipher_table) {
 static void cipher_init1(unsigned char* cipher_table) {
     const int mul = 13;
     const int add = 11;
-    unsigned int i, v = 0;
+    int i, v = 0;
 
     /* keyless encryption (rare) */
     for (i = 1; i < 256 - 1; i++) {
@@ -534,7 +540,7 @@ static void cipher_init1(unsigned char* cipher_table) {
 static void cipher_init56_create_table(unsigned char* r, unsigned char key) {
     const int mul = ((key & 1) << 3) | 5;
     const int add = (key & 0xE) | 1;
-    unsigned int i;
+    int i;
 
     key >>= 4;
     for (i = 0; i < 16; i++) {
@@ -547,7 +553,7 @@ static void cipher_init56(unsigned char* cipher_table, unsigned long long keycod
     unsigned char kc[8];
     unsigned char seed[16];
     unsigned char base[256], base_r[16], base_c[16];
-    unsigned int r, c;
+    int r, c;
 
     /* 56bit keycode encryption (given as a uint64_t number, but upper 8b aren't used) */
 
@@ -592,7 +598,7 @@ static void cipher_init56(unsigned char* cipher_table, unsigned long long keycod
 
     /* final shuffle table */
     {
-        unsigned int i;
+        int i;
         unsigned int x = 0;
         unsigned int pos = 1;
 
@@ -607,7 +613,7 @@ static void cipher_init56(unsigned char* cipher_table, unsigned long long keycod
 }
 
 static int cipher_init(unsigned char* cipher_table, int type, unsigned long long keycode) {
-    if (type == 56 && !(keycode))
+    if (type == 56 && keycode == 0)
         type = 0;
 
     switch (type) {
@@ -635,7 +641,91 @@ static unsigned int header_ceil2(unsigned int a, unsigned int b) {
     return (a / b + ((a % b) ? 1 : 0)); /* lib modulo: a - (a / b * b) */
 }
 
-int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
+
+/* setup config based on header info */
+// HCAHeaderUtility_GetElementTypes
+static void setup_channel_types(int channels, int track_count, int channel_config, int stereo_band_count, channel_type_t* channel_types) {
+    unsigned int i, channels_per_track;
+
+    channels_per_track = channels / track_count;
+    if (stereo_band_count > 0 && channels_per_track > 1) {
+        channel_type_t* ct = channel_types;
+        for (i = 0; i < track_count; i++, ct += channels_per_track) {
+            switch (channels_per_track) {
+                case 2:
+                    ct[0] = STEREO_PRIMARY;
+                    ct[1] = STEREO_SECONDARY;
+                    break;
+                case 3:
+                    ct[0] = STEREO_PRIMARY;
+                    ct[1] = STEREO_SECONDARY;
+                    ct[2] = DISCRETE;
+                    break;
+                case 4:
+                    ct[0] = STEREO_PRIMARY;
+                    ct[1] = STEREO_SECONDARY;
+                    if (channel_config == 0) {
+                        ct[2] = STEREO_PRIMARY;
+                        ct[3] = STEREO_SECONDARY;
+                    } else {
+                        ct[2] = DISCRETE;
+                        ct[3] = DISCRETE;
+                    }
+                    break;
+                case 5:
+                    ct[0] = STEREO_PRIMARY;
+                    ct[1] = STEREO_SECONDARY;
+                    ct[2] = DISCRETE;
+                    if (channel_config <= 2) {
+                        ct[3] = STEREO_PRIMARY;
+                        ct[4] = STEREO_SECONDARY;
+                    } else {
+                        ct[3] = DISCRETE;
+                        ct[4] = DISCRETE;
+                    }
+                    break;
+                case 6:
+                    ct[0] = STEREO_PRIMARY;
+                    ct[1] = STEREO_SECONDARY;
+                    ct[2] = DISCRETE;
+                    ct[3] = DISCRETE;
+                    ct[4] = STEREO_PRIMARY;
+                    ct[5] = STEREO_SECONDARY;
+                    break;
+                case 7:
+                    ct[0] = STEREO_PRIMARY;
+                    ct[1] = STEREO_SECONDARY;
+                    ct[2] = DISCRETE;
+                    ct[3] = DISCRETE;
+                    ct[4] = STEREO_PRIMARY;
+                    ct[5] = STEREO_SECONDARY;
+                    ct[6] = DISCRETE;
+                    break;
+                case 8:
+                    ct[0] = STEREO_PRIMARY;
+                    ct[1] = STEREO_SECONDARY;
+                    ct[2] = DISCRETE;
+                    ct[3] = DISCRETE;
+                    ct[4] = STEREO_PRIMARY;
+                    ct[5] = STEREO_SECONDARY;
+                    ct[6] = STEREO_PRIMARY;
+                    ct[7] = STEREO_SECONDARY;
+                    break;
+                default:
+                    /* all 0 (DISCRETE) */
+                    //for (ch = 0; ch < channels_per_track; ch++) {
+                    //    ct[i] = DISCRETE;
+                    //}
+                    break;
+            }
+        }
+    }
+
+    /* lib sets to 0 after channels_per_track * track_count 
+     * (implicit here since channel_types is init'd to 0) */
+}
+
+int clHCA_DecodeHeader(clHCA* hca, const void* data, unsigned int size) {
     clData br;
     int res;
 
@@ -872,114 +962,53 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
         return HCA_ERROR_HEADER;
 
     /* encoded coefs (up to 128) depend in the encoder's "cutoff" hz option */
-    if (hca->total_band_count > HCA_SAMPLES_PER_SUBFRAME ||
-        hca->base_band_count > HCA_SAMPLES_PER_SUBFRAME ||
-        hca->stereo_band_count > HCA_SAMPLES_PER_SUBFRAME ||
-        hca->base_band_count + hca->stereo_band_count > HCA_SAMPLES_PER_SUBFRAME ||
+    if (hca->total_band_count > HCA_SAMPLES_PER_SUBFRAME || hca->total_band_count == 0 ||
+        hca->base_band_count + hca->stereo_band_count > hca->total_band_count ||
+        hca->base_band_count + hca->stereo_band_count == 0 ||
+        hca->stereo_band_count > hca->base_band_count ||
         hca->bands_per_hfr_group > HCA_SAMPLES_PER_SUBFRAME)
         return HCA_ERROR_HEADER;
+    /* not sure if the above validations are actually done in lib, so it could clobber arrays instead
+     * (see stChannel comment for order). counts read u8 values so should't overflow */
 
+    /* leftover upper HRF coefs to groups
+     * (implicitly base_band_count + stereo_band_count + hfr_group_count <= HCA_SAMPLES_PER_SUBFRAME) */
     hca->hfr_group_count = header_ceil2(
             hca->total_band_count - hca->base_band_count - hca->stereo_band_count,
             hca->bands_per_hfr_group);
 
-    res = ath_init(hca->ath_curve, hca->ath_type, hca->sample_rate);
-    if (res < 0)
-        return res;
-    res = cipher_init(hca->cipher_table, hca->ciph_type, hca->keycode);
-    if (res < 0)
-        return res;
 
-
-    //todo separate into function, cleanup
-    //HCAHeaderUtility_GetElementTypes
     /* init channels */
     {
-        channel_type_t channel_types[HCA_MAX_CHANNELS] = {0}; /* part of lib struct */
-        unsigned int i, channels_per_track;
+        int unsigned i;
+        channel_type_t channel_types[HCA_MAX_CHANNELS] = {0}; /* part of header struct in lib (uchar) */
 
-        channels_per_track = hca->channels / hca->track_count;
-        if (hca->stereo_band_count > 0 && channels_per_track > 1) {
-            channel_type_t* ct = channel_types;
-            for (i = 0; i < hca->track_count; i++, ct += channels_per_track) {
-                switch (channels_per_track) {
-                    case 2:
-                        ct[0] = STEREO_PRIMARY;
-                        ct[1] = STEREO_SECONDARY;
-                        break;
-                    case 3:
-                        ct[0] = STEREO_PRIMARY;
-                        ct[1] = STEREO_SECONDARY;
-                        ct[2] = DISCRETE;
-                        break;
-                    case 4:
-                        ct[0] = STEREO_PRIMARY;
-                        ct[1] = STEREO_SECONDARY;
-                        if (hca->channel_config == 0) {
-                            ct[2] = STEREO_PRIMARY;
-                            ct[3] = STEREO_SECONDARY;
-                        } else {
-                            ct[2] = DISCRETE;
-                            ct[3] = DISCRETE;
-                        }
-                        break;
-                    case 5:
-                        ct[0] = STEREO_PRIMARY;
-                        ct[1] = STEREO_SECONDARY;
-                        ct[2] = DISCRETE;
-                        if (hca->channel_config <= 2) {
-                            ct[3] = STEREO_PRIMARY;
-                            ct[4] = STEREO_SECONDARY;
-                        } else {
-                            ct[3] = DISCRETE;
-                            ct[4] = DISCRETE;
-                        }
-                        break;
-                    case 6:
-                        ct[0] = STEREO_PRIMARY;
-                        ct[1] = STEREO_SECONDARY;
-                        ct[2] = DISCRETE;
-                        ct[3] = DISCRETE;
-                        ct[4] = STEREO_PRIMARY;
-                        ct[5] = STEREO_SECONDARY;
-                        break;
-                    case 7:
-                        ct[0] = STEREO_PRIMARY;
-                        ct[1] = STEREO_SECONDARY;
-                        ct[2] = DISCRETE;
-                        ct[3] = DISCRETE;
-                        ct[4] = STEREO_PRIMARY;
-                        ct[5] = STEREO_SECONDARY;
-                        ct[6] = DISCRETE;
-                        break;
-                    case 8:
-                        ct[0] = STEREO_PRIMARY;
-                        ct[1] = STEREO_SECONDARY;
-                        ct[2] = DISCRETE;
-                        ct[3] = DISCRETE;
-                        ct[4] = STEREO_PRIMARY;
-                        ct[5] = STEREO_SECONDARY;
-                        ct[6] = STEREO_PRIMARY;
-                        ct[7] = STEREO_SECONDARY;
-                        break;
-                    default:
-                        /* implied all 0 (DISCRETE) */
-                        break;
-                }
-            }
-        }
+        setup_channel_types(hca->channels, hca->track_count, hca->channel_config, hca->stereo_band_count, channel_types);
 
         memset(hca->channel, 0, sizeof(hca->channel));
-        for (i = 0; i < hca->channels; i++) {
-            hca->channel[i].type = channel_types[i];
 
-            hca->channel[i].coded_count = (channel_types[i] != STEREO_SECONDARY) ?
-                    hca->base_band_count + hca->stereo_band_count :
-                    hca->base_band_count;
+        for (i = 0; i < hca->channels; i++) {
+            int ch_stereo_band_count;
+
+            if (channel_types[i] == STEREO_SECONDARY)
+                ch_stereo_band_count = 0;
+            else
+                ch_stereo_band_count = hca->stereo_band_count;
+
+            hca->channel[i].coded_count = hca->base_band_count + ch_stereo_band_count;
+            hca->channel[i].type = channel_types[i];
         }
     }
 
     hca->random = HCA_DEFAULT_RANDOM;
+
+    res = ath_init(hca->ath_curve, hca->ath_type, hca->sample_rate);
+    if (res < 0)
+        return res;
+
+    res = cipher_init(hca->cipher_table, hca->ciph_type, hca->keycode);
+    if (res < 0)
+        return res;
 
 
     //TODO: should work but untested
@@ -1137,7 +1166,7 @@ int clHCA_TestBlock(clHCA* hca, void* data, unsigned int size) {
     return top_score;
 }
 
-void clHCA_DecodeReset(clHCA * hca) {
+void clHCA_DecodeReset(clHCA* hca) {
     unsigned int i;
 
     if (!hca || !hca->is_valid)
@@ -1187,7 +1216,7 @@ static void apply_ms_stereo(stChannel* ch_pair, unsigned int ms_stereo, unsigned
 static void imdct_transform(stChannel* ch, int subframe);
 
 
-static int clHCA_DecodeBlock_unpack(clHCA* hca, void *data, unsigned int size) {
+static int clHCA_DecodeBlock_unpack(clHCA* hca, void* data, unsigned int size) {
     clData br;
     unsigned short sync;
     unsigned int subframe, ch;
@@ -1276,15 +1305,15 @@ static void clHCA_DecodeBlock_transform(clHCA* hca) {
 
 /* takes HCA data and decodes all of a frame's samples */
 //hcadecoder_decode_block
-int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
+int clHCA_DecodeBlock(clHCA* hca, void* data, unsigned int size) {
     int res;
 
-    /* Original HCA code doesn't separate unpack + transform (unpacks most data,
-     * reads a subframe's spectra, transforms that subframe.
+    /* Original HCA code doesn't separate unpack + transform and instead unpacks data,
+     * reads a subframe's spectra, transforms that subframe and continues unpacking.
      *
      * Unpacking first takes a bit more memory (1 spectra per subframe) but test keys faster
      * (since unpack may fail with bad keys we can skip transform). For regular decoding, this
-     * way somehow is slightly faster?  (~3-5%, extra compiler optimizations with reduced scope?) */
+     * way is somehow slightly faster? (~3-5%, extra compiler optimizations with reduced scope?) */
 
     res = clHCA_DecodeBlock_unpack(hca, data, size);
     if (res < 0)
@@ -1331,20 +1360,17 @@ static const float* hcadequantizer_range_table_float = (const float*)hcadequanti
 static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group_count, unsigned int version) {
     int i;
     unsigned int cs_count = ch->coded_count;
-    unsigned int extra_count;
+    unsigned int hs_count; // HFR group scalefactors
+
     unsigned char delta_bits = bitreader_read(br, 3);
 
     /* added in v3.0 */
     if (ch->type == STEREO_SECONDARY || hfr_group_count <= 0 || version <= HCA_VERSION_V200) {
-        extra_count = 0;
+        hs_count = 0;
     }
     else {
-        extra_count = hfr_group_count;
-        cs_count = cs_count + extra_count;
-
-        /* just in case */
-        if (cs_count > HCA_SAMPLES_PER_SUBFRAME)
-            return HCA_ERROR_UNPACK;
+        hs_count = hfr_group_count;
+        cs_count = cs_count + hs_count;
     }
 
     /* lib does check that cs_count is 2+ in fixed/delta case, but doesn't seem to affect anything */
@@ -1374,9 +1400,9 @@ static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group
                 }
 
                 value = value - (expected_delta >> 1) + delta; /* differential */
-                value = value & 0x3F; /* v3.0 lib */
 
-                //todo as negative better? (may roll otherwise?)
+                /* v3.0 lib clamps index (check would be more useful for key detection tho) */
+                value = value & 0x3F;
                 //if (value >= 64)
                 //    return HCA_ERROR_UNPACK;
             }
@@ -1390,8 +1416,8 @@ static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group
         }
     }
 
-    /* set derived HFR scales for v3.0 */
-    for (i = 0; i < extra_count; i++) {
+    /* set derived HFR scalefactors for v3.0 files */
+    for (i = 0; i < hs_count; i++) {
         ch->scalefactors[HCA_SAMPLES_PER_SUBFRAME - 1 - i] = ch->scalefactors[cs_count - i];
     }
 
@@ -1448,7 +1474,7 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
                         }
                         else {
                             value = value - (bmax >> 1) + delta; /* differential */
-                            if (value > 15) //todo check
+                            if (value > 15) //TODO: check
                                 return HCA_ERROR_UNPACK; /* not done in lib */
                         }
 
@@ -1465,12 +1491,12 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
         }
     }
     else {
-        /* read high frequency scalefactors (v3.0 uses derived values in unpack_scalefactors instead) */
+        /* read high frequency scalefactors. v3.0 uses derived values in unpack_scalefactors instead. */
         if (version <= HCA_VERSION_V200) {
             /* pointer in v2.0 lib for v2.0 files is base+stereo bands, while v3.0 lib for v2.0 files
-             * is last HFR. No output difference but v3.0 files need that to handle HFR */
+             * is last HFR (should be equivalent though) */
             //unsigned char* hfr_scales = &ch->scalefactors[base_band_count + stereo_band_count]; /* v2.0 lib */
-            unsigned char* hfr_scales = &ch->scalefactors[128 - hfr_group_count]; /* v3.0 lib */
+            unsigned char* hfr_scales = &ch->scalefactors[HCA_SAMPLES_PER_SUBFRAME - hfr_group_count]; /* v3.0 lib */
 
             for (i = 0; i < hfr_group_count; i++) {
                 hfr_scales[i] = bitreader_read(br, 6);
