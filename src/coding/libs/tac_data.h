@@ -72,7 +72,8 @@ static const REG_VF ANTIALIASING_TABLE[64/4] = {
 };
 
 /* Seemingly scale factor table (needs an extra index, see end).
- * ELF seems to store only xy, zw is just mirrored. */
+ * ELF seems to store only xy, zw is just mirrored for SIMD use (x=coeff curve? y=scale factor?).
+  */
 static const REG_VF SCALE_TABLE[2048/4 + 4/4] = { //SacPass1TableVU?
     /* part 1 */
     { .i = {0x00000000,0x3F7F8000,0x00000000,0x3F7F8000} }, //+0.000000000f, +0.998046875f, +0.000000000f, +0.998046875f
@@ -854,7 +855,7 @@ static const REG_VF TRANSFORM_TABLE[1024/4] = { //SacIdctTableVU?
     { .i = {0x3E47C5C8,0xBE16408A,0x3DC8BD5D,0xBD48FB41} }, //+0.195090413f, -0.146730572f, +0.098017432f, -0.049067739f
 };
 
-/* standard MPEG1 filter bank (synth_window)
+/* Standard MPEG1 filter bank (synth_window).
  * Seems divided into 2 parts, or at least loaded to VU1 memory in 2 steps */
 static const REG_VF WINDOW_TABLE[512/4] = { //SacPass3TableVU?
     /* part 1 */
@@ -989,7 +990,7 @@ static const REG_VF WINDOW_TABLE[512/4] = { //SacPass3TableVU?
     { .i = {0x37800074,0x37800074,0x37800074,0x37800074} }, //+0.000015259f, +0.000015259f, +0.000015259f, +0.000015259f
 };
 
-/* DCT-II table? */
+/* DCT-IV table, seemingly i = 1 / (2 * cos(k * pi / 64)) (where xyzw = k0,k1,k2,k3 k4,k5,k6,k7 ...) */
 static const REG_VF SYNTH_TABLE[32/4] = {
     { .i = {0x3F000000,0x3F002785,0x3F009E8D,0x3F01668B} }, //+0.500000000f, +0.500603020f, +0.502419293f, +0.505470932f
     { .i = {0x3F0281F6,0x3F03F45A,0x3F05C278,0x3F07F268} }, //+0.509795547f, +0.515447259f, +0.522498608f, +0.531042576f
@@ -1001,4 +1002,4 @@ static const REG_VF SYNTH_TABLE[32/4] = {
     { .i = {0x402406CE,0x405A1641,0x40A33C9C,0x41230A46} }, //+2.562915325f, +3.407608271f, +5.101148605f, +10.190008163f
 };
 
-#endif /* _TAC_DECODER_LIB_DATA_H_ */
+#endif

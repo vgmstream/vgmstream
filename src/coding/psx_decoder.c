@@ -81,8 +81,8 @@ void decode_psx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
 
     /* upper filters only used in few PS3 games, normally 0 */
     if (!extended_mode) {
-        VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
-        if (coef_index > 5)
+        VGM_ASSERT_ONCE(coef_index > 4 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
+        if (coef_index > 4)
             coef_index = 0;
         if (shift_factor > 12)
             shift_factor = 9; /* supposedly, from Nocash PSX docs */

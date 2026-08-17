@@ -182,6 +182,9 @@
     <ClInclude Include="coding\libs\clhca.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\clhca_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\compresswave_lib.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>

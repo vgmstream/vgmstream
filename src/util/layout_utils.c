@@ -314,8 +314,10 @@ void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter
     int num_empty = 0;
 
     int block_count = 0;
+    int audio_count = 0;
     off_t max_offset = get_streamfile_size(sf);
 
+    vgmstream->num_samples = 0;
     vgmstream->next_block_offset = cfg->offset;
     do {
         block_update(vgmstream->next_block_offset, vgmstream);
@@ -323,10 +325,18 @@ void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter
         if (vgmstream->current_block_samples < 0 || vgmstream->current_block_size == SIZE_MAX)
             break;
 
-        if (cfg->loop_flag && block_count == cfg->loop_start_block)
-            vgmstream->loop_start_sample = vgmstream->num_samples;
-        if (cfg->loop_flag && block_count == cfg->loop_end_block)
-            vgmstream->loop_end_sample = vgmstream->num_samples;
+        if (cfg->loop_flag) {
+
+            if ((!cfg->loop_audio_only && block_count == cfg->loop_start_block) || 
+                ( cfg->loop_audio_only && audio_count == cfg->loop_start_block)) {
+                vgmstream->loop_start_sample = vgmstream->num_samples;
+            }
+
+            if ((!cfg->loop_audio_only && block_count == cfg->loop_end_block) || 
+                ( cfg->loop_audio_only && block_count == cfg->loop_end_block)) {
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
+        }   
 
         int block_samples;
         if (vgmstream->current_block_samples) {
@@ -360,10 +370,14 @@ void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter
             }
         }
         else {
+            audio_count++;
             num_empty = 0;
         }
     }
     while (vgmstream->next_block_offset < max_offset);
+
+    if (cfg->loop_flag && cfg->loop_end_block == -1)
+        vgmstream->loop_end_sample = vgmstream->num_samples;
 
     block_update(cfg->offset, vgmstream); /* reset */
 }

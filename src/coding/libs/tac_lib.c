@@ -2,7 +2,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
 
 /* tri-Ace PS2 DCT-style codec.
  *
@@ -27,10 +26,10 @@
  * - simplified PS2 float handling (PS2 VU floats don't map 1:1 to PC IEEE floats), can be re-enabled (slow)
  * - various heisenbugs (PC 80b register floats <> 32b memory floats conversions, see transform()).
  *
- * Files are divided into blocks (size 0x4E000). At file start is a simple header and huffman codebook
- * then N VBR frames (of size around 0x200~300) containing huffman codes of spectral data. A frame has
+ * Files are divided into blocks (size 0x4E000). At file start is a simple header and a codebook
+ * then N VBR frames (of size around 0x200~300) containing codes of spectral data. A frame has
  * codes for 2 channels, decoded separatedly (first all L then all R), then handle joint stereo.
- * Channel spectrum coefs are processeed, then MDCT(?) + window overlap to get final samples. When a
+ * Channel spectrum coefs are processeed, then IDCT(?) + window overlap to get final samples. When a
  * "block end frame" is found, handler must get next block and resume decoding (blocks may be pre/post
  * padded, for looping porposes). Game reads a couple of blocks at once though.
  */
@@ -45,29 +44,31 @@
 //#define TAC_MAX_FRAME_SIZE  0x300 /* typically around ~0x1d0, observed max is ~0x2e2 */
 #define TAC_CODED_BANDS     27
 #define TAC_CODED_COEFS     32
-#define TAC_TOTAL_POINTS    32 /* not sure about this term */
+#define TAC_TOTAL_POINTS    32 // not sure about this term
 #define TAC_SCALE_TABLE_MAX_INDEX 511
-
+#define TAC_RANGE_FREQUENCY_BITS 14
+#define TAC_RANGE_FREQUENCY_SIZE (1u << TAC_RANGE_FREQUENCY_BITS) // 16384
+#define TAC_MAX_CODES       892 // max per channel 27 * 32 = 864 + 27 + 1 = 892, which does happen often
 
 struct tac_handle_t {
     /* base header */
     tac_header_t header;
 
     /* general state */
-    int data_start;     /* first frame after huffman tables, within first block */
+    int data_start;     /* first frame after coding tables, within first block */
     int frame_offset;   /* current position within block */
     int frame_number;   /* frames must be sequential */
 
-    /* decoding huffman tree state */
-    int16_t huff_table_1[257]; /* init once */
-    int16_t huff_table_2[TAC_CHANNELS][32]; /* saved between (some) frames */
-    int16_t huff_table_3[258]; /* init once */
-    uint8_t huff_table_4[16383]; /* init once */
+    /* range coding state */
+    uint16_t symbol_frequency[257]; /* init once */
+    int16_t code_history[TAC_CHANNELS][32]; /* saved between (some) frames */
+    uint16_t cumulative_frequency[258]; /* init once */
+    uint8_t symbol_lookup[TAC_RANGE_FREQUENCY_SIZE - 1]; /* init once */
 
     int16_t codes[TAC_CHANNELS][TAC_FRAME_SAMPLES];
 
     /* decoding vector state */
-    REG_VF spectrum[TAC_CHANNELS][TAC_FRAME_SAMPLES / 4]; /* temp huffman-to-coefs */
+    REG_VF spectrum[TAC_CHANNELS][TAC_FRAME_SAMPLES / 4]; /* temp codes-to-coefs */
     REG_VF wave[TAC_CHANNELS][TAC_FRAME_SAMPLES / 4]; /* final samples, in vector form */
     REG_VF hist[TAC_CHANNELS][TAC_FRAME_SAMPLES / 4]; /* saved between frames */
 };
@@ -82,11 +83,10 @@ struct tac_handle_t {
  *  hi_out.N = (lo_hi.N * AT[0x7-j].M) + (AT[0x8+j].N * lo_in.M) */
 static void unpack_antialias(REG_VF* spectrum) {
     const REG_VF* AT = ANTIALIASING_TABLE;
-    int i;
     int pos_lo = 0x7;
     int pos_hi = 0x8;
 
-    for (i = 0; i < TAC_CODED_BANDS; i++) {
+    for (int i = 0; i < TAC_CODED_BANDS; i++) {
         for (int j = 0; j < 4; j++) {
             REG_VF lo_in, hi_in, lo_out, hi_out;
 
@@ -133,13 +133,13 @@ static inline int16_t clamp_s16(int16_t value, int16_t min, int16_t max) {
 }
 
 
-/* converts 4 huffman codes to 4 spectrums coefs */
+/* converts 4 codes to 4 spectrums coefs */
 //SUB_1188 (Pass1_Start?)
 static void unpack_code4(REG_VF* spectrum, const REG_VF* spc1, const REG_VF* spc2, const REG_VF* code, const REG_VF* idx, int out_pos) {
     const REG_VF* ST = SCALE_TABLE;
     REG_VF tbc1, tbc2, out;
 
-    /* copy table coefs .N, unless huffman code was 0 */
+    /* copy table coefs .N, unless last code was 0 */
     if (code->f.x != 0) {
         MOVEx(_x___, &tbc1, &ST[idx->i.x + 0]);
         MOVEx(_x___, &tbc2, &ST[idx->i.x + 1]);
@@ -183,11 +183,10 @@ static void unpack_code4(REG_VF* spectrum, const REG_VF* spc1, const REG_VF* spc
 }
 
 
-/* Unpacks huffman codes in one band into 32 spectrum coefs, using selected scales for that band. */
+/* Unpacks codes in one band into 32 spectrum coefs, using selected scales for that band. */
 // SUB_C88
 static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, int* code_pos, int out_pos) {
     const REG_VF* ST = SCALE_TABLE;
-    int i;
     int16_t base_index = codes[0]; /* table index, max ~35 */
     int16_t band_index = codes[band_pos]; /* table too */
     REG_VF scale;
@@ -199,7 +198,7 @@ static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, in
 
     /* index zero = band is not coded and all of its coefs are 0 */
     if (band_index == 0) {
-        for (i = 0; i < (TAC_CODED_COEFS / 4); i++) {
+        for (int i = 0; i < (TAC_CODED_COEFS / 4); i++) {
             STORE(_xyzw, spectrum, &VECTOR_ZERO, out_pos+i);
         }
         return;
@@ -209,7 +208,7 @@ static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, in
     MULy (__y__, &scale, &ST[128 + band_index], &ST[base_index]);
 
     /* unpack coefs */
-    for (i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         REG_VF code, idx, tm01, tm02, tm03;
         REG_VF spc1, spc2;
 
@@ -243,25 +242,24 @@ static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, in
     }
 }
 
-/* Unpacks channel's huffman codes to spectrum coefs. Also done in the VU1 (uses VIFcode UNPACK V4-16
- * to copy 16b huffman codes to VU1 memory as 32b first) but it's simplified a bit here. */
+/* Unpacks channel's codes to spectrum coefs. Also done in the VU1 (uses VIFcode UNPACK V4-16
+ * to copy 16b codes to VU1 memory as 32b first) but it's simplified a bit here. */
 // SUB_6E0
 static void unpack_channel(REG_VF* spectrum, const int16_t* codes) {
-    int i;
 
-    /* Huffman codes has 1 base scale + 27 bands scales + N coefs (up to 27*32).
+    /* Codes have 1 base scale + 27 bands scales + N coefs (up to 27 * 32).
      * Not all bands store codes so an index is needed, after scales */
     int code_pos = TAC_CODED_BANDS + 1;
     int out_pos = 0x00;
 
     /* unpack bands */
-    for (i = 1; i < TAC_CODED_BANDS + 1; i++) {
+    for (int i = 1; i < TAC_CODED_BANDS + 1; i++) {
         unpack_band(spectrum, codes, i, &code_pos, out_pos);
         out_pos += (TAC_CODED_COEFS / 4); /* 8 vectors of 4 coefs, per band */
     }
 
     /* memset rest up to max (27*32/4)..(32*32/4) */
-    for (i = 0xD8; i < 0x100; i++) {
+    for (int i = 0xD8; i < 0x100; i++) {
        STORE (_xyzw, spectrum, &VECTOR_ZERO, i);
     }
 
@@ -272,7 +270,7 @@ static void unpack_channel(REG_VF* spectrum, const int16_t* codes) {
 
 /* in GCC this function seems to cause heisenbugs, copy x4 below to get original results */
 static void transform_dot_product(REG_VF* mac, const REG_VF* spectrum, const REG_VF* TT, int pos_i, int pos_t) {
-    MUL  (_xyzw, mac, &spectrum[pos_i+0], &TT[pos_t+0]); /* resets mac */
+    MUL  (_xyzw, mac, &spectrum[pos_i+0], &TT[pos_t+0]); // resets mac
     MADD (_xyzw, mac, &spectrum[pos_i+1], &TT[pos_t+1]);
     MADD (_xyzw, mac, &spectrum[pos_i+2], &TT[pos_t+2]);
     MADD (_xyzw, mac, &spectrum[pos_i+3], &TT[pos_t+3]);
@@ -282,20 +280,19 @@ static void transform_dot_product(REG_VF* mac, const REG_VF* spectrum, const REG
     MADD (_xyzw, mac, &spectrum[pos_i+7], &TT[pos_t+7]);
 }
 
-/* take spectrum coefs and, ahem, transform somehow, possibly using a SIMD'd DCT table. */
+/* take spectrum coefs and, ahem, transform somehow, possibly using a SIMD'd IDCT table. */
 //SUB_1410 (Idct_Start?)
 static void transform(REG_VF* wave, const REG_VF* spectrum) {
     const REG_VF* TT = TRANSFORM_TABLE;
-    int i, j;
 
     int pos_t = 0;
     int pos_o = 0;
 
-    for (i = 0; i < TAC_TOTAL_POINTS; i++) {
+    for (int i = 0; i < TAC_TOTAL_POINTS; i++) {
         int pos_i = 0;
         REG_VF mac, ror, out;
 
-        for (j = 0; j < 8; j++) {
+        for (int j = 0; j < 8; j++) {
             transform_dot_product(&mac, spectrum, TT, pos_i, pos_t);
             pos_i += 8;
             MR32 (_xyzw, &ror, &mac);
@@ -333,14 +330,13 @@ static void transform(REG_VF* wave, const REG_VF* spectrum) {
 //SUB_1690 (Pass3_Start?)
 static void process(REG_VF* wave, REG_VF* hist) {
     const REG_VF* ST = SYNTH_TABLE;
-    int i, j;
 
     int pos_o = 0;
     int pos_w = 0;
     int pos_h;
     int pos_r = 0x200; /* rolls down to 0, becoming 0x10 steps (0x00, 0xF0, 0xE0, ..., 0x00, 0xF0, ...) */
 
-    for (i = 0; i < TAC_TOTAL_POINTS; i++) {
+    for (int i = 0; i < TAC_TOTAL_POINTS; i++) {
         REG_VF zero, neg1;
         /* Sorry... hopefully compiler optimizes. Probably could be simplified with some rearranging below */
         REG_VF tm00, tm01, tm02, tm03, tm04, tm05, tm06, tm07,
@@ -848,7 +844,7 @@ static void process(REG_VF* wave, REG_VF* hist) {
         STORE(_xyzw, hist, &outF, pos_h + 0xF);
 
         /* hist/window overlap and update final wave */
-        for (j = 0; j < 8; j++) {
+        for (int j = 0; j < 8; j++) {
             const REG_VF* WT = WINDOW_TABLE;
             REG_VF out, rnd;
 
@@ -905,7 +901,6 @@ static void decode_vu1(tac_handle_t* h) {
 /* Create final output samples */
 // StMakeFinalOut
 static void finalize_output(tac_handle_t* h) {
-    int i;
 
     /* original code copies + clamps to PCM buffer here instead of modifying wave,
      * but we do it later to potentially allow float output. It also sets total output:
@@ -919,8 +914,8 @@ static void finalize_output(tac_handle_t* h) {
         REG_VF* wave_r = h->wave[1];
 
         /* Combine joint stereo channels that encode diffs in L/R ("MS stereo"). In pseudo-mono files R has */
-        /* all samples as 0 (R only saves 28 huffman codes, signalling no coefs per 1+27 bands) */
-        for (i = 0; i < TAC_TOTAL_POINTS * 8; i++) {
+        /* all samples as 0 (R only saves 28 empty codes, signalling no coefs per 1+27 bands) */
+        for (int i = 0; i < TAC_TOTAL_POINTS * 8; i++) {
             REG_VF samples_l, samples_r;
 
             ADD  (_xyzw, &samples_l, &wave_l[i], &wave_r[i]); /* L = L + R */
@@ -931,85 +926,125 @@ static void finalize_output(tac_handle_t* h) {
     }
 }
 
-/* read huffman codes for all channels (max per channel 27*32 = 864 + 27 + 1 = 892) */
-static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t huff_flag, uint32_t huff_cfg) {
-    int huff_count = 0;
-    int ch;
-    uint32_t unkA = 0;
-    uint32_t unkB = huff_cfg;
-    uint32_t unkC = 0;
-    uint32_t unkD = 0xFFFFFFFF;
+/* Read range-coding codes for all channels. */
+static int read_codes(tac_handle_t* h, const uint8_t* ptr, size_t ptr_size, uint16_t use_code_hist, uint32_t base_code) {
+    if (ptr_size == 0)
+        return -1;
 
-    for (ch = 0; ch < TAC_CHANNELS; ch++) {
-        int huff_done = 0;
-        int huff_todo = 28;
-        int16_t huff_val = 0;
+    // OG code doesn't check div-by-zero or overreads like below; presumably frame's CRC16 was accepted as ok enough
+    const uint8_t* end = ptr + ptr_size;
+    int total_codes = 0;
 
-        for (; huff_done < huff_todo; huff_done++) {
-            unkD = unkD >> 14;
-            unkA = h->huff_table_4[(unkB - unkC) / unkD];
-            unkC += h->huff_table_3[unkA] * unkD;
-            unkD *= h->huff_table_1[unkA];
+    uint32_t code = base_code; // current encoded position
+    uint32_t lower = 0; // bottom of current interval
+    uint32_t range = 0xFFFFFFFF; // width of current interval (thus upper = lower + range)
 
-            while (0xFFFFFF >= (unkC ^ (unkC + unkD))) {
-                unkB = (unkB << 8) | (*ptr++);
-                unkD = (unkD << 8);
-                unkC = (unkC << 8);
+    for (int ch = 0; ch < TAC_CHANNELS; ch++) {
+        int max_codes = 28;
+
+        int code_index;
+        for (code_index = 0; code_index < max_codes; code_index++) {
+            range = range >> 14; // scale to 14-bit
+
+            // map code from current range to base symbol, that doubles as 8-bit index (safe below)
+            if (range == 0)
+                return -1;
+            uint32_t loopup_index = (code - lower) / range;
+            if (loopup_index >= TAC_RANGE_FREQUENCY_SIZE - 1)
+                return -1;
+            uint32_t symbol = h->symbol_lookup[loopup_index];
+
+            // narrow interval
+            lower += h->cumulative_frequency[symbol] * range;
+            range *= h->symbol_frequency[symbol];
+
+            // read code + rescale when lower's high byte matches upper's?
+            // (lower >> 24) == ((lower + range) >> 24)
+            while (0xFFFFFF >= (lower ^ (lower + range))) {
+                if (ptr >= end)
+                    return -1;
+                code = (code << 8) | (*ptr++);
+                range = (range << 8);
+                lower = (lower << 8);
             }
 
-            while (0xFFFF >= unkD) {
-                unkD = (((~unkC) + 1) & 0xFFFF) << 8;
-                unkB = (unkB << 8) | (*ptr++);
-                unkC = (unkC << 8);
+            // read code + rescale when range is small
+            while (0xFFFF >= range) {
+                if (ptr >= end)
+                    return -1;
+                code = (code << 8) | (*ptr++);
+                range = (((~lower) + 1) & 0xFFFF) << 8;
+                lower = (lower << 8);
             }
 
-            if (unkA >= 0xFE) {
-                uint32_t unkT;
-                unkT = unkA == 0xFE;
-                unkD = unkD >> (unkT ? 8 : 13);
-                unkA = (unkB - unkC) / unkD;
-                unkC = unkC + (unkA * unkD);
-                if (unkT)
-                    unkA += 0xFE;
+            // extended(?) symbol handling
+            if (symbol >= 0xFE) {
+                uint32_t is_extended = (symbol == 0xFE);
 
-                while (0xFFFFFF >= (unkC ^ (unkC + unkD))) {
-                    unkB = (unkB << 8) | (*ptr++);
-                    unkD = (unkD << 8);
-                    unkC = (unkC << 8);
+                range = range >> (is_extended ? 8 : 13);
+
+                if (range == 0)
+                    return -1;
+                symbol = (code - lower) / range; // re-scale symbol with new range?
+                lower += (symbol * range);
+                if (is_extended)
+                    symbol += 0xFE;
+
+                // read code + rescale, same as before
+                while (0xFFFFFF >= (lower ^ (lower + range))) {
+                    if (ptr >= end)
+                        return -1;
+                    code = (code << 8) | (*ptr++);
+                    range = (range << 8);
+                    lower = (lower << 8);
                 }
 
-                while (0xFFFF >= unkD) {
-                    unkD = (((~unkC) + 1) & 0xFFFF) << 8;
-                    unkB = (unkB << 8) | (*ptr++);
-                    unkC = (unkC << 8);
+                // read code + rescale, same as before
+                while (0xFFFF >= range) {
+                    if (ptr >= end)
+                        return -1;
+                    code = (code << 8) | (*ptr++);
+                    range = (((~lower) + 1) & 0xFFFF) << 8;
+                    lower = (lower << 8);
                 }
             }
 
-            if (unkA & 1) {
-                huff_val = -((((int16_t)unkA) + 1) / 2);
-            } else {
-                huff_val = unkA / 2;
+            // convert unsigned symbol to signed: 0 to 0, 1 to -1, 2 to 1, 3 -> -2, 4 to 2...
+            int16_t value = 0;
+            if (symbol & 1) {
+                value = -((((int16_t)symbol) + 1) / 2); // '-((symbol + 1) / 2)'?
+            }
+            else {
+                value = symbol / 2;
             }
 
-            if (huff_done < 28) {
-                if (huff_flag) {
-                    huff_val += h->huff_table_2[ch][huff_done];
+            // first 28 codes always exist in frame and configure output
+            if (code_index < 28) {
+                // may use history to reconstruct original value (delta coding? 0 on every 64th frame, 1 otherwise)
+                if (use_code_hist) {
+                    value += h->code_history[ch][code_index];
                 }
 
-                h->huff_table_2[ch][huff_done] = huff_val;
+                h->code_history[ch][code_index] = value;
 
-                if (huff_done != 0 && (huff_val << 16) != 0) {
-                    huff_todo += 32;
+                // signal more codes in frame ('value != 0' is equivalent?)
+                if (code_index != 0 && (value << 16) != 0) {
+                    max_codes += 32;
                 }
             }
 
-            h->codes[ch][huff_done] = huff_val;
+            h->codes[ch][code_index] = value;
         }
 
-        huff_count += huff_done;
+        total_codes += code_index;
+
+        // extra (not in OG code): typically unnecessary because encoder signals empty bands to skip codes, but for completeness
+        for (int i = code_index; i < TAC_MAX_CODES; i++) {
+            h->codes[ch][i] = 0;
+        }
     }
 
-    return huff_count;
+    return total_codes;
 }
 
 
@@ -1049,7 +1084,7 @@ static uint16_t get_u16le(const uint8_t* mem) {
 }
 
 static int init_header(tac_header_t* header, const uint8_t* buf) {
-    header->huffman_offset  = get_u32le(buf+0x00);
+    header->range_offset    = get_u32le(buf+0x00);
     header->unknown         = get_u32le(buf+0x04);
     header->loop_frame      = get_u16le(buf+0x08);
     header->loop_discard    = get_u16le(buf+0x0A);
@@ -1060,8 +1095,8 @@ static int init_header(tac_header_t* header, const uint8_t* buf) {
     header->joint_stereo    = get_u32le(buf+0x18);
     header->empty           = get_u32le(buf+0x1c);
 
-    /* huffman table offset should make sense */
-    if (header->huffman_offset < 0x20 || header->huffman_offset > TAC_BLOCK_SIZE)
+    /* table offset should make sense */
+    if (header->range_offset < 0x20 || header->range_offset > TAC_BLOCK_SIZE)
         return TAC_PROCESS_HEADER_ERROR;
     /* header size ia block-aligned (but actual size can be smaller, ex. VP 00000715) */
     if (header->file_size % TAC_BLOCK_SIZE != 0)
@@ -1080,50 +1115,57 @@ static int init_header(tac_header_t* header, const uint8_t* buf) {
 }
 
 
-/* AKA RangeDecodeInit (Csd module) */
-static int init_huffman(tac_handle_t* h, const uint8_t* buf) {
-    uint8_t idx = 0;
+/* Range/frequency decoding setup.
+ * AKA RangeDecodeInit (Csd module) */
+static int init_range(tac_handle_t* h, const uint8_t* buf) {
     int offset = 0;
-    int i, j;
 
-    /* initialize huff_table_1 with values from header */
-    for (i = 0; i < 256; i++) {
-        int16_t n = buf[offset++];
+    // Read frequency model from header.
+    // Resulting table has values like 0=8499, 1=2019, 2=528..., where larger number = higher probability
+    // of occurrence for each symbol (possibly all symbols add to 1<<14 = 16384 = 100%)
+    for (int i = 0; i < 256; i++) {
+        uint16_t frequency = buf[offset++];
 
-        if (n & 0x80) {
-            n &= 0x7F;
-            n |= buf[offset++] << 7;
+        if (frequency & 0x80) { // variable size flag
+            frequency &= 0x7F;
+            frequency |= buf[offset++] << 7;
         }
 
-        h->huff_table_1[i] = n;
+        h->symbol_frequency[i] = frequency;
     }
 
-    /* zero-initialize huff_table_2 */
-    for (i = 0; i < TAC_CHANNELS; i++) {
-        for (j = 0; j < 32; j++) {
-            h->huff_table_2[i][j] = 0;
+    h->symbol_frequency[256] = 1; // sentinel for lookup table
+
+    // Clear history.
+    for (int ch = 0; ch < TAC_CHANNELS; ch++) {
+        for (int i = 0; i < 32; i++) {
+            h->code_history[ch][i] = 0;
         }
     }
 
-    /* initialize huff_table_3 */
-    h->huff_table_1[256] = 1;
-    h->huff_table_3[0] = 0;
-    for (i = 1, j = 0; i < 258; i++, j++) {
-        h->huff_table_3[i] = h->huff_table_3[j] + h->huff_table_1[j];
+    // Initialize cumulative frequency, [n] = sum(symbol_frequency[0 .. n-1])
+    // ex.: with symbol_frequencies 0=5, 1=3, 2=7...  this makes 'bounds',
+    //      where cumulative_frequency 0=0, 1=5, 2=8, 3=15... meaning ranges 0..4, 5..7, 8..14. etc
+    h->cumulative_frequency[0] = 0;
+    for (int i = 0; i < 257; i++) {
+        h->cumulative_frequency[i + 1] = h->cumulative_frequency[i] + h->symbol_frequency[i];
     }
 
-    /* initialize huff_table_4 */
-    for (idx = 0; !h->huff_table_1[idx]; idx++) {
-        ;
+    // Build lookup table mapping (frequency position to symbol).
+    // ex.: position = (code - lower) / range. If position = 10, it falls in 8..14 freq, thus symbol 2=7
+    uint8_t symbol = 0;
+    while (h->symbol_frequency[symbol] == 0) {
+        symbol++; // skip initial empty freqs (possible?)
     }
-
-    for (i = 0; i < 16383; i++) {
-        if (i >= h->huff_table_3[idx+1]) {
-            while (!h->huff_table_1[++idx]) {
-                ;
+    for (int i = 0; i < TAC_RANGE_FREQUENCY_SIZE - 1; i++) {
+        if (i >= h->cumulative_frequency[symbol + 1]) {
+            do {
+                symbol++;
             }
+            while (h->symbol_frequency[symbol] == 0);
         }
-        h->huff_table_4[i] = idx;
+
+        h->symbol_lookup[i] = symbol;
     }
 
     return offset;
@@ -1149,10 +1191,10 @@ tac_handle_t* tac_init(const uint8_t* buf, int buf_size) {
         res = init_header(&handle->header, buf);
         if (res != TAC_PROCESS_OK) goto fail;
 
-        pos = init_huffman(handle, &buf[handle->header.huffman_offset]);
+        pos = init_range(handle, &buf[handle->header.range_offset]);
         if (pos <= 0) goto fail;
 
-        handle->data_start = handle->header.huffman_offset + pos;
+        handle->data_start = handle->header.range_offset + pos;
         if (handle->data_start > TAC_BLOCK_SIZE)
             goto fail;
     }
@@ -1185,17 +1227,18 @@ void tac_reset(tac_handle_t* handle) {
     handle->frame_number = 1;
 
     memset(handle->hist, 0, sizeof(REG_VF) * TAC_CHANNELS * (TAC_FRAME_SAMPLES / 4));
-    memset(handle->huff_table_2, 0, sizeof(int16_t) * TAC_CHANNELS * 32);
+    memset(handle->code_history, 0, sizeof(int16_t) * TAC_CHANNELS * 32);
 }
 
 
 int tac_decode_frame(tac_handle_t* handle, const uint8_t* block) {
-    int pos = handle->frame_offset;
+    size_t pos = handle->frame_offset;
+    size_t block_size = TAC_BLOCK_SIZE;
 
     if (handle->frame_number > handle->header.frame_count)
         return TAC_PROCESS_DONE;
 
-    if (pos + 0x04 > TAC_BLOCK_SIZE)
+    if (pos > block_size - 0x04)
         return TAC_PROCESS_ERROR_SIZE;
 
     /* new block marker (may be right at block's end) */
@@ -1204,42 +1247,41 @@ int tac_decode_frame(tac_handle_t* handle, const uint8_t* block) {
         return TAC_PROCESS_NEXT_BLOCK;
     }
 
-    if (pos + 0x0C > TAC_BLOCK_SIZE)
+    /* frame header size */
+    if (pos > block_size - 0x0C)
         return TAC_PROCESS_ERROR_SIZE;
 
 
-    /* read new frame */
+    /* read new frame within block */
     {
-        const uint8_t* buf = &block[pos]; /* current frame */
-        uint16_t frame_crc  = get_u16le(buf + 0x00); /* checksum of data starting at 0x04 */
-        uint16_t huff_flag  = get_u16le(buf + 0x02) >> 15; /* 0 every 64th frame, 1 for others */
-        uint16_t frame_size = get_u16le(buf + 0x02) & 0x7FFF; /* not including base header (0x08) */
-        uint16_t frame_id   = get_u16le(buf + 0x04); /* current number */
-        uint16_t huff_count = get_u16le(buf + 0x06); /* huffman decoded length */
-
-        uint32_t huff_cfg   = get_u32be(buf + 0x08); /* huffman table setup */
-        uint16_t crc_calc, huff_read;
+        const uint8_t* buf = &block[pos]; // current frame
+        uint16_t frame_crc      = get_u16le(buf + 0x00); // checksum of data starting at 0x04
+        uint16_t use_code_hist  = get_u16le(buf + 0x02) >> 15; // 0 every 64th frame, 1 for others
+        uint16_t frame_size     = get_u16le(buf + 0x02) & 0x7FFF; // not including base header (0x08)
+        uint16_t frame_id       = get_u16le(buf + 0x04); // current number
+        uint16_t frame_codes    = get_u16le(buf + 0x06); // for both channels
+        uint32_t base_code      = get_u32be(buf + 0x08); // range setup
 
         if (frame_id != handle->frame_number)
             return TAC_PROCESS_ERROR_ID;
 
-        if (pos + 0x08 + frame_size > TAC_BLOCK_SIZE)
+        if (pos > block_size - 0x08 - frame_size)
             return TAC_PROCESS_ERROR_SIZE;
 
         /* from tests seems CRC errors cause current frame to be skipped, so change values before validations */
         handle->frame_number++;
         handle->frame_offset += 0x08 + frame_size;
 
-        crc_calc = crc16(buf + 0x04, 0x04 + frame_size);
+        uint16_t crc_calc = crc16(buf + 0x04, 0x04 + frame_size);
         if (frame_crc != crc_calc)
             return TAC_PROCESS_ERROR_CRC;
 
-        /* extract huffman frame codes */
-        huff_read = read_codes(handle, buf + 0x0C, huff_flag, huff_cfg);
-        if (huff_read != huff_count)
-            return TAC_PROCESS_ERROR_HUFFMAN;
+        /* extract frame codes */
+        uint16_t codes_read = read_codes(handle, buf + 0x0C, frame_size, use_code_hist, base_code);
+        if (codes_read != frame_codes)
+            return TAC_PROCESS_ERROR_CODES;
 
-        /* main decode */
+        /* main frame decode */
         decode_vu1(handle);
 
         /* post process */

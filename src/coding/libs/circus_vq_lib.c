@@ -385,7 +385,7 @@ static int decompress_frame_lzxpcm(circus_handle_t* handle, STREAMFILE* sf) {
 
             /* EOF (game reserves some extra buf so memset'ing is probably equivalent) */
             if (handle->lstrm.avail_in == 0) {
-                memset(handle->decbuf + handle->lstrm.total_out, 0, sizeof(handle->decbuf) - handle->dstrm.total_out);
+                memset(handle->decbuf + handle->lstrm.total_out, 0, sizeof(handle->decbuf) - handle->lstrm.total_out);
                 break;
             }
         }

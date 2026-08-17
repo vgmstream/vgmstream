@@ -3,6 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 #include "../util/spu_utils.h"
+#include "../util/layout_utils.h"
 
 
 /* SWVR - from EA games, demuxed from .av/trk/mis/etc [Future Cop L.A.P.D. (PS/PC), Freekstyle (PS2/GC), EA Sports Supercross (PS)] */
@@ -145,7 +146,7 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    loop_flag = (loop_block > 0);//(channels > 1); /* some Future Cop LAPD tracks repeat but other games have fadeouts */
+    loop_flag = (loop_block > 0); //(channels > 1); /* some Future Cop LAPD tracks repeat but other games have fadeouts */
 
 
     /* build the VGMSTREAM */
@@ -166,35 +167,21 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
 
-    /* calc num_samples manually */
     {
-        int block, num_samples;
+        blocked_counter_t cfg = {0};
+        cfg.offset = start_offset;
 
-        vgmstream->stream_index = target_subsong; /* needed to skip other subsong-blocks */
-        vgmstream->next_block_offset = start_offset;
-        block = 0;
-        do {
-            block_update(vgmstream->next_block_offset,vgmstream);
-            switch(vgmstream->coding_type) {
-                case coding_PSX:        num_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
-                case coding_NGC_DSP:    num_samples = dsp_bytes_to_samples(vgmstream->current_block_size,1); break;
-                case coding_PCM8_U_int: num_samples = pcm_bytes_to_samples(vgmstream->current_block_size,1,8); break;
-                default:                num_samples = 0; break;
-            }
-            vgmstream->num_samples += num_samples;
-
-            /* check loop on data blocks */
-            if (num_samples) { 
-                block++;
-                if (loop_block == block) /* 1=first */
-                    vgmstream->loop_start_sample = vgmstream->num_samples;
-            }
+        if (loop_flag && loop_block > 0) {
+            cfg.loop_flag = loop_flag;
+            cfg.loop_start_block = loop_block; // 1 = first
+            cfg.loop_end_block = -1;
+            cfg.loop_audio_only = true;
         }
-        while (vgmstream->next_block_offset < get_streamfile_size(sf));
-        block_update(start_offset, vgmstream);
-    }
 
-    vgmstream->loop_end_sample = vgmstream->num_samples;
+        vgmstream->stream_index = target_subsong; // needed to skip other subsong-blocks
+
+        blocked_count_samples(vgmstream, sf, &cfg);
+    }
 
     return vgmstream;
 

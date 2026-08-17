@@ -17,13 +17,13 @@
 #define TAC_PROCESS_ERROR_SIZE      -2 /* buffer is smaller than needed */
 #define TAC_PROCESS_ERROR_ID        -3 /* expected frame id mismatch */
 #define TAC_PROCESS_ERROR_CRC       -4 /* expected frame crc mismatch */
-#define TAC_PROCESS_ERROR_HUFFMAN   -5 /* expected huffman count mismatch */
+#define TAC_PROCESS_ERROR_CODES     -5 /* expected count mismatch */
 
 typedef struct tac_handle_t tac_handle_t;
 
 typedef struct {
     /* 0x20 header config */
-    uint32_t huffman_offset;    /* setup */
+    uint32_t range_offset;      /* setup */
     uint32_t unknown;           /* ignored? (may be CDVD stuff, divided/multiplied during PS2 process, not size related) */
     uint16_t loop_frame;        /* aligned to block start */
     uint16_t loop_discard;      /* discarded start samples in loop frame (lower = outputs more) */
