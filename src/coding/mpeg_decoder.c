@@ -314,12 +314,13 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data
 /* Decodes frames from a stream into the stream's sample buffer, feeding mpg123 buffer data.
  * If not enough data to decode (as N data-frames = 1 full-frame) this will exit but be called again. */
 static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream) {
-    size_t bytes_done = 0, bytes_filled, samples_filled;
+    size_t bytes_done = 0, samples_filled;
     size_t stream_size = get_streamfile_size(stream->streamfile);
     int rc, ok;
     mpeg_custom_stream* ms = &data->streams[num_stream];
     int channels_per_frame = ms->channels_per_frame;
     float* sbuf = ms->sbuf;
+    size_t sbuf_size = ms->sbuf_size;
 
     //;VGM_LOG("MPEG: decode stream%i @ 0x%08lx (filled=%i, used=%i, buffer_full=%i)\n", num_stream, stream->offset, ms->samples_filled, ms->samples_used, ms->buffer_full);
 
@@ -364,17 +365,19 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
         }
     }
 
+    /* for decoders that fill PCM samples */
     sbuf += ms->samples_filled * channels_per_frame;
-    bytes_filled = sizeof(float) * ms->samples_filled * channels_per_frame;
+    sbuf_size -= ms->samples_filled * channels_per_frame * sizeof(float);
+
     /* feed new raw data to the decoder if needed, copy decoded results to frame buffer output */
     if (!ms->buffer_used) {
         //;VGM_LOG("MPEG: feed new data and get samples\n");
-        rc = mpg123_decode(ms->handle, ms->buffer, ms->bytes_in_buffer, sbuf, ms->sbuf_size - bytes_filled, &bytes_done);
+        rc = mpg123_decode(ms->handle, ms->buffer, ms->bytes_in_buffer, sbuf, sbuf_size, &bytes_done);
         ms->buffer_used = true;
     }
     else {
         //;VGM_LOG("MPEG: get samples from old data\n");
-        rc = mpg123_decode(ms->handle, NULL, 0, sbuf, ms->sbuf_size - bytes_filled, &bytes_done);
+        rc = mpg123_decode(ms->handle, NULL, 0, sbuf, sbuf_size, &bytes_done);
     }
     samples_filled = bytes_done / channels_per_frame / sizeof(float);
 
@@ -406,8 +409,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
 
 decode_fail:
     /* 0-fill but continue with other streams */
-    bytes_filled = ms->samples_filled * channels_per_frame * sizeof(float);
-    memset(sbuf + bytes_filled, 0, ms->sbuf_size - bytes_filled);
+    memset(sbuf, 0, sbuf_size);
     ms->samples_filled = (ms->sbuf_size / channels_per_frame / sizeof(float));
 }
 
