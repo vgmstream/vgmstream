@@ -57,7 +57,7 @@ static int cache_read(void* user_data, uint8_t* dst, int64_t offset, int length)
 
         /* fill the buffer (offset now is beyond buf_offset) */
         priv->buf_offset = priv->offset;
-        priv->valid_size = priv->libsf->read(priv, priv->buf, priv->buf_offset, priv->buf_size);
+        priv->valid_size = priv->libsf->read(priv->libsf->user_data, priv->buf, priv->buf_offset, priv->buf_size);
 
         /* decide how much must be read this time */
         if (length > priv->buf_size)
