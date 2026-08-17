@@ -1269,23 +1269,26 @@ int clHCA_DecodeBlock(clHCA* hca, void* data, unsigned int size) {
 static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group_count, unsigned int version) {
     int i;
     unsigned int cs_count = ch->coded_count;
-    unsigned int hs_count; // HFR group scalefactors
+    unsigned int hs_count; /* v3.0 HFR group scalefactors */
+    unsigned int sf_count; /* total */
 
     unsigned char delta_bits = bitreader_read(br, 3);
 
     /* added in v3.0 */
-    if (ch->type == STEREO_SECONDARY || hfr_group_count <= 0 || version <= HCA_VERSION_V200) {
+    if (ch->type == STEREO_SECONDARY || hfr_group_count == 0 || version <= HCA_VERSION_V200) {
         hs_count = 0;
     }
     else {
         hs_count = hfr_group_count;
-        cs_count = cs_count + hs_count;
     }
+    sf_count = cs_count + hs_count; /* guaranteed to be > 0 from header validations */
 
-    /* lib does check that cs_count is 2+ in fixed/delta case, but doesn't seem to affect anything */
     if (delta_bits >= 6) {
         /* fixed scalefactors */
-        for (i = 0; i < cs_count; i++) {
+        unsigned char value = bitreader_read(br, 6); /* same as reading together but closer vs lib */
+
+        ch->scalefactors[0] = value;
+        for (i = 1; i < sf_count; i++) {
             ch->scalefactors[i] = bitreader_read(br, 6);
         }
     }
@@ -1295,7 +1298,7 @@ static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group
         unsigned char value = bitreader_read(br, 6);
 
         ch->scalefactors[0] = value;
-        for (i = 1; i < cs_count; i++) {
+        for (i = 1; i < sf_count; i++) {
             unsigned char delta = bitreader_read(br, delta_bits);
 
             if (delta == expected_delta) {
@@ -1325,9 +1328,10 @@ static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group
         }
     }
 
-    /* set derived HFR scalefactors for v3.0 files */
-    for (i = 0; i < hs_count; i++) {
-        ch->scalefactors[HCA_SAMPLES_PER_SUBFRAME - 1 - i] = ch->scalefactors[cs_count - i];
+    /* copy v3.0 HFR scalefactors towards end (seems unnecessary/reserved but perhaps 'extra' is used by reconstruct_noise)
+     * ex. is cs=[0..99], hs=[100..110], extra=[111..127] -> cs=[0..99], (hs=[100..110]), extra=[111..116], hs=[117..127] */
+    for (i = hs_count; i > 0; i--) {
+        ch->scalefactors[HCA_SAMPLES_PER_SUBFRAME - 1 - hs_count + i] = ch->scalefactors[cs_count - 1 + i];
     }
 
     return HCA_RESULT_OK;
@@ -1402,8 +1406,8 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
     else {
         /* read high frequency scalefactors. v3.0 uses derived values in unpack_scalefactors instead. */
         if (version <= HCA_VERSION_V200) {
-            /* pointer in v2.0 lib for v2.0 files is base+stereo bands, while v3.0 lib for v2.0 files
-             * is last HFR (should be equivalent though) */
+            /* pointer in v2.0 lib for v2.0 files is after base+stereo bands, while v3.0 lib for v2.0 files
+             * is before end (should be equivalent though, as other functions use the new location) */
             //unsigned char* hfr_scales = &ch->scalefactors[base_band_count + stereo_band_count]; /* v2.0 lib */
             unsigned char* hfr_scales = &ch->scalefactors[HCA_SAMPLES_PER_SUBFRAME - hfr_group_count]; /* v3.0 lib */
 
@@ -1428,7 +1432,7 @@ static void calculate_resolution(stChannel* ch, unsigned int packed_noise_level,
         unsigned char scalefactor = ch->scalefactors[i];
 
         if (scalefactor > 0) {
-            /* curve values are 0 in v1.2>= so ath_curve is actually removed in CRI's code */
+            /* ath_curve doesn't exist (not added) in 2.0 lib, so we set curve values 0 in v1.2>= to allow it */
             int noise_level = ath_curve[i] + ((packed_noise_level + i) >> 8);
             int curve_position = noise_level + 1 - ((5 * scalefactor) >> 1);
 
@@ -1528,6 +1532,8 @@ static void dequantize_coefficients(stChannel* ch, clData* br, int subframe) {
 /* recreate resolution 0 coefs (not encoded) with pseudo-random noise based on
  * other coefs/scales (probably similar to AAC's perceptual noise substitution) */
 static void reconstruct_noise(stChannel* ch, unsigned int min_resolution, unsigned int ms_stereo, unsigned int* random_p, int subframe) {
+    int i;
+
     if (min_resolution > 0) /* added in v3.0 */
         return;
     if (ch->valid_count <= 0 || ch->noise_count <= 0)
@@ -1536,26 +1542,28 @@ static void reconstruct_noise(stChannel* ch, unsigned int min_resolution, unsign
         return;
 
     {
-        int i;
-        int random_index, noise_index, valid_index, sf_noise, sf_valid, sc_index;
+        unsigned int random_out;
+        int random_index, target_index, source_index, sf_target, sf_source, sc_index;
         unsigned int random = *random_p;
 
         for (i = 0; i < ch->noise_count; i++) {
-            random = 0x343FD * random + 0x269EC3; /* typical rand() */
+            random = 0x343FD * random + 0x269EC3; /* lib uses Borland/MSVC's LCG rand() */
+            random_out = (random >> 16) & 0x7FFF;
 
-            random_index = HCA_SAMPLES_PER_SUBFRAME - ch->valid_count + (((random & 0x7FFF) * ch->valid_count) >> 15); /* can't go over 128 */
+            random_index = HCA_SAMPLES_PER_SUBFRAME - ch->valid_count + ((random_out * ch->valid_count) >> 15); /* 0..127 noise index */
 
-            /* points to next resolution 0 index and random non-resolution 0 index */
-            noise_index = ch->noises[i];
-            valid_index = ch->noises[random_index];
+            /* points to next resolution 0 index and random non-resolution 0 index (within 0..valid) */
+            target_index = ch->noises[i];
+            source_index = ch->noises[random_index];
 
             /* get final scale index */
-            sf_noise = ch->scalefactors[noise_index];
-            sf_valid = ch->scalefactors[valid_index];
-            sc_index = (sf_noise - sf_valid + 62) & ~((sf_noise - sf_valid + 62) >> 31);
+            sf_target = ch->scalefactors[target_index];
+            sf_source = ch->scalefactors[source_index];
 
-            ch->spectra[subframe][noise_index] = 
-                hcadecoder_scale_conversion_table[sc_index] * ch->spectra[subframe][valid_index];
+            sc_index = (sf_target - sf_source + 62) & ~((sf_target - sf_source + 62) >> 31); /* clamp 0..62 */
+
+            ch->spectra[subframe][target_index] = 
+                hcadecoder_scale_conversion_table[sc_index] * ch->spectra[subframe][source_index];
         }
 
         *random_p = random; /* lib saves this in the bitreader, maybe for simplified passing around */
@@ -1565,43 +1573,48 @@ static void reconstruct_noise(stChannel* ch, unsigned int min_resolution, unsign
 /* recreate missing coefs in high bands based on lower bands (probably similar to AAC's spectral band replication) */
 static void reconstruct_high_frequency(stChannel* ch, unsigned int hfr_group_count, unsigned int bands_per_hfr_group,
         unsigned int stereo_band_count, unsigned int base_band_count, unsigned int total_band_count, unsigned int version, int subframe) {
+    int i, group;
+
     if (bands_per_hfr_group == 0) /* added in v2.0, skipped in v2.0 files with 0 bands too */
         return;
     if (ch->type == STEREO_SECONDARY)
         return;
 
     {
-        int i;
-        int group, group_limit;
+        int group_limit;
         int start_band = stereo_band_count + base_band_count;
-        int highband = start_band;
+        int highband = start_band; // guaranteed to be >=
         int lowband = start_band - 1;
-        int sc_index;
-        //unsigned char* hfr_scales = &ch->scalefactors[base_band_count + stereo_band_count]; /* v2.0 lib */
-        unsigned char* hfr_scales = &ch->scalefactors[128 - hfr_group_count]; /* v3.0 lib */
+        //unsigned char* hfr_scalefactors = &ch->scalefactors[base_band_count + stereo_band_count]; /* v2.0 lib */
+        unsigned char* hfr_scalefactors = &ch->scalefactors[128 - hfr_group_count]; /* v3.0 lib */
 
         if (version <= HCA_VERSION_V200) {
             group_limit = hfr_group_count;
         }
         else {
-            group_limit = (hfr_group_count >= 0) ? hfr_group_count : hfr_group_count + 1; /* ??? */
-            group_limit = group_limit >> 1;
+            group_limit = (hfr_group_count >= 0) ? hfr_group_count : hfr_group_count + 1; /* default 1? (will become 0 below) */
+            group_limit = group_limit >> 1; // half
         }
 
         for (group = 0; group < hfr_group_count; group++) {
-            int lowband_sub = (group < group_limit) ? 1 : 0; /* move lowband towards 0 until group reachs limit */
+            int sc_index;
+            /* v3.0 moves lowband towards 0 only until group reachs limit (v2.0 never reaches the limit) */
+            int lowband_adjust = (group < group_limit) ? -1 : 1;
+
+            if (highband >= total_band_count || lowband < 0) /* implicit but for completeness vs lib */
+                break;
 
             for (i = 0; i < bands_per_hfr_group; i++) {
                 if (highband >= total_band_count || lowband < 0)
                     break;
 
-                sc_index = hfr_scales[group] - ch->scalefactors[lowband] + 63;
+                sc_index = hfr_scalefactors[group] - ch->scalefactors[lowband] + 63;
                 sc_index = sc_index & ~(sc_index >> 31); /* clamped in v3.0 lib (in theory 6b sf are 0..128) */
 
                 ch->spectra[subframe][highband] = hcadecoder_scale_conversion_table[sc_index] * ch->spectra[subframe][lowband];
 
                 highband += 1;
-                lowband -= lowband_sub;
+                lowband += lowband_adjust;
             }
         }
 
@@ -1616,17 +1629,21 @@ static void reconstruct_high_frequency(stChannel* ch, unsigned int hfr_group_cou
 
 /* restore L/R bands based on channel coef + panning */
 static void apply_intensity_stereo(stChannel* ch_pair, int subframe, unsigned int base_band_count, unsigned int total_band_count) {
+    int band;
+
     if (ch_pair[0].type != STEREO_PRIMARY)
         return;
 
     {
-        int band;
+        int min_band = base_band_count;
+        int max_bands = total_band_count; /* upper stereo bands only */
+
         float ratio_l = hcadecoder_intensity_ratio_table[ ch_pair[1].intensity[subframe] ];
         float ratio_r = 2.0f - ratio_l; /* correct, though other decoders substract 2.0 (it does use 'fsubr 2.0' and such) */
         float* sp_l = &ch_pair[0].spectra[subframe][0];
         float* sp_r = &ch_pair[1].spectra[subframe][0];
 
-        for (band = base_band_count; band < total_band_count; band++) {
+        for (band = min_band; band < max_bands; band++) {
             float coef_l = sp_l[band] * ratio_l;
             float coef_r = sp_l[band] * ratio_r;
             sp_l[band] = coef_l;
@@ -1635,20 +1652,24 @@ static void apply_intensity_stereo(stChannel* ch_pair, int subframe, unsigned in
     }
 }
 
-/* restore L/R bands based on mid channel + side differences */
+/* restore L/R bands based on mid (L) +/- side (R) differences */
 static void apply_ms_stereo(stChannel* ch_pair, unsigned int ms_stereo, unsigned int base_band_count, unsigned int total_band_count, int subframe) {
+    int band;
+
     if (!ms_stereo) /* added in v3.0 */
         return;
     if (ch_pair[0].type != STEREO_PRIMARY)
         return;
 
     {
-        int band;
-        const float ratio = 0.70710676908493; /* 0x3F3504F3 */
+        int min_band = 0;
+        int max_bands = base_band_count; /* lower base bands only */
+
+        const float ratio = 0.707106769084930419921875f; /* 0x3F3504F3 = 1/sqrt(2) */
         float* sp_l = &ch_pair[0].spectra[subframe][0];
         float* sp_r = &ch_pair[1].spectra[subframe][0];
 
-        for (band = base_band_count; band < total_band_count; band++) {
+        for (band = min_band; band < max_bands; band++) {
             float coef_l = (sp_l[band] + sp_r[band]) * ratio;
             float coef_r = (sp_l[band] - sp_r[band]) * ratio;
             sp_l[band] = coef_l;
@@ -1669,9 +1690,12 @@ static void imdct_transform(stChannel* ch, int subframe) {
     static const unsigned int mdct_bits = HCA_MDCT_BITS;
     unsigned int i, j, k;
 
-    /* This IMDCT (supposedly standard) is all too crafty for me to simplify, see VGAudio (Mdct.Dct4). */
+    /* This IMDCT (supposedly standard) is all too crafty for me to simplify, see VGAudio (Mdct.Dct4).
+     * 'HCAIMDCT_Transform' in recent libs seem to use a 'fast MDCT' algorithm for SIMD like this:
+     * pre-rotation > FFT > twiddles > post-rotation. Not sure if lib evolved but should be equivalent.
+     */
 
-    /* pre-pre-rotation(?) */
+    /* pre-rotation butterflies */
     {
         unsigned int count1 = 1;
         unsigned int count2 = half;
@@ -1702,6 +1726,7 @@ static void imdct_transform(stChannel* ch, int subframe) {
         }
     }
 
+    /* main DCT-IV twiddles */
     {
         unsigned int count1 = half;
         unsigned int count2 = 1;
