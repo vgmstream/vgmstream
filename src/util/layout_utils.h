@@ -29,6 +29,7 @@ typedef struct {
     bool loop_flag;
     int loop_start_block;
     int loop_end_block;
+    bool loop_audio_only; // loop block values ignore non-audio blocks
 } blocked_counter_t;
 
 void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter_t* cfg);
