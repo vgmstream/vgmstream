@@ -101,6 +101,8 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
          * 0x84: SCP Unity (PC) [~2020]
          * 0x86: Hades (Switch) [~2020] */
         uint32_t entry_size = version <= 0x28 ? 0x04 : 0x08;
+        if (sndh_size < 0x04 + entry_size)
+            return NULL;
 
         /* 0x00: unknown (chunk version? ex LE: 0x00080003, 0x00080005) */
         int banks = (sndh_size - 0x04) / entry_size;

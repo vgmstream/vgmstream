@@ -33,7 +33,7 @@ VGMSTREAM* init_vgmstream_bgw(STREAMFILE* sf) {
     channels = read_s8(0x2e,sf);
     block_align = read_u8(0x2f,sf);
 
-    if (file_size != get_streamfile_size(sf))
+    if (file_size != get_streamfile_size(sf) || start_offset >= file_size)
         goto fail;
 
     loop_flag = (loop_start > 0);
@@ -133,7 +133,7 @@ VGMSTREAM* init_vgmstream_spw(STREAMFILE* sf) {
     /*0x2b: unk (0x01 when PCM, 0x10 when VAG?) */
     block_align = read_u8(0x2c,sf);
 
-    if (file_size != get_streamfile_size(sf))
+    if (file_size != get_streamfile_size(sf) || start_offset >= file_size)
         goto fail;
 
     loop_flag = (loop_start > 0);
