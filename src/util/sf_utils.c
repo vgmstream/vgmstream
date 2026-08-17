@@ -125,6 +125,16 @@ int check_extensions(STREAMFILE* sf, const char* cmp_exts) {
     return 0;
 }
 
+bool check_file_size(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size) {
+    if (sf == NULL)
+        return false;
+
+    uint32_t sf_size = get_streamfile_size(sf);
+    // overflow-safe checks
+    return sf_size >= data_offset && data_size == sf_size - data_offset;
+}
+
+
 /* ************************************************************************* */
 
 /* copies name as-is (may include full path) */

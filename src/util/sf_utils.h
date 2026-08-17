@@ -26,6 +26,10 @@ STREAMFILE* open_streamfile_by_absname(STREAMFILE* sf, const char* filename);
  * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure */
 int check_extensions(STREAMFILE* sf, const char* cmp_exts);
 
+/* Checks that file's offset matches header's info. Mainly to detect variations/bad rips or for picky codecs.
+ */
+bool check_file_size(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size);
+
 /* filename helpers */
 void get_streamfile_name(STREAMFILE* sf, char* buf, size_t size);
 void get_streamfile_filename(STREAMFILE* sf, char* buf, size_t size);
