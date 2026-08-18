@@ -593,6 +593,253 @@ static bool is_valid_riff(riff_header_t* riff, STREAMFILE* sf) {
     return true;
 }
 
+static bool parse_riff(riff_header_t* riff, STREAMFILE* sf) {
+    uint32_t chunk_offset = 0x0c; /* start with first chunk */
+    uint32_t max_offset = riff->file_size;
+
+    while (chunk_offset < max_offset) {
+        uint32_t chunk_id = read_u32be(chunk_offset + 0x00,sf); /* FOURCC */
+        uint32_t chunk_size = read_u32le(chunk_offset + 0x04,sf);
+
+        /* allow broken last chunk [Cross Gate (PC)] */
+        if (chunk_offset + 0x08 + chunk_size > riff->file_size) {
+            VGM_LOG("RIFF: broken chunk at %x + 0x08 + %x > %x\n", chunk_offset, chunk_size, riff->file_size);
+            break; /* truncated */
+        }
+        chunk_offset += 0x08;
+
+        switch(chunk_id) {
+            case 0x666d7420:    /* "fmt " (format description) */
+                if (riff->fmt_chunk_found)
+                    return false; // only one per file
+                riff->fmt_chunk_found = true;
+
+                if (!read_fmt(&riff->fmt, sf, chunk_offset, chunk_size, false))
+                    return false;
+
+                /* some Dreamcast/Naomi games again [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] */
+                if (riff->fmt.codec == 0x0000 && chunk_size == 0x12)
+                    chunk_size += 0x02;
+                break;
+
+            case 0x64617461:    /* "data" (main payload) */
+                if (riff->data_offset)
+                    return false; // only one per file
+                riff->data_offset = chunk_offset;
+                riff->data_size = chunk_size;
+                break;
+
+            case 0x4A554E4B:    /* "JUNK" (padding) */
+                riff->junk_chunk_found = true;
+                break;
+
+
+            case 0x66616374:    /* "fact" (sample info) */
+                if (chunk_size == 0x04) {
+                        /* standard (usually for ADPCM, MS recommends setting for non-PCM codecs but optional) */
+                    riff->fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                }
+                else if (chunk_size == 0x10 && is_id32be(chunk_offset + 0x04, sf, "LyN ")) {
+                    return false; // parsed elsewhere
+                }
+                else if ((riff->fmt.is_at3 || riff->fmt.is_at3p) && chunk_size == 0x08) {
+                    /* early AT3 (mainly PSP games) */
+                    riff->fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                    riff->fact.sample_skip  = read_s32le(chunk_offset + 0x04, sf); // base skip samples
+                }
+                else if ((riff->fmt.is_at3 || riff->fmt.is_at3p) && chunk_size == 0x0c) {
+                    /* late AT3 (mainly PS3 games and few PSP games) */
+                    riff->fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                    // 0x04: base skip samples, ignored by decoder
+                    riff->fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf); // skip samples with extra 184
+                }
+                else if (riff->fmt.is_at9 && chunk_size == 0x0c) {
+                    riff->fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                    // 0x04: base skip samples (same as next field)
+                    riff->fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf);
+                }
+                else {
+                    vgm_logi("RIFF: unknown 'fact' format (report)\n");
+                }
+                break;
+
+            case 0x4C495354:    /* "LIST" */
+                switch (read_u32be(chunk_offset, sf)) {
+                    case 0x6164746C:    /* "adtl" (loop info, sometimes) */
+                        /* yay, atdl is its own little world */
+                        parse_adtl(chunk_offset, chunk_size, sf, &riff->smp);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+
+            case 0x736D706C:    /* "smpl" (loop info, RIFFMIDISample + MIDILoop chunk) */
+                /* check loop count/loop info (most fields are reserved for midi and null/irrelevant for RIFF) */
+                // 0x00: manufacturer id
+                // 0x04: product id
+                // 0x08: sample period
+                // 0x0c: unity node
+                // 0x10: pitch fraction
+                // 0x14: SMPTE format
+                // 0x18: SMPTE offset
+                // 0x1c: loop count (may contain N MIDILoop)
+                // 0x20: sampler data
+                // 0x24: per loop point:
+                //   0x00: cue point id
+                //   0x04: type (0=forward, 1=alternating, 2=backward)
+                //   0x08: loop start
+                //   0x0c: loop end
+                //   0x10: fraction
+                //   0x14: play count
+                if (read_u32le(chunk_offset + 0x1c, sf) != 1) { /* handle only 1 loop */
+                    VGM_LOG("RIFF: found multiple smpl loop points, ignoring\n");
+                    break;
+                }
+
+                if (read_u32le(chunk_offset + 0x24 + 0x04, sf) == 0) { /* loop forward */
+                    riff->smp.loop_start_smpl = read_s32le(chunk_offset + 0x24 + 0x08, sf);
+                    riff->smp.loop_end_smpl   = read_s32le(chunk_offset + 0x24 + 0x0c, sf);
+                    riff->smp.loop_smpl = true;
+                    riff->smp.loop_flag = true;
+                }
+                break;
+
+            case 0x77736D70:    /* "wsmp" (loop info, RIFFDLSSample + DLSLoop chunk)  */
+                /* check loop count/info (found in some Xbox games: Halo (non-looping), Dynasty Warriors 3/4/5, Crimson Sea) */
+                // 0x00: size
+                // 0x04: unity note
+                // 0x06: fine tune
+                // 0x08: gain
+                // 0x10: loop count
+                // 0x14: per loop:
+                //   0x00: size
+                //   0x04: loop type (0=forward, 1=release)
+                //   0x08: loop start
+                //   0x0c: loop length
+                if (chunk_size < 0x24
+                    || read_u32le(chunk_offset + 0x00, sf) != 0x14
+                    || read_s32le(chunk_offset + 0x10, sf) <= 0
+                    || read_u32le(chunk_offset + 0x14, sf) != 0x10) {
+                    VGM_LOG("RIFF: found incorrect wsmp loop points, ignoring\n");
+                    break;
+                }
+
+                if (read_u32le(chunk_offset + 0x14 + 0x04, sf) == 0) { /* loop forward */
+                    riff->smp.loop_start_wsmp = read_s32le(chunk_offset + 0x14 + 0x08, sf);
+                    riff->smp.loop_end_wsmp   = read_s32le(chunk_offset + 0x14 + 0x0c, sf); /* must *not* add 1 as per spec (region) */
+                    riff->smp.loop_end_wsmp  += riff->smp.loop_start_wsmp;
+                    riff->smp.loop_wsmp = true;
+                    riff->smp.loop_flag = true;
+                }
+                break;
+
+            case 0x63756520: {  /* "cue " (loop info, used in Source Engine amd also seen cue + adtl in Sound Forge) [Team Fortress 2 (PC)] */
+                if (!(riff->fmt.coding_type == coding_PCM8_U || riff->fmt.coding_type == coding_PCM16LE || riff->fmt.coding_type == coding_MSADPCM))
+                    break;
+
+                /* handle loop_start or start + end (more are possible but usually means custom regions);
+                    * could have have other meanings but is often used for loops */
+                int num_cues = read_s32le(chunk_offset + 0x00, sf);
+                if (num_cues <= 0 || num_cues > 2)
+                    break;
+
+                uint32_t cue_offset = chunk_offset + 0x04;
+                for (int i = 0; i < num_cues; i++) {
+                    // 0x00: id (usually 0x01, 0x02 ... but may be unordered)
+                    // 0x04: position (usually same as sample point)
+                    // 0x08: fourcc type
+                    // 0x0c: "chunk start", relative offset (null in practice)
+                    // 0x10: "block start", relative offset (null in practice)
+                    // 0x14: sample offset
+                    uint32_t cue_id     = read_s32le(cue_offset + 0x00, sf);
+                    uint32_t cue_point  = read_s32le(cue_offset + 0x14, sf);
+                    cue_offset += 0x18;
+
+                    switch (cue_id) {
+                        case 1:
+                            riff->smp.loop_start_cue = cue_point;
+                            break;
+                        case 2:
+                            riff->smp.loop_end_cue = cue_point;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                // cues may be unordered so swap if needed
+                if (riff->smp.loop_end_cue > 0 && riff->smp.loop_start_cue > riff->smp.loop_end_cue) {
+                    int32_t tmp = riff->smp.loop_start_cue;
+                    riff->smp.loop_start_cue = riff->smp.loop_end_cue;
+                    riff->smp.loop_end_cue = tmp;
+                }
+                riff->smp.loop_cue = true;
+                riff->smp.loop_flag = true;
+
+                /* assumes "cue" goes before "adtl" (has extra detection for some cases) */
+                break;
+            }
+
+            case 0x4E584246:    /* "NXBF" (Namco NuSound v1 extension) [R:Racing Evolution (Xbox)] */
+                /* very similar to NUS's NPSF, but not quite like Cstr */
+                // 0x00: "NXBF" id
+                // 0x04: version? (0x00001000 = 1.00?)
+                // 0x08: data size
+                // 0x0c: channels
+                // 0x10: null
+                riff->smp.loop_start_nxbf = read_s32le(chunk_offset + 0x14, sf);
+                // 0x18: sample rate
+                // 0x1c: volume? (0x3e8 = 1000 = max)
+                // 0x20: type/flags?
+                // 0x24: flag?
+                // 0x28: null
+                // 0x2c: null
+                // 0x30: always 0x40
+                riff->smp.loop_nxbf = true;
+                riff->smp.loop_flag = (riff->smp.loop_start_nxbf >= 0);
+                break;
+
+
+            case 0x70666c74:    /* "pflt" (.mwv extension, predictor filters) */
+                riff->pflt_offset = chunk_offset;
+                riff->pflt_size = chunk_size;
+                break;
+
+            case 0x6374726c:    /* "ctrl" (.mwv extension) */
+                riff->smp.loop_flag        = read_s32le(chunk_offset + 0x00, sf);
+                riff->smp.loop_start_ctrl  = read_s32le(chunk_offset + 0x04, sf);
+                riff->smp.loop_ctrl = true;
+                break;
+
+            case 0x4C795345: /* "LySE" (Ubisoft LyN mutant RIFF) */
+            case 0x64737068: /* "dsph" (UbiArt Framework mutant RIFF) */
+            case 0x63776176: /* "cwav" (UbiArt Framework mutant RIFF) */
+                return false; // parsed elsewhere
+
+            default:
+                /* ignorance is bliss */
+                break;
+        }
+
+        /* chunks are even-sized with padding byte (for 16b reads) as per spec (normally
+         * pre-adjusted except for a few like Liar-soft's), at end may not have padding though
+         * (done *after* chunk parsing since size without padding is needed) */
+        if (chunk_size % 0x02 && chunk_offset + chunk_size + 0x01 <= riff->file_size)
+            chunk_size += 0x01;
+
+        chunk_offset += chunk_size;
+    }
+
+    if (!riff->fmt_chunk_found || !riff->data_offset)
+        return false;
+
+    if (!is_valid_riff(riff, sf))
+        return NULL;
+
+    return true;
+}
+
 VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
 
@@ -656,263 +903,17 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         return NULL;
     }
 
-
-    fix_sizes(&riff, sf);
-
     /* check for truncated RIFF */
+    fix_sizes(&riff, sf);
     if (riff.file_size != riff.riff_size + 0x08 && !riff.ignore_riff_size) {
         vgm_logi("RIFF: wrong expected size (report/re-rip?)\n");
         VGM_LOG("riff: file_size = %x, riff_size+8 = %x\n", riff.file_size, riff.riff_size + 0x08); /* don't log to user */
         return NULL;
     }
 
-
     /* read through chunks to verify format and find metadata */
-    {
-        uint32_t chunk_offset = 0x0c; /* start with first chunk */
-        uint32_t max_offset = riff.file_size;
-
-        while (chunk_offset < max_offset) {
-            uint32_t chunk_id = read_u32be(chunk_offset + 0x00,sf); /* FOURCC */
-            uint32_t chunk_size = read_u32le(chunk_offset + 0x04,sf);
-
-            /* allow broken last chunk [Cross Gate (PC)] */
-            if (chunk_offset + 0x08 + chunk_size > riff.file_size) {
-                VGM_LOG("RIFF: broken chunk at %x + 0x08 + %x > %x\n", chunk_offset, chunk_size, riff.file_size);
-                break; /* truncated */
-            }
-            chunk_offset += 0x08;
-
-            switch(chunk_id) {
-                case 0x666d7420:    /* "fmt " (format description) */
-                    if (riff.fmt_chunk_found)
-                        goto fail; /* only one per file */
-                    riff.fmt_chunk_found = true;
-
-                    if (!read_fmt(&riff.fmt, sf, chunk_offset, chunk_size, false))
-                        goto fail;
-
-                    /* some Dreamcast/Naomi games again [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] */
-                    if (riff.fmt.codec == 0x0000 && chunk_size == 0x12)
-                        chunk_size += 0x02;
-                    break;
-
-                case 0x64617461:    /* "data" (main payload) */
-                    if (riff.data_offset)
-                        goto fail; // only one per file
-                    riff.data_offset = chunk_offset;
-                    riff.data_size = chunk_size;
-                    break;
-
-                case 0x4A554E4B:    /* "JUNK" (padding) */
-                    riff.junk_chunk_found = true;
-                    break;
-
-
-                case 0x66616374:    /* "fact" (sample info) */
-                    if (chunk_size == 0x04) {
-                         /* standard (usually for ADPCM, MS recommends setting for non-PCM codecs but optional) */
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                    }
-                    else if (chunk_size == 0x10 && is_id32be(chunk_offset + 0x04, sf, "LyN ")) {
-                        goto fail; /* parsed elsewhere */
-                    }
-                    else if ((riff.fmt.is_at3 || riff.fmt.is_at3p) && chunk_size == 0x08) {
-                        /* early AT3 (mainly PSP games) */
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x04, sf); // base skip samples
-                    }
-                    else if ((riff.fmt.is_at3 || riff.fmt.is_at3p) && chunk_size == 0x0c) {
-                        /* late AT3 (mainly PS3 games and few PSP games) */
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                        // 0x04: base skip samples, ignored by decoder
-                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf); // skip samples with extra 184
-                    }
-                    else if (riff.fmt.is_at9 && chunk_size == 0x0c) {
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                        // 0x04: base skip samples (same as next field)
-                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf);
-                    }
-                    else {
-                        vgm_logi("RIFF: unknown 'fact' format (report)\n");
-                    }
-                    break;
-
-                case 0x4C495354:    /* "LIST" */
-                    switch (read_u32be(chunk_offset, sf)) {
-                        case 0x6164746C:    /* "adtl" (loop info, sometimes) */
-                            /* yay, atdl is its own little world */
-                            parse_adtl(chunk_offset, chunk_size, sf, &riff.smp);
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-
-                case 0x736D706C:    /* "smpl" (loop info, RIFFMIDISample + MIDILoop chunk) */
-                    /* check loop count/loop info (most fields are reserved for midi and null/irrelevant for RIFF) */
-                    // 0x00: manufacturer id
-                    // 0x04: product id
-                    // 0x08: sample period
-                    // 0x0c: unity node
-                    // 0x10: pitch fraction
-                    // 0x14: SMPTE format
-                    // 0x18: SMPTE offset
-                    // 0x1c: loop count (may contain N MIDILoop)
-                    // 0x20: sampler data
-                    // 0x24: per loop point:
-                    //   0x00: cue point id
-                    //   0x04: type (0=forward, 1=alternating, 2=backward)
-                    //   0x08: loop start
-                    //   0x0c: loop end
-                    //   0x10: fraction
-                    //   0x14: play count
-                    if (read_u32le(chunk_offset + 0x1c, sf) != 1) { /* handle only 1 loop */
-                        VGM_LOG("RIFF: found multiple smpl loop points, ignoring\n");
-                        break;
-                    }
-
-                    if (read_u32le(chunk_offset + 0x24 + 0x04, sf) == 0) { /* loop forward */
-                        riff.smp.loop_start_smpl = read_s32le(chunk_offset + 0x24 + 0x08, sf);
-                        riff.smp.loop_end_smpl   = read_s32le(chunk_offset + 0x24 + 0x0c, sf);
-                        riff.smp.loop_smpl = true;
-                        riff.smp.loop_flag = true;
-                    }
-                    break;
-
-                case 0x77736D70:    /* "wsmp" (loop info, RIFFDLSSample + DLSLoop chunk)  */
-                    /* check loop count/info (found in some Xbox games: Halo (non-looping), Dynasty Warriors 3/4/5, Crimson Sea) */
-                    // 0x00: size
-                    // 0x04: unity note
-                    // 0x06: fine tune
-                    // 0x08: gain
-                    // 0x10: loop count
-                    // 0x14: per loop:
-                    //   0x00: size
-                    //   0x04: loop type (0=forward, 1=release)
-                    //   0x08: loop start
-                    //   0x0c: loop length
-                    if (chunk_size < 0x24
-                        || read_u32le(chunk_offset + 0x00, sf) != 0x14
-                        || read_s32le(chunk_offset + 0x10, sf) <= 0
-                        || read_u32le(chunk_offset + 0x14, sf) != 0x10) {
-                        VGM_LOG("RIFF: found incorrect wsmp loop points, ignoring\n");
-                        break;
-                    }
-
-                    if (read_u32le(chunk_offset + 0x14 + 0x04, sf) == 0) { /* loop forward */
-                        riff.smp.loop_start_wsmp = read_s32le(chunk_offset + 0x14 + 0x08, sf);
-                        riff.smp.loop_end_wsmp   = read_s32le(chunk_offset + 0x14 + 0x0c, sf); /* must *not* add 1 as per spec (region) */
-                        riff.smp.loop_end_wsmp  += riff.smp.loop_start_wsmp;
-                        riff.smp.loop_wsmp = true;
-                        riff.smp.loop_flag = true;
-                    }
-                    break;
-
-                case 0x63756520: {  /* "cue " (loop info, used in Source Engine amd also seen cue + adtl in Sound Forge) [Team Fortress 2 (PC)] */
-                    if (!(riff.fmt.coding_type == coding_PCM8_U || riff.fmt.coding_type == coding_PCM16LE || riff.fmt.coding_type == coding_MSADPCM))
-                        break;
-
-                    /* handle loop_start or start + end (more are possible but usually means custom regions);
-                     * could have have other meanings but is often used for loops */
-                    int num_cues = read_s32le(chunk_offset + 0x00, sf);
-                    if (num_cues <= 0 || num_cues > 2)
-                        break;
-
-                    uint32_t cue_offset = chunk_offset + 0x04;
-                    for (int i = 0; i < num_cues; i++) {
-                        // 0x00: id (usually 0x01, 0x02 ... but may be unordered)
-                        // 0x04: position (usually same as sample point)
-                        // 0x08: fourcc type
-                        // 0x0c: "chunk start", relative offset (null in practice)
-                        // 0x10: "block start", relative offset (null in practice)
-                        // 0x14: sample offset
-                        uint32_t cue_id     = read_s32le(cue_offset + 0x00, sf);
-                        uint32_t cue_point  = read_s32le(cue_offset + 0x14, sf);
-                        cue_offset += 0x18;
-
-                        switch (cue_id) {
-                            case 1:
-                                riff.smp.loop_start_cue = cue_point;
-                                break;
-                            case 2:
-                                riff.smp.loop_end_cue = cue_point;
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-
-                    // cues may be unordered so swap if needed
-                    if (riff.smp.loop_end_cue > 0 && riff.smp.loop_start_cue > riff.smp.loop_end_cue) {
-                        int32_t tmp = riff.smp.loop_start_cue;
-                        riff.smp.loop_start_cue = riff.smp.loop_end_cue;
-                        riff.smp.loop_end_cue = tmp;
-                    }
-                    riff.smp.loop_cue = true;
-                    riff.smp.loop_flag = true;
-
-                    /* assumes "cue" goes before "adtl" (has extra detection for some cases) */
-                    break;
-                }
-
-                case 0x4E584246:    /* "NXBF" (Namco NuSound v1 extension) [R:Racing Evolution (Xbox)] */
-                    /* very similar to NUS's NPSF, but not quite like Cstr */
-                    // 0x00: "NXBF" id
-                    // 0x04: version? (0x00001000 = 1.00?)
-                    // 0x08: data size
-                    // 0x0c: channels
-                    // 0x10: null
-                    riff.smp.loop_start_nxbf = read_s32le(chunk_offset + 0x14, sf);
-                    // 0x18: sample rate
-                    // 0x1c: volume? (0x3e8 = 1000 = max)
-                    // 0x20: type/flags?
-                    // 0x24: flag?
-                    // 0x28: null
-                    // 0x2c: null
-                    // 0x30: always 0x40
-                    riff.smp.loop_nxbf = true;
-                    riff.smp.loop_flag = (riff.smp.loop_start_nxbf >= 0);
-                    break;
-
-
-                case 0x70666c74:    /* "pflt" (.mwv extension, predictor filters) */
-                    riff.pflt_offset = chunk_offset;
-                    riff.pflt_size = chunk_size;
-                    break;
-
-                case 0x6374726c:    /* "ctrl" (.mwv extension) */
-                    riff.smp.loop_flag        = read_s32le(chunk_offset + 0x00, sf);
-                    riff.smp.loop_start_ctrl  = read_s32le(chunk_offset + 0x04, sf);
-                    riff.smp.loop_ctrl = true;
-                    break;
-
-                case 0x4C795345: /* "LySE" (Ubisoft LyN mutant RIFF) */
-                case 0x64737068: /* "dsph" (UbiArt Framework mutant RIFF) */
-                case 0x63776176: /* "cwav" (UbiArt Framework mutant RIFF) */
-                    goto fail; // parsed elsewhere
-
-                default:
-                    /* ignorance is bliss */
-                    break;
-            }
-
-            /* chunks are even-sized with padding byte (for 16b reads) as per spec (normally
-             * pre-adjusted except for a few like Liar-soft's), at end may not have padding though
-             * (done *after* chunk parsing since size without padding is needed) */
-            if (chunk_size % 0x02 && chunk_offset + chunk_size + 0x01 <= riff.file_size)
-                chunk_size += 0x01;
-
-            chunk_offset += chunk_size;
-        }
-
-        if (!riff.fmt_chunk_found || !riff.data_offset)
-            goto fail;
-    }
-
-    if (!is_valid_riff(&riff, sf)) {
+    if (!parse_riff(&riff, sf))
         return NULL;
-    }
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(riff.fmt.channels, riff.smp.loop_flag);
