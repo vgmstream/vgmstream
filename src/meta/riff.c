@@ -43,10 +43,11 @@ typedef struct {
 typedef struct {
     off_t offset;
     off_t size;
-    uint32_t codec;
+
+    uint16_t codec;
     int sample_rate;
-    int channels;
-    uint32_t block_size;
+    uint16_t channels;
+    uint16_t block_size;
     int bps;
     off_t extra_size;
     uint32_t channel_layout;
@@ -70,6 +71,9 @@ typedef struct {
     riff_fmt_t fmt;
     riff_smp_t smp;
     riff_fact_t fact;
+
+    uint32_t file_size;
+    uint32_t riff_size;
 
     bool ignore_riff_size;
 
@@ -466,75 +470,11 @@ static bool is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_t* fmt, int fact_sample_coun
 static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_t* fmt, off_t start, size_t size);
 
 
-VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
-    VGMSTREAM* vgmstream = NULL;
-    size_t file_size, riff_size;
+/* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
+static void fix_sizes(riff_header_t* riff, STREAMFILE* sf) {
+    uint32_t riff_size = riff->riff_size;
+    uint32_t file_size = get_streamfile_size(sf);
 
-
-    /* checks*/
-    if (!is_id32be(0x00,sf,"RIFF"))
-        return NULL;
-
-    riff_size = read_u32le(0x04,sf);
-
-    if (!is_id32be(0x08,sf, "WAVE"))
-        return NULL;
-
-    /* .lwav: to avoid hijacking .wav
-     * .xwav: fake for Xbox games (not needed anymore)
-     * .da: The Great Battle VI (PS1)
-     * .dax: Love Game's - Wai Wai Tennis (PS1)
-     * .cd: Exector (PS)
-     * .med: Psi Ops (PC)
-     * .snd: Layton Brothers (iOS/Android)
-     * .adx: Remember11 (PC) sfx
-     * .adp: Headhunter (DC)
-     * .xss: Spider-Man The Movie (Xbox)
-     * .xsew: Mega Man X Legacy Collection (PC)
-     * .adpcm: Angry Birds Transformers (Android)
-     * .adw: Dead Rising 2 (PC)
-     * .wd: Genma Onimusha (Xbox) voices
-     * (extensionless): Myst III (Xbox), Delta Force 2 (PC)
-     * .sbv: Spongebob Squarepants - The Movie (PC)
-     * .wvx: Godzilla - Destroy All Monsters Melee (Xbox)
-     * .str: Harry Potter and the Philosopher's Stone (Xbox)
-     * .at3: standard ATRAC3
-     * .rws: Climax ATRAC3 [Silent Hill Origins (PSP), Oblivion (PSP)]
-     * .aud: EA Replay ATRAC3
-     * .at9: standard ATRAC9
-     * .ckd: renamed ATRAC9 [Rayman Origins (Vita)]
-     * .saf: Whacked! (Xbox)
-     * .mwv: Level-5 games [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)]
-     * .ima: Baja: Edge of Control (PS3/X360)
-     * .nsa: Studio Ring games that uses NScripter [Hajimete no Otetsudai (PC)]
-     * .pcm: Silent Hill Arcade (PC)
-     * .xvag: Uncharted Golden Abyss (Vita)[ATRAC9]
-     * .ogg/logg: Luftrausers (Vita)[ATRAC9]
-     * .p1d: Farming Simulator 15 (Vita)[ATRAC9]
-     * .xms: Ty the Tasmanian Tiger (Xbox)
-     * .mus: Burnout Legends/Dominator (PSP)
-     * .dat/ldat: RollerCoaster Tycoon 1/2 (PC), Winning Eleven 2008 (AC)
-     * .wma/lwma: SRS: Street Racing Syndicate (Xbox), Fast and the Furious (Xbox)
-     * .caf: Topple (iOS)
-     * .wax: Lamborghini (Xbox)
-     * .voi: Sol Trigger (PSP)[ATRAC3]
-     * .se: Rockman X4 (PC)
-     * .v: Rozen Maiden: Duellwalzer (PS2)
-     * .xst: Animaniacs: The Great Edgar Hunt (Xbox)
-     * .wxv: Dariusburst (PSP)[ATRAC3]
-     * .vag: Knight Rider (PS2)
-     * .xbw: Elminage: Yami no Fujo to Kamigami no Yubiwa (PS2)
-     * .at9psv: Touhou Kobuto V - Burst Battle (Vita)
-     */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst,wxv,vag,xbw,at9psv")) {
-        return NULL;
-    }
-
-    riff_header_t riff = {0};
-
-
-    /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
-    file_size = get_streamfile_size(sf);
     if (file_size != riff_size + 0x08) {
         uint16_t codec = read_u16le(0x14,sf);
 
@@ -594,7 +534,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         else if (codec == 0x0001 && (
                     riff_size + 0x08 + 0x08 == file_size || riff_size + 0x08 + 0x09 == file_size ||
                     riff_size + 0x08 - 0x3E == file_size || riff_size + 0x08 - 0x02 == file_size))
-            riff.ignore_riff_size = true; /* [Cross Gate (PC)] (last info LIST chunk has wrong size) */
+            riff->ignore_riff_size = true; /* [Cross Gate (PC)] (last info LIST chunk has wrong size) */
 
         else if (codec == 0xFFFE && riff_size + 0x08 + 0x40 == file_size)
             file_size -= 0x40; /* [Megami no Etsubo (PSP)] (has extra padding in all files) */
@@ -606,10 +546,123 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             riff_size += 0x01; // padding byte, rarely seen (spec isn't too clear about RIFF's size) [Delta Force 2 (PC)]
     }
 
+    riff->riff_size = riff_size;
+    riff->file_size = file_size;
+}
+
+/* skip mutant RIFFs that should be parsed elsewhere, after reading the whole format */
+static bool is_valid_riff(riff_header_t* riff, STREAMFILE* sf) {
+
+    //TODO: improve detection using fmt sizes/values as Wwise's don't match the RIFF standard for some codecs
+    // JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
+    // To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
+    // As JUNK is legal (if unusual) we only reject those codecs.
+    // (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
+    if (riff->junk_chunk_found
+            && (riff->fmt.coding_type == coding_MSADPCM || riff->fmt.coding_type == coding_XBOX_IMA /*|| riff->fmt.coding_type==coding_MS_IMA*/)
+            && check_extensions(sf,"wav,lwav") /* for some .MED IMA */
+            ) {
+        return false;
+    }
+
+    // Ignore Beyond Good & Evil HD PS3 evil reuse of the PCM codec in Ubi Jade.
+    // Normally padded and rejected, but just in case they are manually de-padded
+    // Defined sample rate is not actually used (bgm=32000, sfx=~10000-12000, real=48000).
+    if (riff->fmt.coding_type == coding_PCM16LE &&
+            riff->fmt.size == 0x10 && riff->fmt.sample_rate <= 32000 &&
+            read_u32be(riff->data_offset+0x00, sf) == get_id32be("MSF\x43") &&
+            read_u32be(riff->data_offset+0x34, sf) == 0xFFFFFFFF && // always
+            read_u32be(riff->data_offset+0x38, sf) == 0xFFFFFFFF &&
+            read_u32be(riff->data_offset+0x3c, sf) == 0xFFFFFFFF) {
+        return false;
+    }
+
+    // MSADPCM .ckd are parsed elsewhere, though they are valid so no big deal if parsed here (just that loops should be ignored)
+    if (riff->fmt.codec == 0x0002 && check_extensions(sf, "ckd")) {
+        return false;
+    }
+
+#if 0 
+    // Ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH).
+    // Shouldn't be needed as RIFF sizes are validated now and differences are large
+    if (riff->fmt.is_at3 && get_streamfile_size(sf) > 0x2800 && read_u32be(0x2800, sf) == get_id32be("RIFF")) {
+        return false;
+    }
+#endif
+
+    return true;
+}
+
+VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+
+    /* checks*/
+    if (!is_id32be(0x00,sf,"RIFF"))
+        return NULL;
+
+    riff_header_t riff = {0};
+
+    riff.riff_size = read_u32le(0x04,sf);
+    if (!is_id32be(0x08,sf, "WAVE"))
+        return NULL;
+
+    /* .lwav: to avoid hijacking .wav
+     * .xwav: fake for Xbox games (not needed anymore)
+     * .da: The Great Battle VI (PS1)
+     * .dax: Love Game's - Wai Wai Tennis (PS1)
+     * .cd: Exector (PS)
+     * .med: Psi Ops (PC)
+     * .snd: Layton Brothers (iOS/Android)
+     * .adx: Remember11 (PC) sfx
+     * .adp: Headhunter (DC)
+     * .xss: Spider-Man The Movie (Xbox)
+     * .xsew: Mega Man X Legacy Collection (PC)
+     * .adpcm: Angry Birds Transformers (Android)
+     * .adw: Dead Rising 2 (PC)
+     * .wd: Genma Onimusha (Xbox) voices
+     * (extensionless): Myst III (Xbox), Delta Force 2 (PC)
+     * .sbv: Spongebob Squarepants - The Movie (PC)
+     * .wvx: Godzilla - Destroy All Monsters Melee (Xbox)
+     * .str: Harry Potter and the Philosopher's Stone (Xbox)
+     * .at3: standard ATRAC3
+     * .rws: Climax ATRAC3 [Silent Hill Origins (PSP), Oblivion (PSP)]
+     * .aud: EA Replay ATRAC3
+     * .at9: standard ATRAC9
+     * .ckd: renamed ATRAC9 [Rayman Origins (Vita)]
+     * .saf: Whacked! (Xbox)
+     * .mwv: Level-5 games [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)]
+     * .ima: Baja: Edge of Control (PS3/X360)
+     * .nsa: Studio Ring games that uses NScripter [Hajimete no Otetsudai (PC)]
+     * .pcm: Silent Hill Arcade (PC)
+     * .xvag: Uncharted Golden Abyss (Vita)[ATRAC9]
+     * .ogg/logg: Luftrausers (Vita)[ATRAC9]
+     * .p1d: Farming Simulator 15 (Vita)[ATRAC9]
+     * .xms: Ty the Tasmanian Tiger (Xbox)
+     * .mus: Burnout Legends/Dominator (PSP)
+     * .dat/ldat: RollerCoaster Tycoon 1/2 (PC), Winning Eleven 2008 (AC)
+     * .wma/lwma: SRS: Street Racing Syndicate (Xbox), Fast and the Furious (Xbox)
+     * .caf: Topple (iOS)
+     * .wax: Lamborghini (Xbox)
+     * .voi: Sol Trigger (PSP)[ATRAC3]
+     * .se: Rockman X4 (PC)
+     * .v: Rozen Maiden: Duellwalzer (PS2)
+     * .xst: Animaniacs: The Great Edgar Hunt (Xbox)
+     * .wxv: Dariusburst (PSP)[ATRAC3]
+     * .vag: Knight Rider (PS2)
+     * .xbw: Elminage: Yami no Fujo to Kamigami no Yubiwa (PS2)
+     * .at9psv: Touhou Kobuto V - Burst Battle (Vita)
+     */
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst,wxv,vag,xbw,at9psv")) {
+        return NULL;
+    }
+
+
+    fix_sizes(&riff, sf);
+
     /* check for truncated RIFF */
-    if (file_size != riff_size + 0x08 && !riff.ignore_riff_size) {
+    if (riff.file_size != riff.riff_size + 0x08 && !riff.ignore_riff_size) {
         vgm_logi("RIFF: wrong expected size (report/re-rip?)\n");
-        VGM_LOG("riff: file_size = %x, riff_size+8 = %x\n", file_size, riff_size + 0x08); /* don't log to user */
+        VGM_LOG("riff: file_size = %x, riff_size+8 = %x\n", riff.file_size, riff.riff_size + 0x08); /* don't log to user */
         return NULL;
     }
 
@@ -617,20 +670,21 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     /* read through chunks to verify format and find metadata */
     {
         uint32_t chunk_offset = 0x0c; /* start with first chunk */
+        uint32_t max_offset = riff.file_size;
 
-        while (chunk_offset < file_size) {
+        while (chunk_offset < max_offset) {
             uint32_t chunk_id = read_u32be(chunk_offset + 0x00,sf); /* FOURCC */
             uint32_t chunk_size = read_u32le(chunk_offset + 0x04,sf);
 
             /* allow broken last chunk [Cross Gate (PC)] */
-            if (chunk_offset + 0x08 + chunk_size > file_size) {
-                VGM_LOG("RIFF: broken chunk at %x + 0x08 + %x > %x\n", chunk_offset, chunk_size, file_size);
+            if (chunk_offset + 0x08 + chunk_size > riff.file_size) {
+                VGM_LOG("RIFF: broken chunk at %x + 0x08 + %x > %x\n", chunk_offset, chunk_size, riff.file_size);
                 break; /* truncated */
             }
             chunk_offset += 0x08;
 
             switch(chunk_id) {
-                case 0x666d7420:    /* "fmt " */
+                case 0x666d7420:    /* "fmt " (format description) */
                     if (riff.fmt_chunk_found)
                         goto fail; /* only one per file */
                     riff.fmt_chunk_found = true;
@@ -643,16 +697,50 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                         chunk_size += 0x02;
                     break;
 
-                case 0x64617461:    /* "data" */
+                case 0x64617461:    /* "data" (main payload) */
                     if (riff.data_offset)
                         goto fail; // only one per file
                     riff.data_offset = chunk_offset;
                     riff.data_size = chunk_size;
                     break;
 
+                case 0x4A554E4B:    /* "JUNK" (padding) */
+                    riff.junk_chunk_found = true;
+                    break;
+
+
+                case 0x66616374:    /* "fact" (sample info) */
+                    if (chunk_size == 0x04) {
+                         /* standard (usually for ADPCM, MS recommends setting for non-PCM codecs but optional) */
+                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                    }
+                    else if (chunk_size == 0x10 && is_id32be(chunk_offset + 0x04, sf, "LyN ")) {
+                        goto fail; /* parsed elsewhere */
+                    }
+                    else if ((riff.fmt.is_at3 || riff.fmt.is_at3p) && chunk_size == 0x08) {
+                        /* early AT3 (mainly PSP games) */
+                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x04, sf); // base skip samples
+                    }
+                    else if ((riff.fmt.is_at3 || riff.fmt.is_at3p) && chunk_size == 0x0c) {
+                        /* late AT3 (mainly PS3 games and few PSP games) */
+                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                        // 0x04: base skip samples, ignored by decoder
+                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf); // skip samples with extra 184
+                    }
+                    else if (riff.fmt.is_at9 && chunk_size == 0x0c) {
+                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
+                        // 0x04: base skip samples (same as next field)
+                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf);
+                    }
+                    else {
+                        vgm_logi("RIFF: unknown 'fact' format (report)\n");
+                    }
+                    break;
+
                 case 0x4C495354:    /* "LIST" */
                     switch (read_u32be(chunk_offset, sf)) {
-                        case 0x6164746C:    /* "adtl" */
+                        case 0x6164746C:    /* "adtl" (loop info, sometimes) */
                             /* yay, atdl is its own little world */
                             parse_adtl(chunk_offset, chunk_size, sf, &riff.smp);
                             break;
@@ -661,7 +749,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     }
                     break;
 
-                case 0x736D706C:    /* "smpl" (RIFFMIDISample + MIDILoop chunk) */
+                case 0x736D706C:    /* "smpl" (loop info, RIFFMIDISample + MIDILoop chunk) */
                     /* check loop count/loop info (most fields are reserved for midi and null/irrelevant for RIFF) */
                     // 0x00: manufacturer id
                     // 0x04: product id
@@ -692,7 +780,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     }
                     break;
 
-                case 0x77736D70:    /* "wsmp" (RIFFDLSSample + DLSLoop chunk)  */
+                case 0x77736D70:    /* "wsmp" (loop info, RIFFDLSSample + DLSLoop chunk)  */
                     /* check loop count/info (found in some Xbox games: Halo (non-looping), Dynasty Warriors 3/4/5, Crimson Sea) */
                     // 0x00: size
                     // 0x04: unity note
@@ -721,47 +809,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     }
                     break;
 
-                case 0x66616374:    /* "fact" */
-                    if (chunk_size == 0x04) {
-                         /* standard (usually for ADPCM, MS recommends setting for non-PCM codecs but optional) */
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                    }
-                    else if (chunk_size == 0x10 && is_id32be(chunk_offset + 0x04, sf, "LyN ")) {
-                        goto fail; /* parsed elsewhere */
-                    }
-                    else if ((riff.fmt.is_at3 || riff.fmt.is_at3p) && chunk_size == 0x08) {
-                        /* early AT3 (mainly PSP games) */
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x04, sf); // base skip samples
-                    }
-                    else if ((riff.fmt.is_at3 || riff.fmt.is_at3p) && chunk_size == 0x0c) {
-                        /* late AT3 (mainly PS3 games and few PSP games) */
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                        // 0x04: base skip samples, ignored by decoder
-                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf); // skip samples with extra 184
-                    }
-                    else if (riff.fmt.is_at9 && chunk_size == 0x0c) {
-                        riff.fact.sample_count = read_s32le(chunk_offset + 0x00, sf);
-                        // 0x04: base skip samples (same as next field)
-                        riff.fact.sample_skip  = read_s32le(chunk_offset + 0x08, sf);
-                    }
-                    break;
-
-                case 0x4C795345:    /* "LySE" */
-                    goto fail; /* parsed elsewhere */
-
-                case 0x70666c74:    /* "pflt" (predictor filters, .mwv extension) */
-                    riff.pflt_offset = chunk_offset;
-                    riff.pflt_size = chunk_size;
-                    break;
-
-                case 0x6374726c:    /* "ctrl" (.mwv extension) */
-                    riff.smp.loop_flag        = read_s32le(chunk_offset + 0x00, sf);
-                    riff.smp.loop_start_ctrl  = read_s32le(chunk_offset + 0x04, sf);
-                    riff.smp.loop_ctrl = true;
-                    break;
-
-                case 0x63756520: {  /* "cue " (used in Source Engine, also seen cue + adtl in Sound Forge) [Team Fortress 2 (PC)] */
+                case 0x63756520: {  /* "cue " (loop info, used in Source Engine amd also seen cue + adtl in Sound Forge) [Team Fortress 2 (PC)] */
                     if (!(riff.fmt.coding_type == coding_PCM8_U || riff.fmt.coding_type == coding_PCM16LE || riff.fmt.coding_type == coding_MSADPCM))
                         break;
 
@@ -808,7 +856,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     break;
                 }
 
-                case 0x4E584246:    /* "NXBF" (Namco NuSound v1) [R:Racing Evolution (Xbox)] */
+                case 0x4E584246:    /* "NXBF" (Namco NuSound v1 extension) [R:Racing Evolution (Xbox)] */
                     /* very similar to NUS's NPSF, but not quite like Cstr */
                     // 0x00: "NXBF" id
                     // 0x04: version? (0x00001000 = 1.00?)
@@ -827,14 +875,22 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     riff.smp.loop_flag = (riff.smp.loop_start_nxbf >= 0);
                     break;
 
-                case 0x4A554E4B:    /* "JUNK" */
-                    riff.junk_chunk_found = true;
+
+                case 0x70666c74:    /* "pflt" (.mwv extension, predictor filters) */
+                    riff.pflt_offset = chunk_offset;
+                    riff.pflt_size = chunk_size;
                     break;
 
+                case 0x6374726c:    /* "ctrl" (.mwv extension) */
+                    riff.smp.loop_flag        = read_s32le(chunk_offset + 0x00, sf);
+                    riff.smp.loop_start_ctrl  = read_s32le(chunk_offset + 0x04, sf);
+                    riff.smp.loop_ctrl = true;
+                    break;
 
-                case 0x64737068: /* "dsph" */
-                case 0x63776176: /* "cwav" */
-                    goto fail; /* parse elsewhere */
+                case 0x4C795345: /* "LySE" (Ubisoft LyN mutant RIFF) */
+                case 0x64737068: /* "dsph" (UbiArt Framework mutant RIFF) */
+                case 0x63776176: /* "cwav" (UbiArt Framework mutant RIFF) */
+                    goto fail; // parsed elsewhere
 
                 default:
                     /* ignorance is bliss */
@@ -844,7 +900,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             /* chunks are even-sized with padding byte (for 16b reads) as per spec (normally
              * pre-adjusted except for a few like Liar-soft's), at end may not have padding though
              * (done *after* chunk parsing since size without padding is needed) */
-            if (chunk_size % 0x02 && chunk_offset + chunk_size + 0x01 <= file_size)
+            if (chunk_size % 0x02 && chunk_offset + chunk_size + 0x01 <= riff.file_size)
                 chunk_size += 0x01;
 
             chunk_offset += chunk_size;
@@ -854,35 +910,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             goto fail;
     }
 
-
-    //todo improve detection using fmt sizes/values as Wwise's don't match the RIFF standard for some codecs
-    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
-     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
-     * As JUNK is legal (if unusual) we only reject those codecs.
-     * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
-    if (riff.junk_chunk_found
-            && (riff.fmt.coding_type == coding_MSADPCM || riff.fmt.coding_type == coding_XBOX_IMA /*|| riff.fmt.coding_type==coding_MS_IMA*/)
-            && check_extensions(sf,"wav,lwav") /* for some .MED IMA */
-            )
-        goto fail;
-
-    /* ignore Beyond Good & Evil HD PS3 evil reuse of the PCM codec */
-    if (riff.fmt.coding_type == coding_PCM16LE &&
-            read_u32be(riff.data_offset+0x00, sf) == get_id32be("MSF\x43") &&
-            read_u32be(riff.data_offset+0x34, sf) == 0xFFFFFFFF && /* always */
-            read_u32be(riff.data_offset+0x38, sf) == 0xFFFFFFFF &&
-            read_u32be(riff.data_offset+0x3c, sf) == 0xFFFFFFFF)
-        goto fail;
-
-    /* MSADPCM .ckd are parsed elsewhere, though they are valid so no big deal if parsed here (just that loops should be ignored) */
-    if (riff.fmt.codec == 0x0002 && check_extensions(sf, "ckd"))
-        goto fail;
-
-    /* ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH) */
-    if (riff.fmt.is_at3 && get_streamfile_size(sf) > 0x2800 && read_u32be(0x2800, sf) == get_id32be("RIFF")) {
-        goto fail;
+    if (!is_valid_riff(&riff, sf)) {
+        return NULL;
     }
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(riff.fmt.channels, riff.smp.loop_flag);
