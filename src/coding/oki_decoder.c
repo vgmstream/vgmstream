@@ -11,7 +11,7 @@ static const int step_sizes[49] = { /* OKI table (subsection of IMA's table) */
         1552
 };
 
-static const int stex_indexes[16] = { /* OKI table (also from IMA) */
+static const int step_indexes[16] = { /* OKI table (also from IMA) */
         -1, -1, -1, -1, 2, 4, 6, 8,
         -1, -1, -1, -1, 2, 4, 6, 8
 };
@@ -35,7 +35,7 @@ static void pcfx_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int 
     if (code & 0x8)
         delta = -delta;
 
-    *step_index += stex_indexes[code];
+    *step_index += step_indexes[code];
     if (*step_index < 0) *step_index = 0;
     if (*step_index > 48) *step_index = 48;
 
@@ -72,7 +72,7 @@ static void oki16_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int
 
     /* standard OKI clamps hist to 2047,-2048 here */
 
-    *step_index += stex_indexes[code];
+    *step_index += step_indexes[code];
     if (*step_index < 0) *step_index = 0;
     if (*step_index > 48) *step_index = 48;
 
@@ -93,7 +93,7 @@ static void oki4s_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int
     code = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
     step = step_sizes[*step_index];
 
-    step = step << 4; /* original table has precomputed step_sizes so that this isn't done */
+    step = step << 4; /* original table has precomputed step_sizes so this isn't needed */
 
     /* IMA 'shift-add' style (like standard OKI) */
     delta = step >> 3;
@@ -105,7 +105,29 @@ static void oki4s_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int
 
     *hist1 = clamp16(*hist1); /* standard OKI clamps hist to 2047,-2048 here */
 
-    *step_index += stex_indexes[code];
+    *step_index += step_indexes[code];
+    if (*step_index < 0) *step_index = 0;
+    if (*step_index > 48) *step_index = 48;
+
+    *out_sample = *hist1;
+}
+
+
+static void oki_um_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_index, int16_t* out_sample, int shift) {
+    int code, step, delta;
+
+    code = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    step = step_sizes[*step_index];
+
+    delta = (code & 0x7);
+    delta = step * (2 * delta + 1);
+    if (code & 0x8)
+        delta = -delta;
+
+    *hist1 += (delta << shift);
+    *hist1 = clamp16(*hist1);
+
+    *step_index += step_indexes[code];
     if (*step_index < 0) *step_index = 0;
     if (*step_index > 48) *step_index = 48;
 
@@ -125,16 +147,16 @@ static void oki4s_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int
  * base_value is approximately ~31468.5 (follows hardware clocks), mono or interleaved for stereo.
  */
 void decode_pcfx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode) {
-    int i, sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
 
-    for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        off_t byte_offset = stream->offset + i/2;
-        int nibble_shift = (i&1?4:0); /* low nibble first */
+    int sample_count = 0;
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
+        off_t byte_offset = stream->offset + i / 2;
+        int nibble_shift = (i & 1 ? 4 : 0); /* low nibble first */
 
-        pcfx_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample, mode);
+        pcfx_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_index, &out_sample, mode);
         outbuf[sample_count] = out_sample;
         sample_count += channelspacing;
     }
@@ -146,29 +168,30 @@ void decode_pcfx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing,
 /* OKI variation with 16-bit output (vs standard's 12-bit), found in FrontWing's PS2 games (Sweet Legacy, Hooligan).
  * Reverse engineered from the ELF with help from the folks at hcs. Codec has no name so OKI16 is just a description. */
 void decode_oki16(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
-    int is_stereo = channelspacing > 1;
+    bool is_stereo = channelspacing > 1;
 
 
     /* external interleave */
 
     /* no header (external setup), pre-clamp for wrong values */
-    if (step_index < 0) step_index=0;
-    if (step_index > 48) step_index=48;
+    if (step_index < 0) step_index = 0;
+    if (step_index > 48) step_index = 48;
 
     /* decode nibbles (layout: varies) */
-    for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+    int sample_count = 0;
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
         off_t byte_offset = is_stereo ?
                 stream->offset + i :    /* stereo: one nibble per channel */
-                stream->offset + i/2;   /* mono: consecutive nibbles (assumed) */
+                stream->offset + i / 2; /* mono: consecutive nibbles (assumed) */
         int nibble_shift =
-                is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
+                is_stereo ? (!(channel & 1) ? 0 : 4) : (!(i & 1) ? 0 : 4);  /* even = low, odd = high */
 
-        oki16_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample);
+        oki16_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_index, &out_sample);
         outbuf[sample_count] = (out_sample);
+        sample_count += channelspacing;
     }
 
     stream->adpcm_history1_32 = hist1;
@@ -178,7 +201,6 @@ void decode_oki16(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
 /* OKI variation with 16-bit output (vs standard's 12-bit) and pre-adjusted tables (shifted by 4), found in Jubeat Clan (AC).
  * Reverse engineered from the DLLs (libbmsd-engine.dll). Internally code calls it "adpcm", so OKI4S is just a description. */
 void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, bool is_stereo) {
-    int sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
@@ -187,24 +209,59 @@ void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
     /* external interleave */
 
     /* no header (external setup), pre-clamp for wrong values */
-    if (step_index < 0) step_index=0;
-    if (step_index > 48) step_index=48;
+    if (step_index < 0) step_index = 0;
+    if (step_index > 48) step_index = 48;
 
     /* decode nibbles (layout: varies) */
-    for (int i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+    int sample_count = 0;
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
         off_t byte_offset = is_stereo ?
                 stream->offset + i :    /* stereo: one nibble per channel */
-                stream->offset + i/2;   /* mono: consecutive nibbles */
+                stream->offset + i / 2; /* mono: consecutive nibbles */
         int nibble_shift =
-                is_stereo ? ((channel&1) ? 0:4) : ((i&1) ? 0:4);  /* even = high, odd = low */
+                is_stereo ? ((channel & 1) ? 0 : 4) : ((i & 1) ? 0 : 4);  /* even = high, odd = low */
 
-        oki4s_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample);
-        outbuf[sample_count] = (out_sample);
+        oki4s_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_index, &out_sample);
+        outbuf[sample_count] = out_sample;
+        sample_count += channelspacing;
     }
 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_index;
 }
+
+
+/* OKI ADPCM variant seen in the UltraMarine (UM) sound lib, used various minor Japanese games.
+ * Original code has mono and mono-interleaved variants. Reversed from UMUT.DLL (~2000).
+ * Info: https://www7.big.or.jp/~suppoko/ultramarine/index.html
+ */
+void decode_oki_um(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int shift) {
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+    int16_t out_sample;
+    if (shift <= 0)
+        shift = 2; // lib default, though known files set 2 too
+
+    /* external interleave */
+
+    /* no header (external setup), pre-clamp for wrong values */
+    if (step_index < 0) step_index = 0;
+    if (step_index > 48) step_index = 48;
+
+    int sample_count = 0;
+    for (int i = first_sample; i < first_sample + samples_to_do; i++) {
+        off_t byte_offset = stream->offset + i / 2;
+        int nibble_shift = (i & 1 ? 4 : 0); /* low nibble first */
+
+        oki_um_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample, shift);
+        outbuf[sample_count] = out_sample;
+        sample_count += channelspacing;
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
 
 size_t oki_bytes_to_samples(size_t bytes, int channels) {
     if (channels <= 0) return 0;

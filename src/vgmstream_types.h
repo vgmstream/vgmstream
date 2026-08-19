@@ -123,6 +123,7 @@ typedef enum {
     coding_PCFX,            /* PC-FX 4-bit ADPCM */
     coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output and modified expand */
     coding_OKI4S,           /* OKI 4-bit ADPCM with 16-bit output and cuadruple step */
+    coding_OKI_UM,          /* OKI 4-bit ADPCM with 16-bit output and custom expand */
     coding_PTADPCM,         /* Platinum 4-bit ADPCM */
     coding_IMUSE,           /* LucasArts iMUSE Variable ADPCM */
     coding_COMPRESSWAVE,    /* CompressWave Huffman ADPCM */

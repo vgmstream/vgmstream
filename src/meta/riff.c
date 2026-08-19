@@ -86,6 +86,9 @@ typedef struct {
 
     uint32_t data_offset;
     uint32_t data_size;
+
+    uint32_t shft_offset;
+    uint32_t shift_value;
 }
 riff_header_t;
 
@@ -494,6 +497,19 @@ static bool parse_fmt(riff_fmt_t* fmt, STREAMFILE* sf, uint32_t offset, uint32_t
             return false; // unknown GUID
         }
 
+        case 0xFFFF:  // UltraMarine lib extension [Doura III (PC)]
+            if (fmt->bps != 4)
+                return false;
+            if (fmt->block_size != 0x01 * fmt->channels)
+                return false;
+            if (fmt->size != 0x10)
+                return false;
+            if (fmt->channels > 2)
+                return false;
+
+            fmt->coding_type = coding_OKI_UM;
+            break;
+
         default:
             // FFmpeg may play it
             //vgm_logi("RIFF: unknown codec 0x%04x (report)\n", fmt->format);
@@ -581,6 +597,9 @@ static void fix_sizes(riff_header_t* riff, STREAMFILE* sf) {
 
         else if (codec == 0x0001 && riff_size % 0x02 && riff_size + 0x08 + 0x01 == file_size)
             riff_size += 0x01; // padding byte, rarely seen (spec isn't too clear about RIFF's size) [Delta Force 2 (PC)]
+
+        else if (codec == 0xFFFF && riff_size + 0x08 + 0x26 == file_size)
+            riff_size += 0x26; /* [Doura III (PC)] (doesn't seem to include size for extra chunks) */
     }
 
     riff->riff_size = riff_size;
@@ -849,6 +868,24 @@ static bool parse_riff(riff_header_t* riff, STREAMFILE* sf) {
                 riff->smp.loop_ctrl = true;
                 break;
 
+            case 0x73686674:    /* "shft" (UltraMarine lib extension) */
+                riff->shft_offset = chunk_offset;
+                if (chunk_size < 0x04)
+                    return false;
+                riff->shift_value = read_u32le(chunk_offset + 0x00, sf);
+                break;
+
+#if 0
+            // known files include this chunk, but lib doesn't seem to read it
+            case 0x656E6376:    /* "encv" (UltraMarine lib extension) */
+                riff->encv_offset = chunk_offset;
+                //if (chunk_size != 0x08)
+                //    return false;
+                // 00: encoding (always "adpu")
+                // 04: version? (always 5) 
+                break;
+#endif
+
             case 0x4C795345: /* "LySE" (Ubisoft LyN mutant RIFF) */
             case 0x64737068: /* "dsph" (UbiArt Framework mutant RIFF) */
             case 0x63776176: /* "cwav" (UbiArt Framework mutant RIFF) */
@@ -898,7 +935,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .med: Psi Ops (PC)
      * .snd: Layton Brothers (iOS/Android)
      * .adx: Remember11 (PC) sfx
-     * .adp: Headhunter (DC)
+     * .adp: Headhunter (DC), UltraMarine lib
      * .xss: Spider-Man The Movie (Xbox)
      * .xsew: Mega Man X Legacy Collection (PC)
      * .adpcm: Angry Birds Transformers (Android)
@@ -1043,6 +1080,16 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         case coding_AICA:
         case coding_AICA_int:
             vgmstream->num_samples = yamaha_bytes_to_samples(riff.data_size, riff.fmt.channels);
+            break;
+
+        case coding_OKI_UM:
+            if (riff.shft_offset == 0)
+                goto fail;
+            if (riff.shift_value > 16) // arbitrary max
+                goto fail;
+            vgmstream->codec_config = riff.shift_value;
+            vgmstream->interleave_block_size = 0x01;
+            vgmstream->num_samples = riff.fact.sample_count;
             break;
 
         case coding_XBOX_IMA:
