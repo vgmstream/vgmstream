@@ -467,7 +467,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_vas_rockstar,
     init_vgmstream_ea_sbk,
     init_vgmstream_dsp_asura,
-    init_vgmstream_dsp_asura_ds2,
     init_vgmstream_dsp_asura_ttss,
     init_vgmstream_dsp_asura_sfx,
     init_vgmstream_adp_ongakukan,
@@ -572,6 +571,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_lucasarts_ds2,
     init_vgmstream_dsp_itl,
     init_vgmstream_dsp_switch_audio,
+    init_vgmstream_dsp_asura_ds2,
 
     init_vgmstream_fsb_encrypted,   /* encrypted stuff (needs to decrypt first to detect)*/
     init_vgmstream_nus3bank_encrypted,
