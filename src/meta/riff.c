@@ -4,12 +4,13 @@
 #include "../layout/layout.h"
 #include "../util.h"
 #include "../util/channel_mappings.h"
+#include "../util/chunks.h"
 #include "../util/endianness.h"
 #include "riff_ogg_streamfile.h"
 
 /* RIFF - Resource Interchange File Format, standard container used in many games */
 
-
+//typedef enum { PCM, MS_ADPCM, MS_IMA, XBOX_ADPCM, ATRAC3, ATRAC3PLUS, ATRAC9, OGG_CBR, AICA, AICA_int, LEVEL7 } riff_codec_t;
 typedef struct {
     bool loop_flag;
 
@@ -44,7 +45,7 @@ typedef struct {
     off_t offset;
     off_t size;
 
-    uint16_t codec;
+    uint16_t format;
     int sample_rate;
     uint16_t channels;
     uint16_t block_size;
@@ -53,8 +54,8 @@ typedef struct {
     uint32_t channel_layout;
     uint32_t at9_extradata;
 
-    int coding_type;
-    int interleave;
+    coding_t coding_type;
+    uint32_t interleave;
 
     bool is_at3;
     bool is_at3p;
@@ -88,6 +89,7 @@ typedef struct {
 }
 riff_header_t;
 
+
 /* parse "Marker hh:mm:ss.ms" to milliseconds */
 static long parse_adtl_marker_ms(unsigned char* marker, size_t marker_size) {
     int hh, mm, ss, ms;
@@ -96,17 +98,14 @@ static long parse_adtl_marker_ms(unsigned char* marker, size_t marker_size) {
     if (marker_size < 20)
         return -1;
 
-    if (memcmp("Marker ", marker, 7) != 0)
-        return -1;
-
     // 00:00:00.NNN, rare (ms as-is)
-    m = sscanf((char*)marker + 0x07, "%02d:%02d:%02d.%03d%n", &hh, &mm, &ss, &ms, &n);
+    m = sscanf((char*)marker, "Marker %02d:%02d:%02d.%03d%n", &hh, &mm, &ss, &ms, &n);
     if (m == 4 && n == 12) {
         return ((hh * 60 + mm) * 60 + ss) * 1000 + ms;
     }
 
     // 00:00:00.NN, common (ms .15 = 150)
-    m = sscanf((char*)marker + 0x07,"%02d:%02d:%02d.%02d", &hh, &mm, &ss, &ms);
+    m = sscanf((char*)marker, "Marker %02d:%02d:%02d.%02d", &hh, &mm, &ss, &ms);
     if (m == 4) {
         return ((hh * 60 + mm) * 60 + ss) * 1000 + ms * 10;
     }
@@ -145,7 +144,7 @@ static void parse_adtl(uint32_t adtl_offset, uint32_t adtl_length, STREAMFILE* s
                 int loop_value = parse_adtl_marker_ms(label_content, sizeof(label_content));
                 if (loop_value < 0)
                     break;
-                
+
                 switch (cue_id) {
                     case 1:
                         if (labl_start_found)
@@ -228,7 +227,7 @@ static bool parse_fmt(riff_fmt_t* fmt, STREAMFILE* sf, uint32_t offset, uint32_t
     fmt->size = size;
 
     /* WAVEFORMAT */
-    fmt->codec          = read_u16(offset + 0x00,sf);
+    fmt->format         = read_u16(offset + 0x00,sf);
     fmt->channels       = read_u16(offset + 0x02,sf);
     fmt->sample_rate    = read_u32(offset + 0x04,sf);
   //fmt->avg_bps        = read_u32(offset + 0x08,sf); // "for buffer estimation"
@@ -245,7 +244,7 @@ static bool parse_fmt(riff_fmt_t* fmt, STREAMFILE* sf, uint32_t offset, uint32_t
     }
 
     /* WAVEFORMATEXTENSIBLE */
-    if (fmt->codec == 0xFFFE && fmt->extra_size >= 0x16) {
+    if (fmt->format == 0xFFFE && fmt->extra_size >= 0x16) {
       //fmt->extra_samples  = read_u16(offset + 0x12,sf); /* valid_bits_per_sample or samples_per_block */
         fmt->channel_layout = read_u32(offset + 0x14,sf);
         /* 0x10 guid at 0x20 */
@@ -264,7 +263,7 @@ static bool parse_fmt(riff_fmt_t* fmt, STREAMFILE* sf, uint32_t offset, uint32_t
     if (fmt->channels == 0)
         return false;
 
-    switch (fmt->codec) {
+    switch (fmt->format) {
         case 0x0000:    // Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial, WAVE_FORMAT_UNKNOWN)
             if (fmt->bps != 4)
                 return false;
@@ -517,7 +516,7 @@ static void fix_sizes(riff_header_t* riff, STREAMFILE* sf) {
         uint16_t codec = read_u16le(0x14,sf);
 
         if      ((codec & 0xFF00) == 0x6700 && riff_size + 0x08 + 0x01 == file_size)
-            riff_size += 0x01; /* [Shikkoku no Sharnoth (PC), Only One 2 (PC)] (Sony Sound Forge?) */
+            riff_size += 0x01; /* [Shikkoku no Sharnoth (PC), Only One 2 (PC)] (vorbis.acm) */
 
         else if (codec == 0x0069 && riff_size == file_size)
             riff_size -= 0x08; /* [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
@@ -606,7 +605,7 @@ static bool is_valid_riff(riff_header_t* riff, STREAMFILE* sf) {
     // Ignore Beyond Good & Evil HD PS3 evil reuse of the PCM codec in Ubi Jade.
     // Normally padded and rejected, but just in case they are manually de-padded
     // Defined sample rate is not actually used (bgm=32000, sfx=~10000-12000, real=48000).
-    if (riff->fmt.codec == 0x0001 &&
+    if (riff->fmt.format == 0x0001 &&
             riff->fmt.size == 0x10 && riff->fmt.sample_rate <= 32000 &&
             read_u32be(riff->data_offset+0x00, sf) == get_id32be("MSF\x43") &&
             read_u32be(riff->data_offset+0x34, sf) == 0xFFFFFFFF && // always
@@ -616,11 +615,11 @@ static bool is_valid_riff(riff_header_t* riff, STREAMFILE* sf) {
     }
 
     // MSADPCM .ckd are parsed elsewhere, though they are valid so no big deal if parsed here (just that loops should be ignored)
-    if (riff->fmt.codec == 0x0002 && check_extensions(sf, "ckd")) {
+    if (riff->fmt.format == 0x0002 && check_extensions(sf, "ckd")) {
         return false;
     }
 
-#if 0 
+#if 0
     // Ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH).
     // Shouldn't be needed as RIFF sizes are validated now and differences are large
     if (riff->fmt.is_at3 && get_streamfile_size(sf) > 0x2800 && read_u32be(0x2800, sf) == get_id32be("RIFF")) {
@@ -636,7 +635,7 @@ static bool parse_riff(riff_header_t* riff, STREAMFILE* sf) {
     uint32_t max_offset = riff->file_size;
 
     while (chunk_offset < max_offset) {
-        uint32_t chunk_id = read_u32be(chunk_offset + 0x00,sf); /* FOURCC */
+        uint32_t chunk_type = read_u32be(chunk_offset + 0x00,sf); /* FOURCC */
         uint32_t chunk_size = read_u32le(chunk_offset + 0x04,sf);
 
         /* allow broken last chunk [Cross Gate (PC)] */
@@ -646,7 +645,7 @@ static bool parse_riff(riff_header_t* riff, STREAMFILE* sf) {
         }
         chunk_offset += 0x08;
 
-        switch(chunk_id) {
+        switch(chunk_type) {
             case 0x666d7420:    /* "fmt " (format description) */
                 if (riff->fmt.offset)
                     return false; // only one per file
@@ -655,7 +654,7 @@ static bool parse_riff(riff_header_t* riff, STREAMFILE* sf) {
                     return false;
 
                 /* some Dreamcast/Naomi games [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] */
-                if (riff->fmt.codec == 0x0000 && chunk_size == 0x12)
+                if (riff->fmt.format == 0x0000 && chunk_size == 0x12)
                     chunk_size += 0x02;
                 break;
 
