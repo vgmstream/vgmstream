@@ -561,18 +561,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mpeg,            /* semi-raw MP3 */
     init_vgmstream_btsnd,           /* semi-headerless */
 
-    init_vgmstream_ngc_mpdsp,       /* ill-defined .dsp, that they depend on meta order */
-    init_vgmstream_ngc_dsp_std_int,
-    init_vgmstream_dsp_ddsp,
-    init_vgmstream_dsp_str_ig,
-    init_vgmstream_dsp_xiii,
-    init_vgmstream_dsp_cabelas,
-    init_vgmstream_dsp_itl_ch,
-    init_vgmstream_dsp_lucasarts_ds2,
-    init_vgmstream_dsp_itl,
-    init_vgmstream_dsp_switch_audio,
-    init_vgmstream_dsp_asura_ds2,
-
+    init_vgmstream_dsp_interleaved, /* ill-defined DSP variations */
     init_vgmstream_fsb_encrypted,   /* encrypted stuff (needs to decrypt first to detect)*/
     init_vgmstream_nus3bank_encrypted,
     init_vgmstream_encrypted,

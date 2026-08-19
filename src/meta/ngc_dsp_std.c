@@ -593,13 +593,13 @@ fail:
 // Interleaved variations, detected by heuristics + dsp header validations
 
 /* .STE - single header + interleaved dsp [Monopoly Party! (GC)] */
-VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_ste(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
     /* .ste: real extension
      * .mpdsp: fake/renamed since standard .dsp would catch it otherwise */
-    if (!check_extensions(sf, "mpdsp,ste"))
+    if (!check_extensions(sf, "ste,mpdsp"))
         return NULL;
 
     /* at 0x48 is extra data that could help differenciating these DSPs, but seems like
@@ -621,7 +621,7 @@ VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
 }
 
 /* various dsp with differing extensions and interleave values */
-VGMSTREAM* init_vgmstream_ngc_dsp_std_int(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_dsp_mss_gcm(STREAMFILE* sf) {
     dsp_meta dspm = {0};
     char filename[PATH_LIMIT];
 
@@ -661,7 +661,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std_int(STREAMFILE* sf) {
 }
 
 /* .str - Infogrames raw interleaved dsp [Micro Machines (GC), Superman: Shadow of Apokolips (GC)] */
-VGMSTREAM* init_vgmstream_dsp_str_ig(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_str_ig(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -681,7 +681,7 @@ VGMSTREAM* init_vgmstream_dsp_str_ig(STREAMFILE* sf) {
 }
 
 /* .dsp - Ubisoft interleaved dsp with bad loop start [Speed Challenge: Jacques Villeneuve's Racing Vision (GC), XIII (GC)] */
-VGMSTREAM* init_vgmstream_dsp_xiii(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_xiii(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -702,7 +702,7 @@ VGMSTREAM* init_vgmstream_dsp_xiii(STREAMFILE* sf) {
 }
 
 /* .ddsp - full interleaved dsp [Shark Tale (GC), The Sims series (GC/Wii), Wacky Races: Crash & Dash (Wii)] */
-VGMSTREAM* init_vgmstream_dsp_ddsp(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_ddsp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -730,7 +730,7 @@ VGMSTREAM* init_vgmstream_dsp_ddsp(STREAMFILE* sf) {
 
 /* Cabela's series (Magic Wand dev?) - header + interleaved dsp
  *  [Cabela's Big Game Hunt 2005 Adventures (GC), Cabela's Outdoor Adventures (GC)] */
-VGMSTREAM* init_vgmstream_dsp_cabelas(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_cabelas(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -755,7 +755,7 @@ VGMSTREAM* init_vgmstream_dsp_cabelas(STREAMFILE* sf) {
 }
 
 /* .itl - from Chanrinko Hero (GC) */
-VGMSTREAM* init_vgmstream_dsp_itl_ch(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_itl_ch(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -777,7 +777,7 @@ VGMSTREAM* init_vgmstream_dsp_itl_ch(STREAMFILE* sf) {
 }
 
 /* .ds2 - LucasArts wrapper [Star Wars: Bounty Hunter (GC)] */
-VGMSTREAM* init_vgmstream_dsp_lucasarts_ds2(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_lucasarts(STREAMFILE* sf) {
     dsp_meta dspm = {0};
     size_t file_size, channel_offset;
 
@@ -810,7 +810,7 @@ VGMSTREAM* init_vgmstream_dsp_lucasarts_ds2(STREAMFILE* sf) {
 }
 
 /* .itl - Incinerator Studios interleaved dsp [Cars Race-o-rama (Wii), MX vs ATV Untamed (Wii)] */
-VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_itl(STREAMFILE* sf) {
     dsp_meta dspm = {0};
     size_t stream_size;
 
@@ -839,7 +839,7 @@ VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf) {
 }
 
 /* .switch_audio - UE4 standard LE header + full interleaved dsp [Gal Gun 2 (Switch)] */
-VGMSTREAM* init_vgmstream_dsp_switch_audio(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_switch_audio(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -867,7 +867,7 @@ VGMSTREAM* init_vgmstream_dsp_switch_audio(STREAMFILE* sf) {
 }
 
 /* .ds2 - Rebellion (Asura engine) [PDC World Championship Darts 2009 & Pro Tour (Wii)] */
-VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_dspi_asura_ds2(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     if (!check_extensions(sf, "ds2"))
@@ -886,6 +886,46 @@ VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_ASURA;
     return init_vgmstream_dsp_common(sf, &dspm);
+}
+
+// TODO clean/unify
+VGMSTREAM* init_vgmstream_dsp_interleaved(STREAMFILE* sf) {
+    VGMSTREAM* v;
+
+    v = init_vgmstream_dspi_ste(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_dsp_mss_gcm(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_ddsp(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_str_ig(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_xiii(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_cabelas(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_itl_ch(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_lucasarts(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_itl(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_switch_audio(sf);
+    if (v) return v;
+
+    v = init_vgmstream_dspi_asura_ds2(sf);
+    if (v) return v;
+
+    return NULL;
 }
 
 
@@ -918,7 +958,6 @@ VGMSTREAM* init_vgmstream_ngc_dsp_stm(STREAMFILE* sf) {
     dspm.meta_type = meta_DSP_STM;
     return init_vgmstream_dsp_common(sf, &dspm);
 }
-
 
 
 /* .idsp - interleaved dsp [Harvest Moon: Another Wonderful Life (GC)] */
