@@ -413,13 +413,14 @@ static bool parse_fmt(riff_fmt_t* fmt, STREAMFILE* sf, uint32_t offset, uint32_t
       //case 0x6750:    // WAVE_FORMAT_VORBIS2  / WAVE_FORMAT_OGG_VORBIS_MODE_2 ('Pg')
       //case 0x6751:    // WAVE_FORMAT_VORBIS3  / WAVE_FORMAT_OGG_VORBIS_MODE_3 ('Qg')
         case 0x676f:    // WAVE_FORMAT_VORBIS1P / WAVE_FORMAT_OGG_VORBIS_MODE_1_PLUS ('og') [Only One 2 (PC)]
-      //case 0x6770:    // WAVE_FORMAT_VORBIS2P / WAVE_FORMAT_OGG_VORBIS_MODE_2_PLUS ('pg') [Only One (PC)]
+        case 0x6770:    // WAVE_FORMAT_VORBIS2P / WAVE_FORMAT_OGG_VORBIS_MODE_2_PLUS ('pg') [Only One (PC)]
         case 0x6771:    // WAVE_FORMAT_VORBIS3P / WAVE_FORMAT_OGG_VORBIS_MODE_3_PLUS ('qg') [Liar-soft games]
             // vorbis.acm codecs by H.Mutsuki (somewhat accepted as official-ish). From docs/source:
             // - mode1: standard Ogg in "data"
-            // - mode2: supposedly Ogg header is part of extra data
+            // - mode2: Ogg header is part of extra data (meant to be only in fmt?)
+            //   In practice known files stores the header twice, in "fmt" and "data" (vorbis.acm version 2002-02-01).
             // - mode3: in theory doesn't store headers (info/comments/codebooks) and uses a fixed one in vorbis.acm (dump.inl).
-            //   In practice known files work like mode1, for vorbis.acm version 2002-02-01 at least.
+            //   In practice known files work like mode1 (vorbis.acm version 2002-02-01).
             // - mode*+ = "pseudo CBR" modes, that add a 2nd empty stream for padding (ID -1).
             //   Data sizes it's rather inconsistent so not sure about its purpose.
             //   This fake stream causes issues in current libs though (see riff_ogg_streamfile).
