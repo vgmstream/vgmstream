@@ -1536,7 +1536,7 @@ static void reconstruct_noise(stChannel* ch, unsigned int min_resolution, unsign
 
     if (min_resolution > 0) /* added in v3.0 */
         return;
-    if (ch->valid_count <= 0 || ch->noise_count <= 0)
+    if (ch->valid_count == 0 || ch->noise_count == 0)
         return;
     if (!(!ms_stereo || ch->type == STEREO_PRIMARY))
         return;
@@ -1665,7 +1665,7 @@ static void apply_ms_stereo(stChannel* ch_pair, unsigned int ms_stereo, unsigned
         int min_band = 0;
         int max_bands = base_band_count; /* lower base bands only */
 
-        const float ratio = 0.707106769084930419921875f; /* 0x3F3504F3 = 1/sqrt(2) */
+        const float ratio = 0.707106769084930419921875f; /* 0x3F3504F3 = 1 / sqrt(2) */
         float* sp_l = &ch_pair[0].spectra[subframe][0];
         float* sp_r = &ch_pair[1].spectra[subframe][0];
 

@@ -10,16 +10,16 @@
 #include <vorbis/vorbisfile.h>
 
 #define VORBIS_CALL_SAMPLES 1024  // allowed frame 'blocksizes' range from 2^6 ~ 2^13 (64 ~ 8192) but we can return partial samples
-#define OGG_DEFAULT_BITSTREAM 0
+#define OGG_DEFAULT_BITSTREAM -1 // 'current bitstream'
 
 /* opaque struct */
 struct ogg_vorbis_codec_data {
     OggVorbis_File ogg_vorbis_file;
-    int bitstream;              // special flag for current stream (in practice can be ignored)
+    int bitstream;              // index of current stream (0, 1, ...)
 
     bool ovf_init;
-    bool disable_reordering;    /* Xiph Ogg must reorder channels on output, but some pre-ordered games don't need it */
-    bool force_seek;            /* Ogg with wrong granules can't seek correctly */
+    bool disable_reordering;    // Xiph Ogg must reorder channels on output, but some pre-ordered games don't need it
+    bool force_seek;            // Ogg with wrong granules can't seek correctly
     int32_t discard;
 
     ogg_vorbis_io io;
@@ -117,12 +117,27 @@ ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE* sf, off_t start, off_t size, 
         data->ovf_init = true;
     }
 
-    //todo could set bitstreams as subsongs?
-    /* get info from bitstream */
-    data->bitstream = OGG_DEFAULT_BITSTREAM;
+    //TODO: improve multistreams
+    // Ogg allows multiple streams together:
+    // - multiplexing: interleaved pages of different IDs (ex. multilang)
+    // - chaining: pages of a new ID pasted right after base stream's end (ex. web radio)
+    //
+    // vorbisfile.h selects chained streams by 'bitstream' index. On decode it will
+    // return the index, and decoder may handle its samples differently.
+    //
+    // However seems it just silently discards other multiplexed streams. Support is kind of buggy,
+    // as an error on the 2nd stream consume bytes from the first (bad sample output).
+    //
+    // Apparently the only way to handle muxed streams is manually reading Ogg pages with
+    // ogg_stream_pagein and skipping any 'serialno' we don't want. There is also no way to cleanly
+    // detect multiplexed streams, because encoder may place their pages a bit later (ex. +0x10000).
 
-    data->comment = ov_comment(&data->ogg_vorbis_file, data->bitstream);
-    data->info = ov_info(&data->ogg_vorbis_file, data->bitstream);
+    /* get info from bitstream (info/comment/setup pages must exist as per spec) */
+    data->info = ov_info(&data->ogg_vorbis_file, OGG_DEFAULT_BITSTREAM);
+    if (!data->info) goto fail;
+
+    data->comment = ov_comment(&data->ogg_vorbis_file, OGG_DEFAULT_BITSTREAM);
+    if (!data->comment) goto fail;
 
     return data;
 fail:
@@ -214,8 +229,16 @@ static bool decode_frame_ogg_vorbis(VGMSTREAM* v) {
         max_samples = VORBIS_CALL_SAMPLES;
 
     long rc = ov_read_float(&data->ogg_vorbis_file, &pcm_channels, max_samples, &data->bitstream);
-    if (rc <= 0)  // rc is samples done
+    if (rc <= 0)   { // rc is samples done, or error code
+        VGM_ASSERT(rc < 0, "OGG: return code=%i\n", (int)rc);
         return false;
+    }
+
+    // could skip other streams, but see comment on init
+    //VGM_ASSERT(data->bitstream != 0, "OGG: found different bitstream=%i\n", data->bitstream);
+    //if (data->bitstream != 0) {
+    //    rc = 0;
+    //}
 
     sbuf_init_flt(&ds->sbuf, data->fbuf, rc, v->channels);
     ds->sbuf.filled = rc;
