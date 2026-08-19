@@ -1410,7 +1410,12 @@ static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_t* fmt, off_t 
     return v2_interleave; /* favor newer games */
 }
 
-/* same but big endian, seen in the spec and in Kitchenette (PC) (possibly from Adobe Director) */
+#if 0
+// Big endian RIFX is in the spec but no known games use it. Probably defined for powerPC Mac
+// that were big endian, but seems Mac ports of games around that era used AIFC or regular RIFF from PC.
+// This meta was added for Wwise, but now wwise.c handles it; to be removed later unless actual cases are found.
+
+/* same but big endian, seen in the spec */
 VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     riff_fmt_t fmt = {0};
@@ -1541,3 +1546,4 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+#endif
