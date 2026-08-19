@@ -11,40 +11,42 @@
 #define WIN_PATH_LIMIT 4096
 #define WIN_MODE_LIMIT (3+1)
 
-// WideCharToMultiByte:
+// MultiByteToWideChar wrapper:
+//  CodePage: CP_UTF8
+//  dwFlags: config
+//  lpMultiByteStr: input char string
+//  cbMultiByte: buf size of input, or -1 for null-terminated
+//  lpWideCharStr: output string
+//  cchWideChar: output size (0 to check for needed string)
+// returns number of written chars including null, or 0 on error (not enough buffer, etc)
+static int char_to_wchar(const char* str, wchar_t* wstr, int wstr_size) {
+    // cchWideChar=0 means "get needed size", prone to subtle bugs
+    if (!str ||!wstr || wstr_size <= 0) {
+        //SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return 0;
+    }
+    int str_size = -1; // input is null-terminated
+    return MultiByteToWideChar(CP_UTF8, 0, str, str_size, wstr, wstr_size);
+}
+
+// WideCharToMultiByte wrapper (assumes wstr is null-terminated):
 //  CodePage: CP_UTF8
 //  dwFlags: config
 //  lpWideCharStr: input wchar_t string
 //  cchWideChar: size of input, or -1 for null-terminated
 //  lpMultiByteStr: output string
 //  cbMultiByte: output size (0 to check for needed string)
-// returns number of written chars, or 0 on error (not enough buffer, etc)
-static int char_to_wchar(const char* str, wchar_t* wstr, int wstr_len) {
-    // wstr_len=0 means "get needed size", prone to subtle bugs
-    if (wstr_len <= 0) {
-        //SetLastError(ERROR_INSUFFICIENT_BUFFER);
-        return 0;
-    }
-    return MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, wstr_len);
-}
-
-// MultiByteToWideChar:
-//  CodePage: CP_UTF8
-//  dwFlags: config
-//  lpMultiByteStr: input wchar_t string
-//  cbMultiByte: size of input, or -1 for null-terminated
-//  lpWideCharStr: output string
-//  cchWideChar: output size (0 to check for needed string)
 //  lpDefaultChar: char to use for non-representable chars (NULL for default)
 //  lpUsedDefaultChar: flag to check if default char was used
-// returns number of written chars, or 0 on error (not enough buffer, etc)
-static int wchar_to_char(const wchar_t* wstr, char* str, int str_len) {
-    // str_len=0 means "get needed size", prone to subtle bugs
-    if (str_len <= 0) {
+// returns number of written chars including null, or 0 on error (not enough buffer, etc)
+static int wchar_to_char(const wchar_t* wstr, char* str, int str_size) {
+    // cbMultiByte=0 means "get needed size", prone to subtle bugs
+    if (!wstr || !str || str_size <= 0) {
         //SetLastError(ERROR_INSUFFICIENT_BUFFER);
         return 0;
     }
-    return WideCharToMultiByte(CP_UTF8, 0, wstr, -1, str, str_len, NULL, NULL);
+    int wstr_size = -1; // assumes input is null-terminated
+    return WideCharToMultiByte(CP_UTF8, 0, wstr, wstr_size, str, str_size, NULL, NULL);
 }
 
 
