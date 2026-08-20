@@ -9,7 +9,7 @@ static int add_extension(char* dst, int dst_len, const char* ext) {
     if (dst_len <= ext_len + 1)
         return 0;
 
-    strcpy(dst, ext); /* seems winamp uppercases this if needed */
+    snprintf(dst, dst_len, "%s", ext); /* seems winamp uppercases this if needed */
     dst[ext_len] = ';';
 
     return ext_len + 1;
@@ -69,7 +69,8 @@ void build_extension_list(char* winamp_list, int winamp_list_size) {
 static void make_fn_subsong(in_char* dst, int dst_size, const in_char* filename, int subsong_index) {
     /* Follows "(file)(config)(ext)". Winamp needs to "see" (ext) to validate, and file goes first so relative
      * files work in M3Us (path is added). Protocols a la "vgmstream://(config)(file)" work but don't get full paths. */
-    wa_snprintf(dst,dst_size, wa_L("%s|$s=%i|.vgmstream"), filename, subsong_index);
+    wa_snprintf(dst, dst_size, wa_L("%s|$s=%i|.vgmstream"), filename, subsong_index);
+    dst[dst_size - 1] = 0; // Windows's buggy _sn*printf
 }
 
 /* unpacks the subsongs by adding entries to the playlist */
@@ -96,15 +97,15 @@ bool split_subsongs(const in_char* filename, int subsong_index, libvgmstream_t* 
         /* insert at index */
         {
             COPYDATASTRUCT cds = {0};
-            wa_fileinfo f;
+            wa_fileinfo fi;
 
-            wa_strncpy(f.file, stream_fn,MAX_PATH-1);
-            f.file[MAX_PATH-1] = '\0';
-            f.index = playlist_index + (i+1);
+            wa_istrcpy(fi.file, MAX_PATH, stream_fn);
+            fi.index = playlist_index + (i + 1);
+
             cds.dwData = wa_IPC_PE_INSERTFILENAME;
-            cds.lpData = (void*)&f;
+            cds.lpData = (void*)&fi;
             cds.cbData = sizeof(wa_fileinfo);
-            SendMessage(hPlaylistWindow,WM_COPYDATA,0,(LPARAM)&cds);
+            SendMessage(hPlaylistWindow, WM_COPYDATA, 0, (LPARAM)&cds);
         }
         /* IPC_ENQUEUEFILE can pre-set the title without needing the Playlist handle, but can't insert at index */
     }
