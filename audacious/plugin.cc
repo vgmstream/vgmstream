@@ -213,7 +213,7 @@ static void load_vconfig(libvgmstream_config_t* vcfg, audacious_settings_t* cfg)
     vcfg->ignore_loop = cfg->ignore_loop;
 }
 
-static void parse_tagfile(const char* filename) {
+static void parse_tagfile(const char* filename, Tuple & tuple) {
     char tagfile_path[AU_PATH_LIMIT];
     int tagfile_len;
 
@@ -363,7 +363,7 @@ static bool read_info(const char* filename, Tuple & tuple) {
     // this function is only called when files are added to playlist,
     // so to reload tags files need to re-added
     if (!settings.tagfile_disable) {
-        parse_tagfile(filename);
+        parse_tagfile(filename, tuple);
     }
 
     libvgmstream_free(infostream);
