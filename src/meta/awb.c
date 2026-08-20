@@ -59,6 +59,12 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         offset += total_subsongs * waveid_alignment;
     }
 
+    /* check alignment (avoid div by zero on malformed headers) */
+    if (offset_alignment == 0) {
+        vgm_logi("AWB: unknown offset alignment (report)\n");
+        return NULL;
+    }
+
     /* offset table: find target */
     {
         uint32_t file_size = get_streamfile_size(sf);

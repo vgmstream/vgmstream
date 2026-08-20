@@ -553,6 +553,10 @@ static int make_group_random(txtp_header_t* txtp, txtp_group_t* grp, int positio
             (grp->entry.config.config_set && vgmstream->config.config_set) ) {
         if (!make_group_segment(txtp, grp, position, 1))
             goto fail;
+        /* make_group_segment() took ownership of the selected vgmstream (either it was
+         * closed inside the segment layout on failure, or moved into the new layout on
+         * success), so don't close it again on the fail path below */
+        vgmstream = NULL;
     }
 
     return true;
