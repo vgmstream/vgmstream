@@ -68,19 +68,22 @@ static void ini_get_filename(In_Module* input_module, TCHAR* inifile, int inifil
         TCHAR* ini_dir = (TCHAR*)SendMessage(input_module->hMainWindow, WM_WA_IPC, 0, WA_IPC_GETINIDIRECTORYW);
         if (ini_dir) {
             // only "newer" winamp versions, probably helps for unicode paths/usernames
-            cfg_strncpy(inifile, ini_dir, WINAMP_PATH_LIMIT);
-        } else {
+            cfg_snprintf(inifile, inifile_len, TEXT("%s"), ini_dir);
+        }
+        else {
             // works with standard cases (should be compatible with the above)
             char* ini_dir = (char*)SendMessage(input_module->hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-            cfg_char_to_wchar(inifile, inifile_len, ini_dir);
+            cfg_char_to_tchar(inifile, inifile_len, ini_dir); //TODO: not correct
         }
 
         cfg_strncat(inifile, TEXT("\\Plugins\\"), inifile_len);
+        inifile[inifile_len - 1] = 0;
 
         // can't be certain that \Plugins already exists in the user dir
         CreateDirectory(inifile, NULL);
 
         cfg_strncat(inifile, CONFIG_INI_NAME, inifile_len);
+        inifile[inifile_len - 1] = 0;
     }
     else {
         // older winamp with single settings
@@ -88,15 +91,18 @@ static void ini_get_filename(In_Module* input_module, TCHAR* inifile, int inifil
 
         GetModuleFileName(NULL, inifile, inifile_len);
         lastSlash = cfg_strrchr(inifile, TEXT('\\'));
-
-        *(lastSlash + 1) = 0;
+        if (lastSlash) {
+            lastSlash[1] = 0;
+        }
 
         /* XMPlay doesn't have a "plugins" subfolder */
         if (settings.is_xmplay) {
             cfg_strncat(inifile, CONFIG_INI_NAME, inifile_len);
+            inifile[WINAMP_PATH_LIMIT - 1] = 0;
         }
         else {
             cfg_strncat(inifile, TEXT("Plugins\\") CONFIG_INI_NAME, inifile_len);
+            inifile[WINAMP_PATH_LIMIT - 1] = 0;
         }
 
         /* Maybe should query IPC_GETINIDIRECTORY and use that, not sure what ancient Winamps need.
@@ -111,7 +117,7 @@ static void ini_get_d(TCHAR* inifile, TCHAR* entry, double defval, double* p_val
     TCHAR defbuf[CFG_DBL_BUF_SIZE];
     int consumed, res;
 
-    cfg_sprintf(defbuf, TEXT("%.2lf"), defval);
+    cfg_snprintf(defbuf, CFG_DBL_BUF_SIZE, TEXT("%.2lf"), defval);
     GetPrivateProfileString(CONFIG_APP_NAME, entry, defbuf, buf, CFG_DBL_BUF_SIZE, inifile);
     res = cfg_sscanf(buf, TEXT("%lf%n"), p_val, &consumed);
     if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
@@ -132,13 +138,13 @@ static void ini_get_b(TCHAR* inifile, TCHAR* entry, int defval, int* p_val) {
 
 static void ini_set_d(TCHAR* inifile, TCHAR* entry, double val) {
     TCHAR buf[CFG_DBL_BUF_SIZE];
-    cfg_sprintf(buf, TEXT("%.2lf"), val);
+    cfg_snprintf(buf, CFG_DBL_BUF_SIZE, TEXT("%.2lf"), val);
     WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
 }
 
 static void ini_set_i(TCHAR* inifile, TCHAR* entry, int val) {
     TCHAR buf[CFG_INT_BUF_SIZE];
-    cfg_sprintf(buf, TEXT("%d"), val);
+    cfg_snprintf(buf, CFG_INT_BUF_SIZE, TEXT("%d"), val);
     WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
 }
 
@@ -223,13 +229,13 @@ static void save_config(In_Module* input_module, winamp_settings_t* settings) {
 
 static void dlg_input_set_d(HWND hDlg, int idc, double val) {
     TCHAR buf[CFG_DBL_BUF_SIZE];
-    cfg_sprintf(buf, TEXT("%.2lf"), val);
+    cfg_snprintf(buf, CFG_DBL_BUF_SIZE, TEXT("%.2lf"), val);
     SetDlgItemText(hDlg, idc, buf);
 }
 
 static void dlg_input_set_i(HWND hDlg, int idc, int val) {
     TCHAR buf[CFG_INT_BUF_SIZE];
-    cfg_sprintf(buf, TEXT("%d"), val);
+    cfg_snprintf(buf, CFG_INT_BUF_SIZE, TEXT("%d"), val);
     SetDlgItemText(hDlg, idc, buf);
 }
 
@@ -405,7 +411,7 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         }
                     }
 
-                    cfg_char_to_wchar(buf, buf_size, buf_tmp);
+                    cfg_char_to_tchar(buf, buf_size, buf_tmp);
                     MessageBox(hDlg, buf, TEXT("vgmstream log"), MB_OK);
                     break;
                 }

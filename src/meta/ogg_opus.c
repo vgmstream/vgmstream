@@ -165,7 +165,6 @@ static bool read_comments(STREAMFILE* sf, uint32_t data_offset, ogg_opus_comment
         if (vstr_startswith(user_comment,"LOOP_START=")) { /* Monster Boy and the Cursed Kingdom (Switch) */
             info->loop_start = atol(strrchr(user_comment,'=')+1);
             info->loop_flag = (info->loop_start >= 0);
-            VGM_LOG("1\n");
         }
         else if (vstr_startswith(user_comment,"LOOP_END=")) { /* LOOP_START pair */
             info->loop_end = atol(strrchr(user_comment,'=')+1);

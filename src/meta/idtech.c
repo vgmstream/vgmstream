@@ -259,7 +259,7 @@ VGMSTREAM* init_vgmstream_mzrt_v1(STREAMFILE* sf) {
     vgmstream->loop_end_sample = num_samples;
 
     switch(codec) {
-        case 0x0002:
+        case 0x00:
             if (bps != 4) goto fail;
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;

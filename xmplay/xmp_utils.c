@@ -37,7 +37,7 @@ void build_extension_list(char* extension_list, int list_size, DWORD version) {
     if (limit > limit_old && version <= EXTENSION_LIST_SIZE_OLD_VERSION)
         limit = limit_old;
 
-    int written = sprintf(extension_list, "%s%c", "vgmstream files",'\0');
+    int written = snprintf(extension_list, limit, "%s%c", "vgmstream files",'\0');
 
     int ext_list_len;
     const char** ext_list = libvgmstream_get_extensions(&ext_list_len);

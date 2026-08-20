@@ -95,34 +95,81 @@ STREAMFILE* open_streamfile_by_absname(STREAMFILE* sf, const char* filename) {
 
 /* ************************************************************************* */
 
-int check_extensions(STREAMFILE* sf, const char* cmp_exts) {
-    char filename[PATH_LIMIT];
-    const char* ext = NULL;
-    const char* cmp_ext = NULL;
-    const char* ststr_res = NULL;
-    size_t ext_len, cmp_len;
+// inline'd tolower (surely the compiler would inline it too but just in case)
+static inline unsigned char ascii_tolower(unsigned char chr) {
+    if (chr >= 'A' && chr <= 'Z')
+        chr += ('a' - 'A'); // +32
+    return chr;
+}
 
-    sf->get_name(sf, filename, sizeof(filename));
-    ext = filename_extension(filename);
-    ext_len = strlen(ext);
+// Linear scan version. Seems x2-x3 faster, but would need millions of checks to be noticeable, so just
+// for extra points. Another way is using flags+ifs to avoid the internal 'whiles', but that seems slower
+// (more non-predictable branches?). Could also pre-compute lowercase ext and assume cmp_exts is lowercase,
+// yet doesn't seem very noticeable.
+static bool check_extensions_linear(const char* ext, const char* cmp_exts) {
+    const unsigned char* cmp_ptr = (const unsigned char*)cmp_exts;
 
-    cmp_ext = cmp_exts;
+    while (*cmp_ptr != '\0') {
+        // compare and consume ext/cmp ptrs until some null or comma
+        // (extensionless files are also supported since ',' stops the loop before entering)
+        const unsigned char* ext_ptr = (const unsigned char*)ext;
+        while (*ext_ptr != '\0' && *cmp_ptr != '\0' && *cmp_ptr != ',') {
+            if (ascii_tolower(*ext_ptr) != ascii_tolower(*cmp_ptr))
+                break; // no match
+
+            ext_ptr++;
+            cmp_ptr++;
+        }
+
+        // after the above, accept match if both exts have ended
+        if (*ext_ptr == '\0' && (*cmp_ptr == '\0' || *cmp_ptr == ','))
+            return true;
+
+        // no match: consume until next comma or end
+        while (*cmp_ptr != '\0' && *cmp_ptr != ',') {
+            cmp_ptr++;
+        }
+
+        // check for end of cmp_exts
+        if (*cmp_ptr == '\0')
+            break;
+        cmp_ptr++;
+    }
+
+    return false;
+}
+
+#if 0
+static bool check_extensions_simple(const char* ext, const char* cmp_exts) {
+    size_t ext_len = strlen(ext);
+    const char* cmp_ext = cmp_exts;
     do {
-        ststr_res = strstr(cmp_ext, ",");
-        cmp_len = ststr_res == NULL
-                  ? strlen(cmp_ext) /* total length if more not found */
-                  : (intptr_t)ststr_res - (intptr_t)cmp_ext; /* find next ext; ststr_res should always be greater than cmp_ext, resulting in a positive cmp_len */
+        const char* ststr_res = strstr(cmp_ext, ",");
+        size_t cmp_len = ststr_res == NULL
+                  ? strlen(cmp_ext) // total length if more not found
+                  : (intptr_t)ststr_res - (intptr_t)cmp_ext; // find next ext (always >= cmp_ext)
 
         if (ext_len == cmp_len && strncasecmp(ext,cmp_ext, ext_len) == 0)
-            return 1;
+            return true;
 
         cmp_ext = ststr_res;
         if (cmp_ext != NULL)
             cmp_ext = cmp_ext + 1; /* skip comma */
 
-    } while (cmp_ext != NULL);
+    }
+    while (cmp_ext != NULL);
 
-    return 0;
+    return false;
+}
+#endif
+
+int check_extensions(STREAMFILE* sf, const char* cmp_exts) {
+    char filename[PATH_LIMIT];
+
+    get_streamfile_name(sf, filename, sizeof(filename));
+    const char* ext = filename_extension(filename);
+
+    return check_extensions_linear(ext, cmp_exts);
 }
 
 bool check_file_size(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size) {

@@ -92,7 +92,6 @@ extern winamp_log_t* walog;
 /* ************************************* */
 /* IN_UNICODE                            */
 /* ************************************* */
-//TODO safe ops
 //TODO there must be a better way to handle unicode...
 
 #ifdef _MSC_VER
@@ -102,102 +101,153 @@ extern winamp_log_t* walog;
 #ifdef UNICODE_INPUT_PLUGIN
 #define wa_strcmp wcscmp
 #define wa_strncmp wcsncmp
-#define wa_strcpy wcscpy
-#define wa_strncpy wcsncpy
-#define wa_strcat wcscat
-#define wa_strlen wcslen
 #define wa_strchr wcschr
 #define wa_strstr wcsstr
+#define wa_strlen wcslen
+#define wa_strrchr wcsrchr
 #define wa_sscanf swscanf
 #define wa_snprintf _snwprintf
-#define wa_strrchr wcsrchr
+
 #define wa_fileinfo fileinfoW
 #define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAMEW
 #define wa_L(x) L ##x
 #else
 #define wa_strcmp strcmp
 #define wa_strncmp strncmp
-#define wa_strcpy strcpy
-#define wa_strncpy strncpy
-#define wa_strcat strcat
-#define wa_strlen strlen
 #define wa_strchr strchr
 #define wa_strstr strstr
-#define wa_sscanf sscanf
-#define wa_snprintf snprintf
+#define wa_strlen strlen
 #define wa_strrchr strrchr
+#define wa_sscanf sscanf
+#define wa_snprintf _snprintf
+
 #define wa_fileinfo fileinfo
 #define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAME
 #define wa_L(x) x
 #endif
 
-/* converts from utf16 to utf8 (if unicode is on) */
-static inline void wa_ichar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
+/* converts: utf16/utf8 to utf8 (depending on unicode flag) */
+static inline void wa_ichar_to_char(char* dst, size_t dst_size, const in_char* isrc) {
+    if (!dst || dst_size <= 0 || !isrc)
+        return;
+
 #ifdef UNICODE_INPUT_PLUGIN
-    /* converto to UTF8 codepage, default separate bytes, source wstr, wstr length */
-    //int size_needed = WideCharToMultiByte(CP_UTF8,0, src,-1, NULL,0, NULL, NULL);
-    WideCharToMultiByte(CP_UTF8,0, wsrc,-1, dst,dstsize, NULL, NULL);
+    int isrc_size = -1; // assumes input is null-terminated; will return 0 if not enough dst_size
+    int done = WideCharToMultiByte(CP_UTF8, 0, isrc, isrc_size, dst, dst_size, NULL, NULL);
+    if (done <= 0)
+        dst[0] = 0;
 #else
-    strncpy(dst, wsrc, dstsize);
-    dst[dstsize - 1] = '\0';
+    _snprintf(dst, dst_size, "%s", isrc);
+    dst[dst_size - 1] = '\0'; // Windows's buggy _sn*printf
 #endif
 }
 
-/* converts from utf8 to utf16 (if unicode is on) */
-static inline void wa_char_to_ichar(in_char *wdst, size_t wdstsize, const char *src) {
+/* converts: utf8 to utf16/utf8 (depending on unicode flag) */
+static inline void wa_char_to_ichar(in_char* idst, size_t idst_size, const char* src) {
+    if (!idst || idst_size <= 0 || !src)
+        return;
+
 #ifdef UNICODE_INPUT_PLUGIN
-    //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
-    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
+    int src_size = -1; // assumes input is null-terminated
+    int done = MultiByteToWideChar(CP_UTF8, 0, src, src_size, idst, idst_size);
+    if (done <= 0)
+        idst[0] = 0;
 #else
-    strncpy(wdst, src, wdstsize);
-    wdst[wdstsize - 1] = '\0';
+    _snprintf(idst, idst_size, "%s", src);
+    idst[idst_size - 1] = '\0'; // Windows's buggy _sn*printf
 #endif
 }
 
-/* copies from utf16 to utf16 (if unicode is active) */
-static inline void wa_wchar_to_ichar(in_char *wdst, size_t wdstsize, const wchar_t *src) {
+/* copies from utf16 to utf16/utf8 (depending on unicode flag) */
+static inline void wa_wchar_to_ichar(in_char* idst, size_t idst_size, const wchar_t* wsrc) {
+    if (!idst || idst_size <= 0 || !wsrc)
+        return;
+
 #ifdef UNICODE_INPUT_PLUGIN
-    wcscpy(wdst,src);
+    _snwprintf(idst, idst_size, L"%s", wsrc);
+    idst[idst_size - 1] = 0; // Windows's buggy _sn*printf
 #else
-    strcpy(wdst,src); //todo ???
+    int wsrc_size = -1; // assumes input is null-terminated; will return 0 if not enough dst_size
+    int done = WideCharToMultiByte(CP_UTF8, 0, wsrc, wsrc_size, idst, idst_size, NULL, NULL);
+    if (done <= 0)
+        idst[0] = 0;
 #endif
 }
 
-/* copies from utf16 to utf16 */
-static inline void wa_char_to_wchar(wchar_t *wdst, size_t wdstsize, const char *src) {
+/* copies: utf8 to utf16 */
+static inline void wa_char_to_wchar(wchar_t* wdst, size_t wdst_size, const char* src) {
+    if (!wdst || wdst_size <= 0 || !src)
+        return;
+
+    int src_size = -1; // assumes input is null-terminated
+    int done = MultiByteToWideChar(CP_UTF8, 0, src, src_size, wdst, wdst_size);
+    if (done <= 0)
+        wdst[0] = 0;
+}
+
+/* copies: utf16/utf8 to utf16/utf8 */
+static inline void wa_istrcpy(in_char* idst, size_t idst_size, const in_char* isrc) {
+    if (!idst || idst_size <= 0 || !isrc)
+        return;
+
 #ifdef UNICODE_INPUT_PLUGIN
-    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
+    _snwprintf(idst, idst_size, L"%s", isrc);
+    idst[idst_size - 1] = 0; // Windows's buggy _sn*printf
 #else
-    strcpy(wdst,src); //todo ???
+    _snprintf(idst, idst_size, "%s", isrc);
+    idst[idst_size - 1] = '\0'; // Windows's buggy _sn*printf
 #endif
+}
+
+/* concats: utf16/utf8 to utf16/utf8 */
+static inline void wa_istrcat(in_char* dst, size_t dst_size, const in_char* src) {
+    if (!dst || dst_size <= 0 || !src)
+        return;
+
+    size_t str_len = wa_strlen(dst);
+    if (str_len >= dst_size)
+        return;
+
+    wa_istrcpy(dst + str_len, dst_size - str_len, src);
+}
+
+/* concats: utf8 to utf8 */
+static inline void wa_lstrcpy(char* dst, size_t dst_size, const char* src) {
+    if (!dst || dst_size <= 0 || !src)
+        return;
+
+    _snprintf(dst, dst_size, "%s", src);
+    dst[dst_size - 1] = '\0'; // Windows's buggy _sn*printf
 }
 
 
 //todo snprintf
 /* Windows unicode, separate from Winamp's unicode flag */
 #ifdef UNICODE
-#define cfg_strncpy wcsncpy
-#define cfg_strncat wcsncat
-#define cfg_sprintf _swprintf
+#define cfg_snprintf _snwprintf
 #define cfg_sscanf swscanf
 #define cfg_strlen wcslen
 #define cfg_strrchr wcsrchr
+//#define cfg_strncpy wcsncpy
+#define cfg_strncat wcsncat
+
 #else
-#define cfg_strncpy strncpy
-#define cfg_strncat strncat
-#define cfg_sprintf sprintf
+#define cfg_snprintf _snprintf
 #define cfg_sscanf sscanf
 #define cfg_strlen strlen
 #define cfg_strrchr strrchr
+//#define cfg_strncpy strncpy
+#define cfg_strncat strncat
 #endif
 
 /* converts from utf8 to utf16 (if unicode is active) */
-static inline void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
+static inline void cfg_char_to_tchar(TCHAR* tdst, size_t tdst_size, const char* src) {
 #ifdef UNICODE
-    //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
-    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
+    int src_size = -1; // assumes input is null-terminated
+    MultiByteToWideChar(CP_UTF8, 0, src, src_size, tdst, tdst_size);
 #else
-    strcpy(wdst,src);
+    _snprintf(tdst, tdst_size, "%s", src);
+    idst[tdst_size - 1] = '\0'; // Windows's buggy _sn*printf
 #endif
 }
 

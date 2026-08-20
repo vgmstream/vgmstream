@@ -954,6 +954,7 @@ static const coding_info coding_info_list[] = {
         {coding_PCFX,               "PC-FX 4-bit ADPCM"},
         {coding_OKI16,              "OKI 4-bit ADPCM (16-bit output)"},
         {coding_OKI4S,              "OKI 4-bit ADPCM (4-shift)"},
+        {coding_OKI_UM,             "OKI 4-bit ADPCM (UltraMarine)"},
         {coding_PTADPCM,            "Platinum 4-bit ADPCM"},
         {coding_IMUSE,              "LucasArts iMUSE VIMA ADPCM"},
         {coding_COMPRESSWAVE,       "CompressWave Huffman ADPCM"},

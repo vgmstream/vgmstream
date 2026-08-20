@@ -286,6 +286,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_SQEX_IMA:
         case coding_BLITZ_IMA:
         case coding_PCFX:
+        case coding_OKI_UM:
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
@@ -487,6 +488,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_PCFX:
         case coding_OKI16:
         case coding_OKI4S:
+        case coding_OKI_UM:
         case coding_MTF_IMA:
         case coding_SNDS_IMA:
             return 0x01;
@@ -1417,6 +1419,15 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_oki4s(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, is_stereo);
+            }
+            break;
+        }
+
+        case coding_OKI_UM: {
+            int shift = vgmstream->codec_config;
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_oki_um(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, shift);
             }
             break;
         }

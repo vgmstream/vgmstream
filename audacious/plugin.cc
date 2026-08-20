@@ -182,25 +182,28 @@ void VgmstreamPlugin::cleanup() {
     vgmstream_settings_save();
 }
 
-static bool get_basename_subtune(const char* filename, char* buf, int buf_len, int* p_subtune) {
+static bool get_basename_subtune(const char* filename, char* buf, size_t buf_len, int* p_subtune) {
     int subtune;
 
-    const char* pos = strrchr(filename, '?');
-    if (!pos)
+    const char* q_pos = strrchr(filename, '?');
+    if (!q_pos)
         return false;
-    if (sscanf(pos, "?%i", &subtune) != 1)
+    if (sscanf(q_pos, "?%d", &subtune) != 1)
         return false;
 
     if (p_subtune)
         *p_subtune = subtune;
 
-    strncpy(buf, filename, buf_len);
-    char* pos2 = strrchr(buf, '?');
-    if (pos2) //removes '?'
-        pos2[0] = '\0';
+    // get filename len up to ? + copy
+    size_t len = (size_t)(q_pos - filename);
+    if (len >= buf_len)
+        return false;
+    memcpy(buf, filename, len);
+    buf[len] = '\0';
 
     return true;
 }
+
 static void load_vconfig(libvgmstream_config_t* vcfg, audacious_settings_t* cfg) {
     vcfg->allow_play_forever = true;
     vcfg->play_forever = cfg->loop_forever;
@@ -208,6 +211,72 @@ static void load_vconfig(libvgmstream_config_t* vcfg, audacious_settings_t* cfg)
     vcfg->fade_time = cfg->fade_time;
     vcfg->fade_delay = cfg->fade_delay;
     vcfg->ignore_loop = cfg->ignore_loop;
+}
+
+static void parse_tagfile(const char* filename) {
+    char tagfile_path[AU_PATH_LIMIT];
+    int tagfile_len;
+
+    const char* last_slash = strrchr(filename, '/');
+    if (last_slash != NULL) {
+        size_t dir_len = (size_t)(last_slash - filename) + 1;
+        if (dir_len >= sizeof(tagfile_path))
+            return;
+        tagfile_len = snprintf(tagfile_path, sizeof(tagfile_path), "%.*s%s", (int)dir_len, filename, tagfile_name);
+    }
+    else {
+        tagfile_len = snprintf(tagfile_path, sizeof(tagfile_path), "%s", tagfile_name);
+    }
+    if (tagfile_len <= 0 || tagfile_len >= sizeof(tagfile_path))
+        return;
+
+    libstreamfile_t* sf_tags = open_vfs(tagfile_path);
+    if (sf_tags == NULL)
+        return;
+
+    libvgmstream_tags_t* tags = NULL;
+
+    tags = libvgmstream_tags_init(sf_tags);
+    libvgmstream_tags_find(tags, filename);
+    while (libvgmstream_tags_next_tag(tags)) {
+        const char* tag_key = tags->key;
+        const char* tag_val = tags->val;
+
+        // see tuple.h (ugly but other plugins do it like this)
+        if (strcasecmp(tag_key, "ARTIST") == 0)
+            tuple.set_str(Tuple::Artist, tag_val);
+        else if (strcasecmp(tag_key, "ALBUMARTIST") == 0)
+            tuple.set_str(Tuple::AlbumArtist, tag_val);
+        else if (strcasecmp(tag_key, "TITLE") == 0)
+            tuple.set_str(Tuple::Title, tag_val);
+        else if (strcasecmp(tag_key, "ALBUM") == 0)
+            tuple.set_str(Tuple::Album, tag_val);
+        else if (strcasecmp(tag_key, "PERFORMER") == 0)
+            tuple.set_str(Tuple::Performer, tag_val);
+        else if (strcasecmp(tag_key, "COMPOSER") == 0)
+            tuple.set_str(Tuple::Composer, tag_val);
+        else if (strcasecmp(tag_key, "COMMENT") == 0)
+            tuple.set_str(Tuple::Comment, tag_val);
+        else if (strcasecmp(tag_key, "GENRE") == 0)
+            tuple.set_str(Tuple::Genre, tag_val);
+        else if (strcasecmp(tag_key, "TRACK") == 0)
+            tuple.set_int(Tuple::Track, atoi(tag_val));
+        else if (strcasecmp(tag_key, "YEAR") == 0)
+            tuple.set_int(Tuple::Year, atoi (tag_val));
+#if defined(_AUD_PLUGIN_VERSION) && _AUD_PLUGIN_VERSION >= 48 // Audacious 3.8+
+        else if (strcasecmp(tag_key, "REPLAYGAIN_TRACK_GAIN") == 0)
+            tuple.set_gain(Tuple::TrackGain, Tuple::GainDivisor, tag_val);
+        else if (strcasecmp(tag_key, "REPLAYGAIN_TRACK_PEAK") == 0)
+            tuple.set_gain(Tuple::TrackPeak, Tuple::PeakDivisor, tag_val);
+        else if (strcasecmp(tag_key, "REPLAYGAIN_ALBUM_GAIN") == 0)
+            tuple.set_gain(Tuple::AlbumGain, Tuple::GainDivisor, tag_val);
+        else if (strcasecmp(tag_key, "REPLAYGAIN_ALBUM_PEAK") == 0)
+            tuple.set_gain(Tuple::AlbumPeak, Tuple::PeakDivisor, tag_val);
+#endif
+    }
+
+    libvgmstream_tags_free(tags);
+    libstreamfile_close(sf_tags);
 }
 
 // internal helper, called every time user adds a new file to playlist
@@ -294,65 +363,7 @@ static bool read_info(const char* filename, Tuple & tuple) {
     // this function is only called when files are added to playlist,
     // so to reload tags files need to re-added
     if (!settings.tagfile_disable) {
-        //todo improve string functions
-        char tagfile_path[AU_PATH_LIMIT];
-        strcpy(tagfile_path, filename);
-
-        char* path = strrchr(tagfile_path,'/');
-        if (path != NULL) {
-            path[1] = '\0';  /* includes "/", remove after that from tagfile_path */
-            strcat(tagfile_path,tagfile_name);
-        }
-        else { /* ??? */
-            strcpy(tagfile_path,tagfile_name);
-        }
-
-        libstreamfile_t* sf_tags = open_vfs(tagfile_path);
-        if (sf_tags != NULL) {
-            libvgmstream_tags_t* tags = NULL;
-
-            tags = libvgmstream_tags_init(sf_tags);
-            libvgmstream_tags_find(tags, filename);
-            while (libvgmstream_tags_next_tag(tags)) {
-                const char* tag_key = tags->key;
-                const char* tag_val = tags->val;
-
-                // see tuple.h (ugly but other plugins do it like this)
-                if (strcasecmp(tag_key, "ARTIST") == 0)
-                    tuple.set_str(Tuple::Artist, tag_val);
-                else if (strcasecmp(tag_key, "ALBUMARTIST") == 0)
-                    tuple.set_str(Tuple::AlbumArtist, tag_val);
-                else if (strcasecmp(tag_key, "TITLE") == 0)
-                    tuple.set_str(Tuple::Title, tag_val);
-                else if (strcasecmp(tag_key, "ALBUM") == 0)
-                    tuple.set_str(Tuple::Album, tag_val);
-                else if (strcasecmp(tag_key, "PERFORMER") == 0)
-                    tuple.set_str(Tuple::Performer, tag_val);
-                else if (strcasecmp(tag_key, "COMPOSER") == 0)
-                    tuple.set_str(Tuple::Composer, tag_val);
-                else if (strcasecmp(tag_key, "COMMENT") == 0)
-                    tuple.set_str(Tuple::Comment, tag_val);
-                else if (strcasecmp(tag_key, "GENRE") == 0)
-                    tuple.set_str(Tuple::Genre, tag_val);
-                else if (strcasecmp(tag_key, "TRACK") == 0)
-                    tuple.set_int(Tuple::Track, atoi(tag_val));
-                else if (strcasecmp(tag_key, "YEAR") == 0)
-                    tuple.set_int(Tuple::Year, atoi (tag_val));
-#if defined(_AUD_PLUGIN_VERSION) && _AUD_PLUGIN_VERSION >= 48 // Audacious 3.8+
-                else if (strcasecmp(tag_key, "REPLAYGAIN_TRACK_GAIN") == 0)
-                    tuple.set_gain(Tuple::TrackGain, Tuple::GainDivisor, tag_val);
-                else if (strcasecmp(tag_key, "REPLAYGAIN_TRACK_PEAK") == 0)
-                    tuple.set_gain(Tuple::TrackPeak, Tuple::PeakDivisor, tag_val);
-                else if (strcasecmp(tag_key, "REPLAYGAIN_ALBUM_GAIN") == 0)
-                    tuple.set_gain(Tuple::AlbumGain, Tuple::GainDivisor, tag_val);
-                else if (strcasecmp(tag_key, "REPLAYGAIN_ALBUM_PEAK") == 0)
-                    tuple.set_gain(Tuple::AlbumPeak, Tuple::PeakDivisor, tag_val);
-#endif
-            }
-
-            libvgmstream_tags_free(tags);
-            libstreamfile_close(sf_tags);
-        }
+        parse_tagfile(filename);
     }
 
     libvgmstream_free(infostream);

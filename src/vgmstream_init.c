@@ -28,8 +28,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ngc_dsp_stm,
     init_vgmstream_exst,
     init_vgmstream_svag_kcet,
-    init_vgmstream_ngc_mpdsp,
-    init_vgmstream_ngc_dsp_std_int,
     init_vgmstream_vag,
     init_vgmstream_vag_aaap,
     init_vgmstream_vag_footer,
@@ -50,7 +48,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_iivb,
     init_vgmstream_svs,
     init_vgmstream_riff,
-    init_vgmstream_rifx,
     init_vgmstream_nwa,
     init_vgmstream_ea_1snh,
     init_vgmstream_ea_eacs,
@@ -165,13 +162,9 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_msa,
     init_vgmstream_voi,
     init_vgmstream_ngc_rkv,
-    init_vgmstream_dsp_ddsp,
     init_vgmstream_p3d,
     init_vgmstream_mpds,
-    init_vgmstream_dsp_str_ig,
     init_vgmstream_ea_swvr,
-    init_vgmstream_dsp_xiii,
-    init_vgmstream_dsp_cabelas,
     init_vgmstream_lpcm_shade,
     init_vgmstream_vms,
     init_vgmstream_xau,
@@ -311,7 +304,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_sps_n1_segmented,
     init_vgmstream_ubi_bao_pk,
     init_vgmstream_ubi_bao_atomic,
-    init_vgmstream_dsp_switch_audio,
     init_vgmstream_sadf,
     init_vgmstream_hvqm4,
     init_vgmstream_sshd_container,
@@ -325,7 +317,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
     init_vgmstream_sscf,
-    init_vgmstream_dsp_itl_ch,
     init_vgmstream_a2m,
     init_vgmstream_ahv,
     init_vgmstream_msv,
@@ -360,7 +351,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_gin,
     init_vgmstream_dsf,
     init_vgmstream_208,
-    init_vgmstream_dsp_lucasarts_ds2,
     init_vgmstream_ffdl,
     init_vgmstream_mus_vc,
     init_vgmstream_strm_abylight,
@@ -380,7 +370,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xavs,
     init_vgmstream_psf_single,
     init_vgmstream_psf_segmented,
-    init_vgmstream_dsp_itl,
     init_vgmstream_sch,
     init_vgmstream_nub,
     init_vgmstream_nub_wav,
@@ -477,7 +466,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_vas_rockstar,
     init_vgmstream_ea_sbk,
     init_vgmstream_dsp_asura,
-    init_vgmstream_dsp_asura_ds2,
     init_vgmstream_dsp_asura_ttss,
     init_vgmstream_dsp_asura_sfx,
     init_vgmstream_adp_ongakukan,
@@ -571,16 +559,19 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dtk,             /* semi-raw GC streamed files */
     init_vgmstream_mpeg,            /* semi-raw MP3 */
     init_vgmstream_btsnd,           /* semi-headerless */
-    init_vgmstream_fsb_encrypted,
+
+    init_vgmstream_dsp_interleaved, /* ill-defined DSP variations */
+    init_vgmstream_fsb_encrypted,   /* encrypted stuff (needs to decrypt first to detect)*/
     init_vgmstream_nus3bank_encrypted,
-    init_vgmstream_encrypted,       /* encrypted stuff */
+    init_vgmstream_encrypted,
+
     init_vgmstream_raw_rsf,         /* raw GC streamed files */
     init_vgmstream_raw_int,         /* .int raw PCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
     init_vgmstream_raw_wavm,        /* .wavm raw xbox */
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_raw_s14_sss,     /* .s14/sss raw siren14 */
-    init_vgmstream_exakt_sc,        /* .sc raw PCM */
+    init_vgmstream_exakt_sc,        /* .sc raw DPCM */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
     init_vgmstream_rwsd,            /* crap, to be removed */
     init_vgmstream_pdt_split,       /* fake format */

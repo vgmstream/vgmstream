@@ -20,72 +20,77 @@ static size_t riff_ogg_io_read(STREAMFILE* sf, uint8_t* dst, uint32_t offset, si
 
 static size_t ogg_get_page(uint8_t* buf, size_t bufsize, uint32_t offset, STREAMFILE* sf) {
     size_t segments, bytes, page_size;
-    int i;
 
-    if (0x1b > bufsize) goto fail;
+    if (0x1b > bufsize)
+        return 0;
     bytes = read_streamfile(buf, offset, 0x1b, sf);
-    if (bytes != 0x1b) goto fail;
+    if (bytes != 0x1b)
+        return 0;
 
     segments = get_u8(buf + 0x1a);
-    if (0x1b + segments > bufsize) goto fail;
+    if (0x1b + segments > bufsize)
+        return 0;
 
     bytes = read_streamfile(buf + 0x1b, offset + 0x1b, segments, sf);
-    if (bytes != segments) goto fail;
+    if (bytes != segments)
+        return 0;
 
     page_size = 0x1b + segments;
-    for (i = 0; i < segments; i++) {
+    for (int i = 0; i < segments; i++) {
         page_size += get_u8(buf + 0x1b + i);
     }
 
     return page_size;
-fail:
-    return 0;
 }
 
-/* patches Ogg with weirdness */
+/* Patches "pseudo-CBR" Ogg from vorbis.acm's RIFFs.
+ * In "+" modes the ACM encoder adds an extra stream (ID = -1) with padding pages. However, the 2nd header
+ * page is empty/invalid and causes glitches in decoders (probably triggers re-sync + consumes bytes from 1st).
+ * Other pages from the 2nd stream seem ignored, except the last few near EOF, that also confuse decoders.
+ * This streamfile patches out the page header (patch_offset), and detects the first stream's EOF (real_size).
+ *
+ * Could remove unwanted pages on-the-fly, but it's a bit problematic due to arbitrary seek offsets (probably
+ * should be handled in ogg_vorbis_decoder).
+ */
 static STREAMFILE* setup_riff_ogg_streamfile(STREAMFILE* sf, uint32_t start, size_t size) {
+    uint8_t buf[0x1000];
     uint32_t patch_offset = 0;
     size_t real_size = size;
-    uint8_t buf[0x1000];
 
-
-    /* initial page flag is repeated and causes glitches in decoders, find bad offset */
-    //todo callback could patch on-the-fly by analyzing all "OggS", but is problematic due to arbitrary offsets
+    /* find offset were the 2nd fake stream starts */
     {
         uint32_t offset = start;
+        uint32_t offset_limit = start + size; // usually in the first 0x3000 but can be +0x100000
         size_t page_size;
-        uint32_t offset_limit = start + size; /* usually in the first 0x3000 but can be +0x100000 */
-        //todo this doesn't seem to help much
-        STREAMFILE* temp_sf = reopen_streamfile(sf, 0x100); /* use small-ish sf to avoid reading the whole thing */
 
         /* first page is ok */
-        page_size = ogg_get_page(buf, sizeof(buf), offset, temp_sf);
+        page_size = ogg_get_page(buf, sizeof(buf), offset, sf); //temp_sf);
+        if (page_size == 0)
+            return NULL;
         offset += page_size;
 
         while (offset < offset_limit) {
-            page_size = ogg_get_page(buf, sizeof(buf), offset, temp_sf);
-            if (page_size == 0) break;
+            page_size = ogg_get_page(buf, sizeof(buf), offset, sf); //temp_sf);
+            if (page_size <= 0x04)
+                break;
 
             if (get_u32be(buf + 0x00) != get_id32be("OggS"))
                 break;
 
-            if (get_u16be(buf + 0x04) == 0x0002) { /* start page flag */
-                //;VGM_ASSERT(patch_offset > 0, "RIFF Ogg: found multiple repeated start pages\n");
-                patch_offset = (offset - start) + 0x04 + 0x01; /* clamp'ed */
+            if (get_u16be(buf + 0x04) == 0x0002) { // start page flag
+                patch_offset = (offset - start) + 0x04 + 0x01; // clamp'ed
                 break;
             }
 
             offset += page_size;
         }
 
-        close_streamfile(temp_sf);
-
-        /* no need to patch initial flag */
+        // not found: ignored during reads
         //if (patch_offset == 0)
         //    return NULL;
     }
 
-    /* has a bunch of padding(?) pages at the end with no data nor flag that confuse decoders, find actual end */
+    /* has a bunch of padding pages at the end with no data nor flag that confuse decoders, find actual end */
     {
         size_t chunk_size = sizeof(buf); /* not worth testing more */
         size_t max_size = size;
@@ -125,4 +130,4 @@ static STREAMFILE* setup_riff_ogg_streamfile(STREAMFILE* sf, uint32_t start, siz
     }
 }
 
-#endif /* _RIFF_OGG_STREAMFILE_H_ */
+#endif

@@ -2,11 +2,11 @@
 #include "../util.h"
 
 
-static const int step_table[4] = {
+static const int step_indexes[4] = {
     5, 1, -1, -3
 };
 
-static const int mpc3_table[4][4][64] = {
+static const uint16_t step_sizes[4][4][64] = {
     {
         {
             2,     2,     3,     7,     15,    27,    45,    70,    104,   148,   202,   268,   347,   441,   551,   677,  
@@ -114,38 +114,40 @@ static const int mpc3_table[4][4][64] = {
 };
 
 
-/* MC3 3-bit ADPCM (Paradigm Entertainment games).
+/* MPC3 3-bit ADPCM (Paradigm Entertainment games).
  *
  * Layout: blocks with 32b header + 32b ch1, 32b ch2, 32b ch1...
  * Each 32b is a sub-block with 10 samples (3b x10) sharing a 'mode' of sorts.
  * More than one block is rarely used though.
  *
- * Tables and original algorithm by daemon1
+ * Algorithm by daemon1, verified vs lib (LIBASPS2.IRX / "Mpas iop driver").
  */
 void decode_mpc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count = 0;
-
     int32_t hist = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
     /* internal interleave */
     int block_samples = (vgmstream->interleave_block_size - 4) / 4 / vgmstream->channels * 10;
+    if (block_samples <= 0)
+        return;
     first_sample = first_sample % block_samples;
 
 
     /* block header */
     if (first_sample == 0) {
         uint32_t header = read_u32le(stream->offset, stream->streamfile);
-        header = (header >> channel*16);        /* lower 16=ch1, upper 16b=ch2 */
-        step_index = header & 0x3f;             /* 6b */
-        hist       = header & 0xffc0;           /* 16b sans 6b */
-        if (hist > 0x7fff) hist -= 0x10000;     /* sign extend */
+        header = (header >> channel*16);        // lower 16=ch1, upper 16b=ch2
+        step_index = header & 0x3f;             // 6b
+        hist       = header & 0xffc0;           // 16b sans 6b
+        if (hist > 0x7fff) hist -= 0x10000;     // sign extend
     }
 
 
     /* block samples */
+    int i, sample_count = 0;
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        uint32_t subblock, mode, samples, index, sign, diff;
+        uint32_t subblock, mode, samples, index, sign;
+        uint16_t diff;
 
         /* header + ch shift + sub-block number (ex. ch0 i=10: sub-block 1, ch0 i=23: sub-block 2) */
         off_t subblock_offset = stream->offset + 0x04 +  0x04 * channel + (i/10)*(4*vgmstream->channels);
@@ -153,19 +155,19 @@ void decode_mpc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbu
 
         /* expand 3b */
         subblock = read_u32le(subblock_offset, stream->streamfile);
-        mode     = (subblock >> 30) & 0x3;  /* upper 2b */
-        samples  = (subblock) & 0x3FFFFFFF; /* lower 3b*10 */
+        mode     = (subblock >> 30) & 0x3;  // upper 2b
+        samples  = (subblock) & 0x3FFFFFFF; // lower 3b*10
 
         index    = (samples >> sample_shift) & 3; /* lower 2b */
         sign     = (samples >> sample_shift) & 4; /* upper 1b */
-        diff     = mpc3_table[mode][index][step_index];
+        diff     = step_sizes[mode][index][step_index];
         if (sign == 0) 
-            hist += (- 1 - diff);
+            hist += (- 1 - diff); // originally: diff ^ (((code >> 2) & 1) - 1)
         else
             hist += diff;
 
         /* new step + clamp */
-        step_index += step_table[index];
+        step_index += step_indexes[index];
         if (step_index < 0) step_index = 0;
         else if (step_index > 63) step_index = 63;
 
@@ -176,7 +178,8 @@ void decode_mpc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbu
 
 
     /* internal interleave: increment offset on complete frame */
-    if (i == block_samples) stream->offset += vgmstream->interleave_block_size;
+    if (i == block_samples)
+        stream->offset += vgmstream->interleave_block_size;
 
     stream->adpcm_history1_32 = hist;
     stream->adpcm_step_index  = step_index;
