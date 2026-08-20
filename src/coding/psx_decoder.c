@@ -406,6 +406,7 @@ size_t ps_find_padding(STREAMFILE* sf, off_t start_offset, size_t data_size, int
                 read_offset = 0; //?
             bytes = read_streamfile(buf, read_offset, sizeof(buf), sf);
             buf_pos = (bytes / frame_size * frame_size);
+            if (bytes < (int)frame_size) break;    /* not enough data for a full frame */
         }
 
         buf_pos -= frame_size;
