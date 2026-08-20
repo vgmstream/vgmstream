@@ -277,7 +277,7 @@ static void winamp_About(HWND hwndParent) {
         TCHAR buf[1024];
         size_t buf_size = 1024;
 
-        cfg_char_to_wchar(buf, buf_size, ABOUT_TEXT);
+        cfg_char_to_tchar(buf, buf_size, ABOUT_TEXT);
         MessageBox(hwndParent, buf, TEXT("about in_vgmstream"), MB_OK);
     }
 }
@@ -596,7 +596,7 @@ static int winamp_InfoBox(const in_char *fn, HWND hwnd) {
 
     wa_concatn(sizeof(description), description, "\n" PLUGIN_INFO);
 
-    cfg_char_to_wchar(tbuf, sizeof(tbuf) / sizeof(TCHAR), description);
+    cfg_char_to_tchar(tbuf, sizeof(tbuf) / sizeof(TCHAR), description);
     MessageBox(hwnd, tbuf, TEXT("Stream info"), MB_OK);
 
     return 0;

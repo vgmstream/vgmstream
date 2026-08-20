@@ -73,7 +73,7 @@ static void ini_get_filename(In_Module* input_module, TCHAR* inifile, int inifil
         else {
             // works with standard cases (should be compatible with the above)
             char* ini_dir = (char*)SendMessage(input_module->hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-            cfg_char_to_wchar(inifile, inifile_len, ini_dir); //TODO: not correct
+            cfg_char_to_tchar(inifile, inifile_len, ini_dir); //TODO: not correct
         }
 
         cfg_strncat(inifile, TEXT("\\Plugins\\"), inifile_len);
@@ -411,7 +411,7 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         }
                     }
 
-                    cfg_char_to_wchar(buf, buf_size, buf_tmp);
+                    cfg_char_to_tchar(buf, buf_size, buf_tmp);
                     MessageBox(hDlg, buf, TEXT("vgmstream log"), MB_OK);
                     break;
                 }

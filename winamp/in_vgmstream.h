@@ -165,7 +165,7 @@ static inline void wa_wchar_to_ichar(in_char* idst, size_t idst_size, const wcha
 
 #ifdef UNICODE_INPUT_PLUGIN
     _snwprintf(idst, idst_size, L"%s", wsrc);
-    idst[idst_size - 1] = '\0'; // Windows's buggy _sn*printf
+    idst[idst_size - 1] = 0; // Windows's buggy _sn*printf
 #else
     int wsrc_size = -1; // assumes input is null-terminated; will return 0 if not enough dst_size
     int done = WideCharToMultiByte(CP_UTF8, 0, wsrc, wsrc_size, idst, idst_size, NULL, NULL);
@@ -192,7 +192,7 @@ static inline void wa_istrcpy(in_char* idst, size_t idst_size, const in_char* is
 
 #ifdef UNICODE_INPUT_PLUGIN
     _snwprintf(idst, idst_size, L"%s", isrc);
-    idst[idst_size - 1] = '\0'; // Windows's buggy _sn*printf
+    idst[idst_size - 1] = 0; // Windows's buggy _sn*printf
 #else
     _snprintf(idst, idst_size, "%s", isrc);
     idst[idst_size - 1] = '\0'; // Windows's buggy _sn*printf
@@ -241,12 +241,13 @@ static inline void wa_lstrcpy(char* dst, size_t dst_size, const char* src) {
 #endif
 
 /* converts from utf8 to utf16 (if unicode is active) */
-static inline void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
+static inline void cfg_char_to_tchar(TCHAR* tdst, size_t tdst_size, const char* src) {
 #ifdef UNICODE
-    //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
-    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
+    int src_size = -1; // assumes input is null-terminated
+    MultiByteToWideChar(CP_UTF8, 0, src, src_size, tdst, tdst_size);
 #else
-    strcpy(wdst,src);
+    _snprintf(tdst, tdst_size, "%s", src);
+    idst[tdst_size - 1] = '\0'; // Windows's buggy _sn*printf
 #endif
 }
 
