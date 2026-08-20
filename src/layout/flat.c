@@ -27,7 +27,7 @@ rc_t render_layout_flat(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         //    break;
 
         if (samples_to_do <= 0) {
-            VGM_LOG("FLAT: wrong samples_to_do\n"); 
+            VGM_LOG_ONCE("FLAT: wrong samples_to_do\n"); 
             return RC_LAYOUT_ERROR;
         }
 

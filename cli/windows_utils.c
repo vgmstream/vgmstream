@@ -19,14 +19,19 @@
 //  lpWideCharStr: output string
 //  cchWideChar: output size (0 to check for needed string)
 // returns number of written chars including null, or 0 on error (not enough buffer, etc)
-static int char_to_wchar(const char* str, wchar_t* wstr, int wstr_size) {
+static int char_to_wchar(wchar_t* wdst, int wdst_size, const char* src) {
     // cchWideChar=0 means "get needed size", prone to subtle bugs
-    if (!str ||!wstr || wstr_size <= 0) {
+    if (!wdst || wdst_size <= 0 || !src) {
         //SetLastError(ERROR_INSUFFICIENT_BUFFER);
         return 0;
     }
-    int str_size = -1; // input is null-terminated
-    return MultiByteToWideChar(CP_UTF8, 0, str, str_size, wstr, wstr_size);
+
+    int src_size = -1; // input is null-terminated; will return 0 if not enough dst_size
+    int done = MultiByteToWideChar(CP_UTF8, 0, src, src_size, wdst, wdst_size);
+    if (done <= 0) {
+        wdst[0] = 0;
+    }
+    return done;
 }
 
 // WideCharToMultiByte wrapper (assumes wstr is null-terminated):
@@ -39,14 +44,20 @@ static int char_to_wchar(const char* str, wchar_t* wstr, int wstr_size) {
 //  lpDefaultChar: char to use for non-representable chars (NULL for default)
 //  lpUsedDefaultChar: flag to check if default char was used
 // returns number of written chars including null, or 0 on error (not enough buffer, etc)
-static int wchar_to_char(const wchar_t* wstr, char* str, int str_size) {
+static int wchar_to_char(char* dst, int dst_size, const wchar_t* wsrc) {
     // cbMultiByte=0 means "get needed size", prone to subtle bugs
-    if (!wstr || !str || str_size <= 0) {
+    if (!dst || dst_size <= 0 || !wsrc) {
         //SetLastError(ERROR_INSUFFICIENT_BUFFER);
         return 0;
     }
-    int wstr_size = -1; // assumes input is null-terminated
-    return WideCharToMultiByte(CP_UTF8, 0, wstr, wstr_size, str, str_size, NULL, NULL);
+
+    int wsrc_size = -1; // assumes input is null-terminated; will return 0 if not enough dst_size
+    int done = WideCharToMultiByte(CP_UTF8, 0, wsrc, wsrc_size, dst, dst_size, NULL, NULL);
+    if (done <= 0) {
+        dst[0] = 0;
+    }
+
+    return done;
 }
 
 
@@ -125,7 +136,7 @@ static bool fprint_line(FILE* stream, const char* text, int text_len) {
     HANDLE hOut = get_windows_std_handle(stream);
     if (is_windows_console(hOut)) {
         wchar_t wtext[WIN_LINE];
-        int wtext_len = char_to_wchar(text, wtext, WIN_LINE);
+        int wtext_len = char_to_wchar(wtext, WIN_LINE, text);
         if (wtext_len <= 0)
             return false;
 
@@ -200,7 +211,7 @@ static bool windows_wargs_to_args_stack(int argc, wchar_t** argv_w, char** argv,
         return false;
 
     for (int i = 0; i < argc; i++) {
-        int done = wchar_to_char(argv_w[i], block, block_size);
+        int done = wchar_to_char(block, block_size, argv_w[i]);
         if (done <= 0)
             return false;
 
@@ -232,7 +243,7 @@ static bool windows_wargs_to_args_alloc(int argc, wchar_t** argv_w, char*** p_ar
         char* block = block_alloc + block_pos;
         int block_size = block_alloc_size - block_pos;
 
-        int done = wchar_to_char(argv_w[i], block, block_size);
+        int done = wchar_to_char(block, block_size, argv_w[i]);
         if (done <= 0) {
             if (block_size > 0) {
                 // <= 0 is not enough buf in this block
@@ -292,11 +303,11 @@ FILE* fopen_win(const char* path, const char* mode) {
     int done;
 
     wchar_t wpath[WIN_PATH_LIMIT];
-    done = char_to_wchar(path, wpath, WIN_PATH_LIMIT);
+    done = char_to_wchar(wpath, WIN_PATH_LIMIT, path);
     if (done <= 0) return NULL;
 
     wchar_t wmode[WIN_MODE_LIMIT];
-    done = char_to_wchar(mode, wmode, WIN_MODE_LIMIT);
+    done = char_to_wchar(wmode, WIN_MODE_LIMIT, mode);
     if (done <= 0) return NULL;
 
     return _wfopen(wpath, wmode);
@@ -312,10 +323,10 @@ extern int main(int argc, char** argv);
 // - Windows 10 1903 (May 2019): activeCodePage=UTF8 in appxmanifest
 
 // Handle Windows' uglycode stuff for non-ascii extended filenames, which needs 3 separate steps:
-// - Make a 'wmain' for "unicode" (actually UCS-2) args. There are alt entry points but was the cleanest.
+// - Make a 'wmain' for "unicode" (actually UCS-2) args. There are alt entry points but this was the cleanest.
 // - Modify stdio, using _wfopen instead of fopen if needed
-// - allow console/redirected output (printf), via codepages (or modified fprintf). Terminal needs a utf font too.
-// Converts back and forth to UTF-8 for portability, since vgmstream code expects that.
+// - allow console/redirected output (printf), via codepages (or modified fprintf). Terminal needs a UTF font too.
+// Converts back and forth to UTF-8 for portability, since vgmstream code expects that encoding.
 int wmain_process(int argc, wchar_t** argv_w) {
     uint32_t codepage = windows_setup_codepage_utf8();
 
@@ -332,7 +343,7 @@ int wmain_process(int argc, wchar_t** argv_w) {
         }
     }
 
-    // if not stack wasn't big enough call again alloc'ing as needed
+    // if stack wasn't big enough call again, alloc'ing as needed
     if (main_result < 0) {
         char** argv_alloc = NULL;
         char* block_alloc = NULL;

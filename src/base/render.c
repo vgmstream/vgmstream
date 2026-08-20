@@ -112,7 +112,7 @@ rc_t render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     }
 
     if (rc < 0) {
-        VGM_LOG("RENDER: layout error\n"); 
+        VGM_LOG_ONCE("RENDER: layout error\n"); 
         sbuf_silence_rest(sbuf);
 
          // ignore to allow looping in edge cases, and emmit silent samples near EOF

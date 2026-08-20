@@ -146,7 +146,7 @@ static void oki_um_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, in
  * so it's needs GENH/TXTH. Sample rate can only be base_value divided by 1/2/3/4, where
  * base_value is approximately ~31468.5 (follows hardware clocks), mono or interleaved for stereo.
  */
-void decode_pcfx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode) {
+void decode_pcfx(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode) {
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
@@ -167,7 +167,7 @@ void decode_pcfx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing,
 
 /* OKI variation with 16-bit output (vs standard's 12-bit), found in FrontWing's PS2 games (Sweet Legacy, Hooligan).
  * Reverse engineered from the ELF with help from the folks at hcs. Codec has no name so OKI16 is just a description. */
-void decode_oki16(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_oki16(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
@@ -200,7 +200,7 @@ void decode_oki16(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
 
 /* OKI variation with 16-bit output (vs standard's 12-bit) and pre-adjusted tables (shifted by 4), found in Jubeat Clan (AC).
  * Reverse engineered from the DLLs (libbmsd-engine.dll). Internally code calls it "adpcm", so OKI4S is just a description. */
-void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, bool is_stereo) {
+void decode_oki4s(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, bool is_stereo) {
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
@@ -235,7 +235,7 @@ void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
  * Original code has mono and mono-interleaved variants. Reversed from UMUT.DLL (~2000).
  * Info: https://www7.big.or.jp/~suppoko/ultramarine/index.html
  */
-void decode_oki_um(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int shift) {
+void decode_oki_um(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int shift) {
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     int16_t out_sample;
