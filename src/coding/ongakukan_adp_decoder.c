@@ -2,12 +2,11 @@
 #include "coding.h"
 #include "libs/ongakukan_adp_lib.h"
 
+#define ONGAKUKAN_MAX_DECODER_SAMPLES 2
 struct ongakukan_adp_data {
     void* handle;
     int16_t* samples;
-    int32_t samples_done;
-    bool samples_filled; /* false - no, true - yes */
-    int32_t getting_samples; /* initialized to 2 on decode_ongakukan_adp. i mean, we literally get two decoded samples here. */
+    int samples_filled;
     STREAMFILE* sf;
 };
 
@@ -33,22 +32,22 @@ fail:
 void decode_ongakukan_adp(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do) {
     ongakukan_adp_data* data = vgmstream->codec_data;
 
-    data->getting_samples = 2;
-    data->samples_done = 0;
-    data->samples_filled = false;
+    int samples_done = 0;
 
-    while (data->samples_done < samples_to_do) {
+    while (samples_done < samples_to_do) {
         if (data->samples_filled) {
-            memcpy(outbuf + data->samples_done, data->samples, data->getting_samples * sizeof(int16_t));
-            data->samples_done += data->getting_samples;
-
-            data->samples_filled = false;
+            int s = ONGAKUKAN_MAX_DECODER_SAMPLES - data->samples_filled;
+            while (data->samples_filled && samples_done < samples_to_do) {
+                outbuf[samples_done] = data->samples[s++];
+                samples_done++;
+                data->samples_filled--;
+            }
         }
         else {
             ongakukan_adpcm_decode_data(data->handle);
 
-            data->samples_filled = true;
             data->samples = ongakukan_adpcm_get_sample_hist(data->handle); 
+            data->samples_filled = ONGAKUKAN_MAX_DECODER_SAMPLES;
         }
     }
 }

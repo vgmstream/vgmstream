@@ -68,10 +68,15 @@ static inline int bl_pos(bitstream_t* bs) {
 static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint32_t shift, mask, pos, val;
 
-    if (bits > 32 || ib->b_off + bits > ib->b_max) {
+    if (bits > 32 || bits > ib->b_max - ib->b_off) {
         *value = 0;
         ib->error = true;
         return 0;
+    }
+
+    if (bits == 0) {
+        *value = 0;
+        return 1;
     }
 
     pos = ib->b_off / 8;            // byte offset
@@ -112,9 +117,13 @@ static inline uint32_t bl_read(bitstream_t* ib, uint32_t bits) {
 static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, mask, pos;
 
-    if (bits > 32 || ob->b_off + bits > ob->b_max) {
+    if (bits > 32 || bits > ob->b_max - ob->b_off) {
         ob->error = true;
         return 0;
+    }
+
+    if (bits == 0) {
+        return 1;
     }
 
     pos = ob->b_off / 8;        // byte offset

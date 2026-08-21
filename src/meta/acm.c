@@ -11,14 +11,14 @@ VGMSTREAM* init_vgmstream_acm(STREAMFILE* sf) {
 
 
     /* checks */
+    if (read_u32be(0x00,sf) != 0x97280301 &&    // header id (music)
+        !is_id32be(0x00,sf, "WAVC"))            // sfx
+        return NULL;
     /* .acm: plain ACM extension (often but not always paired with .mus, parsed elsewhere)
      * .tun: Descent to Undermountain (PC)
      * .wavc: header id for WAVC sfx (from bigfiles, extensionless) */
     if (!check_extensions(sf, "acm,tun,wavc"))
-        goto fail;
-    if (read_u32be(0x00,sf) != 0x97280301 &&  /* header id (music) */
-        !is_id32be(0x00,sf, "WAVC"))    /* sfx */
-        goto fail;
+        return NULL;
 
 
     /* Plain ACM "channels" in the header (at 0x08) may be set to 2 for mono voices [FO1] or 1 for music [P:T],

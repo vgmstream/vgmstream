@@ -221,12 +221,14 @@ static bool is_mpeg_new_skip_channel(STREAMFILE* sf, awc_block_info_t* bi, uint3
         frames++;
     }
 
-    if (new_skip == 0 || old_skip == 0) // ???
+    if (new_skip == 0 || old_skip == 0 || prev_offset < old_skip) // ???
         return false;
 
     // repeat_offset is where data ends so go back a bit (new_skip would be smaller but not sure about comparing blank frames)
     uint8_t prev_frame[AWC_FRAME_SIZE];
-    read_streamfile(prev_frame, prev_offset - old_skip, old_skip, sf);
+    size_t bytes = read_streamfile(prev_frame, prev_offset - old_skip, old_skip, sf);
+    if (bytes != old_skip) // ???
+        return false;
 
     bool is_old = memcmp(curr_frame, prev_frame, old_skip) == 0;
 

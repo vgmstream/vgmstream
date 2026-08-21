@@ -4,6 +4,11 @@
 static int64_t io_sf_read(void* dst, int size, int n, void* arg) {
     io_priv_t* io = arg;
 
+    if (size <= 0 || n <= 0)
+        return 0;
+    if (size > INT_MAX / n) // overflow crap
+        return 0;
+
     int bytes_read = read_streamfile(dst, io->offset, size * n, io->sf);
     int items_read = bytes_read / size;
     io->offset += bytes_read;
