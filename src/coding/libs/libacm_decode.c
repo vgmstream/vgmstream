@@ -27,6 +27,7 @@
 #include "libacm.h"
 
 #define ACM_BUFLEN    (64*1024)
+#define MAX_BLOCK_LEN (1024*1024)
 
 #define ACM_EXPECTED_EOF -99
 
@@ -803,10 +804,23 @@ int acm_open_decoder(ACMStream **res, void *arg, acm_io_callbacks io_cb, int for
     acm->wrapbuf_len = 2 * acm->info.acm_cols - 2;
     acm->block_len = acm->info.acm_rows * acm->info.acm_cols;
 
+    /* validate */
+    if (!acm->wrapbuf_len || !acm->info.acm_rows)
+        goto err_out;
+    if (acm->block_len > MAX_BLOCK_LEN)
+        goto err_out;
+
     /* allocate */
+    err = ACM_ERR_OTHER;
     acm->block = malloc(acm->block_len * sizeof(int));
+    if (!acm->block)
+        goto err_out;
     acm->wrapbuf = malloc(acm->wrapbuf_len * sizeof(int));
+    if (!acm->wrapbuf)
+        goto err_out;
     acm->ampbuf = malloc(0x10000 * sizeof(int));
+    if (!acm->ampbuf)
+        goto err_out;
     acm->midbuf = acm->ampbuf + 0x8000;
 
     memset(acm->wrapbuf, 0, acm->wrapbuf_len * sizeof(int));
