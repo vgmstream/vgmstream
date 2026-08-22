@@ -1398,7 +1398,6 @@ static const meta_info meta_info_list[] = {
         {meta_TXTP,                 "TXTP generic header"},
         {meta_SMH_SMC,              "Genki SMH+SMC header"},
         {meta_PPST,                 "epics PPST header"},
-        {meta_SPS_N1,               "Nippon Ichi .SPS header"},
         {meta_UBI_BAO,              "Ubisoft BAO header"},
         {meta_DSP_SWITCH_AUDIO,     "UE4 Switch Audio header"},
         {meta_SADF,                 "Procyon Studio SADF header"},

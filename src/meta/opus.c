@@ -367,50 +367,6 @@ VGMSTREAM* init_vgmstream_opus_nus3(STREAMFILE* sf) {
     return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
 }
 
-/* Nippon Ichi SPS wrapper (non-segmented) [Ys VIII: Lacrimosa of Dana (Switch)] */
-VGMSTREAM* init_vgmstream_opus_sps_n1(STREAMFILE* sf) {
-    off_t offset;
-    int num_samples, loop_start = 0, loop_end = 0, loop_flag;
-
-    /* checks */
-    if (read_u32be(0x00, sf) != 0x09000000) /* file type (see other N1 SPS) */
-        return NULL;
-
-    /* .sps: Labyrinth of Refrain: Coven of Dusk (Switch)
-     * .nlsd: Disgaea Refine (Switch), Ys VIII (Switch)
-     * .at9: void tRrLM(); //Void Terrarium (Switch)
-     * .opus: Asatsugutori (Switch) */
-    if (!check_extensions(sf, "sps,nlsd,at9,opus,lopus"))
-        return NULL;
-
-    num_samples = read_s32le(0x0C, sf);
-
-    if (read_u32be(0x1c, sf) == 0x01000080) {
-        offset = 0x1C;
-
-        /* older games loop section (remnant of segmented opus_sps_n1): */
-        loop_start = read_s32le(0x10, sf); /* intro samples */
-        loop_end = loop_start + read_s32le(0x14, sf); /* loop samples */
-        /* 0x18: end samples (all must add up to num_samples) */
-        loop_flag = read_s32le(0x18, sf); /* with loop disabled only loop_end has a value */
-    }
-    else {
-        offset = 0x18;
-
-        /* newer games loop section: */
-        loop_start = read_s32le(0x10, sf);
-        loop_end = read_s32le(0x14, sf);
-        loop_flag = loop_start != loop_end; /* with loop disabled start and end are the same as num samples */
-    }
-
-    if (!loop_flag) {
-        loop_start = 0;
-        loop_end = 0;
-    }
-
-    return init_vgmstream_opus(sf, offset, num_samples, loop_start, loop_end);
-}
-
 /* AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
 VGMSTREAM* init_vgmstream_opus_opusx(STREAMFILE* sf) {
     off_t offset;
