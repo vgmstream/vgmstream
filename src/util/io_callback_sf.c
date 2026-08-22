@@ -1,4 +1,5 @@
 #include "io_callback_sf.h"
+#include <limits.h>
 #include <stdint.h>
 
 static int64_t io_sf_read(void* dst, int size, int n, void* arg) {
