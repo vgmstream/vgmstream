@@ -630,7 +630,14 @@ void decode_ms_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* out
     int frame_channel =  vgmstream->codec_config ? 0 : channel;
 
     /* internal interleave (configurable size), mixed channels */
-    int block_samples = ((vgmstream->frame_size - 0x04*frame_channels) * 2 / frame_channels) + 1;
+    int block_samples = (frame_channels > 0) ?
+            ((vgmstream->frame_size - 0x04*frame_channels) * 2 / frame_channels) + 1 :
+            0;
+    /* block may be smaller than needed or a multiple (sanity) */
+    if (block_samples <= 0) {
+        vgm_logi("MS IMA: unknown frame size (report)\n");
+        return;
+    }
     first_sample = first_sample % block_samples;
 
     /* normal header (hist+step+reserved), per channel */

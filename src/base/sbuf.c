@@ -206,10 +206,20 @@ int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
 
 void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
     int sample_size = sfmt_get_sample_size(sbuf->fmt);
+    size_t byte_count;
+
+    /* check span before computing the pointer (from/count come from untrusted config) */
+    if (from < 0 || count < 0 || from > sbuf->samples || count > sbuf->samples - from) {
+        VGM_LOG("sbuf: silence over buffer (%i+%i > %i)\n", from, count, sbuf->samples);
+        return;
+    }
+
+    /* check overflow of the byte count (only for safety, spans are checked above) */
+    byte_count = (size_t)count * (size_t)sbuf->channels * (size_t)sample_size;
 
     uint8_t* buf = sbuf->buf;
-    buf += from * sbuf->channels * sample_size;
-    memset(buf, 0, count * sbuf->channels * sample_size);
+    buf += (size_t)from * (size_t)sbuf->channels * (size_t)sample_size;
+    memset(buf, 0, byte_count);
 }
 
 void sbuf_silence_rest(sbuf_t* sbuf) {
