@@ -179,7 +179,7 @@ void mixer_chain(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
             case MIX_UPMIX:     mixer_op_upmix(mixer, mix); break;
             case MIX_DOWNMIX:   mixer_op_downmix(mixer, mix); break;
             case MIX_KILLMIX:   mixer_op_killmix(mixer, mix); break;
-            case MIX_FADE:      mixer_op_fade(mixer, mix);
+            case MIX_FADE:      mixer_op_fade(mixer, mix); break;
             default:
                 break;
         }

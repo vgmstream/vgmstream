@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define LIBACM_VERSION "1.3"
+#define LIBACM_VERSION "1.4"
 
 #define ACM_ID      0x032897
 #define ACM_WORD    2

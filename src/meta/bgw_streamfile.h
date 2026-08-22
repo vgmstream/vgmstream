@@ -32,13 +32,13 @@ static STREAMFILE* setup_bgw_atrac3_streamfile(STREAMFILE* sf, off_t subfile_off
     size_t io_data_size = sizeof(bgw_decryption_data);
 
     /* setup decryption with key (first frame + modified channel header) */
-    size_t key_size = frame_size * channels;
-    if (key_size <= 0 || key_size > BGW_KEY_MAX)
-        goto fail;
+    if (channels < 1 || frame_size < 0x04  || frame_size > BGW_KEY_MAX / channels)
+        return NULL;
 
+    size_t key_size = frame_size * channels;
     io_data.key_size = read_streamfile(io_data.key, subfile_offset, key_size, sf);
     if (io_data.key_size != key_size)
-        goto fail;
+        return NULL;
 
     for (int ch = 0; ch < channels; ch++) {
         uint32_t xor = get_u32be(io_data.key + frame_size * ch);
@@ -50,9 +50,6 @@ static STREAMFILE* setup_bgw_atrac3_streamfile(STREAMFILE* sf, off_t subfile_off
     new_sf = open_clamp_streamfile_f(new_sf, subfile_offset,subfile_size);
     new_sf = open_io_streamfile_f(new_sf, &io_data,io_data_size, bgw_decryption_read,NULL);
     return new_sf;
-fail:
-    close_streamfile(new_sf);
-    return NULL;
 }
 
 #endif

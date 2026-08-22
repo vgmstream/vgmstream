@@ -76,10 +76,15 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint64_t val; //TODO: could use u32 with some shift fiddling
     int left;
 
-    if (bits > 32 || ib->b_off + bits > ib->b_max) {
+    if (bits > 32 || bits > ib->b_max - ib->b_off) {
         *value = 0;
         ib->error = true;
         return 0;
+    }
+
+    if (bits == 0) {
+        *value = 0;
+        return 1;
     }
 
     pos = ib->b_off / 8;                        // byte offset
@@ -105,11 +110,7 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 #else
     mask = MASK_TABLE_MSB[bits];    // to remove upper in highest byte
 
-    left = 0;
-    if (bits == 0)
-        val = 0;
-    else 
-        val = ib->buf[pos+0];
+    val = ib->buf[pos+0];
     left = 8 - (bits + shift);
     if (bits + shift > 8) {
         val = (val << 8u) | ib->buf[pos+1];
@@ -148,9 +149,13 @@ static inline int bm_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, pos;
     int i, bit_val, bit_buf;
 
-    if (bits > 32 || ob->b_off + bits > ob->b_max) {
+    if (bits > 32 || bits > ob->b_max - ob->b_off) {
         ob->error = true;
         return 0;
+    }
+
+    if (bits == 0) {
+        return 1;
     }
 
     pos = ob->b_off / 8;                        // byte offset

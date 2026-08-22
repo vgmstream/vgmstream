@@ -593,7 +593,6 @@ typedef enum {
     meta_TXTP,
     meta_SMH_SMC,
     meta_PPST,
-    meta_SPS_N1,
     meta_UBI_BAO,
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
     meta_HVQM4,

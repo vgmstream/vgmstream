@@ -150,6 +150,15 @@ static void setup_state_processing(VGMSTREAM* vgmstream) {
     ps->fade_start = ps->pad_begin_duration + ps->body_duration;
   //ps->pad_end_left = ps->pad_end_duration;
     ps->pad_end_start = ps->fade_start + ps->fade_duration;
+
+    if (ps->fade_start < 0) {
+        ps->fade_start = 0;
+        ps->fade_duration = 0;
+    }
+    if (ps->pad_end_start < 0) {
+        ps->pad_end_start = 0;
+        ps->pad_end_duration = 0;
+    }
 }
 
 /* apply play config to internal state */

@@ -66,76 +66,76 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DSP
 - **ngc_dsp_std.c**
   - Nintendo DSP header [*DSP_STD*]
-  - Intelligent Systems STM header [*DSP_STM*]
   - Single DSP header stereo by .mpdsp extension [*DSP_MPDSP*]
   - Double DSP header stereo by _lr.dsp extension [*DSP_JETTERS*]
   - Double DSP header stereo by .mss extension [*DSP_MSS*]
   - Double DSP header stereo by .gcm extension [*DSP_GCM*]
+  - Infogrames .DSP header [*DSP_STR_IG*]
+  - XIII dsp header [*DSP_XIII*]
+  - .DDSP header [*DSP_DDSP*]
+  - Cabelas games .DSP header [*DSP_CABELAS*]
+  - .ITL DSP header [*DSP_ITL*]
+  - LucasArts .DS2 header [*DSP_DS2*]
+  - Infernal .ITL DSP header [*DSP_ITL_i*]
+  - UE4 Switch Audio header [*DSP_SWITCH_AUDIO*]
+  - Rebellion DSP header [*DSP_ASURA*]
+  - Intelligent Systems STM header [*DSP_STM*]
+  - TOSE .IDSP header [*IDSP_TOSE*]
+  - Kuju London .KWA header [*DSP_KWA*]
+  - Square Enix DSP header [*DSP_SQEX*]
+  - Bethesda .mcadpcm header [*DSP_MCADPCM*]
   - Namco IDSP header [*IDSP_NAMCO*]
   - Procyon Studio SADB header [*DSP_SADB*]
   - Traveller's Tales IDSP header [*IDSP_TT*]
   - Next Level IDSP header [*IDSP_NL*]
   - .WSD header [*DSP_WII_WSD*]
-  - .DDSP header [*DSP_DDSP*]
   - Sumo Digital iSWS header [*WII_WAS*]
-  - Infogrames .DSP header [*DSP_STR_IG*]
-  - XIII dsp header [*DSP_XIII*]
   - Icon Games NDP header [*WII_NDP*]
-  - Cabelas games .DSP header [*DSP_CABELAS*]
   - Acclaim Austin AAAp DSP header [*NGC_DSP_AAAP*]
   - Capcom DSPW header [*DSP_DSPW*]
   - IADP Header [*NGC_DSP_IADP*]
-  - Bethesda .mcadpcm header [*DSP_MCADPCM*]
-  - UE4 Switch Audio header [*DSP_SWITCH_AUDIO*]
-  - .ITL DSP header [*DSP_ITL*]
   - AQUASTYLE ADPY header [*DSP_ADPY*]
   - AQUASTYLE ADPX header [*DSP_ADPX*]
-  - LucasArts .DS2 header [*DSP_DS2*]
-  - Infernal .ITL DSP header [*DSP_ITL_i*]
-  - Square Enix DSP header [*DSP_SQEX*]
   - Koei Tecmo WiiVoice header [*DSP_WIIVOICE*]
   - Exient WIIADPCM header [*DSP_WIIADPCM*]
   - CRI CWAC header [*DSP_CWAC*]
-  - TOSE .IDSP header [*IDSP_TOSE*]
-  - Kuju London .KWA header [*DSP_KWA*]
   - Koei Tecmo APEX header [*DSP_APEX*]
-  - Rebellion DSP header [*DSP_ASURA*]
   - *ngc_dsp_std*: `.dsp .adp .(extensionless) .wav .lwav .dat .ldat .rsm`
   - *ngc_dsp_std_le*: `.adpcm`
   - *ngc_mdsp_std*: `.dsp .mdsp`
+  - *dspi_ste*: `.ste .mpdsp`
+  - *dspi_dsp_mss_gcm*: `.dsp .mss .gcm`
+  - *dspi_str_ig*: `.str`
+  - *dspi_xiii*: `.dsp`
+  - *dspi_ddsp*: `.adp .ddsp .wav .lwav .(extensionless)`
+  - *dspi_cabelas*: `.dsp`
+  - *dspi_itl_ch*: `.itl`
+  - *dspi_lucasarts*: `.ds2 .dsp`
+  - *dspi_itl*: `.itl .dsp`
+  - *dspi_switch_audio*: `.switch_audio .dsp`
+  - *dspi_asura_ds2*: `.ds2`
   - *ngc_dsp_stm*: `.stm .lstm .dsp`
-  - *ngc_mpdsp*: `.mpdsp .ste`
-  - *ngc_dsp_std_int*: `.dsp .mss .gcm`
+  - *idsp_tose*: `.idsp`
+  - *dsp_kwa*: `.kwa`
+  - *dsp_sqex*: `.wav .lwav`
+  - *dsp_mcadpcm*: `.mcadpcm`
   - *idsp_namco*: `.idsp`
   - *sadb*: `.sad`
   - *idsp_tt*: `.gcm .idsp .wua`
   - *idsp_nl*: `.idsp`
   - *wii_wsd*: `.wsd`
-  - *dsp_ddsp*: `.adp .ddsp .wav .lwav .(extensionless)`
   - *wii_was*: `.was .dsp .isws`
-  - *dsp_str_ig*: `.str`
-  - *dsp_xiii*: `.dsp`
   - *dsp_ndp*: `.nds .ndp`
-  - *dsp_cabelas*: `.dsp`
   - *ngc_dsp_aaap*: `.dsp`
   - *dsp_dspw*: `.dspw`
   - *ngc_dsp_iadp*: `.adp .iadp`
-  - *dsp_mcadpcm*: `.mcadpcm`
-  - *dsp_switch_audio*: `.switch_audio .dsp`
-  - *dsp_itl_ch*: `.itl`
   - *dsp_adpy*: `.adpcmx`
   - *dsp_adpx*: `.adpcmx`
-  - *dsp_lucasarts_ds2*: `.ds2 .dsp`
-  - *dsp_itl*: `.itl .dsp`
-  - *dsp_sqex*: `.wav .lwav`
   - *dsp_wiivoice*: `.dsp`
   - *dsp_wiiadpcm*: `.adpcm`
   - *dsp_cwac*: `.dsp`
-  - *idsp_tose*: `.idsp`
-  - *dsp_kwa*: `.kwa`
   - *dsp_apex*: `.dsp`
   - *dsp_asura*: `.dsp .wav .lwav`
-  - *dsp_asura_ds2*: `.ds2`
   - *dsp_asura_ttss*: `.adpcm .wav .lwav`
   - Codecs: NGC_DSP NGC_DSP_subint
 - **csmp.c**
@@ -201,7 +201,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ea_schl_standard.c**
   - (container)
   - *ea_schl*: `.asf .lasf .str .chk .eam .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless) .r .snd`
-  - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast .cat .(extensionless)`
+  - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast .cat .gen .(extensionless)`
   - *ea_schl_video*: `.uv .dct .mpc .lmpc .vp6 .mad .wve`
   - *ea_pt*: `.pth .dat .ldat + .ptd`
 - **caf.c**
@@ -259,9 +259,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFF WAVE header (wsmp looping) [*RIFF_WAVE_wsmp*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
-  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v .xst .wxv .vag .xbw .at9psv`
+  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v .xst .wxv .vag .xbw .at9psv .bgm`
   - *rifx*: `.wav .lwav`
-  - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA LEVEL5 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_mono
+  - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA LEVEL5 OGG_VORBIS ATRAC9 OKI_UM ATRAC3 MPEG MSADPCM_mono
 - **nwa.c**
   - VisualArt's NWA header (NWAINFO.INI looping) [*NWA_NWAINFOINI*]
   - VisualArt's NWA header (Gameexe.ini looping) [*NWA_GAMEEXEINI*]
@@ -1013,7 +1013,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *opus_nop*: `.nop`
   - *opus_shinen*: `.opus .lopus`
   - *opus_nus3*: `.opus .lopus`
-  - *opus_sps_n1*: `.sps .nlsd .at9 .opus .lopus`
   - *opus_opusx*: `.opusx`
   - *opus_prototype*: `.opus .lopus`
   - *opus_opusnx*: `.opus .lopus`
@@ -1103,11 +1102,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *atsl*: `.atsl .atsl3 .atsl4 .atslx`
     - Subfiles: *ogg_vorbis riff xma ktac ktss*
 - **sps_n1.c**
-  - Nippon Ichi .SPS header [*SPS_N1*]
-  - *sps_n1*: `.sps .vag .nlsd`
-    - Subfiles: *vag riff ngc_dsp_std_le*
-  - *sps_n1_segmented*: `.at9 .nlsd`
-    - Subfiles: *ogg_vorbis opus_std*
+  - (container)
+  - *sps_n1*: `.sps .nlsd .vag .at9 .opus .lopus`
+    - Subfiles: *vag riff ogg_vorbis ngc_dsp_std_le opus_std*
 - **apa3.c**
   - (container)
   - *apa3*: `.atx`
