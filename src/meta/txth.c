@@ -2156,8 +2156,6 @@ static bool parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32
             if (subsong_spacing)
                 offset = offset + subsong_spacing * (txth->target_subsong - 1);
 
-            if (txth->debug)
-                vgm_logi("TXTH:  use value at 0x%x (%s %ib)\n", offset, big_endian ? "BE" : "LE", size * 8);
 
             switch(size) {
                 case 1: value = read_u8(offset,sf); break;
@@ -2166,6 +2164,10 @@ static bool parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32
                 case 4: value = big_endian ? read_u32be(offset,sf) : read_u32le(offset,sf); break;
                 default: goto fail;
             }
+
+            if (txth->debug)
+                vgm_logi("TXTH:  use value at 0x%x = 0x%x (%s %ib)\n", offset, value, big_endian ? "BE" : "LE", size * 8);
+
             value_read = 1;
         }
         else if (type >= '0' && type <= '9') { /* unsigned constant */
