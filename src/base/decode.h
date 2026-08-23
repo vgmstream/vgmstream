@@ -21,6 +21,9 @@ bool decode_do_loop(VGMSTREAM* vgmstream);
 int decode_get_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM* vgmstream);
 
 
+/* validations and setup for simpler codecs */
+bool decode_setup_coding(VGMSTREAM* vgmstream);
+
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
 int decode_get_samples_per_frame(VGMSTREAM* vgmstream);
 
@@ -31,7 +34,5 @@ int decode_get_frame_size(VGMSTREAM* vgmstream);
 int decode_get_samples_per_shortframe(VGMSTREAM* vgmstream);
 int decode_get_shortframe_size(VGMSTREAM* vgmstream);
 
-
-bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream);
 
 #endif

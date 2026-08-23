@@ -175,7 +175,10 @@ typedef struct {
     int32_t loop_end_sample;        /* last sample of the loop (not included in the loop) */
 
     /* layouts/block config */
-    size_t interleave_block_size;   /* interleave, or block/frame size (depending on the codec) */
+    union {                         /* interleave, or rarely block/frame size (depending on the codec) */
+        size_t interleave_block_size;
+        size_t interleave; // alias
+    };
     size_t interleave_first_block_size; /* different interleave for first block */
     size_t interleave_first_skip;   /* data skipped before interleave first (needed to skip other channels) */
     size_t interleave_last_block_size; /* smaller interleave for last block */
