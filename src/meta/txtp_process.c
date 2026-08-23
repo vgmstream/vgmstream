@@ -494,7 +494,6 @@ fail:
 }
 
 static int make_group_random(txtp_header_t* txtp, txtp_group_t* grp, int position, int count, int selected) {
-    VGMSTREAM* vgmstream = NULL;
 
     /* allowed for actual groups (not final mode), otherwise skip to optimize */
     if (!grp && count == 1) {
@@ -524,11 +523,10 @@ static int make_group_random(txtp_header_t* txtp, txtp_group_t* grp, int positio
         /* special case meaning "select all", basically for quick testing and clearer Wwise */
         if (!make_group_segment(txtp, grp, position, count))
             goto fail;
-        vgmstream = txtp->vgmstream[position];
     }
     else {
         /* get selected and remove non-selected */
-        vgmstream = txtp->vgmstream[position + selected];
+        VGMSTREAM* vgmstream = txtp->vgmstream[position + selected];
         txtp->vgmstream[position + selected] = NULL;
         for (int i = 0; i < count; i++) {
             close_vgmstream(txtp->vgmstream[i + position]);
@@ -545,19 +543,21 @@ static int make_group_random(txtp_header_t* txtp, txtp_group_t* grp, int positio
         grp->entry.config.really_force_loop = 1;
     }
 
-    /* force selected vgmstream to be a segment when not a group already, and
+    /* force current vgmstream to be a segment when not a group already, and
      * group + vgmstream has config (AKA must loop/modify over the result) */
-    //todo could optimize to not generate segment in some cases?
-    if (grp &&
-            !(vgmstream->layout_type == layout_layered || vgmstream->layout_type == layout_segmented) &&
-            (grp->entry.config.config_set && vgmstream->config.config_set) ) {
-        if (!make_group_segment(txtp, grp, position, 1))
-            goto fail;
+    //TODO: could optimize to not generate segment in some cases?
+    {
+        VGMSTREAM* vgmstream = txtp->vgmstream[position];
+        if (grp && 
+                !(vgmstream->layout_type == layout_layered || vgmstream->layout_type == layout_segmented) &&
+                (grp->entry.config.config_set && vgmstream->config.config_set)) {
+            if (!make_group_segment(txtp, grp, position, 1))
+                goto fail;
+        }
     }
 
     return true;
 fail:
-    close_vgmstream(vgmstream);
     return false;
 }
 

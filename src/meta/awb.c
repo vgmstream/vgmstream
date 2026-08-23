@@ -42,11 +42,16 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     uint8_t offset_size         = read_u8   (0x05,sf);
     uint16_t waveid_alignment   = read_u16le(0x06,sf); // usually 0x02, rarely 0x04 [Voice of Cards: The Beasts of Burden (Switch)]
     int total_subsongs          = read_s32le(0x08,sf);
-    uint16_t offset_alignment   = read_u16le(0x0c,sf);
+    uint16_t offset_alignment   = read_u16le(0x0c,sf); // always(?) 0x20
     uint16_t subkey             = read_u16le(0x0e,sf);
 
+    if (waveid_alignment == 0 || offset_alignment == 0) // avoid div-by-zero
+        return NULL;
+
     if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong > total_subsongs || total_subsongs <= 0) return NULL;
+    if (target_subsong > total_subsongs || total_subsongs <= 0)
+        return NULL;
+
 
     uint32_t offset = 0x10;
 

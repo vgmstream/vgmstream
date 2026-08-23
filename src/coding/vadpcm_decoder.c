@@ -139,16 +139,14 @@ int32_t vadpcm_bytes_to_samples(size_t bytes, int channels) {
  * - k: coef index (multiplication coefficient for 8 samples in a sub-frame)
  * coefs[i * (order*8) + j * 8 + k * order] = coefs[i][j][k] */
 void vadpcm_read_coefs_be(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, int order, int entries, int ch) {
-    int i;
 
-    if (entries > 8)
-        entries = 8;
-    VGM_ASSERT(order != 2, "VADPCM: wrong order %i found\n", order);
-    if (order != 2)
-        order = 2;
+    if (entries < 1 || entries > 8 ) {
+        VGM_LOG("VADPCM: wrong entries %i / order %i found\n", entries, order);
+        return;
+    }
 
     /* assumes all channels use same coefs, never seen non-mono files */
-    for (i = 0; i < entries * order * 8; i++) {
+    for (int i = 0; i < entries * order * 8; i++) {
         vgmstream->ch[ch].vadpcm_coefs[i] = read_s16be(offset + i*2, sf);
     }
     vgmstream->codec_config = order;
