@@ -207,6 +207,12 @@ int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
 void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
     int sample_size = sfmt_get_sample_size(sbuf->fmt);
 
+    // pre-clamped but just in case */
+    if (from < 0 || count < 0 || from > sbuf->samples || count > sbuf->samples - from) {
+        VGM_LOG("SBUF: wrong silence_part config, from=%i, count=%i, samples=%i\n", from, count, sbuf->samples);
+        return;
+    }
+
     uint8_t* buf = sbuf->buf;
     buf += from * sbuf->channels * sample_size;
     memset(buf, 0, count * sbuf->channels * sample_size);
@@ -295,10 +301,10 @@ static sbuf_copy_t copy_matrix[SFMT_MAX][SFMT_MAX] = {
 //TODO: may want to handle sdst->flled + samples externally?
 void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples) {
     // rarely when decoding with empty frames, may not setup ssrc
-    if (samples == 0)
+    if (samples <= 0)
         return;
 
-    if (sdst->filled + samples > sdst->samples) {
+    if (samples > sdst->samples - sdst->filled) {
         VGM_LOG("SBUF: wrong copy segments (src-filled=%i, dst-free=%i, requested=%i)\n", ssrc->filled, sdst->samples - sdst->filled, samples);
         return;
     }
@@ -429,8 +435,6 @@ static sbuf_layer_t layer_matrix[SFMT_MAX][SFMT_MAX] = {
 // dst_ch_start indicates it should write to dst's chN,chN+1,etc
 // sometimes one layer has less samples than others and need to 0-fill rest up to dst_max
 void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_max) {
-    int src_pos = 0;
-    int dst_pos = sdst->filled * sdst->channels + dst_ch_start;
 
     int src_copy = dst_max;
     if (src_copy > ssrc->filled)
@@ -446,6 +450,9 @@ void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_max)
         VGM_LOG_ONCE("SBUF: undefined layer function sfmt %i to %i\n", ssrc->fmt, sdst->fmt);
         return;
     }
+
+    int src_pos = 0;
+    int dst_pos = sdst->filled * sdst->channels + dst_ch_start;
 
     sbuf_layer_src_dst(ssrc->buf, sdst->buf, src_pos, dst_pos, src_copy, dst_max, ssrc->channels, sdst->channels);
 }
