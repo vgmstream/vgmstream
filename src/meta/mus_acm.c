@@ -3,6 +3,8 @@
 #include "../util/reader_text.h"
 #include "../util/string_utils.h"
 
+#define MAX_ACM_SEGMENTS 128 // typically 20-40, sometimes 1
+
 static char** parse_mus(STREAMFILE* sf, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index);
 static void clean_mus(char** mus_filenames, int file_count);
 
@@ -197,9 +199,11 @@ static char** parse_mus(STREAMFILE* sf, int* p_file_count, int* p_loop_flag, int
     if (line[0] == '\0') goto fail;
     mus_offset += bytes_read;
 
-    file_count = strtol(line, &end_ptr,10);
-    /* didn't parse whole line as an integer (optional opening whitespace) */
-    if (*end_ptr != '\0') goto fail;
+    file_count = strtol(line, &end_ptr, 10);
+    if (*end_ptr != '\0') // not a full line (optional opening whitespace) 
+        goto fail;
+    if (file_count < 0 || file_count > MAX_ACM_SEGMENTS)
+        goto fail;
 
     /* set names */
     names = calloc(file_count, sizeof(char*)); /* array of strings (size NAME_LENGTH) */
@@ -218,7 +222,8 @@ static char** parse_mus(STREAMFILE* sf, int* p_file_count, int* p_loop_flag, int
         char* last_slash = strrchr(dir_name,DIRSEP);
         if (last_slash != NULL) {
             last_slash[1] = '\0'; /* trim off the file name */
-        } else {
+        }
+        else {
             dir_name[0] = '\0'; /* no dir name? annihilate! */
         }
     }

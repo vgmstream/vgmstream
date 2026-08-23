@@ -380,7 +380,7 @@ size_t ps_find_padding(STREAMFILE* sf, off_t start_offset, size_t data_size, int
     size_t interleave_consumed = 0;
     uint8_t buf[0x8000];
     int buf_pos = 0;
-    int bytes;
+    size_t bytes;
 
 
     if (data_size == 0 || channels == 0 || (channels > 1 && interleave == 0))
@@ -405,8 +405,9 @@ size_t ps_find_padding(STREAMFILE* sf, off_t start_offset, size_t data_size, int
             if (read_offset < 0)
                 read_offset = 0; //?
             bytes = read_streamfile(buf, read_offset, sizeof(buf), sf);
-            buf_pos = (bytes / frame_size * frame_size);
-            if (bytes < (int)frame_size) break;    /* not enough data for a full frame */
+            if (bytes < frame_size) // not enough
+                break;
+            buf_pos = (bytes / frame_size * frame_size); // align
         }
 
         buf_pos -= frame_size;

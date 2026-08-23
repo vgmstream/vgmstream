@@ -28,8 +28,9 @@ bool next_chunk(chunk_t* chunk, STREAMFILE* sf) {
     if (chunk->type == 0xFFFFFFFF || chunk->size == 0xFFFFFFFF)
         return false;
 
-    if (chunk->size > remaining - 0x08)
-        return false;
+    // allow broken files (such as prefetch)
+    //if (chunk->size > remaining - 0x08)
+    //    return false;
 
     chunk->offset = chunk->current + 0x08;
     chunk->current += chunk->full_size ? chunk->size : 0x08 + chunk->size;

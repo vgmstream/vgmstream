@@ -691,6 +691,10 @@ bool vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_
         vgmstream->layout_type == layout_layered)
         return true;
 
+    /* generic setup for lack of a better place */
+    if (!decode_setup_coding(vgmstream))
+        goto fail;
+
     /* stream/offsets not needed, managed by decoder */
     if (vgmstream->coding_type == coding_NWA ||
         vgmstream->coding_type == coding_ACM ||
@@ -708,61 +712,6 @@ bool vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_
     if (vgmstream->coding_type == coding_FFmpeg)
         return true;
 #endif
-
-    if ((vgmstream->coding_type == coding_CRI_ADX ||
-            vgmstream->coding_type == coding_CRI_ADX_enc_8 ||
-            vgmstream->coding_type == coding_CRI_ADX_enc_9 ||
-            vgmstream->coding_type == coding_CRI_ADX_exp ||
-            vgmstream->coding_type == coding_CRI_ADX_fixed) &&
-            (vgmstream->interleave_block_size == 0 || vgmstream->interleave_block_size > 0x12)) {
-        VGM_LOG("VGMSTREAM: ADX decoder with wrong frame size %x\n", vgmstream->interleave_block_size);
-        goto fail;
-    }
-
-    if ((vgmstream->coding_type == coding_MSADPCM || vgmstream->coding_type == coding_MSADPCM_ck ||
-            vgmstream->coding_type == coding_MSADPCM_mono ||
-            vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono ||
-            vgmstream->coding_type == coding_PSX_cfg || vgmstream->coding_type == coding_PSX_pivotal
-            ) &&
-            vgmstream->frame_size == 0) {
-        vgmstream->frame_size = vgmstream->interleave_block_size;
-    }
-
-    if ((vgmstream->coding_type == coding_PSX_cfg ||
-            vgmstream->coding_type == coding_PSX_pivotal) &&
-            (vgmstream->frame_size == 0 || vgmstream->frame_size > 0x50)) {
-        VGM_LOG("VGMSTREAM: PSX-cfg decoder with wrong frame size %x\n", vgmstream->frame_size);
-        goto fail;
-    }
-
-    if ((vgmstream->coding_type == coding_MSADPCM ||
-            vgmstream->coding_type == coding_MSADPCM_ck ||
-            vgmstream->coding_type == coding_MSADPCM_mono) &&
-            (vgmstream->frame_size == 0 || vgmstream->frame_size > MSADPCM_MAX_BLOCK_SIZE)) {
-        VGM_LOG("VGMSTREAM: MSADPCM decoder with wrong frame size %x\n", vgmstream->frame_size);
-        goto fail;
-    }
-
-    vgmstream->codec_internal_updates = decode_uses_internal_offset_updates(vgmstream);
-
-    /* big interleaved values for non-interleaved data may result in incorrect behavior,
-     * quick fix for now since layouts are finicky, with 'interleave' left for meta info
-     * (certain layouts+codecs combos results in funny output too, should rework the whole thing) */
-    if (vgmstream->layout_type == layout_interleave
-            && vgmstream->channels == 1
-            && vgmstream->interleave_block_size > 0) {
-        /* main codecs that use arbitrary interleaves but could happen for others too */
-        switch(vgmstream->coding_type) {
-            case coding_NGC_DSP:
-            case coding_NGC_DSP_subint:
-            case coding_PSX:
-            case coding_PSX_badflags:
-                vgmstream->interleave_block_size = 0;
-                break;
-            default:
-                break;
-        }
-    }
 
     /* if interleave is big enough keep a buffer per channel */
     if (vgmstream->interleave_block_size * vgmstream->channels >= STREAMFILE_DEFAULT_BUFFER_SIZE) {
