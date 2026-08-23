@@ -109,7 +109,7 @@ static inline unsigned char ascii_tolower(unsigned char chr) {
 static bool check_extensions_linear(const char* ext, const char* cmp_exts) {
     const unsigned char* cmp_ptr = (const unsigned char*)cmp_exts;
 
-    while (*cmp_ptr != '\0') {
+    while (true) {
         // compare and consume ext/cmp ptrs until some null or comma
         // (extensionless files are also supported since ',' stops the loop before entering)
         const unsigned char* ext_ptr = (const unsigned char*)ext;
@@ -133,6 +133,8 @@ static bool check_extensions_linear(const char* ext, const char* cmp_exts) {
         // check for end of cmp_exts
         if (*cmp_ptr == '\0')
             break;
+
+        // consumme comma
         cmp_ptr++;
     }
 
