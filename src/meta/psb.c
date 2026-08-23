@@ -1,6 +1,8 @@
 #include "meta.h"
-#include "../coding/coding.h"
 #include "../util/m2_psb.h"
+#include "../util/string_utils.h"
+#include "../util/endianness.h"
+#include "../coding/coding.h"
 #include "../layout/layout.h"
 
 
@@ -21,6 +23,7 @@ typedef struct {
     psb_temp_t* tmp;
     psb_codec_t codec;
     char readable_name[STREAM_NAME_SIZE];
+    bool is_be;
 
     int total_subsongs;
     int target_subsong;
@@ -74,18 +77,17 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "PSB\0"))
-        goto fail;
-    if (!check_extensions(sf, "psb"))
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf, "psb,"))
+        return NULL;
 
     if (!parse_psb(sf, &psb))
-        goto fail;
-
+        return NULL;
 
     /* handle subfiles */
     {
         const char* ext = NULL;
-        VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
+        init_vgmstream_t init_vgmstream  = NULL;
 
         switch(psb.codec) {
             case RIFF_AT3:   /* Sega Vintage Collection (PS3) */
@@ -132,7 +134,7 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
             }
 
             vgmstream->num_streams = psb.total_subsongs;
-            strncpy(vgmstream->stream_name, psb.readable_name, STREAM_NAME_SIZE);
+            strcpy_v(vgmstream->stream_name, STREAM_NAME_SIZE, psb.readable_name);
             return vgmstream;
         }
     }
@@ -198,7 +200,7 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
             break;
         }
 
-        case XMA2: { /* Sega Vintage Collection (X360) */
+        case XMA2: { /* Sega Vintage Collection (X360), Occultic;Nine (XBone) */
             vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, psb.stream_offset[0], psb.stream_size[0], psb.fmt_offset, psb.fmt_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -254,7 +256,7 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
         }
     }
 
-    strncpy(vgmstream->stream_name, psb.readable_name, STREAM_NAME_SIZE);
+    strcpy_v(vgmstream->stream_name, STREAM_NAME_SIZE, psb.readable_name);
 
     if (!vgmstream_open_stream(vgmstream, sf, psb.stream_offset[0]))
         goto fail;
@@ -395,25 +397,37 @@ fail:
 
 /*****************************************************************************/
 
+static bool prepare_endianness(psb_header_t* psb) {
+    const char* spec = psb->tmp->spec;
+
+    psb->is_be = spec && (strcmp(spec, "ps3") == 0 || strcmp(spec, "x360") == 0);
+
+    return true;
+}
+
 static bool prepare_fmt(STREAMFILE* sf, psb_header_t* psb) {
     uint32_t offset = psb->fmt_offset;
     if (!offset)
-        return 1; /* other codec, probably */
+        return true; /* other codec, probably */
 
-    psb->format         = read_u16le(offset + 0x00,sf);
-    if (psb->format == 0x6601) { /* X360 */
-        psb->format         = read_u16be(offset + 0x00,sf);
-        psb->channels       = read_u16be(offset + 0x02,sf);
-        psb->sample_rate    = read_u32be(offset + 0x04,sf);
+    read_u32_t read_u32 = get_read_u32(psb->is_be);
+    read_u16_t read_u16 = get_read_u16(psb->is_be);
+
+    psb->format         = read_u16(offset + 0x00,sf);
+    if (psb->format == 0x0166) { /* X360 / Xbone */
+        psb->channels       = read_u16(offset + 0x02,sf);
+        psb->sample_rate    = read_u32(offset + 0x04,sf);
         xma2_parse_fmt_chunk_extra(sf,
             offset,
             &psb->loop_flag,
             &psb->num_samples,
             &psb->loop_start,
             &psb->loop_end,
-            1);
+            psb->is_be);
     }
     else {
+        // no other known big endian (PS3/X360) 'fmt'
+        psb->format         = read_u16le(offset + 0x00,sf);
         psb->channels       = read_u16le(offset + 0x02,sf);
         psb->sample_rate    = read_u32le(offset + 0x04,sf);
         psb->avg_bitrate    = read_u32le(offset + 0x08,sf);
@@ -424,7 +438,7 @@ static bool prepare_fmt(STREAMFILE* sf, psb_header_t* psb) {
         switch(psb->format) {
             case 0x0002:
                 if (!msadpcm_check_coefs(sf, offset + 0x14))
-                    goto fail;
+                    return false;
                 break;
             default:
                 break;
@@ -433,27 +447,27 @@ static bool prepare_fmt(STREAMFILE* sf, psb_header_t* psb) {
     }
 
     return true;
-fail:
-    return false;
 }
 
 static bool prepare_codec(STREAMFILE* sf, psb_header_t* psb) {
     const char* spec = psb->tmp->spec;
     const char* ext = psb->tmp->ext;
 
+    psb->is_be = spec && (strcmp(spec, "ps3") == 0 || strcmp(spec, "x360"));
+
     /* try fmt (most common) */
     if (psb->format != 0) {
         switch(psb->format) {
-            case 0x01:
+            case 0x0001:
                 psb->codec = PCM;
                 break;
-            case 0x02:
+            case 0x0002:
                 psb->codec = MSADPCM;
                 break;
-            case 0x161:
+            case 0x0161:
                 psb->codec = XWMA;
                 break;
-            case 0x166:
+            case 0x0166:
                 psb->codec = XMA2;
                 break;
             default:
@@ -587,15 +601,15 @@ static bool prepare_name(psb_header_t* psb) {
 }
 
 static bool prepare_psb_extra(STREAMFILE* sf, psb_header_t* psb) {
+    if (!prepare_endianness(psb))
+        return false;
     if (!prepare_fmt(sf, psb))
-        goto fail;
+        return false;
     if (!prepare_codec(sf, psb))
-        goto fail;
+        return false;
     if (!prepare_name(psb))
-        goto fail;
+        return false;
     return true;
-fail:
-    return false;
 }
 
 
@@ -764,15 +778,15 @@ static bool parse_psb_voice(psb_header_t* psb, psb_node_t* nvoice) {
         const char* loopstr = psb_node_get_string(&nsong, "loopstr");
         psb->loop_flag = psb_node_get_integer(&nsong, "loop") > 1;
 
-        /* loopstr values:
+        /* loopstr values (possibly info only):
          * - "none", w/ loop=0
          * - "all", w/ loop = 2 [Legend of Mana (multi)]
-         * - "range:N,M", w/ loop = 2 [Anonymous;Code (Switch/PC)], assumed to be info info */
-        psb->loop_range = loopstr && strncmp(loopstr, "range:", 6) == 0; /* slightly different in rare cases */
+         * - "range:N,M", w/ loop = 2 [Anonymous;Code (Switch/PC/Xbone)], assumed to be info only */
+        psb->loop_range = loopstr && strncmp(loopstr, "range:", 6) == 0; // slightly different in rare cases
     }
 
     /* other optional keys:
-     * - quality: ? (1=MSADPCM, 2=OPUSNX/PCM)
+     * - quality: ? (1=MSADPCM/XMA2, 2=OPUSNX/PCM)
      * - priority: f32, -1.0, 1.0 or 10.0 = max?
      * - type: 0/1? (internal classification?)
      * - volume: 0.0 .. 1.0
@@ -797,8 +811,8 @@ fail:
  *          - "device": ?
  *     ...
  *     - (voice name N): ...
- * From decompilations, audio code reads common keys up to "archData", then depends on game (not unified).
- * Keys are (seemingly) stored in text order.
+ * From decompilations, audio code reads common keys up to "archData", then depends on game (not unified
+ * and need heuristics to handle variations). Keys are (seemingly) stored in text order.
  */
 static bool parse_psb(STREAMFILE* sf, psb_header_t* psb) {
     psb_temp_t tmp = {0};
