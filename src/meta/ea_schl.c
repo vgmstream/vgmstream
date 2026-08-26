@@ -203,7 +203,6 @@ fail:
 
 /* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
 static VGMSTREAM* parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded) {
-    uint32_t i;
     uint16_t num_sounds;
     off_t header_offset, start_offset, test_offset, table_offset, entry_offset;
     size_t header_size;
@@ -260,7 +259,7 @@ static VGMSTREAM* parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stre
         header_offset = entry_offset + read_u32(entry_offset, sf);
     } else {
         /* some of these are dummies with zero offset, skip them when opening standalone BNK */
-        for (i = 0; i < num_sounds; i++) {
+        for (int i = 0; i < num_sounds; i++) {
             entry_offset = offset + table_offset + 0x04 * i;
             test_offset = read_u32(entry_offset, sf);
 
@@ -280,7 +279,7 @@ static VGMSTREAM* parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stre
 
     /* fix absolute offsets so it works in next funcs */
     if (offset) {
-        for (i = 0; i < ea.channels; i++) {
+        for (int i = 0; i < ea.channels; i++) {
             ea.offsets[i] += offset;
         }
     }
@@ -824,8 +823,10 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
         }
     }
 
-    if (ea->channels > EA_MAX_CHANNELS)
+    if (ea->channels < 0 || ea->channels > EA_MAX_CHANNELS)
         goto fail;
+    if (ea->channels == 0)
+        ea->channels = 1;
 
 
     /* Set defaults per platform, as the header ommits them when possible */
@@ -844,9 +845,6 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
         ea->big_endian = 1;
     }
 
-    if (!ea->channels) {
-        ea->channels = 1;
-    }
 
     /* version mainly affects defaults and minor stuff, can come with all codecs */
     /* V0 is often just null but it's specified in some files (uncommon, with patch size 0x00) */

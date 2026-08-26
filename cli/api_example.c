@@ -138,7 +138,7 @@ static int api_example(const char* infile) {
 
     // process done
     libvgmstream_free(lib);
-    fclose(outfile);
+    if (outfile) fclose(outfile);
     free(fill_pcm16);
 
     printf("done\n");
@@ -146,7 +146,7 @@ static int api_example(const char* infile) {
 fail:
     // process failed
     libvgmstream_free(lib);
-    fclose(outfile);
+    if (outfile) fclose(outfile);
     free(fill_pcm16);
 
     printf("failed!\n");

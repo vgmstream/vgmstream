@@ -50,11 +50,11 @@ VGMSTREAM* init_vgmstream_mic(STREAMFILE* sf) {
     off_t header_offset, start_offset;
 
     /* check extension */
+    if (read_u32le(0x00, sf) != 0x40) /* header size */
+        return NULL;
     /* .mic: official extension
      * (extensionless): The Urbz (PS2), The Sims 2 series (PS2) */
     if (!check_extensions(sf, "mic,"))
-        return NULL;
-    if (read_u32le(0x00, sf) != 0x40) /* header size */
         return NULL;
 
     header_offset = 0x00;
@@ -87,7 +87,10 @@ static VGMSTREAM* init_vgmstream_multistream(STREAMFILE* sf_head, STREAMFILE* sf
     frame_size  = read_u32le(header_offset + 0x10, sf_head);
     frame_count = read_u32le(header_offset + 0x14, sf_head);
     if (frame_count == 0) { /* rarely [Gladius (PS2)] */
-        frame_count = (get_streamfile_size(sf_body) - start_offset) / (frame_size * channels);
+        uint32_t file_size = get_streamfile_size(sf_body);
+        if (frame_size == 0 || channels < 1 || file_size < start_offset)
+            return NULL;
+        frame_count = (file_size - start_offset) / (frame_size * channels);
     }
 
     data_size = frame_count * frame_size;

@@ -616,12 +616,10 @@ static bool ffmpeg_fmt_chunk_swap_endian(uint8_t* buf, size_t buf_size, uint32_t
 /* Makes a XMA1/2 RIFF header using a "fmt " chunk (XMAWAVEFORMAT/XMA2WAVEFORMATEX) or "XMA2" chunk (XMA2WAVEFORMAT), as a base:
  * Useful to preserve the stream layout */
 static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, size_t buf_size, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size, int* p_is_xma1) {
-    if (chunk_size <= 0)
+    const int min_size = 0x04 * 2 + 0x04 + 0x04 * 2 + 0x04 * 2; // 0x1c = RIFF + fmt + data
+    if (chunk_size <= 0 || chunk_size > buf_size - min_size)
         return 0;
 
-    int buf_max = (0x04 * 2 + 0x04) + (0x04 * 2 + chunk_size) + (0x04 * 2);
-    if (buf_max > buf_size)
-        return 0;
 
     if (read_streamfile(buf+0x14, chunk_offset, chunk_size, sf) != chunk_size)
         return 0;
@@ -640,8 +638,11 @@ static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, size_t buf_s
         is_xma1 = codec == 0x0165 || codec == 0x6501;
     }
 
+    int buf_max = min_size + chunk_size;
+    uint32_t riff_size = min_size - (0x04 * 2) + chunk_size + data_size; 
+
     memcpy   (buf+0x00, "RIFF", 0x04);
-    put_u32le(buf+0x04, buf_max - (0x04 * 2)+ data_size); /* riff size */
+    put_u32le(buf+0x04, riff_size);
     memcpy   (buf+0x08, "WAVE", 0x04);
     memcpy   (buf+0x0c, is_xma2_old ? "XMA2" : "fmt ", 0x04);
     put_u32le(buf+0x10, chunk_size);

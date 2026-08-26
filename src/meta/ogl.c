@@ -63,8 +63,10 @@ VGMSTREAM* init_vgmstream_ogl(STREAMFILE* sf) {
     /* non-looping files do this */
     if (!num_samples) {
         uint32_t avg_bitrate = read_u32le(0x2a,sf); /* inside id packet */
+        if (!avg_bitrate) goto fail;
+
         /* approximate as we don't know the sizes of all packet headers */ //todo this is wrong... but somehow works?
-        vgmstream->num_samples = (partial_file_size - start_offset) * ((sample_rate*10/avg_bitrate)+1);
+        vgmstream->num_samples = (partial_file_size - start_offset) * ((sample_rate * 10 / avg_bitrate) + 1);
     }
 
     /* open the file for reading */

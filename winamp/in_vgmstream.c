@@ -92,19 +92,14 @@ bool info_was_protocol;
 #endif
 #endif
 
-/* parses a modified filename ('fakename') extracting tags parameters (NULL tag for first = filename) */
-static bool parse_fn_string(const in_char* fn, const in_char* tag, in_char* dst, size_t dst_size) {
-    const in_char* end = wa_strchr(fn,'|');
+/* copies a filename removing extra params ('C:\blah\file.fsb|1' to 'C:\blah\file.fsb') */
+static void parse_fn_base(const in_char* fn, in_char* dst, size_t dst_size) {
+    wa_istrcpy(dst, dst_size, fn);
 
-    if (tag == NULL) {
-        wa_istrcpy(dst, dst_size, fn);
-        if (end)
-            dst[end - fn] = '\0';
-        return true;
-    }
-
-    dst[0] = '\0';
-    return false;
+    in_char* end = wa_strchr(dst, '|');
+    if (!end)
+        return;
+    end[0] = 0; //'\0';
 }
 
 static int parse_fn_int(const in_char* fn, const in_char* tag, int* num) {
@@ -160,7 +155,7 @@ static libvgmstream_t* init_vgmstream_winamp_fileinfo(const in_char* fn) {
     int stream_index = 0;
 
     /* check for info encoded in the filename */
-    parse_fn_string(fn, NULL, filename, WINAMP_PATH_LIMIT);
+    parse_fn_base(fn, filename, WINAMP_PATH_LIMIT);
     parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     return init_vgmstream_winamp(filename, stream_index);
@@ -185,7 +180,7 @@ static void get_title(in_char* dst, int dst_size, const in_char* fn, libvgmstrea
     char buffer[WINAMP_PATH_LIMIT];
     char filename_utf8[WINAMP_PATH_LIMIT];
 
-    parse_fn_string(fn, NULL, filename,WINAMP_PATH_LIMIT);
+    parse_fn_base(fn, filename, WINAMP_PATH_LIMIT);
     //parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, filename);
@@ -419,7 +414,7 @@ static int winamp_Play(const in_char *fn) {
         return 1;
 
     /* check for info encoded in the filename */
-    parse_fn_string(fn, NULL, filename,WINAMP_PATH_LIMIT);
+    parse_fn_base(fn, filename, WINAMP_PATH_LIMIT);
     parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     /* open the stream */
@@ -859,7 +854,7 @@ static void load_tagfile_info(in_char* filename) {
     }
 
     /* clean extra part for subsong tags */
-    parse_fn_string(filename, NULL, filename_clean, WINAMP_PATH_LIMIT);
+    parse_fn_base(filename, filename_clean, WINAMP_PATH_LIMIT);
 
     if (wa_strcmp(last_tags.filename, filename_clean) == 0) {
         return; /* not changed, tags still apply */

@@ -712,7 +712,7 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                 loop_end_found = 1;
                 loop_flag = 1;
             }
-            else if (strstr(comment, "omment=") == comment) {               /* Air (Android) */
+            else if (strstr(comment, "omment=LOOPSTART=") == comment) {               /* Air (Android) */
                 sscanf(strstr(comment, "=LOOPSTART=") + 11, "%d,LOOPEND=%d", &loop_start, &loop_end);
                 loop_end_found = 1;
                 loop_flag = 1;

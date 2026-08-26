@@ -646,7 +646,7 @@ static VGMSTREAM* init_vgmstream_ubi_dat_main(ubi_sb_header* sb, STREAMFILE* sf_
         case 0x01: {
             if (!sb->is_external) { /* Dreamcast bank */
                 if (sb->version == 0x00000000) {
-                    uint32_t entry_offset, start_offset, num_samples, codec;
+                    uint32_t entry_offset, start_offset, total_samples, codec;
                     uint8_t buf[4];
 
                     sf_data = open_streamfile_by_ext(sf, "osb");
@@ -657,15 +657,14 @@ static VGMSTREAM* init_vgmstream_ubi_dat_main(ubi_sb_header* sb, STREAMFILE* sf_
 
                     /* FIXME: hacky handling of OSB bank, need to eventually write a full parser once
                      * the format is fully cracked */
-                    entry_offset = read_32bitLE(0x10 + sb->subbank_index * 0x04, sf_data);
+                    entry_offset = read_u32le(0x10 + sb->subbank_index * 0x04, sf_data);
 
                     /* stores values in a weird zig-zag pattern */
                     if (read_streamfile(buf, entry_offset + 0x04, 4, sf_data) != 4) goto fail;
                     start_offset = (buf[0] << 16) | (buf[2]) | (buf[3] << 8);
                     if (read_streamfile(buf, entry_offset + 0x08, 4, sf_data) != 4) goto fail;
-                    num_samples = (buf[0] << 16) | (buf[1] << 24) | (buf[2]) | (buf[3] << 8);
-                    num_samples /= sb->channels;
-                    codec = read_8bit(entry_offset + 0x05, sf_data);
+                    total_samples = (buf[0] << 16) | (buf[1] << 24) | (buf[2]) | (buf[3] << 8);
+                    codec = read_u8(entry_offset + 0x05, sf_data);
 
                     /* build the VGMSTREAM */
                     vgmstream = allocate_vgmstream(sb->channels, sb->loop_flag);
@@ -675,21 +674,23 @@ static VGMSTREAM* init_vgmstream_ubi_dat_main(ubi_sb_header* sb, STREAMFILE* sf_
                         vgmstream->coding_type = coding_PCM16LE;
                         vgmstream->layout_type = layout_interleave;
                         vgmstream->interleave_block_size = 0x02;
-                        vgmstream->stream_size = num_samples * sb->channels * 2;
-                    } else {
+                        vgmstream->stream_size = total_samples * 2;
+                    }
+                    else {
                         vgmstream->coding_type = coding_AICA_int;
                         vgmstream->layout_type = layout_interleave;
                         vgmstream->interleave_block_size = 0x01;
-                        vgmstream->stream_size = num_samples * sb->channels / 2;
+                        vgmstream->stream_size = total_samples / 2;
                     }
 
-                    vgmstream->num_samples = num_samples;
+                    vgmstream->num_samples = total_samples / sb->channels;
                     vgmstream->loop_start_sample = sb->loop_start;
                     vgmstream->loop_end_sample = vgmstream->num_samples;
 
                     if (!vgmstream_open_stream(vgmstream, sf_data, start_offset))
                         goto fail;
-                } else if (sb->version == 0x00000200) {
+                }
+                else if (sb->version == 0x00000200) {
                     sf_data = open_streamfile_by_ext(sf, "kat");
                     if (!sf_data) {
                         VGM_LOG("UBI DAT: no matching KAT found\n");
@@ -700,7 +701,8 @@ static VGMSTREAM* init_vgmstream_ubi_dat_main(ubi_sb_header* sb, STREAMFILE* sf_
                     sf_data->stream_index = sb->subbank_index + 1;
                     vgmstream = init_vgmstream_kat(sf_data);
                     if (!vgmstream) goto fail;
-                } else {
+                }
+                else {
                     goto fail;
                 }
             } else { /* raw PCM */
