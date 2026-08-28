@@ -261,13 +261,13 @@ static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STRE
     ok = ww2ogg_generate_vorbis_packet(&ow, &iw, wp, data);
     if (!ok) return 0;
 
-    if (ow.b_off % 8 != 0) {
-        //VGM_LOG("Wwise Vorbis: didn't write exactly audio packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
+    int ow_bitpos = bl_pos(&ow);
+    if (ow_bitpos % 8 != 0) {
+        //VGM_LOG("Wwise Vorbis: didn't write exactly audio packet: 0x%lx + %li bits\n", ow_bitpos / 8, ow_bitpos % 8);
         return 0;
     }
 
-
-    return ow.b_off / 8;
+    return ow_bitpos / 8;
 }
 
 /* Transforms a Wwise setup packet into a real Vorbis one (depending on config). */
@@ -286,54 +286,23 @@ static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREA
     bl_setup(&ow, obuf, obufsize);
     bl_setup(&iw, ibuf, ibufsize);
 
-    ok = ww2ogg_generate_vorbis_setup(&ow,&iw, data, wp->packet_size, sf);
+    ok = ww2ogg_generate_vorbis_setup(&ow, &iw, data, wp->packet_size, sf);
     if (!ok) return 0;
 
-    if (ow.b_off % 8 != 0) {
-        //VGM_LOG("Wwise Vorbis: didn't write exactly setup packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
+    int ow_bitpos = bl_pos(&ow);
+    if (ow_bitpos % 8 != 0) {
+        //VGM_LOG("Wwise Vorbis: didn't write exactly setup packet: 0x%lx + %li bits\n", ow_bitpos / 8, ow_bitpos % 8);
         return 0;
     }
 
-
-    return ow.b_off / 8;
+    return ow_bitpos / 8;
 }
 
 /* copy packet bytes, where input/output bufs may not be byte-aligned (so no memcpy) */
 static int copy_bytes(bitstream_t* ob, bitstream_t* ib, uint32_t bytes) {
 
-#if 0
-    /* in theory this would be faster, but not clear results; maybe default is just optimized by compiler */
-    for (int i = 0; i < bytes / 4; i++) {
-        uint32_t c = 0;
-
-        bl_get(ib, 32, &c);
-        bl_put(ob, 32,  c);
-    }
-
-    for (int i = 0; i < bytes % 4; i++) {
-        uint32_t c = 0;
-
-        bl_get(ib,  8, &c);
-        bl_put(ob,  8,  c);
-    }
-#endif
-
-#if 0
-    /* output bits are never(?) byte aligned but input always is, yet this doesn't seem any faster */
-    if (ib->b_off % 8 == 0) {
-        int iw_pos = ib->b_off / 8;
-
-        for (int i = 0; i < bytes; i++, iw_pos++) {
-            uint32_t c = ib->buf[iw_pos];
-
-          //bl_get(ib,  8, &c);
-            bl_put(ob,  8,  c);
-        }
-
-        ib->b_off += bytes * 8;
-        return true;
-    }
-#endif
+    // Could try to read+write 32-bits at once (except tail) but doesn't seem faster (optimized out?).
+    // Same trying to do buf-aligned input reads (since input is always byte-aligned)
 
     for (int i = 0; i < bytes; i++) {
         uint32_t c = 0;
@@ -414,20 +383,17 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
         copy_bytes(ow, iw, wp->packet_size - 1);
 
         /* remove trailing garbage bits (probably unneeded) */
-        if (ow->b_off % 8 != 0) {
-            uint32_t padding = 0;
-            int padding_bits = 8 - (ow->b_off % 8);
-
-            bl_put(ow,  padding_bits,  padding);
-        }
+        bl_pad(ow, 8);
     }
     else {
         /* normal packets */
 
         /* can directly copy (much, much faster), but least common case vs the above... */
-        memcpy(ow->buf + ow->b_off / 8, iw->buf + iw->b_off / 8, wp->packet_size);
-        ow->b_off += wp->packet_size * 8;
-        iw->b_off += wp->packet_size * 8;
+        uint32_t iw_bytes = bl_pos(iw) / 8;
+        uint32_t ow_bytes = bl_pos(ow) / 8;
+        memcpy(ow->buf + ow_bytes, iw->buf + iw_bytes, wp->packet_size);
+        bl_skip(iw, wp->packet_size * 8);
+        bl_skip(ow, wp->packet_size * 8);
     }
 
 
@@ -702,9 +668,10 @@ static int ww2ogg_codebook_library_rebuild(bitstream_t* ow, bitstream_t* iw, siz
 
 
     /* check that we used exactly all bytes */
-    /* note: if all bits are used in the last byte there will be one extra 0 byte */
-    if ( 0 != cb_size && iw->b_off/8+1 != cb_size ) {
-        //VGM_LOG("Wwise Vorbis: codebook size mistach (expected 0x%x, wrote 0x%lx)\n", cb_size, iw->b_off/8+1);
+    // note: if all bits are used in the last byte there will be one extra 0 byte
+    uint32_t iw_bytes = bl_pos(iw) / 8 + 1;
+    if (cb_size != 0 && iw_bytes != cb_size) {
+        //VGM_LOG("Wwise Vorbis: codebook size mistach (expected 0x%x, wrote 0x%lx)\n", cb_size, iw_bytes);
         return false;
     }
 
@@ -738,7 +705,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
     /* packet header */
     put_u8(ow->buf+0x00, 0x05);            /* packet_type (setup) */
     memcpy(ow->buf+0x01, "vorbis", 6);     /* id */
-    ow->b_off += (1+6) * 8; /* bit offset of output (Vorbis) setup, after fake type + id */
+    bl_skip(ow, (1 + 6) * 8); // bit offset of output (Vorbis) setup, after fake type + id
 
 
     /* Codebooks */
@@ -783,13 +750,13 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
     if (data->setup_type == WWV_FULL_SETUP) {
         /* rest of setup is untouched, copy bits */
         uint32_t bitly = 0;
-        uint32_t total_bits_read = iw->b_off;
+        uint32_t total_bits_read = bl_pos(iw);
         uint32_t setup_packet_size_bits = packet_size * 8;
 
         while (total_bits_read < setup_packet_size_bits) {
             bl_get(iw,  1,&bitly);
             bl_put(ow,  1, bitly);
-            total_bits_read = iw->b_off;
+            total_bits_read = bl_pos(iw);
         }
     }
     else {
@@ -1103,12 +1070,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
     }
 
     /* remove trailing garbage bits */
-    if (ow->b_off % 8 != 0) {
-        uint32_t padding = 0;
-        int padding_bits = 8 - (ow->b_off % 8);
-
-        bl_put(ow,  padding_bits,  padding);
-    }
+    bl_pad(ow, 8);
 
 
     return true;

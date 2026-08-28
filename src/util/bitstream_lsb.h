@@ -13,8 +13,8 @@
 typedef struct {
     uint8_t* buf;           // buffer to read/write
     uint32_t bufsize;       // max size
-    uint32_t b_max;         // max size in bits
-    uint32_t b_off;         // current offset in bits inside the buffer
+    uint32_t _b_max;         // max size in bits
+    uint32_t _b_off;         // current offset in bits inside the buffer
     bool error;             // attempted to read/write past max data
 } bitstream_t;
 
@@ -22,8 +22,8 @@ typedef struct {
 static inline void bl_setup(bitstream_t* bs, uint8_t* buf, uint32_t bufsize) {
     bs->buf = buf;
     bs->bufsize = bufsize;
-    bs->b_max = bufsize * 8;
-    bs->b_off = 0;
+    bs->_b_max = bufsize * 8;
+    bs->_b_off = 0;
     bs->error = false;
 }
 
@@ -38,12 +38,12 @@ static const uint32_t MASK_TABLE_LSB[33] = {
 
 
 static inline int bl_skip(bitstream_t* bs, uint32_t bits) {
-    if (bs->b_off + bits > bs->b_max) {
+    if (bs->_b_off + bits > bs->_b_max) {
         bs->error = true;
         return 0;
     }
 
-    bs->b_off += bits;
+    bs->_b_off += bits;
 
     return 1;
 }
@@ -52,7 +52,7 @@ static inline void bl_align(bitstream_t* bs, uint32_t bits) {
     if (bits == 0)
         return;
 
-    int left = bs->b_off % bits;
+    int left = bs->_b_off % bits;
     if (left == 0)
         return;
 
@@ -60,7 +60,7 @@ static inline void bl_align(bitstream_t* bs, uint32_t bits) {
 }
 
 static inline int bl_pos(bitstream_t* bs) {
-    return bs->b_off;
+    return bs->_b_off;
 }
 
 /* Read bits (max 32) from buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
@@ -68,7 +68,7 @@ static inline int bl_pos(bitstream_t* bs) {
 static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint32_t shift, mask, pos, val;
 
-    if (bits > 32 || bits > ib->b_max - ib->b_off) {
+    if (bits > 32 || bits > ib->_b_max - ib->_b_off) {
         *value = 0;
         ib->error = true;
         return 0;
@@ -79,8 +79,8 @@ static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
         return 1;
     }
 
-    pos = ib->b_off / 8;            // byte offset
-    shift = ib->b_off % 8;          // bit sub-offset
+    pos = ib->_b_off / 8;            // byte offset
+    shift = ib->_b_off % 8;          // bit sub-offset
     mask = MASK_TABLE_LSB[bits];    // to remove upper in highest byte
 
     val = ib->buf[pos+0] >> shift;
@@ -99,7 +99,7 @@ static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 
     *value = (val & mask);
 
-    ib->b_off += bits;
+    ib->_b_off += bits;
 
     return 1;
 }
@@ -117,7 +117,7 @@ static inline uint32_t bl_read(bitstream_t* ib, uint32_t bits) {
 static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, mask, pos;
 
-    if (bits > 32 || bits > ob->b_max - ob->b_off) {
+    if (bits > 32 || bits > ob->_b_max - ob->_b_off) {
         ob->error = true;
         return 0;
     }
@@ -126,8 +126,8 @@ static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
         return 1;
     }
 
-    pos = ob->b_off / 8;        // byte offset
-    shift = ob->b_off % 8;      // bit sub-offset
+    pos = ob->_b_off / 8;        // byte offset
+    shift = ob->_b_off % 8;      // bit sub-offset
     mask = (1 << shift) - 1;    // to keep lower bits in lowest byte
 
     ob->buf[pos+0] =  (value << shift) | (ob->buf[pos+0] & mask);
@@ -145,8 +145,20 @@ static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
         }
     }
 
-    ob->b_off += bits;
+    ob->_b_off += bits;
     return 1;
+}
+
+static inline void bl_pad(bitstream_t* bs, uint32_t bits) {
+    if (bits == 0)
+        return;
+
+    int left = bs->_b_off % bits;
+    if (left == 0)
+        return;
+
+    int padding = bits - left;
+    bl_put(bs, padding, 0);
 }
 
 #endif

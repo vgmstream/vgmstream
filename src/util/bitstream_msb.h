@@ -13,8 +13,8 @@
 typedef struct {
     uint8_t* buf;           // buffer to read/write
     uint32_t bufsize;       // max size
-    uint32_t b_max;         // max size in bits
-    uint32_t b_off;         // current offset in bits inside buffer
+    uint32_t _b_max;         // max size in bits
+    uint32_t _b_off;         // current offset in bits inside buffer
     bool error;             // attempted to read/write past max data
 } bitstream_t;
 
@@ -22,43 +22,43 @@ typedef struct {
 static inline void bm_setup(bitstream_t* bs, uint8_t* buf, uint32_t bufsize) {
     bs->buf = buf;
     bs->bufsize = bufsize;
-    bs->b_max = bufsize * 8;
-    bs->b_off = 0;
+    bs->_b_max = bufsize * 8;
+    bs->_b_off = 0;
     bs->error = false;
 }
 
 static inline int bm_set(bitstream_t* bs, uint32_t b_off) {
-    if (bs->b_off > bs->b_max)
+    if (bs->_b_off > bs->_b_max)
         return 0;
 
-    bs->b_off = b_off;
+    bs->_b_off = b_off;
 
     return 1;
 }
 
 static inline int bm_fill(bitstream_t* bs, uint32_t bytes) {
-    if (bs->b_off > bs->b_max)
+    if (bs->_b_off > bs->_b_max)
         return 0;
 
     bs->bufsize += bytes;
-    bs->b_max += bytes * 8;
+    bs->_b_max += bytes * 8;
 
     return 1;
 }
 
 static inline int bm_skip(bitstream_t* bs, uint32_t bits) {
-    if (bs->b_off + bits > bs->b_max) {
+    if (bs->_b_off + bits > bs->_b_max) {
         bs->error = true;
         return 0;
     }
 
-    bs->b_off += bits;
+    bs->_b_off += bits;
 
     return 1;
 }
 
 static inline int bm_pos(bitstream_t* bs) {
-    return bs->b_off;
+    return bs->_b_off;
 }
 
 /* same as (1 << bits) - 1, but that seems to trigger some nasty UB when bits = 32
@@ -76,7 +76,7 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint64_t val; //TODO: could use u32 with some shift fiddling
     int left;
 
-    if (bits > 32 || bits > ib->b_max - ib->b_off) {
+    if (bits > 32 || bits > ib->_b_max - ib->_b_off) {
         *value = 0;
         ib->error = true;
         return 0;
@@ -87,8 +87,8 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
         return 1;
     }
 
-    pos = ib->b_off / 8;                        // byte offset
-    shift = ib->b_off % 8;                      // bit sub-offset
+    pos = ib->_b_off / 8;                        // byte offset
+    shift = ib->_b_off % 8;                      // bit sub-offset
 
 #if 0 //naive approach
     int bit_val, bit_buf;
@@ -98,7 +98,7 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
         bit_buf = (1U << (8-1-shift)) & 0xFF;   // bit check for buf
         bit_val = (1U << (bits-1-i));           // bit to set in value
 
-        if (ib->buf[pos] & bit_buf)             // is bit in buf set?
+        if (ib->_buf[pos] & bit_buf)             // is bit in buf set?
             val |= bit_val;                     // set bit
 
         shift++;
@@ -132,7 +132,7 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 #endif
 
     *value = val;
-    ib->b_off += bits;
+    ib->_b_off += bits;
     return 1;
 }
 
@@ -149,7 +149,7 @@ static inline int bm_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, pos;
     int i, bit_val, bit_buf;
 
-    if (bits > 32 || bits > ob->b_max - ob->b_off) {
+    if (bits > 32 || bits > ob->_b_max - ob->_b_off) {
         ob->error = true;
         return 0;
     }
@@ -158,8 +158,8 @@ static inline int bm_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
         return 1;
     }
 
-    pos = ob->b_off / 8;                        // byte offset
-    shift = ob->b_off % 8;                      // bit sub-offset
+    pos = ob->_b_off / 8;                       // byte offset
+    shift = ob->_b_off % 8;                     // bit sub-offset
 
     for (i = 0; i < bits; i++) {
         bit_val = (1U << (bits-1-i));           // bit check for value
@@ -177,8 +177,20 @@ static inline int bm_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
         }
     }
 
-    ob->b_off += bits;
+    ob->_b_off += bits;
     return 1;
+}
+
+static inline void bm_pad(bitstream_t* bs, uint32_t bits) {
+    if (bits == 0)
+        return;
+
+    int left = bs->_b_off % bits;
+    if (left == 0)
+        return;
+
+    int padding = bits - left;
+    bm_put(bs, padding, 0);
 }
 
 #endif
