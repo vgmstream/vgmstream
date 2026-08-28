@@ -6,6 +6,8 @@
  * Thanks to X_Tra (http://metalgear.in/) for pointing me to the step size table.
  *
  * Layout: N tracks of 0x10 header + 0x80*2 (always 2ch; multichannels uses 4ch = 2ch track0 + 2ch track1 xN).
+ *
+ * Internally the codec seems to be named simply MTA.
  */
 
 static const int mtaf_step_indexes[16] = {

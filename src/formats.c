@@ -945,7 +945,7 @@ static const coding_info coding_info_list[] = {
         {coding_NDS_PROCYON,        "Procyon Studio Digital Sound Elements NDS 4-bit APDCM"},
         {coding_LEVEL5,             "Level-5 4-bit ADPCM"},
         {coding_LSF,                "Gizmondo Studios Helsingborg LSF 4-bit ADPCM"},
-        {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
+        {coding_MTAF,               "Konami MTA 4-bit ADPCM"},
         {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
         {coding_MPC3,               "Paradigm MPC3 3-bit ADPCM"},
         {coding_FADPCM,             "FMOD FADPCM 4-bit ADPCM"},
