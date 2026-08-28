@@ -12,7 +12,7 @@ typedef struct {
 
     bool le_type;       /* read type as LE instead of more common BE */
     bool be_size;       /* read type as BE instead of more common LE */
-    bool full_size;     /* chunk size includes type+size */
+    bool full_size;     /* chunk size includes type+size, at offset is set at fourcc */
     bool alignment;     /* chunks with odd size need to be aligned to even, per RIFF spec */
 } chunk_t;
 
