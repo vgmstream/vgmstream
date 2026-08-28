@@ -544,41 +544,54 @@ music01.bfstm #C3,4
 A text file named `.txtm` for some formats with companion files. It lists
 name combos determining which companion files to load for each main file.
 
-It is needed for formats where name combos are hardcoded, so vgmstream doesn't
-know which companion file(s) to load if its name doesn't match the main file.
-Note that companion file order is usually important.
+Typically vgmstream loads companion files by extension (bgm.awb -> bgm.ac),
+but some games hardcode name combos, and vgmstream doesn't know which companion
+file(s) to load if its name doesn't match the main file.
 
 Usage example (used when opening files in the left part of the list):
+
+**.mpf + .mus**
 ```
 # Harry Potter and the Chamber of Secrets (PS2)
 exterior.mpf: exterior.mus,ext_o.mus
 willow.mpf: willow.mus,willow_o.mus
 ```
+**.awb + .acb**
 ```
-# Metal Gear Solid: Snake Eater 3D (3DS) names for .awb
+# Metal Gear Solid: Snake Eater 3D (3DS)
 bgm_2_streamfiles.awb: bgm_2.acb
 ```
+**.xwb + .xsb**
 ```
-# hashes of SE1_Common_BGM + SRSA/SRST [Hyrule Warriors: Age of Calamity (Switch)]
-# (more exactly "R_SRSA［SE1_Common_BGM］" and "R_SRST［SE1_Common_BGM］")
+# Psyconauts (Xbox)
+CA_NightMusic.xwb: CAMusic.xsb
+CAJAMusic.xwb: CAMusic.xsb
+```
+**.srsa + .srst**
+```
+# Hyrule Warriors: Age of Calamity (Switch)
+# hash of SE1_Common_BGM + SRSA/SRST (more exactly "R_SRSA［SE1_Common_BGM］" and "R_SRST［SE1_Common_BGM］")
 0x3a160928.srsa: 0x272c6efb.srst
 ```
+
+
+The header bank may refer to N streams by ID, so they are comma-separated:
 ```
-# Snack World (Switch) names for .awb (single .acb for all .awb, order matters)
+# stream ID 0, 1
+exterior.mpf: exterior.mus, ext_o.mus
+```
+
+Similarly, `.awb` allows multiple files to be mapped againts a single `.acb`. In those cases
+define them in the order `.acb` expects them (bank ID 0, 1, 2...). ID resets when `.acb` changes.
+You may insert 'dummy' entries to alter or break the order.
+```
+# Snack World (Switch)
+#  awb bank ID 0 
 bgm.awb: bgm.acb
+#  awb bank ID 1
 bgm_DLC1.awb: bgm.acb
-```
-In rare cases you need to setup some extra flags
-```
-event_stream2.awb: event_stream2.acb
-event_stream2_dlc1.awb: event_stream2.acb
-event_stream2_dlc2.awb: event_stream2.acb
-event_stream2_dlc3.awb: event_stream2.acb
-# next "flag" allows both effect.acb and even_stream2.acb in the same file
-#@reset-pos
-effect.awb: effect.acb
-effect_dlc2.awb: effect.acb
-effect_dlc3.awb: effect.acb
+# awb bank ID 0 (ID resets when .acb changes)
+se.awb: se.acb
 ```
 
 #### GENH

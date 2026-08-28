@@ -4,6 +4,7 @@
 #include "reader_text.h"
 #include "sf_utils.h"
 #include "string_utils.h"
+#include "hashes.h"
 
 #define TXT_LINE_MAX 1024
 
@@ -56,15 +57,18 @@ fail:
     return 0;
 }
 
-STREAMFILE* read_filemap_file(STREAMFILE* sf, int file_num) {
-    return read_filemap_file_pos(sf, file_num, NULL);
+STREAMFILE* read_filemap_file(STREAMFILE* sf, int val_num) {
+    return read_filemap_file_pos(sf, val_num, NULL);
 }
 
-STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
+STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int val_num, int* p_key_pos) {
     char filename[PATH_LIMIT];
     off_t txt_offset, file_size;
     STREAMFILE* sf_map = NULL;
-    int file_pos = 0;
+
+    uint32_t prev_hash, curr_hash;
+    int key_pos = 0;
+
 
     sf_map = open_streamfile_by_filename(sf, ".txtm");
     if (!sf_map) goto fail;
@@ -73,6 +77,8 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
 
     txt_offset = read_bom(sf_map);
     file_size = get_streamfile_size(sf_map);
+
+    prev_hash = 0;
 
     /* read lines and find target filename, format is (filename): value1, ... valueN */
     while (txt_offset < file_size) {
@@ -88,12 +94,16 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
 
         /* get key/val (ignores lead/trailing spaces, stops at comment/separator) */
         ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
-        if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
-            /* better way? */
-            if (strcmp(line, "#@reset-pos") == 0) {
-                file_pos = 0;
-            }
+        if (ok != 2) {
             continue;
+        }
+
+        // Multiple .awb can be mapped to a single .acb, so we need to detect .awb's position
+        // in the .txtm (0, 1, 2...). If the .acb changes this position also resets.
+        curr_hash = hash_str_lc(val);
+        if (prev_hash != curr_hash) {
+            prev_hash = curr_hash;
+            key_pos = 0;
         }
 
         if (strcmp(key, filename) == 0) {
@@ -101,7 +111,8 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
             char subval[TXT_LINE_MAX];
             const char* current = val;
 
-            for (int i = 0; i <= file_num; i++) {
+            // find subfile N (valueN) for "filename: value0, value1, value2"
+            for (int i = 0; i <= val_num; i++) {
                 if (current[0] == '\0')
                     goto fail;
 
@@ -109,8 +120,8 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
                 if (ok != 1)
                     goto fail;
 
-                if (i == file_num) {
-                    if (p_pos) *p_pos = file_pos;
+                if (i == val_num) {
+                    if (p_key_pos) *p_key_pos = key_pos;
 
                     close_streamfile(sf_map);
                     return open_streamfile_by_filename(sf, subval);
@@ -121,7 +132,8 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
                     current++;
             }
         }
-        file_pos++;
+
+        key_pos++;
     }
 
 fail:

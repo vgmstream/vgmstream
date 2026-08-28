@@ -1,12 +1,11 @@
-#include <ctype.h>
 #include "info.h"
 #include "mixing.h"
 #include "play_state.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util/channel_mappings.h"
-#include "../util/sf_utils.h"
 #include "../util/string_utils.h"
+#include "../util/hashes.h"
 
 #define TEMPSIZE (256+32)
 
@@ -218,22 +217,6 @@ typedef struct {
     int count_max;
 } bitrate_info_t;
 
-static uint32_t hash_sf(STREAMFILE* sf) {
-    char path[PATH_LIMIT];
-
-    get_streamfile_name(sf, path, sizeof(path));
-
-    /* our favorite garbo hash a.k.a FNV-1 32b */
-    uint32_t hash = 2166136261;
-    int i = 0;
-    while (path[i] != '\0') {
-        char c = tolower(path[i]);
-        hash = (hash * 16777619) ^ (uint8_t)c;
-        i++;
-    }
-
-    return hash;
-}
 
 /* average bitrate helper to get STREAMFILE for a channel, since some codecs may use their own */
 static STREAMFILE* get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM* vgmstream, int channel) {
