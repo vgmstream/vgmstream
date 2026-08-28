@@ -421,6 +421,7 @@ static const char* extension_list[] = {
     "npsf", //fake extension/header id for .nps (in bigfiles)
     "nsa",
     "nsopus",
+    "nst",
     "nfx",
     "nub",
     "nub2",
@@ -604,6 +605,7 @@ static const char* extension_list[] = {
     "ssp",
     "sspr",
     "sss",
+    "ste",
     "ster",
     "sth",
     "stm",
