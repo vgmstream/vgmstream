@@ -232,6 +232,8 @@ void decode_oki4s(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, i
 
 
 /* OKI ADPCM variant seen in the UltraMarine (UM) sound lib, used various minor Japanese games.
+ * (Only used in later games that use streaming audio; earlier versions of the
+ * library only supported sequenced audio and used uncompressed PCM samples.)
  * Original code has mono and mono-interleaved variants. Reversed from UMUT.DLL (~2000).
  * Info: https://www7.big.or.jp/~suppoko/ultramarine/index.html
  */
