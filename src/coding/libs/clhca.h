@@ -47,6 +47,7 @@ typedef struct clHCA_stInfo {
     unsigned int sampleCount;
     unsigned int loopStartSample;
     unsigned int loopEndSample;
+    int ambisonics;
 } clHCA_stInfo;
 
 /* Retrieves header information for decoding and playback (it's the caller's responsability
