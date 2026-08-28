@@ -3,6 +3,7 @@
 #include "../util/cri_utf.h"
 #include "../util/cri_keys.h"
 #include "../util/companion_files.h"
+#include "../util/string_utils.h"
 #include "crid_streamfile.h"
 
 static uint32_t get_sfa_header_offset(STREAMFILE* sf, int chno);
@@ -22,8 +23,8 @@ VGMSTREAM* init_vgmstream_crid(STREAMFILE* sf) {
         return NULL;
 
     /* .USM info:
-     * - starts with a 'CRID' audio header and UTF header at 0x20 (with info about used streams)
-     * - has xN @SFA (audio) and @SFV (video) chunks with regular payload (hca, adx, m2v, etc)
+     * - starts with a 'CRID' video header and UTF header at 0x20 (with info about used streams)
+     * - has xN @SFA (audio), @SFV (video) and @SBT (subtitles, rare) chunks with regular payload (hca, adx, m2v, etc)
      * - chunks can be of types: data=0, header=1, comment=2, seek=3
      * - chunks may be partially encrypted (internal .hca may be encrypted instead as well)
      * - chunks have an associated stream (chno)
@@ -89,7 +90,6 @@ VGMSTREAM* init_vgmstream_crid(STREAMFILE* sf) {
 
         if (!utf_query_u8(utf_sfa, 0, "audio_codec", &audio_codec))
             goto fail;
-        // possibly useful? "channel_config" "ambisonic"
     }
 
     /* find decryption key */
@@ -113,7 +113,7 @@ VGMSTREAM* init_vgmstream_crid(STREAMFILE* sf) {
     }
 
     {
-        VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf);
+        init_vgmstream_t init_vgmstream;
         const char* ext = NULL;
 
         // could also get first data chunk
@@ -141,9 +141,10 @@ VGMSTREAM* init_vgmstream_crid(STREAMFILE* sf) {
         if (!vgmstream) goto fail;
 
         vgmstream->num_streams = total_subsongs;
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE-1, "%s", stream_name);
+        strcpy_v(vgmstream->stream_name, STREAM_NAME_SIZE, stream_name);
 
-        //TODO: mch HCA seem to be encoded like L R SL SR FC LFE
+        //TODO: mch HCA seem to be encoded like L R SL SR FC LFE (might need reordering)
+        // (also ignore channel layout if u8 'ambisonics' is set to 1)
     }
 
 

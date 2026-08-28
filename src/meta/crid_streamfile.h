@@ -89,13 +89,17 @@ static void decrypt_callback(uint8_t* dst, crid_io_data* data, size_t block_pos,
 static void block_callback(STREAMFILE* sf, crid_io_data* data) {
     uint32_t offset = data->physical_offset;
 
-    /* 00: header id
+    /* 00: header id (@SFA=audio, @SFV=video, @SBT=subtitles, possibly others)
      * 04: data size
      * 08: header size (- 0x08)
      * 0a: padding size after data
      * 0c: stream number
      * 0d: empty
-     * 0e: chunk type (0=data, 1=header, 2=comment, 3=seek), possibly a bitflag?
+     * 0e: chunk type (0=data, 1=header, 2=end, 3=metadata), possibly flags?
+     *     0=data is a payload of audio/video/subs, typically except subs
+     *     1=header are @UTF tables: CRIUSF_DIR_STREAM/VIDEO_HDRINFO/AUDIO_HDRINFO (see crid.c)
+     *     2=end is text comment (ex. '#HEADER END   ')
+     *     3=metadata is an @UTF table: VIDEO_SEEKINFO + ofs_byte/ofs_frmid/num_skip/resv, or AUDIO_HEADER + hca_header
      * 10: frame time? (typically 0)
      * 14: frame rate? (typically 30)
     */
