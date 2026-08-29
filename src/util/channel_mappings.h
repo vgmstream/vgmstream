@@ -25,9 +25,14 @@ typedef enum {
 
 } speaker_t;
 
-/* typical mappings that metas may use to set channel_layout (but plugin must actually use it)
+/* Typical mappings that metas may use to set channel_layout (but plugin must actually use it)
  * (in order, so 3ch file could be mapped to FL FR FC or FL FR LFE but not LFE FL FR)
- * not too sure about names but no clear standards */
+ * not too sure about names but no clear standards. Ex. most common for 5.1:
+ * - SMPTE: L R FC LFE Ls SR (.wav)
+ * - Film: L FC R SL SR LFE (.ogg vorbis, opus in some cases, ac3?)
+ * - DTS: L R SL SR FC LFE (.usm)
+ * - AAC: C L R SL SR LFE (.aac)
+ *  */
 typedef enum {
     mapping_MONO             = speaker_FC,
     mapping_STEREO           = speaker_FL | speaker_FR,
