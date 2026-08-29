@@ -414,7 +414,7 @@ static int decode_frame(binka_decoder_t* dec, unsigned char* src, int src_size, 
     // OG lib checks the bitreader's initial *src vs current *src (padded).
     // in multichannel there may be more data beyond (aligned).
     bl_align(is, 32);
-    int bytes_done = is->b_off / 8;
+    int bytes_done = bl_pos(is) / 8;
     return bytes_done;
 }
 

@@ -11,6 +11,8 @@
  *     https://gist.github.com/kode54/ce2bf799b445002e125f06ed833903c0
  * - Cleaned up and re-reverse engineered for HCA v3 by bnnm, using Thealexbarney's VGAudio decoder as reference
  *     https://github.com/Thealexbarney/VGAudio
+ * - Ambisonics info by Youjose
+ *     https://github.com/Youjose/CriCodecs
  */
 
 /* TODO:
@@ -18,7 +20,6 @@
  * - simplify DCT4 code
  * - add extra validations: encoder_delay/padding < sample_count, etc
  * - intensity should memset if intensity is 15 or set in reset? (no games hit 15?)
- * - check mdct + tables, add floats
  * - simplify bitreader to use in decoder only (no need to read +16 bits)
  */
 
@@ -43,6 +44,9 @@
  * - Ver.2.06.05 2018-12 [scramble subkey API]
  * - Ver.2.06.07 2020-02, 2021-02
  * - Ver.3.01.00 2020-11 [decoding updates]
+ * - Ver.3.02.02 ~2021-07 [ambisonic support]
+ * - Ver.3.04.01 ~2024-04
+ * - Ver.3.10.00 ~2025-06
  * Same version rebuilt gets a newer date, and new APIs change header strings, but header versions
  * only change when decoder does. Despite the name, no "Integer" version seems to exist.
  */
@@ -65,6 +69,10 @@
 
 #define HCA_MIN_CHANNELS  1
 #define HCA_MAX_CHANNELS  16            /* internal max (in practice only 8 can be encoded) */
+//#define HCA_MAX_CHANNELS  255         /* libs seems to allow max for ambisonics support (less in hca-mx?),
+//                                       * no known cases and tools only seem to define 4/9/16 Nth order */
+#define HCA_CHANNEL_CONFIG_FLAG_AMBISONICS 0x80
+
 #define HCA_MIN_SAMPLE_RATE  1          /* assumed */
 #define HCA_MAX_SAMPLE_RATE  0x7FFFFF   /* encoder max seems 48000 */
 
@@ -317,7 +325,9 @@ int clHCA_getInfo(clHCA* hca, clHCA_stInfo* info) {
     info->loopStartSample = info->loopStartBlock * info->samplesPerBlock - info->encoderDelay + info->loopStartDelay;
     info->loopEndSample = info->loopEndBlock * info->samplesPerBlock - info->encoderDelay + (info->samplesPerBlock - info->loopEndPadding);
 
-    return 0;
+    info->ambisonics = (hca->channel_config & HCA_CHANNEL_CONFIG_FLAG_AMBISONICS) != 0;
+
+    return HCA_RESULT_OK;
 }
 
 //HCADecoder_DecodeBlockInt32
@@ -605,7 +615,8 @@ static void setup_channel_types(int channels, int track_count, int channel_confi
                     if (channel_config == 0) {
                         ct[2] = STEREO_PRIMARY;
                         ct[3] = STEREO_SECONDARY;
-                    } else {
+                    }
+                    else {
                         ct[2] = DISCRETE;
                         ct[3] = DISCRETE;
                     }
@@ -617,7 +628,8 @@ static void setup_channel_types(int channels, int track_count, int channel_confi
                     if (channel_config <= 2) {
                         ct[3] = STEREO_PRIMARY;
                         ct[4] = STEREO_SECONDARY;
-                    } else {
+                    }
+                    else {
                         ct[3] = DISCRETE;
                         ct[4] = DISCRETE;
                     }
@@ -649,18 +661,25 @@ static void setup_channel_types(int channels, int track_count, int channel_confi
                     ct[6] = STEREO_PRIMARY;
                     ct[7] = STEREO_SECONDARY;
                     break;
-                default:
+
+                default: {
+                    int ch;
                     /* all 0 (DISCRETE) */
-                    //for (ch = 0; ch < channels_per_track; ch++) {
-                    //    ct[i] = DISCRETE;
-                    //}
+                    for (ch = 0; ch < channels_per_track; ch++) {
+                        ct[i] = DISCRETE;
+                    }
                     break;
+                }
             }
         }
     }
 
     /* lib sets to 0 after channels_per_track * track_count 
      * (implicit here since channel_types is init'd to 0) */
+
+    /* channel_config & 0x80 means ambisonics, but this function doesn't seem to do detection,
+     * probably because Nth order ambisonics would be discrete and wouldn't set stereo bands */
+
 }
 
 int clHCA_DecodeHeader(clHCA* hca, const void* data, unsigned int size) {
@@ -1216,8 +1235,12 @@ static void clHCA_DecodeBlock_transform(clHCA* hca) {
     unsigned int subframe, ch;
 
     for (subframe = 0; subframe < HCA_SUBFRAMES; subframe++) {
+        int hfr_channels = hca->channel_config & HCA_CHANNEL_CONFIG_FLAG_AMBISONICS ? /* v3.02+ */
+            1 :
+            hca->channels;
+
         /* restore missing bands from spectra */
-        for (ch = 0; ch < hca->channels; ch++) {
+        for (ch = 0; ch < hfr_channels; ch++) {
             reconstruct_noise(&hca->channel[ch], hca->min_resolution, hca->ms_stereo, &hca->random, subframe);
 
             reconstruct_high_frequency(&hca->channel[ch], hca->hfr_group_count, hca->bands_per_hfr_group,

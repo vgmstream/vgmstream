@@ -243,6 +243,8 @@ static bool parse_header(redspark_header_t* h, STREAMFILE* sf, bool is_new) {
                 5c channel config?
         */
 
+        if (head_pos >= HEADER_MAX - 0x20)
+            return false;
         h->total_subsongs = get_u16(buf + head_pos + 0x0c);
         if (!check_subsongs(&target_subsong, h->total_subsongs))
             return false;

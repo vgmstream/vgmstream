@@ -33,6 +33,8 @@ VGMSTREAM* init_vgmstream_ish_isd(STREAMFILE* sf) {
     //TODO: loop start may be set mid-frame, which bytes_to_samples doesn't handle
     //h.loop_start = dsp_bytes_to_samples(h.loop_start, h.channels);
     //h.loop_end = dsp_bytes_to_samples(h.loop_end, h.channels);
+    if (h.channels == 0)
+        return NULL;
     h.loop_start = h.loop_start * 14 / 0x08 / h.channels;
     h.loop_end = h.loop_end * 14 / 0x08 / h.channels;
 

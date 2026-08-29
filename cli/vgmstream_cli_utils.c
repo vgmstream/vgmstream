@@ -6,97 +6,135 @@
 #include "../src/libvgmstream.h"
 
 
-static void clean_filename(char* dst, int clean_paths) {
-    for (int i = 0; i < strlen(dst); i++) {
-        char c = dst[i];
+// strscpy like copy with char filtering; returns -1 on error or truncation (see string_utils.c)
+static int strcpy_filter(char* dst, size_t dst_size, const char* src, bool clean_paths) {
+    if (dst == NULL || dst_size == 0)
+        return 0;
+
+    if (src == NULL) {
+        dst[0] = '\0';
+        return -1;
+    }
+
+    size_t copy_len = 0;
+    size_t copy_max = dst_size - 1; // for null
+    while (copy_len < copy_max && src[copy_len] != '\0') {
+        char c = src[copy_len];
+
         bool is_badchar = (clean_paths && (c == '\\' || c == '/'))
             || c == '*' || c == '?' || c == ':' /*|| c == '|'*/ || c == '<' || c == '>';
         if (is_badchar)
-            dst[i] = '_';
+            c = '_';
+
+        dst[copy_len] = c;
+        copy_len++;
     }
+    dst[copy_len] = '\0';
+
+    // truncation
+    if (copy_len == copy_max && src[copy_len] != '\0')
+        return -1;
+
+    return (int)copy_len;
 }
 
-/* replaces a filename with "?n" (stream name), "?f" (infilename) or "?s" (subsong) wildcards
- * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
-bool cli_replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream_t* vgmstream) {
-    int subsong;
-    char stream_name[CLI_PATH_LIMIT];
-    char buf[CLI_PATH_LIMIT];
-    char tmp[CLI_PATH_LIMIT];
 
+/* Reads a output filename string like "blah_?n.wav" and does controlled replaces of wilcards:
+ * "?n" = stream name, "?f" = infilename, "?s" = subsong, "?0ns" = 0-padded subsong
+ * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux)
+ * ?s is 'CLI current subsong's index' (-s X -S Y) and not just vgmstream's.
+ */
+bool cli_replace_filename(char* dst, size_t dst_size, cli_config_t* cfg, libvgmstream_t* vgmstream) {
+    const char* fmt = cfg->outfilename_config;
 
-    /* file has a "%" > temp replace for snprintf */
-    int n = snprintf(buf, sizeof(buf), "%s", cfg->outfilename_config);
-    if (n <= 0 || n >= sizeof(buf)) // truncation
+    if (!dst || dst_size == 0 || !fmt || fmt[0] == '\0') // || !cfg || !vgmstream
         return false;
 
-    int buf_len = strlen(buf);
-    for (int i = 0; i < buf_len; i++) {
-        if (buf[i] == '%')
-            buf[i] = '|'; /* non-valid filename, not used in format */
-    }
+    size_t dst_i = 0;
+    size_t dst_max = dst_size - 1; // for null
+    while (dst_i < dst_max && fmt[0] != '\0') {
 
-    /* init config */
-    subsong = vgmstream->format->subsong_index;
-    if (subsong > vgmstream->format->subsong_count || subsong != cfg->subsong_current_index) {
-        subsong = 0; /* for games without subsongs / bad config */
-    }
+        if (fmt[0] != '?') {
+            // (non-? char): copy as-is
 
-    if (vgmstream->format->stream_name[0] != '\0') {
-        snprintf(stream_name, sizeof(stream_name), "%s", vgmstream->format->stream_name);
-        clean_filename(stream_name, 1); /* clean subsong name's subdirs */
-    }
-    else {
-        snprintf(stream_name, sizeof(stream_name), "%s", cfg->infilename);
-        clean_filename(stream_name, 0); /* don't clean user's subdirs */
-    }
+            dst[dst_i] = fmt[0];
 
-    /* do controlled replaces of each wildcard (in theory could appear N times) */
-    do {
-        char* pos = strchr(buf, '?');
-        if (!pos)
-            break;
-
-        /* use buf as format and copy formatted result to tmp (assuming snprintf's format must not overlap with dst) */
-        if (pos[1] == 'n') {
-            pos[0] = '%';
-            pos[1] = 's'; /* use %s */
-            snprintf(tmp, sizeof(tmp), buf, stream_name);
-        }
-        else if (pos[1] == 'f') {
-            pos[0] = '%';
-            pos[1] = 's'; /* use %s */
-            snprintf(tmp, sizeof(tmp), buf, cfg->infilename);
-        }
-        else if (pos[1] == 's') {
-            pos[0] = '%';
-            pos[1] = 'i'; /* use %i */
-            snprintf(tmp, sizeof(tmp), buf, subsong);
-        }
-        else if ((pos[1] == '0' && pos[2] >= '1' && pos[2] <= '9' && pos[3] == 's')) {
-            pos[0] = '%';
-            pos[3] = 'i'; /* use %0Ni */
-            snprintf(tmp, sizeof(tmp), buf, subsong);
-        }
-        else {
-            /* not recognized */
-            // TO-DO: should move buf or swap "?" with "_"? may happen with non-ascii on Windows; for now break to avoid infinite loops
-            break;
+            dst_i += 1;
+            fmt += 1;
+            continue;
         }
 
-        /* copy result to buf again, so it can be used as format in next replace
-         * (can be optimized with some pointer swapping but who cares about a few extra nanoseconds) */
-        snprintf(buf, sizeof(buf), "%s", tmp);
-    }
-    while (1);
+        // fmt below can's overread since it's null-terminated and fmt[n] == x will short-circuit if \0 is encountered
 
-    /* replace % back */
-    for (int i = 0; i < strlen(buf); i++) {
-        if (buf[i] == '|')
-            buf[i] = '%';
+        if (fmt[1] == 'n') {
+            // ?n: copy stream name
+            const char* src = vgmstream->format->stream_name[0] != '\0' ?
+                vgmstream->format->stream_name :
+                cfg->infilename;
+
+            int n = strcpy_filter(&dst[dst_i], dst_size - dst_i, src, true); // clean stream name's subdirs
+            if (n < 0)
+                return false;
+
+            dst_i += n;
+            fmt += 2;
+            continue;
+        }
+
+        if (fmt[1] == 'f') {
+            // ?f: copy filename
+            const char* src = cfg->infilename;
+
+            int n = strcpy_filter(&dst[dst_i], dst_size - dst_i, src, false); // don't clean user's subdirs
+            if (n < 0)
+                return false;
+
+            dst_i += n;
+            fmt += 2;
+            continue;
+        }
+
+        if (fmt[1] == 's') {
+            // ?s: copy subsong
+            int subsong = vgmstream->format->subsong_index;
+            if (subsong > vgmstream->format->subsong_count || subsong != cfg->subsong_current_index)
+                subsong = 0;
+
+            int n = snprintf(&dst[dst_i], dst_size - dst_i, "%d", subsong);
+            if (n < 0 || n >= dst_size - dst_i)
+                return false;
+
+            dst_i += n;
+            fmt += 2;
+            continue;
+        }
+
+        if ((fmt[1] == '0' && fmt[2] >= '1' && fmt[2] <= '9' && fmt[3] == 's')) {
+            // ?0*s: copy 0-padded subsong
+            int subsong = vgmstream->format->subsong_index;
+            if (subsong > vgmstream->format->subsong_count || subsong != cfg->subsong_current_index)
+                subsong = 0;
+
+            char tmp[5+1] = { '%', fmt[1], fmt[2], 'd', '\0' }; // "%0*d"
+            int n = snprintf(&dst[dst_i], dst_size - dst_i, tmp, subsong);
+            if (n < 0 || n >= dst_size - dst_i)
+                return false;
+
+            dst_i += n;
+            fmt += 4;
+            continue;
+        }
+
+        // ?x not recognized, or ?\0: return error for now
+        return false;
     }
 
-    snprintf(dst, dstsize, "%s", buf);
+    dst[dst_i] = '\0'; // all cpys above null-terminate but just in case
+
+    // detect truncation
+    if (dst_i == 0 || (dst_i == dst_max && fmt[0] != '\0'))
+        return false;
+
     return true;
 }
 
@@ -149,6 +187,7 @@ void print_info(libvgmstream_t* vgmstream, cli_config_t* cfg) {
     }
 }
 
+
 void print_tags(cli_config_t* cfg) {
     libvgmstream_tags_t* tags = NULL;
     libstreamfile_t* sf_tags = NULL;
@@ -174,6 +213,7 @@ void print_tags(cli_config_t* cfg) {
     libstreamfile_close(sf_tags);
 }
 
+
 void print_title(libvgmstream_t* vgmstream, cli_config_t* cfg) {
     char title[1024];
     libvgmstream_title_t tcfg = {0};
@@ -190,6 +230,7 @@ void print_title(libvgmstream_t* vgmstream, cli_config_t* cfg) {
 
     printf("title: %s\n", title);
 }
+
 
 void print_json_version(const char* vgmstream_version) {
     int extension_list_len = 0;

@@ -17,7 +17,7 @@ VGMSTREAM* init_vgmstream_hd3_bd3(STREAMFILE* sf) {
         return NULL;
 
     sb = open_streamfile_by_ext(sf,"bd3");
-    if (!sf) goto fail;
+    if (!sb) goto fail;
 
     /* 0x04: section size (not including first 0x08) */
     /* 0x08: version? 0x00020000 */

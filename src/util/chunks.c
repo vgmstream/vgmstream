@@ -27,13 +27,20 @@ bool next_chunk(chunk_t* chunk, STREAMFILE* sf) {
     // read past data
     if (chunk->type == 0xFFFFFFFF || chunk->size == 0xFFFFFFFF)
         return false;
+    if (chunk->full_size && chunk->size < 0x08)
+        return false;
 
     // allow broken files (such as prefetch)
     //if (chunk->size > remaining - 0x08)
     //    return false;
 
-    chunk->offset = chunk->current + 0x08;
-    chunk->current += chunk->full_size ? chunk->size : 0x08 + chunk->size;
+    chunk->offset = chunk->current;
+    chunk->current += chunk->size;
+    if (!chunk->full_size) {
+        chunk->offset += 0x08;
+        chunk->current += 0x08;
+    }
+
     //;VGM_LOG("CHUNK: %x, %x, %x\n", dc.offset, chunk->type, chunk->size);
 
     // enforce 16-bit chunk alignment as per spec, where chunk_size may be odd (0x11) but must be

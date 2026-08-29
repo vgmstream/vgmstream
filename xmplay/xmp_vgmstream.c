@@ -250,23 +250,24 @@ void WINAPI xmplay_GetGeneralInfo(char* buf) {
     libvgmstream_format_describe(vgmstream, description, sizeof(description));
 
     /* tags are divided with a tab and lines with carriage return so we'll do some guetto fixin' */
-	int tag_done = 0;
+	bool tag_done = false;
 	description[0] -= 32; //Replace small letter with capital for consistency with XMPlay's output
     for (int i = 0; i < 1024; i++) {
         if (description[i] == '\0')
             break;
 
-        if (description[i] == ':' && !tag_done) { /* to ignore multiple ':' in a line*/
+        if (description[i] == ':' && !tag_done) { // to ignore multiple ':' in a line
             description[i] = ' ';
-            description[i+1] = '\t';
-            tag_done = 1;
+            if (description[i+1] != '\0')
+                description[i+1] = '\t';
+            tag_done = true;
         }
 
         if (description[i] == '\n') {
             description[i] = '\r';
-			if (description[i+1])
-				description[i+1] -= 32; //Replace small letter with capital for consistency with XMPlay's output
-            tag_done = 0;
+			if (description[i+1] != '\0')
+				description[i+1] -= 32; // replace small letter with capital for consistency with XMPlay's output
+            tag_done = false;
         }
     }
 

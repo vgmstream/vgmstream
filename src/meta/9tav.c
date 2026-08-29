@@ -18,13 +18,14 @@ VGMSTREAM* init_vgmstream_9tav(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!is_id32be(0x00,sf, "9TAV"))
+    if (!is_id32be(0x00,sf, "9TAV")) // actually "VAT9" LE
         return NULL;
-    /* .9tav: header id */
+    /* .9tav: header id (data replaces original block payloads, so .mta/stv/etc
+    *   could be considered the original extensions) */
     if (!check_extensions(sf, "9tav"))
         return NULL;
 
-    /* 0x04: always 0x09 (codec?) */
+    // 0x04: codec (always 0x09)
     channels        = read_u16le(0x08,sf);
     track_count     = read_u16le(0x0a,sf); /* MGS3 uses multitracks */
     sample_rate     = read_s32le(0x0c,sf);

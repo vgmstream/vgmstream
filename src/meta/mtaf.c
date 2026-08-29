@@ -15,7 +15,7 @@ VGMSTREAM* init_vgmstream_mtaf(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00, sf, "MTAF"))
         return NULL;
-    /* .mta: actual extension in xor'ed filename
+    /* .mta: actual extension in xor'ed filename/internally
      * .mtaf: header ID */
     if (!check_extensions(sf,"mta,mtaf"))
         return NULL;
@@ -30,10 +30,10 @@ VGMSTREAM* init_vgmstream_mtaf(STREAMFILE* sf) {
         return NULL;
     if (read_u32le(0x44, sf) != 0xB0)
         return NULL;
-    // 0x48: null
-    // 0x4c: related to channels? (16 or 2)
-    // 0x50: 127 (volume?)
-    // 0x54: 64 (pan?)
+    // 0x48: version? (0)
+    // 0x4c: channels? (not always accurate?)
+    // 0x50: volume (127)
+    // 0x54: pan (64)
     // 0x56: null
     // 0x58: loop start sample
     // 0x5c: loop end
@@ -41,11 +41,11 @@ VGMSTREAM* init_vgmstream_mtaf(STREAMFILE* sf) {
     // 0x64: loop start frame (sample / 0x100)
     // 0x68: loop end frame (sample / 0x100)
     // 0x6c: null
-    // 0x70: flags (00/05/07)
-    // 0x74: channel flags?
+    // 0x70: flags (1=loop, 2=fade-in?, 4=multitrack/enabled?)
+    // 0x74: config?
     // 0x78: null
     // 0x7c: null
-    // 0x78 .. 0xf8: null
+    // 0x80 .. 0xf8: null
 
     loop_start = read_s32le(0x58, sf);
     loop_end   = read_s32le(0x5c, sf);
@@ -54,14 +54,15 @@ VGMSTREAM* init_vgmstream_mtaf(STREAMFILE* sf) {
     
 
     /* TRKP chunks (x16, per max channels) */
-    // 0x00: -1=unused, 0x00 or others (0x20) if used
-    // 0x04: 127 (volume?)
-    // 0x05: null
-    // 0x06: 64 (pan?)
+    // 0x00: mode (-1=unused, 0x00 or others (0x20) if used)
+    // 0x04: volume (127)
+    // 0x05: initial volume? (0?)
+    // 0x06: pan (64)
     // 0x07: null
-    // 0x2c: always 1
-    // 0x30: x24 16-bit (volumes or ADPCM related?)
-    // 0x60: -1 x4
+    // 0x08 .. 0x2c: reserved
+    // 0x2c: flags (1=loop?, 2=?)
+    // 0x30: s8 x48 (ADPCM related?)
+    // 0x60: s8 x8 (always -1?)
 
 
     /* DATA chunk */

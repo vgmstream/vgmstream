@@ -164,9 +164,7 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
 
 
         class_size = read_u32(offset + 0x00, sf); // not including null-terminator
-        if (class_size >= sizeof(class_name) - 1)
-            goto fail;
-        read_string(class_name, class_size + 1, offset + 0x04, sf);
+        read_string_sz(class_name, sizeof(class_name), class_size, offset + 0x04, sf);
         offset += 0x04 + class_size;
 
         cuuid1 = read_u32(offset + 0x00, sf);
@@ -219,19 +217,17 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
             off_t wavres_offset = header_offset;
 
             /* parse WavRes header */
-            resclass_size = read_u32(wavres_offset, sf);
+            resclass_size = read_u32(wavres_offset, sf); // not including null-terminator
             wavres_offset += 0x04 + resclass_size + 0x08 + 0x04; /* skip class + cuiid + flags */
 
-            internal_size = read_u32(wavres_offset + 0x00, sf);
+            internal_size = read_u32(wavres_offset + 0x00, sf); // 
             /* Xbox has some kind of big size and "flags" has a value of 2, instead of 3/4 like other platforms */
             if (strcmp(class_name, "CXBoxWavResData") == 0 && internal_size > 0x100)
                 return true;
-            if (internal_size > sizeof(hx->internal_name)+1)
-                goto fail;
 
             /* usually 0 in consoles */
             if (internal_size != 0) {
-                read_string(hx->internal_name,internal_size+1, wavres_offset + 0x04, sf);
+                read_string_sz(hx->internal_name, sizeof(hx->internal_name), internal_size, wavres_offset + 0x04, sf);
                 return true;
             }
             else {
@@ -274,9 +270,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
     hx->header_size     = size;
 
     hx->class_size = read_u32(offset + 0x00, sf);
-    if (hx->class_size >= sizeof(hx->class_name) - 1) // not including null-terminator
-        goto fail;
-    read_string(hx->class_name, hx->class_size + 1, offset + 0x04, sf);
+    read_string_sz(hx->class_name, sizeof(hx->class_name), hx->class_size, offset + 0x04, sf);
     offset += 0x04 + hx->class_size;
 
     hx->cuuid1  = read_u32(offset + 0x00, sf);
@@ -341,8 +335,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
             case 0x07: /* static? */
             case 0x0a: /* static? */
                 resource_size = read_u32(offset + 0x00, sf);
-                if (resource_size > sizeof(hx->resource_name)+1) goto fail;
-                read_string(hx->resource_name,resource_size+1, offset + 0x04, sf);
+                read_string_sz(hx->resource_name, sizeof(hx->resource_name), resource_size, offset + 0x04, sf);
 
                 riff_offset = offset + 0x04 + resource_size;
                 riff_size   = read_u32(riff_offset + 0x04, sf) + 0x08;
@@ -509,8 +502,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
             case 0x03: /* stream (bigger external file) */
             case 0x07: /* stream? */
                 resource_size = read_u32(offset + 0x00, sf);
-                if (resource_size > sizeof(hx->resource_name)+1) goto fail;
-                read_string(hx->resource_name,resource_size+1, offset + 0x04, sf);
+                read_string_sz(hx->resource_name, sizeof(hx->resource_name), resource_size, offset + 0x04, sf);
 
                 hx->is_external = 1;
                 break;
@@ -568,9 +560,7 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
         /* parse index entries: offset to actual header plus some extra info also in the header */
 
         class_size = read_u32(offset + 0x00, sf); // not including null-terminator
-        if (class_size >= sizeof(class_name) - 1)
-            goto fail;
-        read_string(class_name, class_size + 1, offset + 0x04, sf);
+        read_string_sz(class_name, sizeof(class_name), class_size, offset + 0x04, sf);
         offset += 0x04 + class_size;
 
         /* 0x00: id1+2 */

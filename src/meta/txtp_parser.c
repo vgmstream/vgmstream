@@ -1064,14 +1064,13 @@ static int parse_keyval(txtp_header_t* txtp, const char* key, const char* val) {
     }
     else if (0==strcmp(key,"commands")) {
         char val2[TXT_LINE_MAX];
-        strcpy(val2, val); /* copy since val is modified here but probably not important */
+        strcpy_v(val2, sizeof(val2), val); /* copy since val is modified here but probably not important */
         if (!add_entry(txtp, val2, 1)) goto fail;
     }
     else if (0==strcmp(key,"group")) {
         char val2[TXT_LINE_MAX];
-        strcpy(val2, val); /* copy since val is modified here but probably not important */
+        strcpy_v(val2, sizeof(val2), val); /* copy since val is modified here but probably not important */
         if (!add_group(txtp, val2)) goto fail;
-
     }
     else {
         // in rare cases a filename may contain a (blah=blah.blah), but it's hard to distinguish

@@ -30,8 +30,9 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
      * (extensionless): The Urbz (PS2), The Sims series (PS2)
      * .wav: Sniper Elite (PS2), The Simpsons Game (PS2/PSP) 
      * .msv: Casper and the Ghostly Trio (PS2), Earache Extreme Metal Racing (PS2)
-     * .eng,fre,ger,int,ita,jap,spa: Jak and Daxter (PS2) (Preview build) */
-    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd,svg,,wav,lwav,msv,eng,fre,ger,int,ita,jap,spa"))
+     * .eng,fre,ger,int,ita,jap,spa: Jak and Daxter (PS2) (Preview build)
+     * .stv: Metal Gear Solid 3 (PS2) internal names (STreamed Vag?) */
+    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd,svg,,wav,lwav,msv,eng,fre,ger,int,ita,jap,spa,stv"))
         return NULL;
 
     file_size = get_streamfile_size(sf);
@@ -64,7 +65,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
     switch(vag_id) {
 
         case 0x56414731: /* "VAG1" [Metal Gear Solid 3 (PS2), Cabela's African Safari (PSP), Shamu's Deep Sea Adventures (PS2)] */
-            meta_type = meta_VAG_custom; //TODO not always Konami (Sand Grain Studios)
+            meta_type = meta_VAG_custom;
             start_offset = 0x40; /* 0x30 is extra data in VAG1 */
             interleave = 0x10;
             loop_flag = 0;
@@ -86,7 +87,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
         case 0x56414732: /* "VAG2" (2 channels) [Metal Gear Solid 3 (PS2)] */
             meta_type = meta_VAG_custom;
             start_offset = 0x40; /* 0x30 is extra data in VAG2 */
-            channels = 2;
+            channels = 2; // (seems to be mapped to "VAG1" = 1, other = 2)
             interleave = 0x800;
             loop_flag = 0;
             break;

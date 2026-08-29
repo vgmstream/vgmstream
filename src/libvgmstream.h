@@ -100,7 +100,7 @@ typedef enum {
 
 /* current song info, may be copied around (values are info-only) */
 typedef struct {
-    /* main (always set) */
+    /* main (always set and can't be 0/negative) */
     int channels;                           // output channels
     int sample_rate;                        // output sample rate
     libvgmstream_sfmt_t sample_format;      // output buffer's sample type

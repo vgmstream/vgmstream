@@ -9,7 +9,7 @@ typedef struct {
     VGMSTREAM* (*init_vgmstream_subkey)(STREAMFILE* sf, uint16_t subkey);
     const char* extension;
     bool load_loops;
-    bool use_riff_size;
+    uint32_t subfile_size;
 } meta_info_t;
 
 static bool load_meta_type(meta_info_t* meta, STREAMFILE* sf, uint32_t subfile_offset);
@@ -120,8 +120,8 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             goto fail;
         }
 
-        if (meta.use_riff_size) {
-            subfile_size = read_u32le(subfile_offset + 0x04,sf) + 0x08;
+        if (meta.subfile_size) {
+            subfile_size = meta.subfile_size;
         }
 
         if (!temp_sf) {
@@ -198,13 +198,18 @@ static bool load_meta_type(meta_info_t* meta, STREAMFILE* sf, uint32_t subfile_o
     if (is_id32be(subfile_offset,sf, "RIFF")) {
         meta->init_vgmstream = init_vgmstream_riff;
         meta->extension = "wav";
-        meta->use_riff_size = true; // padded size, use RIFF's
+
+        // padded size, use RIFF's
+        meta->subfile_size = read_u32le(subfile_offset + 0x04,sf) + 0x08;
         return true;
     }
 
     if (is_id32be(subfile_offset,sf, "CWAV")) {
         meta->init_vgmstream = init_vgmstream_bcwav;
         meta->extension = "bcwav";
+
+        // sometimes padded [Mario & Sonic at the Rio 2016 Olympic Games (3DS)]
+        meta->subfile_size = read_u32le(subfile_offset + 0x0c,sf);
         return true;
     }
 

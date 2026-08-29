@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util/companion_files.h"
+#include "../util/chunks.h"
 #include "ktsr_streamfile.h"
 
 typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KMA9, AT9_KM9, KOVS, KTSS, KTAC, KA1A, KA1A_INTERNAL, } ktsr_codec;
@@ -648,40 +649,39 @@ static void build_name(ktsr_header_t* ktsr, STREAMFILE* sf) {
 
 }
 
+/* more configs than sounds is possible so we need target_id first */
 static void parse_longname(ktsr_header_t* ktsr, STREAMFILE* sf) {
-    /* more configs than sounds is possible so we need target_id first */
-    uint32_t offset, end, name_offset;
-    uint32_t stream_id;
+    uint32_t stream_id, name_offset;
+    chunk_t rc = {0};
 
-    offset = 0x40 + ktsr->as_offset;
-    end = ktsr->as_offset + ktsr->as_size;
-    while (offset < end) {
-        uint32_t type = read_u32be(offset + 0x00, sf); /* hash-id? */
-        uint32_t size = read_u32le(offset + 0x04, sf);
-        switch(type) {
+    rc.full_size = true;
+    rc.current = 0x40 + ktsr->as_offset;
+    rc.max = ktsr->as_offset + ktsr->as_size;
+    while (next_chunk(&rc, sf)) {
+
+        switch(rc.type) {  /* hash-id? */
             case 0xBD888C36: /* config */
-                stream_id = read_u32le(offset + 0x08, sf);
+                stream_id = read_u32le(rc.offset + 0x08, sf);
                 if (stream_id != ktsr->sound_id)
                     break;
 
-                ktsr->config_flags = read_u32le(offset + 0x0c, sf);
+                ktsr->config_flags = read_u32le(rc.offset + 0x0c, sf);
 
-                name_offset = read_u32le(offset + 0x28, sf);
+                name_offset = read_u32le(rc.offset + 0x28, sf);
                 if (name_offset > 0)
-                    ktsr->config_name_offset = offset + name_offset;
+                    ktsr->config_name_offset = rc.offset + name_offset;
                 return; /* id found */
 
             default:
                 break;
         }
-
-        offset += size;
     }
 }
 
 static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf) {
-    uint32_t offset, end, header_offset, name_offset;
+    uint32_t header_offset, name_offset;
     uint32_t stream_count;
+    chunk_t rc = {0};
 
     /* 00: KTSR
      * 04: type
@@ -707,14 +707,13 @@ static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf) {
         return false;
     }
 
-    offset = 0x40 + ktsr->as_offset;
-    end = ktsr->as_offset + ktsr->as_size;
-    while (offset < end) {
-        uint32_t type = read_u32be(offset + 0x00, sf); /* hash-id? */
-        uint32_t size = read_u32le(offset + 0x04, sf);
+    rc.full_size = true;
+    rc.current = 0x40 + ktsr->as_offset;
+    rc.max = ktsr->as_offset + ktsr->as_size;
+    while (next_chunk(&rc, sf)) {
 
         /* parse chunk-like subfiles, usually N configs then N songs */
-        switch(type) {
+        switch(rc.type) {
             case 0x6172DBA8: /* ? (mostly empty) */
             case 0xBD888C36: /* cue? (floats, stream id, etc, may have extended name; can have sub-chunks)-appears N times */
             case 0xC9C48EC1: /* unknown (has some string inside like "boss") */
@@ -741,20 +740,20 @@ static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf) {
 
                 if (ktsr->total_subsongs == ktsr->target_subsong) {
 
-                    ktsr->sound_id = read_u32le(offset + 0x08,sf);
-                    ktsr->sound_flags = read_u32le(offset + 0x0c,sf);
-                    stream_count = read_u32le(offset + 0x10,sf);
+                    ktsr->sound_id = read_u32le(rc.offset + 0x08,sf);
+                    ktsr->sound_flags = read_u32le(rc.offset + 0x0c,sf);
+                    stream_count = read_u32le(rc.offset + 0x10,sf);
                     if (stream_count != 1) {
                         VGM_LOG("KTSR: unknown stream count\n");
                         goto fail;
                     }
 
-                    header_offset = read_u32le(offset + 0x14, sf);
-                    name_offset   = read_u32le(offset + 0x18, sf);
+                    header_offset = read_u32le(rc.offset + 0x14, sf);
+                    name_offset   = read_u32le(rc.offset + 0x18, sf);
                     if (name_offset > 0)
-                        ktsr->sound_name_offset = offset + name_offset;
+                        ktsr->sound_name_offset = rc.offset + name_offset;
 
-                    header_offset = read_u32le(offset + header_offset, sf) + offset;
+                    header_offset = read_u32le(rc.offset + header_offset, sf) + rc.offset;
 
                     if (!parse_ktsr_subfile(ktsr, sf, header_offset))
                         goto fail;
@@ -763,11 +762,9 @@ static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf) {
 
             default:
                 /* streams also have their own chunks like 0x09D4F415, not needed here */  
-                VGM_LOG("KTSR: unknown chunk 0x%08x at %x\n", type, offset);
+                VGM_LOG("KTSR: unknown chunk 0x%08x at %x\n", rc.type, rc.offset);
                 goto fail;
         }
-
-        offset += size;
     }
 
     if (ktsr->total_subsongs == 0) {

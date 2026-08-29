@@ -100,24 +100,23 @@ static int get_packet_header(STREAMFILE* sf, uint32_t* offset, uint32_t* size) {
     uint32_t size_bits;
 
 
-    if (read_streamfile(ibuf,(*offset),ibufsize, sf) != ibufsize)
+    if (read_streamfile(ibuf, (*offset), ibufsize, sf) != ibufsize)
         goto fail;
 
     bl_setup(&ib, ibuf, ibufsize);
 
     /* read using Vorbis weird LSF */
-    bl_get(&ib,  4,&size_bits);
-    bl_get(&ib,  (size_bits+1),(uint32_t*)size);
+    size_bits = bl_read(&ib,  4);
+    *size = bl_read(&ib, size_bits + 1);
 
     /* special meaning, seen in silent frames */
-    if (size_bits == 0 && *size == 0 && (uint8_t)read_8bit(*offset, sf) == 0x80) {
+    if (size_bits == 0 && *size == 0 && read_u8(*offset, sf) == 0x80) {
         *size = 0x01;
     }
 
     /* pad and convert to byte offset */
-    if (ib.b_off % 8)
-        ib.b_off += 8 - (ib.b_off % 8);
-    *offset += (ib.b_off/8);
+    bl_align(&ib, 8);
+    *offset += bl_pos(&ib) / 8;
 
     return 1;
 fail:
