@@ -105,4 +105,5 @@ void block_update_vas(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_cf_df(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_cf_df_v5(off_t block_offset, VGMSTREAM* vgmstream);
 
+void seek_layout_blocked_rage_aud(VGMSTREAM* vgmstream, int32_t seek_sample);
 #endif
