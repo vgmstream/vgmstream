@@ -55,6 +55,12 @@
 #define DF_PROTO_PLAYLIST_ORDER      0x822
 #define DF_PROTO_PLAYLIST_MAX        64
 
+/* Revision-4 .snd control payload. Unlike the shared .mov/.sfx/.trk layout,
+ * the loop block is referenced by container id instead of fixed at id 1. */
+#define DF_SND_REVISION              0x02
+#define DF_SND_REVISION_4            0x0004
+#define DF_SND_LOOP_BLOCK_PTR        0x1C
+
 /* .snd "container-0" variant (HELP.SND/KID.SND): unlike the trk/sfx/mov container-1 loop block, the
  * order list, track name and per-chunk names live in container 0. Offsets are relative to container 0.
  * The order list holds 1-based container ids; the chunk-name table has one Pascal entry per chunk
@@ -255,6 +261,42 @@ static int get_mov_control_revision(STREAMFILE* sf) {
     if (pos <= 0 || pos + 0x08 + DF_MOV_CONTROL_REVISION + 0x02 > file_size)
         return 0;
     return read_u16le(pos + 0x08 + DF_MOV_CONTROL_REVISION, sf);
+}
+
+/* Revision-4 .snd stores the normal loop block's container id in control 0.
+ * Other generations use different data at this offset, so the revision gate is
+ * required before interpreting it as a pointer. */
+static int get_snd_loop_block_id(STREAMFILE* sf, int containers) {
+    off_t file_size = get_streamfile_size(sf);
+    off_t pos = read_u32le(DF_HEADER_SIZE, sf);
+
+    if (pos <= 0 || pos + 0x08 > file_size)
+        return 1;
+    if (read_u32le(pos, sf) != 0)
+        return 1;
+
+    uint32_t payload_size = read_u32le(pos + 0x04, sf);
+    off_t p = pos + 0x08;
+    if (payload_size < DF_SND_LOOP_BLOCK_PTR + 0x04 || payload_size > file_size - p)
+        return 1;
+    if (read_u16le(p + DF_SND_REVISION, sf) != DF_SND_REVISION_4)
+        return 1;
+
+    uint32_t id = read_u32le(p + DF_SND_LOOP_BLOCK_PTR, sf);
+    if (id == 0 || id >= (uint32_t)containers)
+        return 0;
+
+    off_t block = read_u32le(DF_HEADER_SIZE + (off_t)id * 0x04, sf);
+    if (block <= 0 || block + 0x08 > file_size)
+        return 0;
+    if (read_u32le(block, sf) != id)
+        return 0;
+
+    uint32_t block_size = read_u32le(block + 0x04, sf);
+    if (block_size < 0x06 + DF_ORDER_REGION + 0x04 || block_size > file_size - (block + 0x08))
+        return 0;
+
+    return id;
 }
 
 static void trim_early_playlist(STREAMFILE* sf, df_chunk_t* chunks,
@@ -676,7 +718,7 @@ static VGMSTREAM* build_blocked(STREAMFILE* sf, df_chunk_t* loop, int loop_count
     return v;
 }
 
-/* DreamFactory v4 .snd "container-0" variant: the assembled theme's order list, track name and
+/* DreamFactory revision-1 .snd "container-0" variant: the assembled theme's order list, track name and
  * per-chunk names live in container 0, unlike the container 1 found in trk/sfx/mov.
  * Builds the theme (subsong 1: order assembled in order, leading/trailing silence trimmed,
  * end-to-end loop) plus every chunk as a named subsong. *handled is set once a valid container-0
@@ -859,7 +901,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     track_name[0] = '\0';
 
     // definitions before 'goto fail'
-    int loop_count, order_count;
+    int loop_count, order_count, loop_block_id;
     off_t first_entry, c1, c0;
     int audio_count, disk_stream;
     int has_loop, subsongs;
@@ -873,7 +915,8 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     loop_count = 0;
     order_count = 0;
     first_entry = 0;
-    c1 = read_u32le(DF_HEADER_SIZE + 0x01 * 0x04, sf);
+    loop_block_id = check_extensions(sf, "snd") ? get_snd_loop_block_id(sf, containers) : 1;
+    c1 = loop_block_id > 0 ? read_u32le(DF_HEADER_SIZE + (off_t)loop_block_id * 0x04, sf) : 0;
     if (c1 > 0) {
         off_t lp = c1 + 0x08;
 
