@@ -15,10 +15,9 @@
  *   u32 uncompressed size @0x24, u32 data offset @0x2C.
  * - Proto audio resources hold a native-endian u16 duration followed by v4.0 ADPCM.
  *
- * Container 1 holds a "loop block" describing a playback track: a chunkOrder sequence plus a
- * list of audio chunks. A second "single block" (pointed at from container 0) lists named
- * one-shot chunks. subsong 1 = the assembled track, subsongs 2..N = every audio
- * chunk individually.
+ * Format-specific control data describes a playback track plus stored one-shot
+ * and reusable background chunks. subsong 1 = the assembled background track,
+ * subsongs 2..N = every stored audio chunk individually.
  *
  * Titles: Lunicus, Jump Raven, Dust 1996 3.1/95, Titanic: Adventure Out of Time
  * Disney's Math/Reading Quest with Aladdin
@@ -55,6 +54,14 @@
 #define DF_PROTO_PLAYLIST_ORDER      0x822
 #define DF_PROTO_PLAYLIST_MAX        64
 
+/* Compact Proto music-bank control payload. Group-B background sources are a
+ * contiguous range selected by a fixed 64-entry order table. */
+#define DF_PROTO_BANK_GROUP_A_BOUNDARY  0x00
+#define DF_PROTO_BANK_GROUP_B_COUNT     0x02
+#define DF_PROTO_BANK_PLAYLIST_COUNT    0x04
+#define DF_PROTO_BANK_PLAYLIST_ORDER    0x06
+#define DF_PROTO_BANK_CONTROL_SIZE      (DF_PROTO_BANK_PLAYLIST_ORDER + DF_PROTO_PLAYLIST_MAX * 0x02)
+
 /* Revision-4 .snd control payload. Unlike the shared .mov/.sfx/.trk layout,
  * the loop block is referenced by container id instead of fixed at id 1. */
 #define DF_SND_REVISION              0x02
@@ -63,10 +70,13 @@
 
 /* .snd "container-0" variant (HELP.SND/KID.SND): unlike the trk/sfx/mov container-1 loop block, the
  * order list, track name and per-chunk names live in container 0. Offsets are relative to container 0.
- * The order list holds 1-based container ids; the chunk-name table has one Pascal entry per chunk
- * (entry k -> container k+1). */
-#define DF_SND_ORDER_COUNT  0x22   /* u16 */
-#define DF_SND_ORDER        0x26   /* u16[], 1-based container ids */
+ * The order list holds 1-based selectors into a contiguous background range; the chunk-name table
+ * has one Pascal entry per chunk (entry k -> container k+1). */
+#define DF_SND_GROUP_A_BOUNDARY  0x20   /* u16, last one-shot container id */
+#define DF_SND_GROUP_B_COUNT     0x22   /* u16, unique background chunks */
+#define DF_SND_ORDER_COUNT       0x24   /* u16, authored playlist entries */
+#define DF_SND_ORDER             0x26   /* u16[64], relative Group-B selectors */
+#define DF_SND_ORDER_MAX         64
 #define DF_SND_TRACK_NAME   0xa6   /* Pascal string */
 #define DF_SND_CHUNK_NAMES  0xc2   /* Pascal entries, stride 0x18, one per chunk */
 #define DF_SND_NAME_STRIDE  0x18
@@ -524,8 +534,58 @@ static bool get_proto_config(STREAMFILE* sf, int* out_containers, bool* out_big_
     return true;
 }
 
+/* Proto standalone music banks use the same Group-A/Group-B model as early
+ * .snd, but place the compact control block at the start of container 0. */
+static int get_proto_bank_playlist(STREAMFILE* sf, int containers,
+        read_u16_t read_u16, read_u32_t read_u32, df_chunk_t* chunks,
+        df_early_playlist_t* playlist) {
+    off_t file_size = get_streamfile_size(sf);
+    off_t control = read_u32(DF_HEADER_SIZE, sf);
+
+    if (control <= 0 || control + 0x08 > file_size || read_u32(control, sf) != 0)
+        return 0;
+
+    uint32_t payload_size = read_u32(control + 0x04, sf);
+    off_t p = control + 0x08;
+    if (payload_size < DF_PROTO_BANK_CONTROL_SIZE || payload_size > file_size - p)
+        return 0;
+
+    int group_a_boundary = read_u16(p + DF_PROTO_BANK_GROUP_A_BOUNDARY, sf);
+    int group_b_count = read_u16(p + DF_PROTO_BANK_GROUP_B_COUNT, sf);
+    int order_count = read_u16(p + DF_PROTO_BANK_PLAYLIST_COUNT, sf);
+    if (group_a_boundary <= 0 || group_b_count <= 0 ||
+        order_count <= 0 || order_count > DF_PROTO_PLAYLIST_MAX ||
+        group_a_boundary + group_b_count >= containers)
+        return 0;
+
+    for (int selector = 1; selector <= group_b_count; selector++) {
+        int id = group_a_boundary + selector;
+        if (!chunks[id].valid)
+            return 0;
+    }
+
+    for (int i = 0; i < order_count; i++) {
+        int selector = read_u16(p + DF_PROTO_BANK_PLAYLIST_ORDER + (off_t)i * 0x02, sf);
+        if (selector < 1 || selector > group_b_count)
+            return 0;
+    }
+
+    playlist->sequence = malloc((size_t)order_count * sizeof(*playlist->sequence));
+    if (!playlist->sequence)
+        return -1;
+
+    for (int i = 0; i < order_count; i++) {
+        int selector = read_u16(p + DF_PROTO_BANK_PLAYLIST_ORDER + (off_t)i * 0x02, sf);
+        playlist->sequence[i] = group_a_boundary + selector;
+    }
+    playlist->count = order_count;
+    return 1;
+}
+
 /* Proto containers intersperse sound with non-sound resources.
- * MOV resources may additionally carry a complete Group-B playlist in control 0; */
+ * Discover only self-validating audio throughout the file. MOV resources may
+ * additionally carry a complete Group-B playlist in control 0. Non-MOV files
+ * are independently checked for the compact standalone music-bank form. */
 static VGMSTREAM* build_proto_resource(STREAMFILE* sf, int containers,
         bool big_endian, bool parse_movie_playlist) {
     VGMSTREAM* vgmstream = NULL;
@@ -602,6 +662,13 @@ static VGMSTREAM* build_proto_resource(STREAMFILE* sf, int containers,
                 }
             }
         }
+    }
+    else {
+        int playlist_result = get_proto_bank_playlist(sf, containers,
+                read_u16, read_u32, chunks, &playlist);
+        if (playlist_result < 0)
+            goto fail;
+        has_playlist = playlist_result > 0;
     }
 
     int subsongs = audio_count + (has_playlist ? 1 : 0);
@@ -730,7 +797,8 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
     int* listed = NULL;
     df_name_t* names = NULL;
     char track_name[STREAM_NAME_SIZE];
-    int order_count, listed_count = 0, subsongs, target;
+    int group_a_boundary, group_b_count, order_count;
+    int listed_count = 0, subsongs, target;
     bool has_track;
     off_t fsize, c0;
 
@@ -741,8 +809,12 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
     c0 = read_u32le(DF_HEADER_SIZE + 0x00 * 0x04, sf);
     if (c0 <= 0 || c0 + DF_SND_CHUNK_NAMES > fsize)
         return NULL;
+    group_a_boundary = read_u16le(c0 + DF_SND_GROUP_A_BOUNDARY, sf);
+    group_b_count = read_u16le(c0 + DF_SND_GROUP_B_COUNT, sf);
     order_count = read_u16le(c0 + DF_SND_ORDER_COUNT, sf);
-    if (order_count <= 0 || order_count > DF_MAX_CHUNKS)
+    if (group_a_boundary <= 0 || group_b_count <= 0 ||
+        group_a_boundary + group_b_count >= containers ||
+        order_count <= 0 || order_count > DF_SND_ORDER_MAX)
         return NULL; /* no container-0 order -> not this variant; caller falls through */
     if (c0 + DF_SND_ORDER + (off_t)order_count * 0x02 > fsize)
         return NULL;
@@ -759,10 +831,11 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
     for (int i = 0; i < containers; i++)
         is_valid_chunk(sf, containers, i, &chunks[i]); /* fills chunks[i], sets .valid */
 
-    /* order list -> seq (1-based container ids); bail if any reference isn't a real audio chunk */
+    /* order list -> seq (1-based selectors into the contiguous Group-B range) */
     for (int i = 0; i < order_count; i++) {
-        int id = read_u16le(c0 + DF_SND_ORDER + (off_t)i * 0x02, sf);
-        if (id < 1 || id >= containers || !chunks[id].valid)
+        int selector = read_u16le(c0 + DF_SND_ORDER + (off_t)i * 0x02, sf);
+        int id = group_a_boundary + selector;
+        if (selector < 1 || selector > group_b_count || !chunks[id].valid)
             goto fail;
         seq[i] = id;
     }
@@ -795,7 +868,7 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
         if (chunks[i].valid)
             listed[listed_count++] = i;
 
-    has_track = (order_count > 1); /* a single-step order is not a real assembled track */
+    has_track = true;
     subsongs = (has_track ? 1 : 0) + listed_count;
     if (subsongs == 0)
         goto fail;
@@ -859,15 +932,18 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     uint8_t* in_loop = NULL;
     char track_name[STREAM_NAME_SIZE];
 
-    if (!check_extensions(sf, "snd,sfx,trk,mov,move"))
+    if (!check_extensions(sf, "snd,sfx,trk,mov,move,"))
         return NULL;
 
     int is_mov = check_extensions(sf, "mov,move");
-    if (is_mov) {
+    int is_extensionless = check_extensions(sf, "");
+    if (is_mov || is_extensionless) {
         int proto_containers;
         bool proto_big_endian;
         if (get_proto_config(sf, &proto_containers, &proto_big_endian))
             return build_proto_resource(sf, proto_containers, proto_big_endian, is_mov);
+        if (is_extensionless)
+            return NULL;
     }
 
     if (read_u32le(0x04, sf) != get_streamfile_size(sf))
