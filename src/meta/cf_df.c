@@ -22,9 +22,12 @@
  */
 
 #define DF_HEADER_SIZE  0x400
-#define DF_ORDER_REGION 260     /* fixed-size chunkOrder area in the loop block */
-#define DF_LOOP_ENTRY   26      /* loop-block entry stride */
-#define DF_NAME_MAX     (32-1)  /* MOV identifiers; others use 15 */
+#define DF_ORDER_REGION 0x104   /* fixed-size chunkOrder area in the loop block */
+#define DF_NAME_OFFSET  0x0A    /* Pascal length byte within named entries */
+#define DF_LOOP_ENTRY   0x1A    /* loop/non-MOV entry stride: 16-byte Pascal field */
+#define DF_MOV_ENTRY    0x2A    /* MOV one-shot entry stride: 32-byte Pascal field */
+#define DF_SHORT_NAME_MAX (DF_LOOP_ENTRY - DF_NAME_OFFSET - 1)
+#define DF_MOV_NAME_MAX   (DF_MOV_ENTRY - DF_NAME_OFFSET - 1)
 #define DF_MAX_CHUNKS   0x4000  /* sanity cap for table sizes */
 
 /* .snd "container-0" variant (HELP.SND/KID.SND): unlike the trk/sfx/mov container-1 loop block, the
@@ -45,11 +48,11 @@ typedef struct {
     int32_t sample_rate;
     int32_t uncompressed_size;
     int valid;
-    char name[DF_NAME_MAX + 1];
+    char name[DF_MOV_NAME_MAX + 1];
 } df_chunk_t;
 
 typedef struct {
-    char name[DF_NAME_MAX + 1];
+    char name[DF_MOV_NAME_MAX + 1];
 } df_name_t;
 
 /* Read the audio fields of a container; returns 1 if it looks like a valid audio chunk. */
@@ -132,11 +135,13 @@ static bool is_silent_chunk(STREAMFILE* sf, const df_chunk_t* c) {
 
 /* Pascal String (nameLen @ entry+0x0A, chars @ entry+0x0B). */
 static void read_name(STREAMFILE* sf, off_t entry, int name_max, df_name_t* dst) {
-    int len = read_u8(entry + 0x0A, sf);
-    if (len > name_max)
-        len = name_max;
+    int len = read_u8(entry + DF_NAME_OFFSET, sf);
+    if (len > name_max) {
+        dst->name[0] = '\0';
+        return;
+    }
     for (int k = 0; k < len; k++)
-        dst->name[k] = read_u8(entry + 0x0B + k, sf);
+        dst->name[k] = read_u8(entry + DF_NAME_OFFSET + 1 + k, sf);
     dst->name[len] = '\0';
 }
 
@@ -267,7 +272,7 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
         if (e + 1 > fsize)
             break;
         int ln = read_u8(e, sf);
-        if (ln <= 0 || ln > 15 || e + 1 + ln > fsize)
+        if (ln <= 0 || ln > DF_SHORT_NAME_MAX || e + 1 + ln > fsize)
             continue;
         for (int k = 0; k < ln; k++)
             names[id].name[k] = read_u8(e + 1 + k, sf);
@@ -277,7 +282,7 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
     /* track name */
     {
         int tl = read_u8(c0 + DF_SND_TRACK_NAME, sf);
-        if (tl > 0 && tl <= DF_NAME_MAX && c0 + DF_SND_TRACK_NAME + 1 + tl <= fsize) {
+        if (tl > 0 && tl <= DF_MOV_NAME_MAX && c0 + DF_SND_TRACK_NAME + 1 + tl <= fsize) {
             for (int k = 0; k < tl; k++)
                 track_name[k] = read_u8(c0 + DF_SND_TRACK_NAME + 1 + k, sf);
             track_name[tl] = '\0';
@@ -427,7 +432,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
             for (int i = 0; i < lc; i++) {
                 int id = read_u16le(e + 0x04, sf);
                 if (id >= 0 && id < containers)
-                    read_name(sf, e, 15, &names[id]);
+                    read_name(sf, e, DF_SHORT_NAME_MAX, &names[id]);
                 if (!is_valid_chunk(sf, containers, id, &loop[i]))
                     all_valid = 0;
                 e += DF_LOOP_ENTRY;
@@ -456,7 +461,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
 
         if (!is_mov) {
             int tl = read_u8(p0 + 0x24, sf);
-            if (tl > 0 && tl <= DF_NAME_MAX) {
+            if (tl > 0 && tl <= DF_MOV_NAME_MAX) {
                 for (int k = 0; k < tl; k++)
                     track_name[k] = read_u8(p0 + 0x25 + k, sf);
                 track_name[tl] = '\0';
@@ -469,8 +474,8 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
             if (sp > 0) {
                 off_t spp = sp + 0x08;
                 int count = read_u16le(spp + 0x04, sf);
-                int name_max = is_mov ? DF_NAME_MAX : 15;
-                int stride = is_mov ? 42 : 26;
+                int name_max = is_mov ? DF_MOV_NAME_MAX : DF_SHORT_NAME_MAX;
+                int stride = is_mov ? DF_MOV_ENTRY : DF_LOOP_ENTRY;
                 if (count > 0 && count <= containers) {
                     off_t e = spp + 0x08;
                     for (int i = 0; i < count; i++) {
