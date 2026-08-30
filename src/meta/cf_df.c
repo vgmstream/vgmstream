@@ -292,8 +292,21 @@ static void trim_early_playlist(STREAMFILE* sf, df_chunk_t* chunks,
     *out_loop_start = loop_start;
 }
 
-/* Revision-1 MOVs keep Group-A one-shots and
- * Group-B background sources immediately after each control. */
+static void set_stream_name(STREAMFILE* sf, VGMSTREAM* vgmstream,
+        const char* authored_name, int stream_index) {
+    if (authored_name && authored_name[0]) {
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", authored_name);
+    }
+    else {
+        char basename[STREAM_NAME_SIZE];
+        get_streamfile_filename(sf, basename, sizeof(basename));
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d",
+                STREAM_NAME_SIZE - (11 + 1 + 1), basename, stream_index);
+    }
+}
+
+/* Revision-1 MOVs keep Group-A one-shots and Group-B background sources
+ * immediately after each control. */
 static VGMSTREAM* build_revision1_mov(STREAMFILE* sf, int containers) {
     VGMSTREAM* vgmstream = NULL;
     df_chunk_t* chunks = NULL;
@@ -426,6 +439,7 @@ static VGMSTREAM* build_revision1_mov(STREAMFILE* sf, int containers) {
             goto fail;
     }
 
+    set_stream_name(sf, vgmstream, NULL, target);
     vgmstream->num_streams = subsongs;
     free(chunks);
     free(audio_ids);
@@ -577,6 +591,7 @@ static VGMSTREAM* build_proto_resource(STREAMFILE* sf, int containers,
             goto fail;
     }
 
+    set_stream_name(sf, vgmstream, NULL, target);
     vgmstream->num_streams = subsongs;
     free(chunks);
     free(audio_ids);
@@ -673,14 +688,12 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
     int* listed = NULL;
     df_name_t* names = NULL;
     char track_name[STREAM_NAME_SIZE];
-    char basename[STREAM_NAME_SIZE];
     int order_count, listed_count = 0, subsongs, target;
     bool has_track;
     off_t fsize, c0;
 
     *handled = 0;
     track_name[0] = '\0';
-    get_streamfile_filename(sf, basename, sizeof(basename));
     fsize = get_streamfile_size(sf);
 
     c0 = read_u32le(DF_HEADER_SIZE + 0x00 * 0x04, sf);
@@ -763,7 +776,7 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
         vgmstream = build_segmented(sf, chunks, seq + lo, hi - lo + 1, 1, 0);
         if (!vgmstream)
             goto fail;
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", track_name[0] ? track_name : basename);
+        set_stream_name(sf, vgmstream, track_name, target);
     }
     else {
         int piece = target - (has_track ? 1 : 0); /* 1-based index into listed[] */
@@ -773,10 +786,7 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
         if (!vgmstream)
             goto fail;
         config_chunk(vgmstream, &chunks[id]);
-        if (names[id].name[0])
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", names[id].name);
-        else
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", STREAM_NAME_SIZE - (11 + 1 + 1), basename, piece);
+        set_stream_name(sf, vgmstream, names[id].name, target);
         if (!vgmstream_open_stream(vgmstream, sf, chunks[id].offset))
             goto fail;
     }
@@ -806,7 +816,6 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     int* seq = NULL;
     uint8_t* in_loop = NULL;
     char track_name[STREAM_NAME_SIZE];
-    char basename[STREAM_NAME_SIZE];
 
     if (!check_extensions(sf, "snd,sfx,trk,mov,move"))
         return NULL;
@@ -847,7 +856,6 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     int target = sf->stream_index;
     if (target == 0)
         target = 1;
-    get_streamfile_filename(sf, basename, sizeof(basename));
     track_name[0] = '\0';
 
     // definitions before 'goto fail'
@@ -999,8 +1007,8 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         if (!vgmstream)
             goto fail;
 
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s",
-                (!is_mov && track_name[0]) ? track_name : basename);
+        set_stream_name(sf, vgmstream,
+                !is_mov ? track_name : NULL, target);
     } else {
         /* subsongs 2..N (or 1..N when no loop block): individual audio pieces */
         int piece = target - (has_loop ? 1 : 0);
@@ -1015,10 +1023,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
             goto fail;
 
         config_chunk(vgmstream, &c);
-        if (names[id].name[0])
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", names[id].name);
-        else
-            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%.*s#%d", STREAM_NAME_SIZE - (11 + 1 + 1), basename, piece); /* reserve '#' + 11-digit int + NUL */
+        set_stream_name(sf, vgmstream, names[id].name, target);
 
         if (!vgmstream_open_stream(vgmstream, sf, c.offset))
             goto fail;
