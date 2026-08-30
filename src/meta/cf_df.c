@@ -1,24 +1,28 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/endianness.h"
 #include "../util/layout_utils.h"
 
 /*
  * CF_DF - CyberFlix DreamFactory Engine
  *
  * Structure:
- * - 0x400-byte header: file size @0x04, container count @0x14, "LPPALPPA" @0x20.
+ * - 0x400-byte header: file size @0x04, container count @0x14; later files use
+ *   "LPPALPPA" @0x20.
  * - u32 offset table @0x400 pointing to each container (u32 id, u32 size, then payload).
- * - Audio chunks live in containers whose payload holds: u16 codec @0x1A (1=v4.0 / 2=v4.1),
- *   u32 rate @0x1C, u32 uncompressed size @0x24, u32 data offset @0x2C.
+ * - Later audio chunks hold: u16 codec @0x1A (1=v4.0 / 2=v4.1), u32 rate @0x1C,
+ *   u32 uncompressed size @0x24, u32 data offset @0x2C.
+ * - Proto audio resources hold a native-endian u16 duration followed by v4.0 ADPCM.
  *
  * Container 1 holds a "loop block" describing a playback track: a chunkOrder sequence plus a
  * list of audio chunks. A second "single block" (pointed at from container 0) lists named
  * one-shot chunks. subsong 1 = the assembled track, subsongs 2..N = every audio
  * chunk individually.
  *
- * Titles: Dust 1996 3.1/95, Titanic: Adventure Out of Time
+ * Titles: Lunicus, Jump Raven, Dust 1996 3.1/95, Titanic: Adventure Out of Time
  * Disney's Math/Reading Quest with Aladdin
+ *
  */
 
 #define DF_HEADER_SIZE  0x400
@@ -29,6 +33,27 @@
 #define DF_SHORT_NAME_MAX (DF_LOOP_ENTRY - DF_NAME_OFFSET - 1)
 #define DF_MOV_NAME_MAX   (DF_MOV_ENTRY - DF_NAME_OFFSET - 1)
 #define DF_MAX_CHUNKS   0x4000  /* sanity cap for table sizes */
+
+/* Early MOV control layouts. Revision 1 keeps the later audio chunk header. */
+#define DF_MOV_CONTROL_REVISION      0x02
+#define DF_MOV_CONTROL_REVISION_1    0x0001
+
+#define DF_REV1_AUDIO_A_COUNT        0x1A
+#define DF_REV1_AUDIO_B_COUNT        0x1C
+#define DF_REV1_PLAYLIST_COUNT       0x34
+#define DF_REV1_NEXT_CONTROL         0x36
+#define DF_REV1_PLAYLIST_ORDER       0x83E
+#define DF_REV1_PLAYLIST_LOOP        0x8BE
+
+#define DF_PROTO_AUDIO_HEADER        0x02
+#define DF_PROTO_DURATION_SAMPLES    370
+#define DF_PROTO_WINDOWS_RATE        22050
+#define DF_PROTO_MACINTOSH_RATE      22255  /* nearest integer to 0x56EE8BA3 (16.16) */
+#define DF_PROTO_AUDIO_A_COUNT       0x02
+#define DF_PROTO_AUDIO_B_COUNT       0x04
+#define DF_PROTO_PLAYLIST_COUNT      0x1C
+#define DF_PROTO_PLAYLIST_ORDER      0x822
+#define DF_PROTO_PLAYLIST_MAX        64
 
 /* .snd "container-0" variant (HELP.SND/KID.SND): unlike the trk/sfx/mov container-1 loop block, the
  * order list, track name and per-chunk names live in container 0. Offsets are relative to container 0.
@@ -54,6 +79,15 @@ typedef struct {
 typedef struct {
     char name[DF_MOV_NAME_MAX + 1];
 } df_name_t;
+
+typedef struct {
+    int* sequence;              /* container ids in authored playback order */
+    int count;
+    int loop;
+    int loop_start;             /* sequence index */
+} df_early_playlist_t;
+
+static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, int count, int loop, int loop_start);
 
 /* Read the audio fields of a container; returns 1 if it looks like a valid audio chunk. */
 static bool is_valid_chunk(STREAMFILE* sf, int containers, int id, df_chunk_t* c) {
@@ -82,6 +116,76 @@ static bool is_valid_chunk(STREAMFILE* sf, int containers, int id, df_chunk_t* c
     c->offset            = hp + data_offset;
     c->size              = read_u32le(pos + 0x04, sf) - data_offset;
     c->valid             = 1;
+    return true;
+}
+
+static int32_t count_v40_samples(STREAMFILE* sf, off_t offset, int32_t size) {
+    if (size <= 0)
+        return 0;
+
+    off_t pos = offset + 1;
+    off_t end = offset + size;
+    int64_t samples = 1;
+
+    while (pos < end) {
+        uint8_t control = read_u8(pos++, sf);
+
+        if ((control & 0x80) == 0) {
+            samples++;
+        }
+        else if ((control & 0x40) == 0) {
+            int count = (control & 0x3f) + 1;
+            if (pos + count > end)
+                return 0;
+            pos += count;
+            samples += count * 2;
+        }
+        else {
+            samples += (control & 0x3f) + 1;
+        }
+
+        if (samples > INT32_MAX)
+            return 0;
+    }
+
+    return (int32_t)samples;
+}
+
+/* Proto audio stores a native-endian u16 duration followed by raw v4.0 ADPCM. */
+static bool is_valid_proto_chunk(STREAMFILE* sf, int containers, int id,
+        read_u16_t read_u16, read_u32_t read_u32, int sample_rate, df_chunk_t* c) {
+    off_t file_size = get_streamfile_size(sf);
+    if (id <= 0 || id >= containers)
+        return false;
+
+    off_t pos = read_u32(DF_HEADER_SIZE + id * 0x04, sf);
+    if (pos <= 0 || pos + 0x08 > file_size)
+        return false;
+    if (read_u32(pos, sf) != (uint32_t)id)
+        return false;
+
+    uint32_t payload_size = read_u32(pos + 0x04, sf);
+    off_t hp = pos + 0x08;
+    if (payload_size <= DF_PROTO_AUDIO_HEADER || payload_size > INT32_MAX || hp + payload_size > file_size)
+        return false;
+
+    off_t data_offset = hp + DF_PROTO_AUDIO_HEADER;
+    int32_t data_size = payload_size - DF_PROTO_AUDIO_HEADER;
+    int32_t samples = count_v40_samples(sf, data_offset, data_size);
+    if (samples <= 0 || samples % DF_PROTO_DURATION_SAMPLES != 0)
+        return false;
+
+    int duration = samples / DF_PROTO_DURATION_SAMPLES;
+    if (duration != read_u16(hp, sf))
+        return false;
+
+    c->container_id = id;
+    c->codec_flag = 1;
+    c->sample_rate = sample_rate;
+    c->uncompressed_size = samples;
+    c->offset = data_offset;
+    c->size = data_size;
+    c->valid = 1;
     return true;
 }
 
@@ -145,9 +249,351 @@ static void read_name(STREAMFILE* sf, off_t entry, int name_max, df_name_t* dst)
     dst->name[len] = '\0';
 }
 
+static int get_mov_control_revision(STREAMFILE* sf) {
+    off_t file_size = get_streamfile_size(sf);
+    off_t pos = read_u32le(DF_HEADER_SIZE, sf);
+    if (pos <= 0 || pos + 0x08 + DF_MOV_CONTROL_REVISION + 0x02 > file_size)
+        return 0;
+    return read_u16le(pos + 0x08 + DF_MOV_CONTROL_REVISION, sf);
+}
+
+static void trim_early_playlist(STREAMFILE* sf, df_chunk_t* chunks,
+        const df_early_playlist_t* playlist, int* out_lo, int* out_hi,
+        int* out_loop, int* out_loop_start) {
+    int lo = 0, hi = playlist->count - 1;
+    int loop = playlist->loop;
+    int loop_start = playlist->loop_start;
+
+    /* Trim non-interspaced silence */
+    while (lo <= hi && is_silent_chunk(sf, &chunks[playlist->sequence[lo]]))
+        lo++;
+    while (hi >= lo && is_silent_chunk(sf, &chunks[playlist->sequence[hi]]))
+        hi--;
+    if (lo > hi) {
+        lo = 0;
+        hi = playlist->count - 1;
+    }
+
+    if (loop) {
+        if (loop_start > hi) {
+            loop = 0;
+            loop_start = 0;
+        }
+        else {
+            if (loop_start < lo)
+                loop_start = lo;
+            loop_start -= lo;
+        }
+    }
+
+    *out_lo = lo;
+    *out_hi = hi;
+    *out_loop = loop;
+    *out_loop_start = loop_start;
+}
+
+/* Revision-1 MOVs keep Group-A one-shots and
+ * Group-B background sources immediately after each control. */
+static VGMSTREAM* build_revision1_mov(STREAMFILE* sf, int containers) {
+    VGMSTREAM* vgmstream = NULL;
+    df_chunk_t* chunks = NULL;
+    int* audio_ids = NULL;
+    df_early_playlist_t playlist = {0};
+    int audio_count = 0;
+    int control = 0;
+    bool has_playlist = false;
+
+    chunks = calloc((size_t)containers, sizeof(*chunks));
+    audio_ids = malloc((size_t)containers * sizeof(*audio_ids));
+    if (!chunks || !audio_ids)
+        goto fail;
+
+    off_t file_size = get_streamfile_size(sf);
+    while (control < containers) {
+        off_t pos = read_u32le(DF_HEADER_SIZE + (off_t)control * 0x04, sf);
+        if (pos <= 0 || pos + 0x08 > file_size)
+            goto fail;
+        off_t p = pos + 0x08;
+
+        int audio_a, audio_b, next;
+        int order_count;
+        off_t order_pos;
+        int loop = 0, loop_start = 0;
+
+        if (p + DF_REV1_PLAYLIST_LOOP + 0x04 > file_size)
+            goto fail;
+        if (read_u16le(p + DF_MOV_CONTROL_REVISION, sf) != DF_MOV_CONTROL_REVISION_1)
+            goto fail;
+        audio_a = read_u16le(p + DF_REV1_AUDIO_A_COUNT, sf);
+        audio_b = read_u16le(p + DF_REV1_AUDIO_B_COUNT, sf);
+        order_count = read_u16le(p + DF_REV1_PLAYLIST_COUNT, sf);
+        order_pos = p + DF_REV1_PLAYLIST_ORDER;
+        uint32_t authored_loop = read_u32le(p + DF_REV1_PLAYLIST_LOOP, sf);
+        if (authored_loop < (uint32_t)order_count) {
+            loop = 1;
+            loop_start = authored_loop;
+        }
+        uint32_t authored_next = read_u32le(p + DF_REV1_NEXT_CONTROL, sf);
+        if (authored_next > (uint32_t)containers)
+            goto fail;
+        next = authored_next ? (int)authored_next : containers;
+
+        int audio_base = control + 1;
+        int group_b_base = audio_base + audio_a;
+        if (audio_a + audio_b > containers || audio_base + audio_a + audio_b > containers)
+            goto fail;
+        if (next <= control || next > containers)
+            goto fail;
+        if (order_count > DF_MAX_CHUNKS)
+            goto fail;
+        if (order_pos + (off_t)order_count * 0x02 > file_size)
+            goto fail;
+
+        for (int i = 0; i < audio_a + audio_b; i++) {
+            int id = audio_base + i;
+            if (!is_valid_chunk(sf, containers, id, &chunks[id]))
+                goto fail;
+            if (audio_count >= containers)
+                goto fail;
+            audio_ids[audio_count++] = id;
+        }
+
+        if (audio_b > 0 && order_count > 0) {
+            int old_count = playlist.count;
+
+            for (int i = 0; i < order_count; i++) {
+                int selector = read_u16le(order_pos + (off_t)i * 0x02, sf);
+                if (selector < 1 || selector > audio_b)
+                    goto fail;
+            }
+
+            int* sequence = realloc(playlist.sequence,
+                    (size_t)(old_count + order_count) * sizeof(*sequence));
+            if (!sequence)
+                goto fail;
+            playlist.sequence = sequence;
+
+            for (int i = 0; i < order_count; i++) {
+                int selector = read_u16le(order_pos + (off_t)i * 0x02, sf);
+                playlist.sequence[old_count + i] = group_b_base + selector - 1;
+            }
+            playlist.count = old_count + order_count;
+
+            /* One output track has one loop point. Keep the first authored
+             * point when a MOV contributes more than one control sequence. */
+            if (loop && !playlist.loop) {
+                playlist.loop = 1;
+                playlist.loop_start = old_count + loop_start;
+            }
+            has_playlist = true;
+        }
+
+        if (next == containers)
+            break;
+        control = next;
+    }
+
+    int subsongs = (has_playlist ? 1 : 0) + audio_count;
+    if (subsongs <= 0)
+        goto fail;
+
+    int target = sf->stream_index;
+    if (target == 0)
+        target = 1;
+    if (target < 1 || target > subsongs)
+        goto fail;
+
+    if (has_playlist && target == 1) {
+        int lo = 0, hi = playlist.count - 1;
+        int loop = playlist.loop;
+        int loop_start = playlist.loop_start;
+
+        trim_early_playlist(sf, chunks, &playlist, &lo, &hi, &loop, &loop_start);
+
+        vgmstream = build_segmented(sf, chunks, playlist.sequence + lo,
+                hi - lo + 1, loop, loop_start);
+        if (!vgmstream)
+            goto fail;
+    }
+    else {
+        int piece = target - (has_playlist ? 1 : 0);
+        int id = audio_ids[piece - 1];
+        vgmstream = allocate_vgmstream(1, 0);
+        if (!vgmstream)
+            goto fail;
+        config_chunk(vgmstream, &chunks[id]);
+        if (!vgmstream_open_stream(vgmstream, sf, chunks[id].offset))
+            goto fail;
+    }
+
+    vgmstream->num_streams = subsongs;
+    free(chunks);
+    free(audio_ids);
+    free(playlist.sequence);
+    return vgmstream;
+
+fail:
+    free(chunks);
+    free(audio_ids);
+    free(playlist.sequence);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* Proto resources serialize the complete container in the platform's native byte order. */
+static bool get_proto_config(STREAMFILE* sf, int* out_containers, bool* out_big_endian) {
+    off_t file_size = get_streamfile_size(sf);
+    if (file_size <= 0 || file_size > UINT32_MAX)
+        return false;
+    if (is_id32be(0x20, sf, "LPPA") && is_id32be(0x24, sf, "LPPA"))
+        return false;
+
+    bool valid_le = read_u32le(0x00, sf) == 0x00010000 &&
+                    read_u32le(0x04, sf) == (uint32_t)file_size;
+    bool valid_be = read_u32be(0x00, sf) == 0x00010000 &&
+                    read_u32be(0x04, sf) == (uint32_t)file_size;
+    if (valid_le == valid_be)
+        return false;
+
+    bool big_endian = valid_be;
+    read_u32_t read_u32 = get_read_u32(big_endian);
+    uint32_t containers = read_u32(0x14, sf);
+    if (containers <= 1 || containers > INT16_MAX)
+        return false;
+    if (DF_HEADER_SIZE + (off_t)containers * 0x04 > file_size)
+        return false;
+
+    *out_containers = containers;
+    *out_big_endian = big_endian;
+    return true;
+}
+
+/* Proto containers intersperse sound with non-sound resources.
+ * MOV resources may additionally carry a complete Group-B playlist in control 0; */
+static VGMSTREAM* build_proto_resource(STREAMFILE* sf, int containers,
+        bool big_endian, bool parse_movie_playlist) {
+    VGMSTREAM* vgmstream = NULL;
+    df_chunk_t* chunks = NULL;
+    int* audio_ids = NULL;
+    df_early_playlist_t playlist = {0};
+    read_u16_t read_u16 = get_read_u16(big_endian);
+    read_u32_t read_u32 = get_read_u32(big_endian);
+    int sample_rate = big_endian ? DF_PROTO_MACINTOSH_RATE : DF_PROTO_WINDOWS_RATE;
+    int audio_count = 0;
+    bool has_playlist = false;
+
+    chunks = calloc((size_t)containers, sizeof(*chunks));
+    audio_ids = malloc((size_t)containers * sizeof(*audio_ids));
+    if (!chunks || !audio_ids)
+        goto fail;
+
+    for (int id = 1; id < containers; id++) {
+        if (is_valid_proto_chunk(sf, containers, id, read_u16, read_u32,
+                sample_rate, &chunks[id])) {
+            audio_ids[audio_count++] = id;
+        }
+    }
+    if (audio_count <= 0)
+        goto fail;
+
+    if (parse_movie_playlist) {
+        /* Proto MOV has one control record. Group-B selectors are 1-based and
+         * loop from entry zero. */
+        off_t file_size = get_streamfile_size(sf);
+        off_t control = read_u32(DF_HEADER_SIZE, sf);
+        if (control > 0 && control + 0x08 <= file_size &&
+            read_u32(control, sf) == 0) {
+            uint32_t payload_size = read_u32(control + 0x04, sf);
+            off_t p = control + 0x08;
+
+            if (payload_size <= file_size - p &&
+                payload_size >= DF_PROTO_PLAYLIST_COUNT + 0x02) {
+                int audio_a = read_u16(p + DF_PROTO_AUDIO_A_COUNT, sf);
+                int audio_b = read_u16(p + DF_PROTO_AUDIO_B_COUNT, sf);
+                int order_count = read_u16(p + DF_PROTO_PLAYLIST_COUNT, sf);
+
+                if (audio_b > 0 && order_count > 0 &&
+                    order_count <= DF_PROTO_PLAYLIST_MAX &&
+                    audio_a + audio_b < containers &&
+                    DF_PROTO_PLAYLIST_ORDER + (off_t)order_count * 0x02 <= payload_size) {
+                    bool valid = true;
+
+                    playlist.sequence = malloc((size_t)order_count * sizeof(*playlist.sequence));
+                    if (!playlist.sequence)
+                        goto fail;
+
+                    for (int i = 0; i < order_count; i++) {
+                        int selector = read_u16(p + DF_PROTO_PLAYLIST_ORDER + (off_t)i * 0x02, sf);
+                        int id = audio_a + selector;
+
+                        if (selector < 1 || selector > audio_b || !chunks[id].valid) {
+                            valid = false;
+                            break;
+                        }
+                        playlist.sequence[i] = id;
+                    }
+
+                    if (valid) {
+                        playlist.count = order_count;
+                        playlist.loop = 1;
+                        playlist.loop_start = 0;
+                        has_playlist = true;
+                    }
+                    else {
+                        free(playlist.sequence);
+                        playlist.sequence = NULL;
+                    }
+                }
+            }
+        }
+    }
+
+    int subsongs = audio_count + (has_playlist ? 1 : 0);
+    int target = sf->stream_index;
+    if (target == 0)
+        target = 1;
+    if (target < 1 || target > subsongs)
+        goto fail;
+
+    if (has_playlist && target == 1) {
+        int lo, hi, loop, loop_start;
+
+        trim_early_playlist(sf, chunks, &playlist, &lo, &hi, &loop, &loop_start);
+        vgmstream = build_segmented(sf, chunks, playlist.sequence + lo,
+                hi - lo + 1, loop, loop_start);
+        if (!vgmstream)
+            goto fail;
+    }
+    else {
+        int piece = target - (has_playlist ? 1 : 0);
+        int id = audio_ids[piece - 1];
+
+        vgmstream = allocate_vgmstream(1, 0);
+        if (!vgmstream)
+            goto fail;
+
+        config_chunk(vgmstream, &chunks[id]);
+        if (!vgmstream_open_stream(vgmstream, sf, chunks[id].offset))
+            goto fail;
+    }
+
+    vgmstream->num_streams = subsongs;
+    free(chunks);
+    free(audio_ids);
+    free(playlist.sequence);
+    return vgmstream;
+
+fail:
+    free(chunks);
+    free(audio_ids);
+    free(playlist.sequence);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
 /* Assembled track via segmented layout: play the given sequence of loop chunks once.
  * loop=1 marks the whole assembled track as an end-to-end loop (.snd/.sfx/.trk only; .mov excluded). */
-static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, int count, int loop) {
+static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, int count, int loop, int loop_start) {
     VGMSTREAM* v = NULL;
     segmented_layout_data* data = init_layout_segmented(count);
     if (!data) goto fail;
@@ -165,7 +611,7 @@ static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, int* seq, 
     if (!setup_layout_segmented(data))
         goto fail;
 
-    v = allocate_segmented_vgmstream(data, loop, 0, count - 1);
+    v = allocate_segmented_vgmstream(data, loop, loop_start, count - 1);
     if (!v) goto fail;
     return v;
 
@@ -314,7 +760,7 @@ static VGMSTREAM* build_snd_c0(STREAMFILE* sf, int containers, int* handled) {
             hi--;
         if (lo > hi) { lo = 0; hi = order_count - 1; } /* all silent: keep so it isn't empty */
 
-        vgmstream = build_segmented(sf, chunks, seq + lo, hi - lo + 1, 1);
+        vgmstream = build_segmented(sf, chunks, seq + lo, hi - lo + 1, 1, 0);
         if (!vgmstream)
             goto fail;
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", track_name[0] ? track_name : basename);
@@ -362,15 +808,29 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     char track_name[STREAM_NAME_SIZE];
     char basename[STREAM_NAME_SIZE];
 
-    if (!is_id32be(0x20, sf, "LPPA") || !is_id32be(0x24, sf, "LPPA"))
-        return NULL;
-    if (read_u32le(0x04, sf) != get_streamfile_size(sf))
-        return NULL;
-    if (!check_extensions(sf, "snd,sfx,trk,mov"))
+    if (!check_extensions(sf, "snd,sfx,trk,mov,move"))
         return NULL;
 
+    int is_mov = check_extensions(sf, "mov,move");
+    if (is_mov) {
+        int proto_containers;
+        bool proto_big_endian;
+        if (get_proto_config(sf, &proto_containers, &proto_big_endian))
+            return build_proto_resource(sf, proto_containers, proto_big_endian, is_mov);
+    }
+
+    if (read_u32le(0x04, sf) != get_streamfile_size(sf))
+        return NULL;
     int containers = read_u32le(0x14, sf);
     if (containers <= 0 || containers > INT16_MAX)
+        return NULL;
+    if (DF_HEADER_SIZE + (off_t)containers * 0x04 > get_streamfile_size(sf))
+        return NULL;
+
+    int has_lppa = is_id32be(0x20, sf, "LPPA") && is_id32be(0x24, sf, "LPPA");
+    if (is_mov && get_mov_control_revision(sf) == DF_MOV_CONTROL_REVISION_1)
+        return build_revision1_mov(sf, containers);
+    if (!has_lppa)
         return NULL;
 
     /* Most .snd files store the theme in container 0.
@@ -383,7 +843,6 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
             return vgmstream;
     }
 
-    int is_mov = check_extensions(sf, "mov");
     int loop_track = check_extensions(sf, "sfx,snd,trk");
     int target = sf->stream_index;
     if (target == 0)
@@ -535,7 +994,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
                 lo = 0;
                 hi = count - 1;
             }
-            vgmstream = build_segmented(sf, loop, seq + lo, hi - lo + 1, loop_track);
+            vgmstream = build_segmented(sf, loop, seq + lo, hi - lo + 1, loop_track, 0);
         }
         if (!vgmstream)
             goto fail;
