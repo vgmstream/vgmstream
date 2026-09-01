@@ -1941,6 +1941,7 @@ static bool parse_name_table(txth_header* txth, char* set_name) {
     char filename[PATH_LIMIT];
     char basename[PATH_LIMIT];
     const char* table_name;
+    const char* table_ext;
 
     /* just in case */
     if (!txth->sf_text || !txth->sf_body)
@@ -1952,6 +1953,12 @@ static bool parse_name_table(txth_header* txth, char* set_name) {
         table_name = ".names.txt";
     else
         table_name = set_name;
+
+    // just in case enforce extension
+    table_ext = filename_extension(table_name);
+    if (!table_ext || (strcasecmp(table_ext, "txth") != 0 && strcasecmp(table_ext, "txt") != 0))
+        goto fail;
+
 
     /* open companion file near .txth */
     sf_names = open_streamfile_by_filename(txth->sf_text, table_name);
@@ -2042,10 +2049,16 @@ static bool parse_multi_txth(txth_header* txth, char* names) {
 
     while (names[0] != '\0') {
         STREAMFILE* sf_test = NULL;
-        int found;
+        const char* multi_ext;
+        bool found;
 
         ok = sscanf(names, " %"TXT_PATH_LIMIT_STR"[^\t#\r\n,]%n ", name, &n);
         if (ok != 1)
+            goto fail;
+
+        // just in case enforce extension
+        multi_ext = filename_extension(name);
+        if (!multi_ext || strcasecmp(multi_ext, "txth") != 0)
             goto fail;
 
         //;VGM_LOG("TXTH: multi name %s\n", name);
