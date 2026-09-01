@@ -63,15 +63,50 @@ VGMSTREAM* init_vgmstream_skex(STREAMFILE* sf) {
     // With flags = 0x1000, after all is another table with increasing low number per entry
     switch(version) {
         case 0x1070: {  // MLB 2003 (PS2), MLB 2004 (PS2)
-            uint32_t offset = head_offset;
+            uint32_t offset = head_offset; // actually a footer (table is near EOF)
 
-            // entries go after files
             for (int i = 0; i < entries; i++) {
                 uint32_t curr_offset = read_u32le(offset + 0x00, sf_h);
                 uint32_t curr_type   = read_u32le(offset + 0x04, sf_h);
                 // 08: null?
 
                 offset += 0x0c;
+
+                switch(curr_type) {
+                    case 0x05: // .vag (mono)
+                    case 0x0c: // .vag (stereo)
+                        break;
+                    default:
+                        vgm_logi("SKEX: unknown format %x (report)\n", curr_type);
+                        goto fail;
+                }
+
+                if (prev_offset == curr_offset)
+                    continue;
+                prev_offset = curr_offset;
+
+                total_subsongs++;
+
+                if (target_subsong == total_subsongs && !subfile_offset) {
+                    uint32_t next_offset = read_u32le(offset, sf_h);
+                    subfile_offset = curr_offset;
+                    subfile_size = next_offset - curr_offset;
+                    subfile_type = curr_type;
+                }
+            }
+            break;
+        }
+
+        case 0x2010: {  // NBA ShootOut 2004 (PS2)
+            uint32_t offset = head_offset; // actually a footer (table is near EOF)
+
+            for (int i = 0; i < entries; i++) {
+                uint32_t curr_offset = read_u32le(offset + 0x00, sf_h);
+                // 05: null?
+                // 06: null?
+                uint8_t  curr_type   = read_u8   (offset + 0x07, sf_h);
+
+                offset += 0x08;
 
                 switch(curr_type) {
                     case 0x05: // .vag (mono)
@@ -224,6 +259,7 @@ VGMSTREAM* init_vgmstream_skex(STREAMFILE* sf) {
             break;
         }
         default:
+            vgm_logi("SKEX: unknown version %x (report)\n", version);
             goto fail;
     }
 
