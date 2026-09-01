@@ -619,6 +619,8 @@ static const char* extension_list[] = {
     "svag",
     "svs",
     "svg",
+    "sw", //txth/reserved [Dominions II (PC)]
+    "sw2", //txth/reserved [Conquest of Elysium 4 (PC)]
     "swag",
     "swar",
     "swav",
