@@ -86,9 +86,10 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         return NULL;
 
     /* .bnk: standard
-     * .mus: Jak and Daxter, Jak II (PS2)
-     * .sbk: Jak II, Jak 3, Jak X (PS2) */
-    if (!check_extensions(sf, "bnk,mus,sbk"))
+     * .mus: Jak and Daxter, Jak II (PS2)-v1
+     * .sbk: Jak II, Jak 3, Jak X (PS2)
+     * .stv: NBA ShootOut 2003 (PS2)-v1 */
+    if (!check_extensions(sf, "bnk,mus,sbk,stv"))
         return false;
 
     /* build the VGMSTREAM */
@@ -1335,6 +1336,9 @@ static bool parse_bnk(STREAMFILE* sf, bnk_header_t* h) {
     /* file is sometimes aligned to 0x10/0x800, so this can't be used for total size checks */
     h->sblk_offset = read_u32(0x08,sf);
     //h->sblk_size = read_u32(0x0c,sf);
+    if (h->sblk_offset > 0x20)
+        return false;
+
     h->data_offset = read_u32(0x10,sf);
     h->data_size   = read_u32(0x14,sf);
     /* MMID sequence data for v1, ZLSD prefetch data for v3 */
@@ -1343,9 +1347,6 @@ static bool parse_bnk(STREAMFILE* sf, bnk_header_t* h) {
         h->zlsd_offset = read_u32(0x18,sf);
         h->zlsd_size   = read_u32(0x1c,sf);
     }
-
-    if (h->sblk_offset > 0x20)
-        return false;
 
     /* Most table fields seems reserved/defaults and don't change much between subsongs or files,
      * so they aren't described in detail. Entry sizes are variable (usually flag + extra size xN)
