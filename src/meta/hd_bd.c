@@ -70,15 +70,22 @@ VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf) {
         return NULL;
     }
 
-    // calc size via next offset
-    uint32_t next_offset;
-    if (h.target_subsong == h.total_subsongs) {
-        next_offset = bd_size;
+    // calc size via next offset (assumes that offsets are ordered)
+    uint32_t next_offset = 0;
+    {
+        // rarely several offsets point to the same wave, so find next-next offset (except for last subsong)
+        for (int i = h.target_subsong - 1; i < h.total_subsongs - 1; i++) {
+            uint32_t nextinfo_offset = read_u32le(vagi_offset + 0x10 + 0x04 * (i + 1), sf) + vagi_offset;
+            next_offset = read_u32le(nextinfo_offset + 0x00, sf);
+            if (next_offset != h.stream_offset)
+                break;
+        }
+
+        // max subsongs reached
+        if (next_offset == 0 || next_offset == h.stream_offset)
+            next_offset = bd_size;
     }
-    else {
-        uint32_t nextinfo_offset = read_u32le(vagi_offset + 0x10 + 0x04 * (h.target_subsong - 1 + 1), sf) + vagi_offset;
-        next_offset = read_u32le(nextinfo_offset + 0x00, sf);
-    }
+
     h.stream_size = next_offset - h.stream_offset;
 
     h.channels = 1;

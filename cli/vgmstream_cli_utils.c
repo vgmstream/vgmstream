@@ -21,8 +21,8 @@ static int strcpy_filter(char* dst, size_t dst_size, const char* src, bool clean
     while (copy_len < copy_max && src[copy_len] != '\0') {
         char c = src[copy_len];
 
-        bool is_badchar = (clean_paths && (c == '\\' || c == '/'))
-            || c == '*' || c == '?' || c == ':' /*|| c == '|'*/ || c == '<' || c == '>';
+        bool is_badchar = (clean_paths && (c == '\\' || c == '/' || c == ':' ))
+            || c == '*' || c == '?' || /*|| c == '|'*/ c == '<' || c == '>';
         if (is_badchar)
             c = '_';
 

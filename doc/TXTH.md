@@ -565,7 +565,7 @@ chunk_size = (value)
 ```
 
 #### NAME TABLE
-Some games have headers for all files pasted together separate from the actual data, but this order may be hard-coded or even alphabetically ordered by filename. In those cases you can set a "name table" that assigns constant values (one or many) to filenames. This table is loaded from an external text file (for clarity) and can be set to any name, for example `name_table = .names.txt`
+Some games have headers for all files pasted together separate from the actual data, but this order may be hard-coded or even alphabetically ordered by filename. In those cases you can set a "name table" that assigns constant values (one or many) to filenames. This table is loaded from an external text file and can be set to any name, for example `name_table = .names.txt` (`.txt` or `.txth`)
 ```
 name_table = (filename)
 ```
@@ -622,7 +622,7 @@ base_offset = (value)
 TXTH can't do conditions (`if`) but sometimes you have have variations of the same format in the same dir. You can set multiple `.txth` files to try until one works. Use `id_value/id_check` to reject wrong `.txth` (otherwise the first one will be selected).
 
 ```
-multi_txth = (filename), (filename), ...
+multi_txth = (filename).txth, (filename).txth, ...
 ```
 For example:
 ```
