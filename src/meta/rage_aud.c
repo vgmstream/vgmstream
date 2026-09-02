@@ -18,15 +18,22 @@ typedef struct {
 
     int block_count;
     int block_chunk;
+    off_t channel_table_offset;
 
     uint32_t stream_offset;
     uint32_t stream_size;
 } aud_header;
 
+typedef struct {
+    int block_count;
+    uint32_t* block_start;
+} blocked_layout_ima;
+
 static bool parse_aud_header(STREAMFILE* sf, aud_header* aud);
 
 static layered_layout_data* build_layered_rage_aud(STREAMFILE* sf, aud_header* aud);
 
+static void* store_ima_states(STREAMFILE* sf, aud_header* aud);
 
 /* RAGE AUD - from older RAGE engine games [Midnight Club: Los Angeles (PS3/X360), GTA IV (PC/PS3/X360)] */
 VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
@@ -113,6 +120,9 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
             vgmstream->coding_type = coding_IMA_mono;
             vgmstream->layout_type = aud.is_streamed ? layout_blocked_rage_aud : layout_none;
             vgmstream->full_block_size = aud.block_chunk;
+            if (aud.is_streamed && aud.channels == 2 && aud.block_count > 2) {
+                vgmstream->codec_data = store_ima_states(sf, &aud);
+            }
             break;
 
         default:
@@ -151,19 +161,19 @@ static bool parse_aud_header(STREAMFILE* sf, aud_header* aud) {
     aud->is_streamed = (read_u32(0x10, sf) == 0);
 
     if (aud->is_streamed) {
-        off_t block_table_offset, channel_table_offset, channel_info_offset;
+        off_t block_table_offset, channel_info_offset;
 
         /* music header */
         block_table_offset = table_offset;
         aud->block_count = read_u32(0x08, sf);
         aud->block_chunk = read_u32(0x0c, sf); /* uses padded blocks */
         /* 0x10(4): stream count  */
-        channel_table_offset = read_u64(0x14, sf);
+        aud->channel_table_offset = read_u64(0x14, sf);
         /* 0x1c(8): block_table_offset again? */
         aud->channels = read_u32(0x24, sf);
         /* 0x28(4): unknown entries? */
         aud->stream_offset = read_u32(0x2c, sf);
-        channel_info_offset = channel_table_offset + aud->channels * 0x10;
+        channel_info_offset = aud->channel_table_offset + aud->channels * 0x10;
 
         /* block count is off in rare XMA streams, though we only need it to check the header:
          *  GTA4 - Header says 2 blocks, actually has 3 - EP1_SFX/RP03_ML
@@ -339,4 +349,47 @@ static layered_layout_data* build_layered_rage_aud(STREAMFILE* sf, aud_header* a
 fail:
     free_layout_layered(data);
     return NULL;
+}
+
+typedef struct {
+    uint16_t hist1;
+    uint8_t step_index;
+} ima_state_t;
+
+static void* store_ima_states(STREAMFILE* sf, aud_header* aud) {
+    read_u16_t read_u16 = aud->big_endian ? read_u16be : read_u16le;
+    read_u32_t read_u32 = aud->big_endian ? read_u32be : read_u32le;
+    read_u64_t read_u64 = aud->big_endian ? read_u64be : read_u64le;
+
+    off_t channel_table_size, channel_info_offset, state_table_offset;
+    channel_table_size = 0x10 * aud->channels;
+
+    int ch;
+    int states = aud->num_samples / 4096;
+    if (states == 0) return NULL;
+
+    int state_table_size;
+    for (ch = 0; ch < aud->channels; ch++) {
+        channel_info_offset = read_u64(aud->channel_table_offset + 0x10 * ch, sf);
+        state_table_size = read_u32(aud->channel_table_offset + channel_table_size + channel_info_offset + 0x34, sf);
+        if (state_table_size != states) {
+            vgm_logi("RAGE: unexpected IMA state table size\n");
+            return NULL;
+        }
+    }
+
+    ima_state_t* data = calloc((size_t)states * aud->channels, sizeof(ima_state_t));
+    if (!data) return NULL;
+
+    int i;
+    for (ch = 0; ch < aud->channels; ch++) {
+        channel_info_offset = read_u64(aud->channel_table_offset + 0x10 * ch, sf);
+        state_table_offset = aud->channel_table_offset + channel_table_size + channel_info_offset + 0x38;
+        for (i = 0; i < states; i++) {
+            data[i + states * ch].hist1 = read_u16(state_table_offset + i * 0x03, sf);
+            data[i + states * ch].step_index = read_8bit(state_table_offset + i * 0x03 + 0x02, sf);
+        }
+    }
+
+    return data;
 }
