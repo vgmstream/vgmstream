@@ -25,6 +25,7 @@
 static const char* extension_list[] = {
     //"", /* vgmstream can play extensionless files too, but plugins must accept them manually */
 
+    "11k",
     "208",
     "2dx",
     "2dx9",

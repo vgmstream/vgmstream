@@ -34,75 +34,100 @@
 /* DC offset fix. v4.x callers pass shift=8 (canonical u8->s16); v5 uses 9. */
 #define DF_V40_SAMPLE_TO_16BIT(sample, shift) ((int16_t)(((int8_t)(sample) - 0x40) << (shift)))
 
-/* DreamFactory v4.0 ADPCM Decoder (8-bit to 8-bit) */
-
-static bool decode_cf_df_v40(VGMSTREAM* v, sbuf_t* sdst) {
+/* DreamFactory v4.0 / DreamFactory 5 v4.0 shared decoder.
+ * Both use the same control stream and need the same mid-run state across decode_buf calls.
+ * v4.0 emits the initial stream byte as a sample and scales at <<8; D5 gets the seed from
+ * the block layout (not emitted) and scales at <<9. */
+static bool decode_cf_df_v40_common(VGMSTREAM* v, sbuf_t* sdst, int shift, bool emit_stream_seed) {
     VGMSTREAMCHANNEL* stream = &v->ch[0];
     decode_state_t* ds = v->decode_state;
     int samples_to_do = ds->samples_left;
     sample_t* outbuf = sbuf_get_filled_buf(sdst);
     int i = 0;
-    int8_t prev_sample = (int8_t)stream->adpcm_history1_16;
 
-    /* Handle the very first sample if starting from the beginning */
-    if (stream->offset == stream->channel_start_offset) {
-        prev_sample = read_u8(stream->offset, stream->streamfile);
-        stream->offset++;
-        if (samples_to_do > 0) {
-            outbuf[0] = DF_V40_SAMPLE_TO_16BIT(prev_sample, 8);
-            samples_to_do--;
-            outbuf++;
-        }
+    int8_t prev = (int8_t)stream->adpcm_history1_16;
+    int run_mode = stream->adpcm_step_index;
+    int run_count = stream->adpcm_history2_32;
+    int pending_valid = stream->adpcm_history4_32;
+    int16_t pending = (int16_t)stream->adpcm_history3_32;
+
+    /* v4.0 stores its initial absolute sample in the stream and emits it.
+     * D5 has already loaded the seed and points offset at the first control byte. */
+    if (emit_stream_seed && stream->offset == stream->channel_start_offset) {
+        prev = (int8_t)read_u8(stream->offset++, stream->streamfile);
+        if (i < samples_to_do)
+            outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev, shift);
     }
 
     while (i < samples_to_do) {
-        uint8_t control_byte = read_u8(stream->offset, stream->streamfile);
-        stream->offset++;
-
-        /* Mode I: Absolute Value */
-        if ((control_byte & 0x80) == 0) {
-            prev_sample = (int8_t)control_byte;
-            outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev_sample, 8);
+        /* flush a buffered Mode-II second sample from a previous call */
+        if (pending_valid) {
+            outbuf[i++] = pending;
+            pending_valid = 0;
+            continue;
         }
+
+        /* Mode III: Repeat (RLE) */
+        if (run_mode == 3) {
+            while (run_count > 0 && i < samples_to_do) {
+                outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev, shift);
+                run_count--;
+            }
+            if (run_count == 0)
+                run_mode = 0;
+            continue;
+        }
+
         /* Mode II: DPCM Nibble Sequences */
-        else if ((control_byte & 0x40) == 0) {
-            int count = (control_byte & 0x3f) + 1;
-            for (int j = 0; j < count && i < samples_to_do; j++) {
-                uint8_t table_val = read_u8(stream->offset, stream->streamfile);
-                stream->offset++;
-
-                /* High Nibble Sign-Extension */
+        if (run_mode == 2) {
+            while (run_count > 0 && i < samples_to_do) {
+                uint8_t table_val = read_u8(stream->offset++, stream->streamfile);
                 int8_t step_delta = (int8_t)table_val >> 4;
-
-                /* Low Nibble Sign-Extension */
                 int8_t index_delta = (int8_t)(table_val << 4) >> 4;
+                int8_t s1 = prev + step_delta;
+                int8_t s2 = s1 + index_delta;
+                prev = s2;
+                run_count--;
 
-                /* Apply High Nibble Delta */
-                int8_t step_sample = prev_sample + step_delta;
-                outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(step_sample, 8);
-
-                if (i >= samples_to_do) {
-                    prev_sample = step_sample;
+                outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(s1, shift);
+                if (i < samples_to_do) {
+                    outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(s2, shift);
+                } else {
+                    pending = DF_V40_SAMPLE_TO_16BIT(s2, shift);
+                    pending_valid = 1;
                     break;
                 }
-
-                /* Apply Low Nibble Delta */
-                int8_t index_sample = step_sample + index_delta;
-                outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(index_sample, 8);
-                prev_sample = index_sample;
             }
+            if (run_count == 0)
+                run_mode = 0;
+            continue;
         }
-        /* Mode III: Repeat (RLE) */
-        else {
-            int count = (control_byte & 0x3f) + 1;
-            for (int j = 0; j < count && i < samples_to_do; j++) {
-                outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev_sample, 8);
-            }
+
+        /* idle: read a control byte */
+        uint8_t control_byte = read_u8(stream->offset++, stream->streamfile);
+        if ((control_byte & 0x80) == 0) {        /* Mode I: absolute */
+            prev = (int8_t)control_byte;
+            outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev, shift);
+        } else if ((control_byte & 0x40) == 0) { /* Mode II */
+            run_mode = 2;
+            run_count = (control_byte & 0x3f) + 1;
+        } else {                                 /* Mode III */
+            run_mode = 3;
+            run_count = (control_byte & 0x3f) + 1;
         }
     }
 
-    stream->adpcm_history1_16 = prev_sample;
+    stream->adpcm_history1_16 = prev;
+    stream->adpcm_step_index  = run_mode;
+    stream->adpcm_history2_32 = run_count;
+    stream->adpcm_history4_32 = pending_valid;
+    stream->adpcm_history3_32 = pending;
     return true;
+}
+
+/* DreamFactory v4.0 ADPCM Decoder (8-bit to 8-bit) */
+static bool decode_cf_df_v40(VGMSTREAM* v, sbuf_t* sdst) {
+    return decode_cf_df_v40_common(v, sdst, 8, true);
 }
 
 /* DreamFactory v4.1 DPCM Decoder (16-bit) */
@@ -172,77 +197,7 @@ int32_t cf_df_v5_get_samples(STREAMFILE* sf, off_t block_data, int block_size) {
 }
 
 static bool decode_cf_df_v5_v40(VGMSTREAM* v, sbuf_t* sdst) {
-    VGMSTREAMCHANNEL* stream = &v->ch[0];
-    decode_state_t* ds = v->decode_state;
-    int samples_to_do = ds->samples_left;
-    sample_t* outbuf = sbuf_get_filled_buf(sdst);
-    int i = 0;
-
-    int8_t prev = (int8_t)stream->adpcm_history1_16;
-    int run_mode = stream->adpcm_step_index;
-    int run_count = stream->adpcm_history2_32;
-    int pending_valid = stream->adpcm_history4_32;
-    int16_t pending = (int16_t)stream->adpcm_history3_32;
-
-    while (i < samples_to_do) {
-        /* flush a buffered Mode-II second sample from a previous call */
-        if (pending_valid) {
-            outbuf[i++] = pending;
-            pending_valid = 0;
-            continue;
-        }
-        /* Mode III: Repeat (RLE) */
-        if (run_mode == 3) {
-            while (run_count > 0 && i < samples_to_do) {
-                outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev, 9);
-                run_count--;
-            }
-            if (run_count == 0) run_mode = 0;
-            continue;
-        }
-        /* Mode II: DPCM Nibble Sequences */
-        if (run_mode == 2) {
-            while (run_count > 0 && i < samples_to_do) {
-                uint8_t table_val = read_u8(stream->offset++, stream->streamfile);
-                int8_t step_delta = (int8_t)table_val >> 4;
-                int8_t index_delta = (int8_t)(table_val << 4) >> 4;
-                int8_t s1 = prev + step_delta;
-                int8_t s2 = s1 + index_delta;
-                prev = s2;
-                run_count--;
-
-                outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(s1, 9);
-                if (i < samples_to_do) {
-                    outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(s2, 9);
-                } else {
-                    pending = DF_V40_SAMPLE_TO_16BIT(s2, 9);
-                    pending_valid = 1;
-                    break;
-                }
-            }
-            if (run_count == 0) run_mode = 0;
-            continue;
-        }
-        /* idle: read a control byte */
-        uint8_t control_byte = read_u8(stream->offset++, stream->streamfile);
-        if ((control_byte & 0x80) == 0) {        /* Mode I: absolute */
-            prev = (int8_t)control_byte;
-            outbuf[i++] = DF_V40_SAMPLE_TO_16BIT(prev, 9);
-        } else if ((control_byte & 0x40) == 0) { /* Mode II */
-            run_mode = 2;
-            run_count = (control_byte & 0x3f) + 1;
-        } else {                                 /* Mode III */
-            run_mode = 3;
-            run_count = (control_byte & 0x3f) + 1;
-        }
-    }
-
-    stream->adpcm_history1_16 = prev;
-    stream->adpcm_step_index = run_mode;
-    stream->adpcm_history2_32 = run_count;
-    stream->adpcm_history4_32 = pending_valid;
-    stream->adpcm_history3_32 = pending;
-    return true;
+    return decode_cf_df_v40_common(v, sdst, 9, false);
 }
 
 const codec_info_t cf_df_v40_decoder = {
