@@ -49,7 +49,7 @@
 #define DF_PROTO_MACINTOSH_RATE      22255  /* nearest integer to 0x56EE8BA3 (16.16) */
 #define DF_PROTO_PLAYLIST_MAX        64
 
-/* Revision-4 .snd control payload. Unlike the shared .mov/.sfx/.trk layout,
+/* Revision-4 .snd control payload. Unlike the shared .mov/.sfx/.trk/.11k layout,
  * the loop block is referenced by container id instead of fixed at id 1. */
 #define DF_SND_REVISION              0x02
 #define DF_SND_REVISION_4            0x0004
@@ -723,7 +723,7 @@ fail:
 }
 
 /* Assembled track via segmented layout: play the given sequence of loop chunks once.
- * loop=1 marks the whole assembled track as an end-to-end loop (.snd/.sfx/.trk only; .mov excluded). */
+ * loop=1 marks the whole assembled track as an end-to-end loop (.snd/.sfx/.trk/.11k only; .mov excluded). */
 static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, const int* seq, int count, int loop, int loop_start) {
     VGMSTREAM* v = NULL;
     segmented_layout_data* data = init_layout_segmented(count);
@@ -897,7 +897,7 @@ static VGMSTREAM* build_cf_df_v4(STREAMFILE* sf, int containers, bool is_mov) {
     int16_t* order = NULL;
     uint8_t* in_loop = NULL;
 
-    int loop_track = check_extensions(sf, "sfx,snd,trk");
+    int loop_track = check_extensions(sf, "sfx,snd,trk,11k");
     int target = sf->stream_index;
     if (target == 0)
         target = 1;
@@ -1077,7 +1077,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     bool v1_big_endian = false;
     bool is_extensionless;
 
-    if (!check_extensions(sf, "snd,sfx,trk,mov,move,"))
+    if (!check_extensions(sf, "snd,sfx,trk,11k,mov,move,"))
         return NULL;
 
     is_mov = check_extensions(sf, "mov,move");
