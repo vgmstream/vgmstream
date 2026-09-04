@@ -41,8 +41,7 @@
 #define DF_CODEC_V41    0x02
 
 /* Early MOV control layouts. Revision 1 keeps the later audio chunk header. */
-#define DF_MOV_CONTROL_REVISION      0x02
-#define DF_MOV_CONTROL_REVISION_1    0x0001
+#define DF_MOV_CONTROL_REVISION_1    (1u << 16)
 
 #define DF_PROTO_AUDIO_HEADER        0x02
 #define DF_PROTO_DURATION_SAMPLES    370
@@ -126,11 +125,12 @@ typedef struct {
 static VGMSTREAM* build_segmented(STREAMFILE* sf, df_chunk_t* chunks, const int* seq, int count, int loop, int loop_start);
 
 /* Read the audio fields of a container; returns 1 if it looks like a valid audio chunk. */
-static bool is_valid_chunk(STREAMFILE* sf, int containers, int id, df_chunk_t* c) {
+static bool is_valid_chunk(STREAMFILE* sf, int containers, int id,
+        read_u16_t read_u16, read_u32_t read_u32, df_chunk_t* c) {
     if (id < 0 || id >= containers)
         return false;
 
-    off_t pos = read_u32le(DF_HEADER_SIZE + id * 0x04, sf);
+    off_t pos = read_u32(DF_HEADER_SIZE + id * 0x04, sf);
     if (pos <= 0 || pos >= get_streamfile_size(sf))
         return false;
 
@@ -138,20 +138,20 @@ static bool is_valid_chunk(STREAMFILE* sf, int containers, int id, df_chunk_t* c
     if (hp + 0x30 > get_streamfile_size(sf))
         return false;
 
-    uint16_t codec = read_u16le(hp + 0x1A, sf);
-    uint32_t rate  = read_u32le(hp + 0x1C, sf);
+    uint16_t codec = read_u16(hp + 0x1A, sf);
+    uint32_t rate  = read_u32(hp + 0x1C, sf);
     if ((codec != DF_CODEC_V40 && codec != DF_CODEC_V41) ||
             (rate != 11025 && rate != 22050 && rate != 44100))
         return false;
 
-    uint32_t data_offset = read_u32le(hp + 0x2C, sf);
+    uint32_t data_offset = read_u32(hp + 0x2C, sf);
 
     c->container_id      = id;
     c->codec_flag        = codec;
     c->sample_rate       = rate;
-    c->uncompressed_size = read_u32le(hp + 0x24, sf);
+    c->uncompressed_size = read_u32(hp + 0x24, sf);
     c->offset            = hp + data_offset;
-    c->size              = read_u32le(pos + 0x04, sf) - data_offset;
+    c->size              = read_u32(pos + 0x04, sf) - data_offset;
     c->valid             = 1;
     return true;
 }
@@ -286,12 +286,12 @@ static void read_name(STREAMFILE* sf, off_t entry, int name_max, df_name_t* dst)
     dst->name[len] = '\0';
 }
 
-static int get_mov_control_revision(STREAMFILE* sf) {
+static bool has_v1_mov_control(STREAMFILE* sf, read_u32_t read_u32) {
     off_t file_size = get_streamfile_size(sf);
-    off_t pos = read_u32le(DF_HEADER_SIZE, sf);
-    if (pos <= 0 || pos + 0x08 + DF_MOV_CONTROL_REVISION + 0x02 > file_size)
-        return 0;
-    return read_u16le(pos + 0x08 + DF_MOV_CONTROL_REVISION, sf);
+    off_t pos = read_u32(DF_HEADER_SIZE, sf);
+    if (pos <= 0 || pos + 0x08 + 0x04 > file_size)
+        return false;
+    return read_u32(pos + 0x08, sf) == DF_MOV_CONTROL_REVISION_1;
 }
 
 /* Revision-4 .snd stores the normal loop block's container id in control 0.
@@ -491,7 +491,8 @@ static VGMSTREAM* build_bank_subsong(STREAMFILE* sf, df_bank_t* bank) {
 
 /* Revision-1 MOVs keep Group-A one-shots and Group-B background sources
  * immediately after each control. */
-static VGMSTREAM* build_cf_df_v1_mov(STREAMFILE* sf, int containers) {
+static VGMSTREAM* build_cf_df_v1_mov(STREAMFILE* sf, int containers,
+        read_u16_t read_u16, read_u32_t read_u32) {
     VGMSTREAM* vgmstream = NULL;
     df_bank_t bank = {0};
     int control = 0;
@@ -501,7 +502,7 @@ static VGMSTREAM* build_cf_df_v1_mov(STREAMFILE* sf, int containers) {
 
     off_t file_size = get_streamfile_size(sf);
     while (control < containers) {
-        off_t pos = read_u32le(DF_HEADER_SIZE + (off_t)control * 0x04, sf);
+        off_t pos = read_u32(DF_HEADER_SIZE + (off_t)control * 0x04, sf);
         if (pos <= 0 || pos + 0x08 > file_size)
             goto fail;
         off_t p = pos + 0x08;
@@ -510,18 +511,18 @@ static VGMSTREAM* build_cf_df_v1_mov(STREAMFILE* sf, int containers) {
 
         if (p + 0x8be + 0x04 > file_size)
             goto fail;
-        if (read_u16le(p + DF_MOV_CONTROL_REVISION, sf) != DF_MOV_CONTROL_REVISION_1)
+        if (read_u32(p + 0x00, sf) != DF_MOV_CONTROL_REVISION_1)
             goto fail;
-        cfg.audio_a_count = read_u16le(p + 0x1a, sf);
-        cfg.audio_b_count = read_u16le(p + 0x1c, sf);
-        cfg.order_count = read_u16le(p + 0x34, sf);
+        cfg.audio_a_count = read_u16(p + 0x1a, sf);
+        cfg.audio_b_count = read_u16(p + 0x1c, sf);
+        cfg.order_count = read_u16(p + 0x34, sf);
         cfg.order = p + 0x83e;
-        uint32_t authored_loop = read_u32le(p + 0x8be, sf);
+        uint32_t authored_loop = read_u32(p + 0x8be, sf);
         if (authored_loop < (uint32_t)cfg.order_count) {
             cfg.loop = 1;
             cfg.loop_start = authored_loop;
         }
-        uint32_t authored_next = read_u32le(p + 0x36, sf);
+        uint32_t authored_next = read_u32(p + 0x36, sf);
         if (authored_next > (uint32_t)containers)
             goto fail;
         cfg.next_control = authored_next ? (int)authored_next : containers;
@@ -540,7 +541,8 @@ static VGMSTREAM* build_cf_df_v1_mov(STREAMFILE* sf, int containers) {
 
         for (int i = 0; i < cfg.audio_a_count + cfg.audio_b_count; i++) {
             int id = audio_base + i;
-            if (!is_valid_chunk(sf, containers, id, &bank.chunks[id]))
+            if (!is_valid_chunk(sf, containers, id, read_u16, read_u32,
+                    &bank.chunks[id]))
                 goto fail;
             if (bank.audio_count >= containers)
                 goto fail;
@@ -548,7 +550,7 @@ static VGMSTREAM* build_cf_df_v1_mov(STREAMFILE* sf, int containers) {
         }
 
         if (cfg.audio_b_count > 0 && cfg.order_count > 0) {
-            if (append_contiguous_playlist(sf, read_u16le, bank.chunks, containers,
+            if (append_contiguous_playlist(sf, read_u16, bank.chunks, containers,
                     group_b_base - 1, cfg.audio_b_count, cfg.order, cfg.order_count,
                     cfg.loop, cfg.loop_start, &bank.playlist) != 1)
                 goto fail;
@@ -570,23 +572,15 @@ fail:
     return NULL;
 }
 
-/* Proto resources serialize the complete container in the platform's native byte order. */
-static bool get_proto_config(STREAMFILE* sf, int* out_containers, bool* out_big_endian) {
+/* Early resources serialize the complete container in the platform's native byte order. */
+static bool get_native_config(STREAMFILE* sf, read_u32_t read_u32, int* out_containers) {
     off_t file_size = get_streamfile_size(sf);
     if (file_size <= 0 || file_size > UINT32_MAX)
         return false;
-    if (is_id32be(0x20, sf, "LPPA") && is_id32be(0x24, sf, "LPPA"))
+    if (read_u32(0x00, sf) != (1u << 16) ||
+            read_u32(0x04, sf) != (uint32_t)file_size)
         return false;
 
-    bool valid_le = read_u32le(0x00, sf) == 0x00010000 &&
-                    read_u32le(0x04, sf) == (uint32_t)file_size;
-    bool valid_be = read_u32be(0x00, sf) == 0x00010000 &&
-                    read_u32be(0x04, sf) == (uint32_t)file_size;
-    if (valid_le == valid_be)
-        return false;
-
-    bool big_endian = valid_be;
-    read_u32_t read_u32 = get_read_u32(big_endian);
     uint32_t containers = read_u32(0x14, sf);
     if (containers <= 1 || containers > INT16_MAX)
         return false;
@@ -594,7 +588,23 @@ static bool get_proto_config(STREAMFILE* sf, int* out_containers, bool* out_big_
         return false;
 
     *out_containers = containers;
-    *out_big_endian = big_endian;
+    return true;
+}
+
+/* Proto resources may use either native byte order and have no family tag. */
+static bool get_proto_config(STREAMFILE* sf, int* out_containers, bool* out_big_endian) {
+    if (is_id32be(0x20, sf, "LPPA") && is_id32be(0x24, sf, "LPPA"))
+        return false;
+
+    int containers_le = 0;
+    int containers_be = 0;
+    bool valid_le = get_native_config(sf, read_u32le, &containers_le);
+    bool valid_be = get_native_config(sf, read_u32be, &containers_be);
+    if (valid_le == valid_be)
+        return false;
+
+    *out_containers = valid_be ? containers_be : containers_le;
+    *out_big_endian = valid_be;
     return true;
 }
 
@@ -782,16 +792,17 @@ static VGMSTREAM* build_blocked(STREAMFILE* sf, df_chunk_t* loop, int loop_count
     return v;
 }
 
-static bool get_v1_snd_config(STREAMFILE* sf, int containers, df_v1_snd_config_t* cfg) {
+static bool get_v1_snd_config(STREAMFILE* sf, int containers,
+        read_u16_t read_u16, read_u32_t read_u32, df_v1_snd_config_t* cfg) {
     off_t file_size = get_streamfile_size(sf);
-    off_t control = read_u32le(DF_HEADER_SIZE, sf);
+    off_t control = read_u32(DF_HEADER_SIZE, sf);
 
     if (control <= 0 || control + 0xc2 > file_size)
         return false;
 
-    cfg->bank.group_a_boundary = read_u16le(control + 0x20, sf);
-    cfg->bank.group_b_count = read_u16le(control + 0x22, sf);
-    cfg->bank.order_count = read_u16le(control + 0x24, sf);
+    cfg->bank.group_a_boundary = read_u16(control + 0x20, sf);
+    cfg->bank.group_b_count = read_u16(control + 0x22, sf);
+    cfg->bank.order_count = read_u16(control + 0x24, sf);
     cfg->bank.order = control + 0x26;
     cfg->track_name = control + 0xa6;
     cfg->chunk_names = control + 0xc2;
@@ -809,7 +820,8 @@ static bool get_v1_snd_config(STREAMFILE* sf, int containers, df_v1_snd_config_t
  * per-chunk names live in container 0, unlike the container 1 found in trk/sfx/mov.
  * Builds the theme (subsong 1: order assembled in order, leading/trailing silence trimmed,
  * end-to-end loop) plus every chunk as a named subsong. */
-static VGMSTREAM* build_cf_df_v1_snd(STREAMFILE* sf, int containers, const df_v1_snd_config_t* cfg) {
+static VGMSTREAM* build_cf_df_v1_snd(STREAMFILE* sf, int containers,
+        read_u16_t read_u16, read_u32_t read_u32, const df_v1_snd_config_t* cfg) {
     VGMSTREAM* vgmstream = NULL;
     df_bank_t bank = {0};
     off_t file_size = get_streamfile_size(sf);
@@ -818,10 +830,11 @@ static VGMSTREAM* build_cf_df_v1_snd(STREAMFILE* sf, int containers, const df_v1
         goto fail;
 
     for (int i = 0; i < containers; i++)
-        is_valid_chunk(sf, containers, i, &bank.chunks[i]); /* fills chunks[i], sets .valid */
+        is_valid_chunk(sf, containers, i, read_u16, read_u32,
+                &bank.chunks[i]); /* fills chunks[i], sets .valid */
 
     /* order list -> seq (1-based selectors into the contiguous Group-B range) */
-    if (append_contiguous_playlist(sf, read_u16le, bank.chunks, containers,
+    if (append_contiguous_playlist(sf, read_u16, bank.chunks, containers,
             cfg->bank.group_a_boundary, cfg->bank.group_b_count,
             cfg->bank.order, cfg->bank.order_count,
             1, 0, &bank.playlist) != 1)
@@ -867,11 +880,14 @@ fail:
 }
 
 static VGMSTREAM* build_cf_df_v1(STREAMFILE* sf, int containers, bool is_mov,
-        const df_v1_snd_config_t* snd_config) {
-    if (is_mov)
-        return build_cf_df_v1_mov(sf, containers);
+        bool big_endian, const df_v1_snd_config_t* snd_config) {
+    read_u16_t read_u16 = get_read_u16(big_endian);
+    read_u32_t read_u32 = get_read_u32(big_endian);
 
-    return build_cf_df_v1_snd(sf, containers, snd_config);
+    if (is_mov)
+        return build_cf_df_v1_mov(sf, containers, read_u16, read_u32);
+
+    return build_cf_df_v1_snd(sf, containers, read_u16, read_u32, snd_config);
 }
 
 static VGMSTREAM* build_cf_df_v4(STREAMFILE* sf, int containers, bool is_mov) {
@@ -926,7 +942,8 @@ static VGMSTREAM* build_cf_df_v4(STREAMFILE* sf, int containers, bool is_mov) {
                 int id = read_u16le(e + 0x04, sf);
                 if (id >= 0 && id < containers)
                     read_name(sf, e, DF_SHORT_NAME_MAX, &bank.names[id]);
-                if (!is_valid_chunk(sf, containers, id, &loop[i])) {
+                if (!is_valid_chunk(sf, containers, id, read_u16le, read_u32le,
+                        &loop[i])) {
                     all_valid = 0;
                 }
                 else {
@@ -989,7 +1006,8 @@ static VGMSTREAM* build_cf_df_v4(STREAMFILE* sf, int containers, bool is_mov) {
     for (int i = 0; i < containers; i++) {
         if (in_loop && in_loop[i])
             continue;
-        if (is_valid_chunk(sf, containers, i, &bank.chunks[i]))
+        if (is_valid_chunk(sf, containers, i, read_u16le, read_u32le,
+                &bank.chunks[i]))
             bank.audio_ids[bank.audio_count++] = i;
     }
 
@@ -1056,6 +1074,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     int containers = 0;
     bool is_mov;
     bool proto_big_endian = false;
+    bool v1_big_endian = false;
     bool is_extensionless;
 
     if (!check_extensions(sf, "snd,sfx,trk,mov,move,"))
@@ -1064,9 +1083,31 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     is_mov = check_extensions(sf, "mov,move");
     is_extensionless = check_extensions(sf, ""); //Proto has banked music!
 
+    /* Macintosh Dust V1 uses native big-endian fields and family tags in
+     * place of the later LPPALPPA marker. */
+    bool is_mac_v1_mov = is_mov && is_id64be(0x20, sf, "MOVEDFME");
+    bool is_mac_v1_snd = check_extensions(sf, "snd") &&
+            is_id64be(0x20, sf, "SONGDFST");
+    if (is_mac_v1_mov || is_mac_v1_snd) {
+        if (!get_native_config(sf, read_u32be, &containers))
+            return NULL;
+
+        if (is_mac_v1_mov) {
+            if (!has_v1_mov_control(sf, read_u32be))
+                return NULL;
+        }
+        else if (!get_v1_snd_config(sf, containers,
+                read_u16be, read_u32be, &snd_config)) {
+            return NULL;
+        }
+
+        version = DF_VERSION_1;
+        v1_big_endian = true;
+    }
+
     /* Proto has no LPPALPPA marker and may be native little- or big-endian.
      * Extensionless files are admitted only after this complete header check. */
-    if (is_mov || is_extensionless) {
+    if (version == DF_VERSION_NONE && (is_mov || is_extensionless)) {
         if (get_proto_config(sf, &containers, &proto_big_endian)) {
             version = DF_VERSION_PROTO;
         }
@@ -1085,7 +1126,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         if (DF_HEADER_SIZE + (off_t)containers * 0x04 > get_streamfile_size(sf))
             return NULL;
 
-        if (is_mov && get_mov_control_revision(sf) == DF_MOV_CONTROL_REVISION_1) {
+        if (is_mov && has_v1_mov_control(sf, read_u32le)) {
             version = DF_VERSION_1;
         }
         else {
@@ -1094,7 +1135,8 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
 
             /* V1 .snd and V4 share the later envelope. Prefer the structural
              * V1 container-0 playlist, then use the V4 loop-block model. */
-            if (check_extensions(sf, "snd") && get_v1_snd_config(sf, containers, &snd_config))
+            if (check_extensions(sf, "snd") && get_v1_snd_config(sf, containers,
+                    read_u16le, read_u32le, &snd_config))
                 version = DF_VERSION_1;
             else
                 version = DF_VERSION_4;
@@ -1105,7 +1147,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         case DF_VERSION_PROTO:
             return build_cf_df_proto(sf, containers, proto_big_endian, is_mov);
         case DF_VERSION_1:
-            return build_cf_df_v1(sf, containers, is_mov, &snd_config);
+            return build_cf_df_v1(sf, containers, is_mov, v1_big_endian, &snd_config);
         case DF_VERSION_4:
             return build_cf_df_v4(sf, containers, is_mov);
         default:
