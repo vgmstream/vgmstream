@@ -995,6 +995,7 @@ static const coding_info coding_info_list[] = {
         {coding_CF_DF_DPCM_V41,     "Cyberflix DreamFactory v4.1 DPCM"},
         {coding_CF_DF_ADPCM_v5,     "Cyberflix DreamFactory v5 ADPCM"},
         {coding_CF_DF_IMA_v5,       "Cyberflix DreamFactory v5 IMA ADPCM"},
+        {coding_KA_ADPCM,           "Knowledge Adventure ADPCM"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
@@ -1558,6 +1559,7 @@ static const meta_info meta_info_list[] = {
         {meta_SAUD,                 "LucasArts SAUD header"},
         {meta_CWV,                  "Nintendo .CWV header"},
         {meta_XMA_UE5,              "Unreal Engine 5 XMA header"},
+        {meta_KA_SOUND,             "Knowledge Adventure KA Sound header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* dst, size_t dst_size) {
