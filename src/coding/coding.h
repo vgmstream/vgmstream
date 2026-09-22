@@ -740,6 +740,8 @@ int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p
 /* df_decoder (CyberFlix DreamFactory) */
 int32_t cf_df_v5_get_samples(STREAMFILE* sf, off_t offset, int block_size);
 
+/* ka_decoder */
+void* init_ka(STREAMFILE* sf, off_t table_offset, int32_t num_samples);
 
 /* helper to pass a wrapped, clamped, fake extension-ed, SF to another meta */
 STREAMFILE* setup_subfile_streamfile(STREAMFILE* sf, offv_t subfile_offset, size_t subfile_size, const char* extension);

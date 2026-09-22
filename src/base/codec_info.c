@@ -111,6 +111,10 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
             extern const codec_info_t aac_decoder;
             return &aac_decoder;
 
+        case coding_KA_ADPCM:
+            extern const codec_info_t ka_decoder;
+            return &ka_decoder;
+
         default:
             return NULL;
     }

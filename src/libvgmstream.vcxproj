@@ -320,6 +320,7 @@
     <ClCompile Include="coding\ice_decoder.c" />
     <ClCompile Include="coding\ima_decoder.c" />
     <ClCompile Include="coding\imuse_decoder.c" />
+    <ClCompile Include="coding\ka_decoder.c" />
     <ClCompile Include="coding\ka1a_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
@@ -610,6 +611,7 @@
     <ClCompile Include="meta\jaudio.c" />
     <ClCompile Include="meta\joe.c" />
     <ClCompile Include="meta\jstm.c" />
+    <ClCompile Include="meta\ka.c" />
     <ClCompile Include="meta\ka1a.c" />
     <ClCompile Include="meta\kat.c" />
     <ClCompile Include="meta\kcey.c" />
