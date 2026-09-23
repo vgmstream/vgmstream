@@ -636,12 +636,6 @@ static int get_proto_bank_playlist(STREAMFILE* sf, int containers,
         cfg.group_a_boundary + cfg.group_b_count >= containers)
         return 0;
 
-    for (int selector = 1; selector <= cfg.group_b_count; selector++) {
-        int id = cfg.group_a_boundary + selector;
-        if (!chunks[id].valid)
-            return 0;
-    }
-
     return append_contiguous_playlist(sf, read_u16, chunks, containers,
             cfg.group_a_boundary, cfg.group_b_count, cfg.order,
             cfg.order_count, 0, 0, playlist);
