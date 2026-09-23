@@ -643,8 +643,8 @@ static int get_proto_bank_playlist(STREAMFILE* sf, int containers,
 
 /* Proto containers intersperse sound with non-sound resources.
  * Discover only self-validating audio throughout the file. MOV resources may
- * additionally carry a complete Group-B playlist in control 0. Non-MOV files
- * are independently checked for the compact standalone music-bank form. */
+ * additionally carry a complete Group-B playlist in control 0. Extensionless
+ * banks use a compact playlist; mup/pup expose individual sounds. */
 static VGMSTREAM* build_cf_df_proto(STREAMFILE* sf, int containers,
         bool big_endian, bool parse_movie_playlist) {
     VGMSTREAM* vgmstream = NULL;
@@ -699,7 +699,7 @@ static VGMSTREAM* build_cf_df_proto(STREAMFILE* sf, int containers,
             }
         }
     }
-    else {
+    else if (check_extensions(sf, "")) {
         int playlist_result = get_proto_bank_playlist(sf, containers,
                 read_u16, read_u32, bank.chunks, &bank.playlist);
         if (playlist_result < 0)
@@ -809,6 +809,26 @@ static bool get_v1_snd_config(STREAMFILE* sf, int containers,
         return false;
 
     return true;
+}
+
+static VGMSTREAM* build_cf_df_mup_pup(STREAMFILE* sf, int containers) {
+    VGMSTREAM* vgmstream = NULL;
+    df_bank_t bank = {0};
+
+    if (!init_bank(&bank, containers, false))
+        goto fail;
+
+    for (int i = 0; i < containers; i++) {
+        if (is_valid_chunk(sf, containers, i, read_u16le, read_u32le,
+                &bank.chunks[i]))
+            bank.audio_ids[bank.audio_count++] = i;
+    }
+
+    vgmstream = build_bank_subsong(sf, &bank);
+
+    fail:
+        free_bank(&bank);
+    return vgmstream;
 }
 
 /* DreamFactory V1 .snd "container-0" variant: the assembled theme's order list, track name and
@@ -1070,12 +1090,14 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
     bool is_mov;
     bool proto_big_endian = false;
     bool v1_big_endian = false;
+    bool is_mup_pup;
     bool is_extensionless;
 
-    if (!check_extensions(sf, "snd,sfx,trk,11k,mov,move,"))
+    if (!check_extensions(sf, "snd,sfx,trk,11k,mov,move,mup,mupp,pup,pupp,"))
         return NULL;
 
     is_mov = check_extensions(sf, "mov,move");
+    is_mup_pup = check_extensions(sf, "mup,mupp,pup,pupp");
     is_extensionless = check_extensions(sf, ""); //Proto has banked music!
 
     /* Macintosh Dust V1 uses native big-endian fields and family tags in
@@ -1102,7 +1124,7 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
 
     /* Proto has no LPPALPPA marker and may be native little- or big-endian.
      * Extensionless files are admitted only after this complete header check. */
-    if (version == DF_VERSION_NONE && (is_mov || is_extensionless)) {
+    if (version == DF_VERSION_NONE && (is_mov || is_mup_pup || is_extensionless)) {
         if (get_proto_config(sf, &containers, &proto_big_endian)) {
             version = DF_VERSION_PROTO;
         }
@@ -1127,6 +1149,9 @@ VGMSTREAM* init_vgmstream_cf_df(STREAMFILE* sf) {
         else {
             if (!(is_id32be(0x20, sf, "LPPA") && is_id32be(0x24, sf, "LPPA")))
                 return NULL;
+
+            if (is_mup_pup)
+                return build_cf_df_mup_pup(sf, containers);
 
             /* V1 .snd and V4 share the later envelope. Prefer the structural
              * V1 container-0 playlist, then use the V4 loop-block model. */
