@@ -3,6 +3,7 @@
 #include "../base/decode_state.h"
 #include "../util/bitstream_msb.h"
 
+#define KA_MAX_BLOCK_SAMPLES 0x2000
 
 typedef struct {
     uint8_t symbol;
@@ -140,9 +141,11 @@ void* init_ka(STREAMFILE* sf, off_t table_offset, int32_t num_samples) {
     data->block_samples = block_size / 2;
     if (data->block_samples > num_samples)
         data->block_samples = num_samples;
-    /* Keep the bitreader's signed bit positions representable. */
-    if (data->block_samples < 1 || data->block_samples > INT32_MAX / 8 - 1)
+    if (data->block_samples < 1 || data->block_samples > KA_MAX_BLOCK_SAMPLES) {
+        VGM_LOG("KA: block samples too large (%u > %u)\n",
+        data->block_samples, KA_MAX_BLOCK_SAMPLES);
         goto fail;
+    }
     data->codes = malloc(data->contexts * sizeof(*data->codes));
     data->buf = malloc(data->block_samples + 1);
     data->pbuf = malloc(data->block_samples * sizeof(*data->pbuf));
