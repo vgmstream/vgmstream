@@ -502,6 +502,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_nxms,
     init_vgmstream_saud,
     init_vgmstream_opus_opns,
+    init_vgmstream_ka,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_joe,

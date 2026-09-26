@@ -163,6 +163,8 @@ typedef enum {
     coding_CF_DF_ADPCM_v5,  /* Cyberflix DreamFactory v5 (per-block, <<9) */
     coding_CF_DF_IMA_v5,    /* Cyberflix DreamFactory v5 IMA ADPCM (per-block) */
 
+    coding_KA_ADPCM,        /* Knowledge Adventure ADPCM */
+
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (transform-based) */
     coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (transform-based) */
@@ -748,6 +750,7 @@ typedef enum {
     meta_SAUD,
     meta_CWV,
     meta_XMA_UE5,
+    meta_KA_SOUND,
 } meta_t;
 
 #endif
