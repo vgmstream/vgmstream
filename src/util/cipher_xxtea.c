@@ -3,7 +3,9 @@
 #include "reader_get.h"
 #include "reader_put.h"
 
-
+// "Correction to xtea" by David J. Wheeler and Roger M. Needham
+// defined in "xxtea.pdf"
+//
 // Original MX is pasted and uses stuff declared below, rather than working like a function.
 // Separate steps here but probably the same (better?) after compiler optimizations.
 // #define MX ((((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (key[(p&3) ^ e] ^ z)))

@@ -94,8 +94,12 @@ static size_t awcd_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_t l
 /* decrypts AWC blocks (seen in GTA5 PC/PS4) using .awckey + xxtea algorithm (only for target subsong).
  *
  * Reversed from OpenIV.exe 4.1/2023 (see fun_007D5EA8) b/c it was easier than from GTA5.exe itself.
- * OpenIV includes 2 keys, one for PC and other for probably PS4 (since other platforms aren't encrypted);
- * neither seem to be found in GTA5.exe though (packed/derived?). Unlike standard xxtea OpenIV only has decryption.
+ * OpenIV includes 2 keys, PC+PS4 (probably XBone uses its own key too). Unlike standard xxtea OpenIV only
+ * has decryption.
+ *
+ * xxtea key is stored in exes  after being xored x4 by a game/platform specific 32-bit value, so the key
+ * used by in other tools may need to be xored to match the final xxtea key.
+ *
  * Keys must be provided externally, could autodetect but given T2 suing habits let's err on the side of caution. */
 static STREAMFILE* setup_awcd_streamfile(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, uint32_t block_size) {
     STREAMFILE* new_sf = NULL;
