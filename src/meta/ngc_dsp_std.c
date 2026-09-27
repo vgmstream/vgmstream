@@ -334,8 +334,9 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
      * (extensionless): Tony Hawk's Downhill Jam (Wii)
      * .wav: PDC World Championship Darts 2009 & Pro Tour (Wii) 
      * .dat: The Sims: Bustin' Out (GC) (rarely, most are extensionless)
-     * .rsm: Bully: Scholarship Edition (Wii) (Speech.bin) */
-    if (!check_extensions(sf, "dsp,adp,,wav,lwav,dat,ldat,rsm"))
+     * .rsm: Bully: Scholarship Edition (Wii) (Speech.bin)
+     * .adpcm: ZooCube (GC) */
+    if (!check_extensions(sf, "dsp,adp,,wav,lwav,dat,ldat,rsm,adpcm"))
         return NULL;
 
     channels = 1;
