@@ -19,17 +19,17 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "RIFF"))
-        goto fail;
+        return NULL;
     if (!is_id32be(0x08,sf, "WAVE"))
-        goto fail;
+        return NULL;
 
     /* .wav.ckd: main (other files are called .xxx.ckd too) */
     if (!check_extensions(sf,"ckd"))
-        goto fail;
+        return NULL;
 
     /* another slighly funny RIFF, mostly standard except machine endian and minor oddities */
     if (!is_id32be(0x0c,sf, "fmt "))
-        goto fail;
+        return NULL;
 
     big_endian = guess_endian32(0x04, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
@@ -45,16 +45,16 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
     switch(format) {
         case 0x0002:
             if (big_endian) {
-                if (read_u32(0x26,sf) != 0x6473704C) /* "dspL" */
-                    goto fail;
+                if (read_u32(0x26,sf) != get_id32be("dspL"))
+                    return NULL;
 
                 /* find data chunk, in 2 variants */
-                if (find_chunk_be(sf, 0x64617453,first_offset,0, &chunk_offset,&chunk_size)) { /* "datS" */
+                if (find_chunk_be(sf, get_id32be("datS"), first_offset,0, &chunk_offset,&chunk_size)) {
                     /* normal interleave */
                     start_offset = chunk_offset;
                     data_size = chunk_size;
                     interleave = 0x08;
-                } else if (find_chunk_be(sf, 0x6461744C,first_offset,0, &chunk_offset,&chunk_size)) { /* "datL" */
+                } else if (find_chunk_be(sf, get_id32be("datL"), first_offset,0, &chunk_offset,&chunk_size)) {
                     /* mono "datL" or full interleave with a "datR" after the "datL" (no check, pretend it exists) */
                     start_offset = chunk_offset;
 
@@ -63,8 +63,9 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
                         chunk_size += 0x01;
                     data_size = chunk_size * channels;
                     interleave = (0x4+0x4) + chunk_size; /* don't forget to skip the "datR"+size chunk */
-                } else {
-                    goto fail;
+                }
+                else {
+                    return NULL;
                 }
 
                 codec = DSP;
@@ -72,16 +73,17 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
             else {
                 /* PC has MS-ADPCM, same as wav's except without "fact" (recommended by MS), kinda useless
                  * but might as well have it here */
-                if (find_chunk_le(sf, 0x64617461,first_offset,0, &chunk_offset,&chunk_size)) { /* "data" */
+                if (find_chunk_le(sf, get_id32be("data"), first_offset,0, &chunk_offset,&chunk_size)) {
                     start_offset = chunk_offset;
                     data_size = chunk_size;
-                } else {
-                    goto fail;
+                }
+                else {
+                    return NULL;
                 }
 
                 interleave = read_u16(0x20, sf);
                 if (!msadpcm_check_coefs(sf, 0x28))
-                    goto fail;
+                    return NULL;
 
                 /* there is also a "smpl" chunk with full loops too, but other codecs don't have it for the same tracks... */
 
@@ -90,30 +92,31 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
             break;
 
         case 0x0055:
-            if (read_u32(0x26,sf) != 0x6D736620)    /* "msf " */
-                goto fail;
+            if (read_u32(0x26,sf) != get_id32be("msf "))
+                return NULL;
             start_offset = 0x26;
             data_size = read_u32(0x2A,sf);
             codec = MP3;
             break;
 
         case 0x0166:
-            if (read_u32(0x48,sf) != 0x7365656B &&  /* "seek */
-                read_u32(0x48,sf) != 0x7365656B)    /* "data" */
-                goto fail;
+            if (read_u32(0x48,sf) != get_id32be("seek") &&
+                read_u32(0x48,sf) != get_id32be("data"))
+                return NULL;
 
-            if (find_chunk_be(sf, 0x64617461,first_offset,0, &chunk_offset,&chunk_size)) { /* "data" */
+            if (find_chunk_be(sf, get_id32be("data"), first_offset,0, &chunk_offset,&chunk_size)) {
                 start_offset = chunk_offset;
                 data_size = chunk_size;
-            } else {
-                goto fail;
+            }
+            else {
+                return NULL;
             }
 
             codec = XMA2;
             break;
 
         default:
-            goto fail;
+            return NULL;
     }
 
 
@@ -122,7 +125,6 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = read_u32(0x18,sf);
-    vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
 
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->meta_type = meta_UBI_CKD;
@@ -132,11 +134,15 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->frame_size = interleave;
+
+            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, interleave, channels);
             break;
 
         case DSP:
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
+
+            vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
             dsp_read_coefs_be(vgmstream,sf, 0x4A, (4+4)+0x60);
             break;
 
