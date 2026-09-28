@@ -316,6 +316,11 @@ static void seek_layout(VGMSTREAM* vgmstream, int32_t seek_sample) {
         seek_layout_custom(vgmstream, seek_layout_layered, loop_layout_layered, seek_sample);
         return;
     }
+
+    if (vgmstream->layout_type == layout_blocked_rage_aud) {
+        // skip whole blocks, decode the rest
+        seek_layout_blocked_rage_aud(vgmstream, seek_sample);
+    }
     
     {
         // common layouts without implemented seeking
