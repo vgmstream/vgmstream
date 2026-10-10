@@ -1760,7 +1760,8 @@ maac_window_sequence_name_len(const maac_u32 seq) {
 static const char* MAAC_RESULT_INVALID_STR = "INVALID";
 static size_t MAAC_RESULT_INVALID_LEN = sizeof("INVALID") - 1;
 
-static const char* const maac_result_str_tbl[17] = {
+static const char* const maac_result_str_tbl[18] = {
+    "RESERVED_CODEBOOK",
     "HUFFMAN_DECODE_ERROR",
     "ADTS_RDB_NOT_CALLED",
     "ADTS_SYNCWORD_NOT_FOUND",
@@ -1780,7 +1781,8 @@ static const char* const maac_result_str_tbl[17] = {
     "OK"
 };
 
-static const size_t maac_result_len_tbl[17] = {
+static const size_t maac_result_len_tbl[18] = {
+    sizeof("RESERVED_CODEBOOK") - 1,
     sizeof("HUFFMAN_DECODE_ERROR") - 1,
     sizeof("ADTS_RDB_NOT_CALLED") - 1,
     sizeof("ADTS_SYNCWORD_NOT_FOUND") - 1,
@@ -1810,7 +1812,7 @@ maac_result_name(const maac_s32 result) {
       :
         result < MAAC_RESULT_MIN ?
           MAAC_RESULT_INVALID_STR :
-          maac_result_str_tbl[15 + result];
+          maac_result_str_tbl[16 + result];
 }
 
 maac_const
@@ -1822,7 +1824,7 @@ maac_result_name_len(const maac_s32 result) {
       :
         result < MAAC_RESULT_MIN ?
           MAAC_RESULT_INVALID_LEN :
-          maac_result_len_tbl[15 + result];
+          maac_result_len_tbl[16 + result];
 }
 
 maac_const

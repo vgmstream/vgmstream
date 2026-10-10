@@ -102,13 +102,6 @@ macro(setup_target TARGET)
 
 	if(USE_ATRAC9)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_ATRAC9)
-		if(WIN32 AND LINK)
-			add_dependencies(${TARGET} libatrac9)
-			target_link_libraries(${TARGET} PRIVATE ${VGM_BINARY_DIR}/ext_libs/libatrac9.lib)
-		endif()
-		if(NOT WIN32 AND LINK)
-			target_link_libraries(${TARGET} PRIVATE atrac9 m)
-		endif()
 	endif()
 
 	if(USE_CELT)
@@ -147,7 +140,6 @@ macro(install_dlls INSTALL_PREFIX)
 		${VGM_SOURCE_DIR}/ext_libs/avformat-vgmstream-59.dll
 		${VGM_SOURCE_DIR}/ext_libs/avutil-vgmstream-57.dll
 		${VGM_SOURCE_DIR}/ext_libs/swresample-vgmstream-4.dll)
-	set(ATRAC9_DLL ${VGM_SOURCE_DIR}/ext_libs/libatrac9.dll)
 	set(CELT_DLL
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0061.dll
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0110.dll)

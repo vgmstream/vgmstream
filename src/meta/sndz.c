@@ -6,7 +6,7 @@
 VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_b = NULL;
-    uint32_t stream_offset, stream_size, name_offset, data_size;
+    uint32_t stream_offset, stream_size, name_offset, memr_size, strm_size;
     int channels, loop_flag, sample_rate, codec, streamed;
     int32_t num_samples, loop_start, loop_end;
     uint32_t at9_config;
@@ -15,25 +15,25 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
 
 
     if (!is_id32be(0x00, sf, "SNDZ"))
-        goto fail;
-  //head_size = read_u32le(0x04, sf);
-    data_size = read_u32le(0x08, sf);
-    /* 0x0c: version? (0x00010001) */
-    /* 0x10: size size? */
-    /* 0x14: null */
-    /* 0x18/1c: some kind of ID? (shared by some files) */
-    /* 0x20: bank name */
-
+        return NULL;
+    memr_size = read_u32le(0x04, sf); // file size in .szd1/.szd, header size in .szd3
+    strm_size = read_u32le(0x08, sf); // szd2 size in .szd1, null in .szd, file size in .szd3
+    // 0x0c: version? (0x00010001)
+    // 0x10: size size?
+    // 0x14: null
+    // 0x18/1c: some kind of ID? (shared by some files)
+    // 0x20: bank name
 
     /* .szd1: header + .szd2 = data
      * .szd/szd3: szd1 + szd2 */
     if (!check_extensions(sf, "szd1,szd,szd3"))
-        goto fail;
+        return NULL;
+
 
     /* parse chunk table and WAVS with offset to offset to WAVD */
     {
         uint32_t wavs_offset;
-        int i, entries;
+        int entries;
 
         offset = 0x70;
         offset += read_u32le(offset, sf);
@@ -42,10 +42,11 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
         offset += 0x04;
 
         wavs_offset = 0;
-        for (i = 0; i < entries; i ++) {
+        for (int i = 0; i < entries; i ++) {
             if (is_id32be(offset + 0x00, sf, "WAVS")) {
-                /* 0x04: size? */
+                // 0x04: size?
                 wavs_offset = read_u32le(offset + 0x08, sf);
+
                 offset += 0x0c;
                 break;
             }
@@ -53,8 +54,10 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
             offset += 0x0c;
         }
 
-        if (!wavs_offset)
-            goto fail;
+        if (wavs_offset == 0) {
+            vgm_logi("SNDZ: bank has no subsongs (ignore)\n");
+            return NULL;
+        }
         offset += wavs_offset;
 
         offset += read_u32le(offset, sf);
@@ -64,13 +67,21 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
     {
         uint32_t entry_size;
 
+        uint32_t wavd_id = read_u32be(offset + 0x00, sf);
+        if (wavd_id == 0) {
+            // some config files somehow define WAVS offset but point to null
+            vgm_logi("SNDZ: bank has no subsongs (ignore)\n");
+            return NULL;
+        }
+
         if (!is_id32be(offset + 0x00, sf, "WAVD"))
-            goto fail;
+            return NULL;
         entry_size = read_u32le(offset + 0x04, sf);
         total_subsongs = read_u32le(offset + 0x08, sf);
 
         if (target_subsong == 0) target_subsong = 1;
-        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1)
+            return NULL;
 
         offset += 0x0c;
         offset += entry_size * (target_subsong - 1);
@@ -95,15 +106,16 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
         loop_flag = loop_end > 0;
     }
 
-    /* szd3 is streamed but has header+data together, with padding between (data_size is the same as file size)*/
-    if (streamed && get_streamfile_size(sf) < data_size) {
+    /* szd3 is streamed but has memory + stream together, with padding in between (strm_size equals file_size)*/
+    bool is_szd3 = get_streamfile_size(sf) != memr_size;
+    if (streamed && !is_szd3) {
         sf_b = open_streamfile_by_ext(sf, "szd2");
         if (!sf_b) {
             vgm_logi("SNDZ: can't find companion .szd2 file\n");
             goto fail;
         }
 
-        if (data_size > get_streamfile_size(sf_b))
+        if (strm_size > get_streamfile_size(sf_b))
             goto fail;
     }
     else {
@@ -113,6 +125,11 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
         sf_b = sf;
     }
 
+    // normal headers, just odd codecs
+    if (codec == 0x0F && channels == 0)
+        channels = 1;
+    if ((codec == 0x10 || codec == 0x14) && sample_rate < 5000)
+        sample_rate = 48000;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
@@ -147,6 +164,17 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
             vgmstream->coding_type = coding_PCMFLOAT;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x04;
+            break;
+
+        case 0x0F: // 'SilenceRequest'
+        case 0x10: // 'OscillatorRequest'
+        case 0x14: // 'OscillatorRequest'
+        case 0x15: // 'OscillatorRequest'
+        case 0x17: // 'hap1'?
+            // presumably generated waves for haptics, stream_size = 0 and stream_offset = EOF
+            vgmstream->coding_type = coding_SILENCE;
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = sample_rate; // no samples but have sample rate
             break;
 
         case 0x20:

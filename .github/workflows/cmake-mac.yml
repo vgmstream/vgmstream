@@ -42,12 +42,6 @@ jobs:
             ${{ github.workspace }}/build/dependencies/celt-0110/libcelt/.libs
           key: mac-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
 
-      - name: Cache atrac9
-        uses: actions/cache@v5
-        with:
-          path: ${{ github.workspace }}/build/dependencies/LibAtrac9/bin
-          key: mac-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
-
       - name: Cache g719
         uses: actions/cache@v5
         with:

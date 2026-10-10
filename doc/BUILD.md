@@ -477,7 +477,7 @@ cmake -A x64 -S . -B build -G "Visual Studio 17 2022"^
     -DBUILD_XMPLAY:BOOL=OFF^
     -DUSE_CELT:BOOL=OFF^
     -DUSE_G719:BOOL=OFF^
-    -DUSE_G7221:BOOL=OFF^
+    -DUSE_G7221:BOOL=ON^
     -DUSE_MPEG:BOOL=OFF^
     -DUSE_SPEEX:BOOL=OFF^
     -DUSE_VORBIS:BOOL=OFF^
@@ -556,16 +556,6 @@ Indirectly used by FFmpeg for improved Opus (`.opus` and variants) support.
 - DLLs: (part of FFmpeg)
 - lib: (part of FFmpeg)
 - licensed under a variant of the BSD license: https://opus-codec.org/license/
-
-### LibAtrac9
-Adds support for ATRAC9, used in `.at9` and other formats for the PS4 and Vita.
-- Source: https://github.com/Thealexbarney/LibAtrac9 (commit `6a9e00f6c7abd74d037fd210b6670d3cdb313049`)
-- Official Windows binaries:
-  - https://github.com/Thealexbarney/LibAtrac9/releases (32-bit only, outdated)
-- Version: latest
-- DLL: `libatrac9.dll`
-- lib: `-latrac9` / `-l:libatrac9.a`
-- licensed under the MIT license
 
 ### libcelt
 Adds support for FSB CELT versions 0.6.1 and 0.11.0, used in a handful of older `.fsb`.

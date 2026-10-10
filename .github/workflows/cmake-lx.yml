@@ -59,13 +59,6 @@ jobs:
             ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/lib
           key: linux-${{ env.RELEASE }}-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
   
-      - name: Cache atrac9
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{runner.workspace}}/build/dependencies/LibAtrac9/bin
-          key: linux-${{ env.RELEASE }}-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
-  
       - name: Cache g719
         uses: actions/cache@v5
         with:

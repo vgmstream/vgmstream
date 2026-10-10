@@ -57,13 +57,6 @@ jobs:
             ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/lib
           key: wasm-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
   
-      - name: Cache atrac9
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{runner.workspace}}/embuild/dependencies/LibAtrac9/bin
-          key: wasm-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
-  
       - name: Cache g719
         uses: actions/cache@v5
         with:

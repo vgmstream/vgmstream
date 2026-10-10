@@ -15,7 +15,7 @@ import multiprocessing
 #import multiprocessing.dummy #fake provs with threads, but not much slower (maybe faster on windows?)
 
 # don't try to decode common stuff
-IGNORED_EXTENSIONS = ['.exe', '.dll', '.zip', '.7z', '.rar', '.bat', '.sh', '.txt', '.lnk', '.wav', '.py', '.md', '.idb']
+IGNORED_EXTENSIONS = ['.exe', '.dll', '.zip', '.7z', '.rar', '.bat', '.sh', '.txt', '.lnk', '.wav', '.py', '.md', '.idb', '.ini']
 #TODO others
 FUZZY_CODECS = ['ffmpeg', 'vorbis', 'mpeg', 'speex', 'celt']
 

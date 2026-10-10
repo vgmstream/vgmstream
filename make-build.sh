@@ -50,21 +50,6 @@ FLAGS="${FLAGS} VGM_FFMPEG=1"
 
 
 ###############################################################################
-# atrac9 deps (compile)
-mkdir -p dependencies
-cd dependencies
-
-git clone https://github.com/Thealexbarney/LibAtrac9
-cd LibAtrac9/C
-make
-cd ../../../
-
-FLAGS="${FLAGS} VGM_ATRAC9=2"
-#INCS="${INCS} -I../dependencies/LibAtrac9/C/src"
-LIBS="${LIBS} -L../dependencies/LibAtrac9/C/bin"
-
-
-###############################################################################
 # celt deps (compile x2)
 
 # used renames followed by unused renamed (but seems needed to avoid clashes)

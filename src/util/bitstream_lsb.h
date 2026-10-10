@@ -2,6 +2,7 @@
 #define _BITSTREAM_LSB_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Simple bitreader for Vorbis' bit style, in 'least significant byte' (LSB) format.
  * Example: with 0x1234 = 00010010 00110100, reading 5b + 6b = 10010 100000
@@ -11,6 +12,7 @@
  * Assumes bufs aren't that big (probable max ~0x20000000)
  */
 
+//TODO: ifdef buf const for reads?
 typedef struct {
     uint8_t* buf;           // buffer to read/write
     uint32_t bufsize;       // max size

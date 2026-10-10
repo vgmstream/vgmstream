@@ -100,7 +100,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Exient WIIADPCM header [*DSP_WIIADPCM*]
   - CRI CWAC header [*DSP_CWAC*]
   - Koei Tecmo APEX header [*DSP_APEX*]
-  - *ngc_dsp_std*: `.dsp .adp .(extensionless) .wav .lwav .dat .ldat .rsm`
+  - *ngc_dsp_std*: `.dsp .adp .(extensionless) .wav .lwav .dat .ldat .rsm .adpcm`
   - *ngc_dsp_std_le*: `.adpcm`
   - *ngc_mdsp_std*: `.dsp .mdsp`
   - *dspi_ste*: `.ste .mpdsp`
@@ -185,7 +185,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony VAG header [*VAG*]
   - Acclaim Austin AAAp header [*AAAP*]
   - Sony VAG footer [*VAG_footer*]
-  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg .(extensionless) .wav .lwav .msv .eng .fre .ger .int .ita .jap .spa`
+  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg .(extensionless) .wav .lwav .msv .eng .fre .ger .int .ita .jap .spa .stv`
   - *vag_aaap*: `.vag`
   - *vag_footer*: `.(extensionless) .vag`
   - *vag_evolution_games*: `.vag`
@@ -1207,7 +1207,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **bnk_sony.c**
   - Sony BNK header [*BNK_SONY*]
-  - *bnk_sony*: `.bnk .mus .sbk + .(external)`
+  - *bnk_sony*: `.bnk .mus .sbk .stv + .(external)`
     - Subfiles: *xvag riff*
   - Codecs: ATRAC9 MPEG PCM16BE PCM16LE PSX HEVAG
 - **nus3bank.c**
@@ -1596,7 +1596,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: XBOX_IMA
 - **psb.c**
   - M2 PSB header [*PSB*]
-  - *psb*: `.psb`
+  - *psb*: `.psb .(extensionless)`
     - Subfiles: *riff vag ogg_vorbis*
   - Codecs: PCM16LE PCM24LE MSADPCM XWMA XMA NGC_DSP Opus
 - **lopu_fb.c**
@@ -1782,7 +1782,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM8_U DVI_IMA FFmpeg(various)
 - **cf_df.c**
   - Cyberflix DreamFactory header [*CF_DF*]
-  - *cf_df*: `.snd .sfx .trk .mov`
+  - *cf_df*: `.snd .sfx .trk .11k .mov .move .mup .mupp .pup .pupp .(extensionless)`
   - Codecs: CF_DF_ADPCM_V40 CF_DF_DPCM_V41
 - **cf_df_d5.c**
   - Cyberflix DreamFactory D5 header [*CF_DF_D5*]
@@ -1836,6 +1836,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - LucasArts SAUD header [*SAUD*]
   - *saud*: `.sad`
   - Codecs: PCM8_U PCM16LE_U
+- **ka.c**
+  - Knowledge Adventure KA Sound header [*KA_SOUND*]
+  - *ka*: `.snd`
+  - Codecs: PCM8_U PCM16LE KA_ADPCM
 - **joe.c**
   - Asobo Studio .JOE header [*JOE*]
   - *joe*: `.joe`

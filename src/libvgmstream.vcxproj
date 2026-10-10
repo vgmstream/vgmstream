@@ -109,6 +109,9 @@
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
+    <ClInclude Include="coding\libs\atrac9_dec.h" />
+    <ClInclude Include="coding\libs\atrac9_internal.h" />
+    <ClInclude Include="coding\libs\atrac9_internal_data.h" />
     <ClInclude Include="coding\libs\binka_data.h" />
     <ClInclude Include="coding\libs\binka_dec.h" />
     <ClInclude Include="coding\libs\binka_transform.h" />
@@ -320,8 +323,8 @@
     <ClCompile Include="coding\ice_decoder.c" />
     <ClCompile Include="coding\ima_decoder.c" />
     <ClCompile Include="coding\imuse_decoder.c" />
-    <ClCompile Include="coding\ka_decoder.c" />
     <ClCompile Include="coding\ka1a_decoder.c" />
+    <ClCompile Include="coding\ka_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
     <ClCompile Include="coding\mio_decoder.c" />
@@ -372,6 +375,8 @@
     <ClCompile Include="coding\xa_decoder.c" />
     <ClCompile Include="coding\xmd_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />
+    <ClCompile Include="coding\libs\atrac9_dec.c" />
+    <ClCompile Include="coding\libs\atrac9_internal.c" />
     <ClCompile Include="coding\libs\binka_dec.c" />
     <ClCompile Include="coding\libs\binka_transform.c" />
     <ClCompile Include="coding\libs\circus_vq_lib.c" />

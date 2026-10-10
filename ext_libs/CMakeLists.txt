@@ -87,16 +87,6 @@ if(MSVC)
 		source_group("Header Files\\ffmpeg\\libswresample" FILES ${SWRESAMPLE_HEADERS})
 	endif()
 
-	if(USE_ATRAC9)
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.exp
-			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def)
-		add_custom_target(libatrac9
-			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
-			SOURCES ${VGM_SOURCE_DIR}/ext_includes/libatrac9.h)
-	endif()
-
 	if(USE_CELT)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.lib ${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.exp
 			COMMAND lib
@@ -180,15 +170,6 @@ elseif(MINGW)
 				${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
 				${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
 				${CMAKE_CURRENT_BINARY_DIR}/swresample.lib)
-	endif()
-
-	if(USE_ATRAC9)
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
-			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def -l ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def)
-		add_custom_target(libatrac9
-			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib)
 	endif()
 
 	if(USE_CELT)

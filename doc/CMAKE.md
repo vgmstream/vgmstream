@@ -125,9 +125,9 @@ All of these options are of type BOOL and can be set to either `ON` or `OFF`. Mo
 - **USE_MPEG**: Chooses if you wish to use libmpg123 for support of MP1/MP2/MP3. The default is `ON`.
 - **USE_VORBIS**: Chooses if you wish to use libvorbis for support of Vorbis. The default is `ON`.
 - **USE_FFMPEG**: Chooses if you wish to use FFmpeg for support of many codecs. The default is `ON`. `FFMPEG_PATH` can also be given, so it can use official/external SDK instead of the one used in vgmstream project.
-- **USE_G7221**: Chooses if you wish to use G7221 for support of ITU-T G.722.1 annex C. The default is `ON`.
+- **USE_G7221**: Chooses if you wish to enable internal support of ITU-T G.722.1 annex C. The default is `ON`.
 - **USE_G719**: Chooses if you wish to use libg719_decode for support ITU-T G.719. The default is `ON`.
-- **USE_ATRAC9**: Chooses if you wish to use LibAtrac9 for support of ATRAC9. The default is `ON`.
+- **USE_ATRAC9**: Chooses if you wish to enable internal support of ATRAC9. The default is `ON`.
 - **USE_SPEEX**: Chooses if you wish to use libspeex for support of SPEEX. The default is `ON`.
 - **USE_CELT**: Chooses if you wish to use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0. The default is `ON`.
 
@@ -160,7 +160,6 @@ If FDK-AAC/QAAC support is enabled, the following paths are required (with more 
 - **MPEG_PATH**: The path to the mpg123 library. It can be obtained from [the mpg123 project on SourceForge.net](https://sourceforge.net/projects/mpg123/files/mpg123/1.25.10/). If not set and static building is enabled, this will be downloaded automatically.
 - **FFMPEG_PATH**: The path to the FFmpeg source directory. It can be obtained at https://git.ffmpeg.org/ffmpeg.git If not set and static building is enabled, this will be downloaded automatically.
 - **G719_PATH**: The path to the G.719 decoder library. It can be obtained at https://github.com/kode54/libg719_decode If not set, it is downloaded automatically on Linux.
-- **ATRAC9_PATH**: The path to the Atrac9 library. It can be obtained at https://github.com/Thealexbarney/LibAtrac9 If not set, it is downloaded automatically on Linux.
 - **SPEEX_PATH**: The path to the SPEEX library. It can be obtained at https://gitlab.xiph.org/xiph/speex If not set, it is downloaded automatically when building with Emscripten.
 - **LIBAO_PATH**: The path to the AO library. If static building is enabled and you chose to build the vgmstream123 player, providing this path is required. It is not recommended to use.
 

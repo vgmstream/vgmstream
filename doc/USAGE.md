@@ -17,7 +17,6 @@ Put the following files somewhere Windows can find them:
 - `avformat-vgmstream-59.dll`
 - `avutil-vgmstream-57.dll`
 - `swresample-vgmstream-4.dll`
-- `libatrac9.dll`
 - `libcelt-0061.dll`
 - `libcelt-0110.dll`
 - `libspeex-1.dll`

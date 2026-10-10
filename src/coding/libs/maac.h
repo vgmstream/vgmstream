@@ -223,7 +223,7 @@ John Regan <john@jrjrtech.com>
 
 #define MAAC_VERSION_MAJOR 1
 #define MAAC_VERSION_MINOR 0
-#define MAAC_VERSION_PATCH 0
+#define MAAC_VERSION_PATCH 1
 
 #ifndef MAAC_PUBLIC
 
@@ -416,6 +416,7 @@ typedef signed long maac_s32;
 #endif /* pre-C99/C++11 support */
 
 #define MAAC_UNREACHABLE                       (-99) /* strictly used in MAAC_UNREACHABLE_RETURN */
+#define MAAC_RESERVED_CODEBOOK                 (-16)
 #define MAAC_HUFFMAN_DECODE_ERROR              (-15)
 #define MAAC_ADTS_RDB_NOT_CALLED               (-14)
 #define MAAC_ADTS_SYNCWORD_NOT_FOUND           (-13)
@@ -434,7 +435,7 @@ typedef signed long maac_s32;
 #define MAAC_CONTINUE                          (  0) /* needs more data, otherwise fine */
 #define MAAC_OK                                (  1) /* generic "OK" */
 
-#define MAAC_RESULT_MIN MAAC_HUFFMAN_DECODE_ERROR
+#define MAAC_RESULT_MIN MAAC_RESERVED_CODEBOOK
 #define MAAC_RESULT_MAX MAAC_OK
 
 typedef maac_s32 MAAC_RESULT;
@@ -10405,12 +10406,6 @@ static void brekp(void) {
 
 static MAAC_RESULT
 maac_ics_default_codebook(maac_ics* ics, maac_bitreader* maac_restrict br, const maac_ics_codebook_params* p) {
-#if 0
-    const maac_ics_info* info = &ics->info;
-    const maac_u8 num_window_groups = maac_sfg_num_window_groups(info->scale_factor_grouping);
-    const maac_scalefactor_bands b = maac_scalefactor_bandsf(info->window_sequence, p->sf_index);
-#endif
-
     MAAC_RESULT res;
     maac_u8 n;
     maac_u8 num;
@@ -10646,6 +10641,30 @@ maac_section_data_parse(maac_ics* ics, maac_bitreader* maac_restrict br, const m
 
                 if( (res = maac_bitreader_fill(br, 4)) != MAAC_OK) return res;
                 ics->section_data[idx].codebook = maac_bitreader_read(br, 4);
+                /* check for valid codebook values - this is really just "is the codebook anything but 12" but
+                 * I'd rather explicitly list out valid values rather than only list invalid values, personal
+                 * preference. */
+                switch(ics->section_data[idx].codebook) {
+                    case 0: /* fall-through */
+                    case 1: /* fall-through */
+                    case 2: /* fall-through */
+                    case 3: /* fall-through */
+                    case 4: /* fall-through */
+                    case 5: /* fall-through */
+                    case 6: /* fall-through */
+                    case 7: /* fall-through */
+                    case 8: /* fall-through */
+                    case 9: /* fall-through */
+                    case 10: /* fall-through */
+                    case 11: /* fall-through */
+                    case 13: /* fall-through */
+                    case 14: /* fall-through */
+                    case 15: {
+                        break;
+                    }
+                    default: return MAAC_RESERVED_CODEBOOK;
+                }
+
                 ics->section_data[idx].end = 0;
                 ics->state = MAAC_ICS_STATE_SECTION_CODEBOOK_LENGTH;
                 goto maac_ics_state_section_codebook_length;

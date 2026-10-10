@@ -3,6 +3,7 @@
 #include "../layout/layout.h"
 #include "xvag_streamfile.h"
 #include "../util/chunks.h"
+#include "../util/endianness.h"
 
 
 typedef struct {
@@ -27,7 +28,7 @@ typedef struct {
     off_t stream_offset;
 } xvag_header;
 
-static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* xvag, off_t chunk_offset);
+static bool init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* xvag, off_t chunk_offset);
 static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header* xvag, off_t chunk_offset, off_t start_offset);
 
 /* XVAG - Sony's Scream Tool/Stream Creator format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
@@ -35,7 +36,7 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     xvag_header xvag = {0};
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    
     off_t start_offset, chunk_offset, first_offset = 0x20;
     size_t chunk_size;
     int total_subsongs = 0, target_subsong = sf->stream_index;
@@ -43,47 +44,46 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "XVAG"))
-        goto fail;
+        return NULL;
 
     /* .xvag: standard
      * (extensionless): The Last of Us (PS3) speech files */
     if (!check_extensions(sf,"xvag,"))
-        goto fail;
+        return NULL;
 
     /* endian flag (XVAGs of the same game can use BE or LE, usually when reusing from other platforms) */
-    xvag.big_endian = read_8bit(0x08,sf) & 0x01;
-    if (xvag.big_endian) {
-        read_32bit = read_32bitBE;
-    } else {
-        read_32bit = read_32bitLE;
-    }
+    xvag.big_endian = read_u8(0x08,sf) & 0x01;
 
-    start_offset = read_32bit(0x04,sf);
-    /* 0x08: flags? (&0x01=big endian, 0x02=?, 0x06=full RIFF AT9?)
-     * 0x09: flags2? (0x00/0x01/0x04, speaker mode?)
-     * 0x0a: always 0?
-     * 0x0b: version-flag? (0x5f/0x60/0x61/0x62/etc) */
+    read_s32_t read_s32 = get_read_s32(xvag.big_endian);
+    read_u32_t read_u32 = get_read_u32(xvag.big_endian);
+
+    start_offset = read_u32(0x04,sf);
+    // 0x08: flags? (&0x01=big endian, 0x02=?, 0x06=full RIFF AT9?)
+    // 0x09: flags2? (0x00/0x01/0x04, speaker mode?)
+    // 0x0a: always 0?
+    // 0x0b: version-flag? (0x5f/0x60/0x61/0x62/etc)
 
 
     /* "fmat": base format (always first) */
-    if (!find_chunk(sf, 0x666D6174,first_offset,0, &chunk_offset,&chunk_size, xvag.big_endian, 1, 0)) /*"fmat"*/
+    if (!find_chunk(sf, get_id32be("fmat"), first_offset, 0, &chunk_offset,&chunk_size, xvag.big_endian, true, false))
         goto fail;
-    xvag.channels    = read_32bit(chunk_offset+0x00,sf);
-    xvag.codec       = read_32bit(chunk_offset+0x04,sf);
-    xvag.num_samples = read_32bit(chunk_offset+0x08,sf);
-    /* 0x0c: samples again? */
-    VGM_ASSERT(xvag.num_samples != read_32bit(chunk_offset+0x0c,sf), "XVAG: num_samples values don't match\n");
+    xvag.channels    = read_s32(chunk_offset+0x00,sf);
+    xvag.codec       = read_s32(chunk_offset+0x04,sf);
+    xvag.num_samples = read_s32(chunk_offset+0x08,sf);
+    // 0x0c: samples again?
 
-    xvag.factor      = read_32bit(chunk_offset+0x10,sf); /* for interleave */
-    xvag.sample_rate = read_32bit(chunk_offset+0x14,sf);
-    xvag.data_size = read_32bit(chunk_offset+0x18,sf); /* not always accurate */
+    VGM_ASSERT(xvag.num_samples != read_s32(chunk_offset+0x0c,sf), "XVAG: num_samples values don't match\n");
+
+    xvag.factor      = read_s32(chunk_offset+0x10,sf); // for interleave
+    xvag.sample_rate = read_s32(chunk_offset+0x14,sf);
+    xvag.data_size   = read_u32(chunk_offset+0x18,sf); // not always accurate
 
     /* extra data, seen in versions 0x61+ */
     if (chunk_size > 0x1c) {
         /* number of interleaved subsongs */
-        xvag.subsongs = read_32bit(chunk_offset+0x1c,sf);
+        xvag.subsongs = read_s32(chunk_offset+0x1c,sf);
         /* number of interleaved layers (layers * channels_per_layer = channels) */
-        xvag.layers   = read_32bit(chunk_offset+0x20,sf);
+        xvag.layers   = read_s32(chunk_offset+0x20,sf);
     }
     else {
         xvag.subsongs = 1;
@@ -97,16 +97,16 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
 
 
     /* other chunks: */
-    /* "cpan": pan/volume per channel */
-    /* "cues": cue/labels (rare) */
-    /* "md5 ": hash (rare) */
-    /* "0000": end chunk before start_offset */
+    // "cpan": pan/volume per channel
+    // "cues": cue/labels (rare)
+    // "md5 ": hash (rare)
+    // "0000": end chunk before start_offset
 
     /* XVAG has no looping, but some PS3 PS-ADPCM seems to do full loops (without data flags) */
     if (xvag.codec == 0x06 && xvag.subsongs == 1) {
         size_t file_size = get_streamfile_size(sf);
         /* simply test if last frame is not empty = may loop */
-        xvag.loop_flag = (read_8bit(file_size - 0x01, sf) != 0);
+        xvag.loop_flag = (read_u8(file_size - 0x01, sf) != 0);
         xvag.loop_start = 0;
         xvag.loop_end = ps_bytes_to_samples(file_size - start_offset, xvag.channels);
     }
@@ -187,8 +187,8 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
              * - 0x34: data size
              * (rest is padding)
              * */
-            cfg.chunk_size = read_32bit(chunk_offset+0x1c,sf);
-            cfg.skip_samples = read_32bit(chunk_offset+0x20,sf);
+            cfg.chunk_size = read_s32(chunk_offset+0x1c,sf);
+            cfg.skip_samples = read_s32(chunk_offset+0x20,sf);
             cfg.interleave = cfg.chunk_size * xvag.factor;
 
             vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
@@ -210,8 +210,11 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
         case 0x09: { /* ATRAC9: Sly Cooper and the Thievius Raccoonus (Vita), The Last of Us Remastered (PS4) */
 
             /* "a9in": ATRAC9 info */
-            /*  0x00: frame size, 0x04: samples per frame, 0x0c: fact num_samples (no change), 0x10: encoder delay1 */
-            if (!find_chunk(sf, 0x6139696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1, 0)) /*"a9in"*/
+            // 0x00: frame size
+            // 0x04: samples per frame
+            // 0x0c: fact num_samples (no change)
+            // 0x10: encoder delay1
+            if (!find_chunk(sf, get_id32be("a9in"),first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1, 0))
                 goto fail;
 
             if (xvag.layers > 1) {
@@ -226,7 +229,7 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
             }
             else {
                 /* interleaved subsongs (section layers) */
-                size_t frame_size = read_32bit(chunk_offset+0x00,sf);
+                size_t frame_size = read_u32(chunk_offset+0x00,sf);
 
                 if (!init_xvag_atrac9(sf, vgmstream, &xvag, chunk_offset))
                     goto fail;
@@ -256,17 +259,17 @@ fail:
 }
 
 #ifdef VGM_USE_ATRAC9
-static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* xvag, off_t chunk_offset) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
+static bool init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* xvag, off_t chunk_offset) {
+    read_s32_t read_s32 = get_read_s32(xvag->big_endian);
     atrac9_config cfg = {0};
 
     cfg.channels = vgmstream->channels;
-    /* 0x00: frame size */
-    /* 0x04: frame samples */
-    cfg.config_data = read_32bitBE(chunk_offset+0x08,sf);
-    /* 0x08: data size (layer only) */
-    /* 0x10: decoder delay? */
-    cfg.encoder_delay = read_32bit(chunk_offset+0x14,sf);
+    // 0x00: frame size
+    // 0x04: frame samples
+    cfg.config_data = read_u32be(chunk_offset+0x08,sf);
+    // 0x08: data size (layer only)
+    // 0x10: decoder delay?
+    cfg.encoder_delay = read_s32(chunk_offset+0x14,sf);
     /* sometimes ATRAC9 data starts with a fake RIFF, that has total channels rather than layer channels */
 
     vgmstream->codec_data = init_atrac9(&cfg);
@@ -274,17 +277,17 @@ static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* x
     vgmstream->coding_type = coding_ATRAC9;
     vgmstream->layout_type = layout_none;
 
-    return 1;
+    return true;
 fail:
-    return 0;
+    return false;
 }
 #endif
 
 static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header* xvag, off_t chunk_offset, off_t start_offset) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_sf = NULL;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
-    int i, layers = xvag->layers;
+    read_u32_t read_u32 = get_read_u32(xvag->big_endian);
+    int layers = xvag->layers;
     int chunk, chunks = layers * xvag->subsongs;
 
 
@@ -293,7 +296,7 @@ static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header* xvag
     if (!data) goto fail;
 
     /* interleaves frames per substreams */
-    for (i = 0; i < layers; i++) {
+    for (int i = 0; i < layers; i++) {
         int layer_channels = xvag->channels / layers; /* all streams must be equal (XVAG limitation) */
 
         /* build the layer VGMSTREAM */
@@ -306,16 +309,16 @@ static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header* xvag
         switch(xvag->codec) {
 #ifdef VGM_USE_ATRAC9
             case 0x09: {
-                size_t frame_size = read_32bit(chunk_offset+0x00,sf);
+                size_t frame_size = read_u32(chunk_offset+0x00,sf);
 
                 if (!init_xvag_atrac9(sf, data->layers[i], xvag, chunk_offset))
                     goto fail;
 
-                /* interleaves N layers for custom multichannel, may rarely use subsongs [Days Gone (PS4) multilayer test]
-                 * ex. 2 layers, 1 subsong : [L1][L2][L1][L2]
-                 * ex. 2 layers, 2 subsongs: [L1S1][L2S1][L1S2][L2S2] (assumed, could be [L1S1][L1S2][L2S1][L2S2]) */
-                chunk = i + xvag->subsongs * (xvag->target_subsong - 1); /* [L1S1][L2S1][L1S2][L2S2] */
-              //chunk = i * xvag->subsongs + (xvag->target_subsong - 1); /* [L1S1][L1S2][L2S1][L2S2] */
+                // interleaves N layers for custom multichannel, may rarely use subsongs [Days Gone (PS4) multilayer test]
+                //  ex. 2 layers, 1 subsong : [L1][L2][L1][L2]
+                //  ex. 2 layers, 2 subsongs: [L1S1][L2S1][L1S2][L2S2] (assumed, could be [L1S1][L1S2][L2S1][L2S2])
+                chunk = i + xvag->subsongs * (xvag->target_subsong - 1); // [L1S1][L2S1][L1S2][L2S2]
+              //chunk = i * xvag->subsongs + (xvag->target_subsong - 1); // [L1S1][L1S2][L2S1][L2S2]
 
                 temp_sf = setup_xvag_streamfile(sf, start_offset, frame_size*xvag->factor, frame_size, chunk, chunks);
                 if (!temp_sf) goto fail;

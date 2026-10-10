@@ -17,7 +17,7 @@
 
 #define OOR_FLAG_CONTINUED      (1<<3)  // 1000 = continued (first packet in page is part of last; equivalent to OggS 0x01)
 #define OOR_FLAG_PARTIAL        (1<<2)  // 0100 = partial (last packet in page is not complete and must be merged with prev; OggS uses size 0xFF for this)
-#define OOR_FLAG_BOS            (1<<1)  // 0010 = beginning-of-stream (irst page, OggS 0x02)
+#define OOR_FLAG_BOS            (1<<1)  // 0010 = beginning-of-stream (first page, OggS 0x02)
 #define OOR_FLAG_EOS            (1<<0)  // 0001 = end-of-stream (last page, OggS 0x04)
 //#define OOR_FLAG_NORMAL       0       // any other regular packet
 

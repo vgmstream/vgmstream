@@ -75,9 +75,9 @@ static void decode_ngc_dsp_subint_internal(VGMSTREAMCHANNEL * stream, sample_t *
     scale = 1 << ((frame[0] >> 0) & 0xf);
     coef_index  = (frame[0] >> 4) & 0xf;
 
-    VGM_ASSERT_ONCE(coef_index > 8, "DSP: incorrect coefs\n");
-    //if (coef_index > 8) //todo not correctly clamped in original decoder?
-    //    coef_index = 8;
+    VGM_ASSERT_ONCE(coef_index > 7, "DSP SUBINT: incorrect coefs\n");
+    if (coef_index > 7) //possibly not clamped in original decoder?
+        coef_index = 7;
 
     coef1 = stream->adpcm_coef[coef_index*2 + 0];
     coef2 = stream->adpcm_coef[coef_index*2 + 1];

@@ -161,6 +161,15 @@
     <ClInclude Include="coding\vorbis_custom_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\atrac9_dec.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\atrac9_internal.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\atrac9_internal_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\binka_data.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -790,10 +799,10 @@
     <ClCompile Include="coding\imuse_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\ka_decoder.c">
+    <ClCompile Include="coding\ka1a_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\ka1a_decoder.c">
+    <ClCompile Include="coding\ka_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\l5_555_decoder.c">
@@ -945,6 +954,12 @@
     </ClCompile>
     <ClCompile Include="coding\yamaha_decoder.c">
       <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\atrac9_dec.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\atrac9_internal.c">
+      <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\binka_dec.c">
       <Filter>coding\libs\Source Files</Filter>

@@ -121,6 +121,11 @@ ifneq ($(VGM_G7221),0)
   LIBS_CFLAGS  += -DVGM_USE_G7221
 endif
 
+VGM_ATRAC9 ?= 1
+ifneq ($(VGM_ATRAC9),0)
+  LIBS_CFLAGS  += -DVGM_USE_ATRAC9
+endif
+
 
 ### external libs
 # (call "make VGM_xxx = 0/1" to override 0/1 defaults, as Make does)
@@ -153,13 +158,6 @@ ifeq ($(TARGET_OS),Windows_NT)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG -I../ext_includes/ffmpeg
     LIBS_LDFLAGS += -lavcodec-vgmstream-59 -lavformat-vgmstream-59 -lavutil-vgmstream-57 -lswresample-vgmstream-4
     LIBS_TARGET_EXT_LIBS += avcodec-vgmstream-59.dll.a avformat-vgmstream-59.dll.a avutil-vgmstream-57.dll.a swresample-vgmstream-4.dll.a
-  endif
-
-  VGM_ATRAC9 ?= 1
-  ifneq ($(VGM_ATRAC9),0)
-    LIBS_CFLAGS  += -DVGM_USE_ATRAC9
-    LIBS_LDFLAGS += -latrac9
-    LIBS_TARGET_EXT_LIBS += libatrac9.dll.a
   endif
 
   VGM_CELT ?= 1
@@ -201,17 +199,6 @@ else
   ifneq ($(VGM_FFMPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG
     LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
-  endif
-
-  VGM_ATRAC9 ?= 0
-  ifneq ($(VGM_ATRAC9),0)
-    LIBS_CFLAGS  += -DVGM_USE_ATRAC9
-    ifeq ($(VGM_ATRAC9),1)
-      LIBS_LDFLAGS += -latrac9
-    endif
-    ifeq ($(VGM_ATRAC9),2)
-      LIBS_LDFLAGS += -l:libatrac9.a
-    endif
   endif
 
   VGM_CELT ?= 0

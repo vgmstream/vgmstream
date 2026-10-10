@@ -89,7 +89,7 @@ if(BUILD_SHARED_LIBS)
 
 	target_compile_definitions(libvgmstream_shared PRIVATE LIBVGMSTREAM_EXPORT)
 
-    # Hide exported symbols from libs (libatrac9/celt/etc), that CC seems to export by default
+    # Hide exported symbols from libs (celt/etc), that CC seems to export by default
     # Could add CFLAGS=-fvisibility=hidden to all libs's cmake but this seems cleaner
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         target_link_options(libvgmstream_shared PRIVATE

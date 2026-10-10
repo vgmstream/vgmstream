@@ -74,11 +74,6 @@
       <Command>lib /def:swresample-vgmstream-4.def /machine:x86 /out:swresample.lib</Command>
       <Outputs>swresample.lib;swresample.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="libatrac9.def">
-      <Message>Building library stub</Message>
-      <Command>lib /def:libatrac9.def /machine:x86 /out:libatrac9.lib</Command>
-      <Outputs>libatrac9.lib;libatrac9.exp;%(Outputs)</Outputs>
-    </CustomBuild>
     <CustomBuild Include="libcelt-0061.def">
       <Message>Building library stub</Message>
       <Command>lib /def:libcelt-0061.def /machine:x86 /out:libcelt-0061.lib</Command>
@@ -130,11 +125,6 @@
       <Message>Building library stub</Message>
       <Command>lib /def:swresample-vgmstream-4.def /machine:x64 /out:dll-x64\swresample.lib</Command>
       <Outputs>dll-x64\swresample.lib;dll-x64\swresample.exp;%(Outputs)</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="libatrac9.def">
-      <Message>Building library stub</Message>
-      <Command>lib /def:libatrac9.def /machine:x64 /out:dll-x64\libatrac9.lib</Command>
-      <Outputs>dll-x64\libatrac9.lib;dll-x64\libatrac9.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="libcelt-0061.def">
       <Message>Building library stub</Message>

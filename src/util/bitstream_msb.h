@@ -2,6 +2,7 @@
 #define _BITSTREAM_MSB_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Simple bitreader for MPEG/standard bit style, in 'most significant byte' (MSB) format.
  * Example: with 0x1234 = 00010010 00110100, reading 5b + 6b = 00010 010001
@@ -11,6 +12,7 @@
  * Assumes bufs aren't that big (probable max ~0x20000000)
  */
 
+//TODO: ifdef buf const for reads?
 typedef struct {
     uint8_t* buf;           // buffer to read/write
     uint32_t bufsize;       // max size
@@ -191,6 +193,23 @@ static inline void bm_pad(bitstream_t* bs, uint32_t bits) {
 
     int padding = bits - left;
     bm_put(bs, padding, 0);
+}
+
+// EOB-aware peek, for naughty codecs that can't get their buf sizes straight (like ATRAC9).
+static inline int bm_peek(bitstream_t* bs, uint32_t max_bits) {
+    
+    uint32_t b_current = bs->_b_off;
+    uint32_t bits_left = bs->_b_max - bs->_b_off;
+    uint32_t bits = max_bits;
+    if (bits > bits_left)
+        bits = bits_left;
+
+    uint32_t code = bm_read(bs, bits);
+    code = code << (max_bits - bits); // add 'missing' EOB 0-bits
+
+    bm_set(bs, b_current);
+
+    return code;
 }
 
 #endif

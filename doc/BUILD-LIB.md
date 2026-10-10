@@ -187,60 +187,6 @@ REM add /t:Clean to the above to clean up compilation
 ```
 
 
-### LibAtrac9
-Use MSCV and `libatrac9.sln`, or GCC and the Makefile included.
-
-#### Source
-```bat
-git clone https://github.com/Thealexbarney/LibAtrac9
-git -C LibAtrac9 checkout 6a9e00f6c7abd74d037fd210b6670d3cdb313049
-cd LibAtrac9/C
-```
-
-#### With GCC
-
-**NOTE**: on Windows `mkdir` clashes and needs full path
-```bat
-REM # 32-bit DLL
-make clean shared SFLAGS="-O2 -m32" MKDIR="/Git/usr/bin/mkdir -p" BINDIR=C:\vgmstream-dlls\out\atrac9-32 SHARED_NAME=C:\vgmstream-dlls\out\atrac9-32\libatrac9.dll
-
-REM make clean shared SFLAGS="-O2 -m32" MKDIR="/Git/usr/bin/mkdir -p" BINDIR=C:\vgmstream-dlls\out\atrac9-32 SHARED_FILENAME=libatrac9.dll
-
-REM # 64-bit DLL
-make clean shared SFLAGS="-O2 -m64" MKDIR="/Git/usr/bin/mkdir -p" BINDIR=C:\vgmstream-dlls\out\atrac9-64 SHARED_NAME=C:\vgmstream-dlls\out\atrac9-64\libatrac9.dll
-```
-
-#### With MSVC
-```bat
-REM # 32-bit DLL
-MSBuild.exe libatrac9.sln /p:Platform=x86 /p:Configuration=Release /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v142
-mkdir C:\vgmstream-dlls\out\atrac9-32
-copy /B .\Release\libatrac9.dll C:\vgmstream-dlls\out\atrac9-32\libatrac9.dll
-
-REM # 64-bit DLL
-MSBuild.exe libatrac9.sln /p:Platform=x64 /p:Configuration=Release /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v142
-mkdir C:\vgmstream-dlls\out\atrac9-64
-copy /B .\x64\Release\libatrac9.dll C:\vgmstream-dlls\out\atrac9-64\libatrac9.dll
-
-REM add /t:Clean to the above to clean up compilation
-```
-**NOTE**
-
-Some `libatrac9.vcxproj` x64 config may be outdated. In MSBuild +15 (VS +2017) you can force changes by creating a file named `Directory.Build.props` nearby. Also possible to pass this with /p:ForceImportBeforeCppTargets=(file.prop), but only works with full paths. There is no command line support to change CL (MSVC's compile) options other than this.
-```
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemDefinitionGroup>
-    <ClCompile>
-      <ExceptionHandling>Sync</ExceptionHandling>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <FloatingPointModel>Fast</FloatingPointModel>
-    </ClCompile>
-  </ItemDefinitionGroup>
-</Project>
-```
-
-
 ### libvorbis/libogg
 Should be buildable with *autotools* (Git releases need to use `autogen.sh` first) or MSVC (projects in `./win32/`, may not be up to date). *CMake* may work as well.
 
