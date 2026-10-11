@@ -87,6 +87,10 @@ void decode_free(VGMSTREAM* vgmstream) {
     if (vgmstream->coding_type == coding_NWA) {
         free_nwa(vgmstream->codec_data);
     }
+
+    if (vgmstream->coding_type == coding_IMA_mono && vgmstream->codec_data) {
+        free(vgmstream->codec_data);
+    }
 }
 
 
