@@ -27,9 +27,9 @@
 
 #define MAX_DECODERS 8
 #define MAX_FRAME_CHANNELS 2
-#define MAX_CHANNELS 8              // OG lib seems like it could handle 2ch * 8 decoders = 16, but encoder only allows up to 7.1
+#define MAX_CHANNELS 8 //16         // max 2ch * 8 decoders = 16 (should work but not seen, original encoder allows 8ch while UE's encoder 16ch)
 #define MIN_CHANNELS 1
-#define MAX_SAMPLE_RATE 96000       // OG lib/encoder doesn't check this (BCF1 uses 16-bit field, UEBA has ~96000hz files)
+#define MAX_SAMPLE_RATE 192000      // OG lib/encoder doesn't check this but technically handles it (BCF1 uses u16 sample rate but UEBA allows +192000hz files)
 #define MIN_SAMPLE_RATE 300
 #define MAX_FRAME_SAMPLES  2048
 #define MAX_FRAME_OVERLAP  128
@@ -290,7 +290,7 @@ static bool unpack_channel(float* coefs, int frame_samples, int band_count, bits
 
             // read batch of N coefs
             if (is_binka2) {
-                // Binka2 packs coefs then signs, using vectorized/unrolled functions (fiddling with bitreader positions),
+                // Binka2 packs coefs then signs, using calls to vectorized/unrolled functions (fiddling with bitreader positions),
                 // then applies scales in next loop via SIMDs to optimize performance a bit (considering coefs are read in batches of 8).
 
                 // read coefs
@@ -311,8 +311,8 @@ static bool unpack_channel(float* coefs, int frame_samples, int band_count, bits
 
                 // scale
                 while (pos < end) {
-                    // move band after reaching threshold
-                    if (pos == band_thresholds[band] * 2) {
+                    // move band after reaching threshold (UE binka uses 'while' for >96000hz)
+                    while (pos >= band_thresholds[band] * 2) {
                         band_scalefactor = scalefactors[band];
                         band++;
                     }
@@ -324,7 +324,7 @@ static bool unpack_channel(float* coefs, int frame_samples, int band_count, bits
             else {
                 // read and scale coefs
                 while (pos < end) {
-                    // move band after reaching threshold
+                    // move band after reaching threshold (no high sample rate support unlike UEBA/binka 2.0)
                     if (pos == band_thresholds[band] * 2) {
                         band_scalefactor = scalefactors[band];
                         band++;
