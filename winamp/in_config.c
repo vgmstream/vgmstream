@@ -224,6 +224,8 @@ static void save_config(In_Module* input_module, winamp_settings_t* settings) {
 
     ini_set_i(inifile, INI_GAIN_TYPE, settings->gain_type);
     ini_set_i(inifile, INI_CLIP_TYPE, settings->clip_type);
+
+    settings->updated = true; //TODO: improve
 }
 
 
