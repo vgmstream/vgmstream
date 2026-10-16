@@ -178,6 +178,9 @@ ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* p_
         ffmpeg_set_invert_floats(data);
     }
 
+#if 0
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 3, 100)
+    // this was fixed in n6.0 it seems //TODO: remove
     /* multichannel fix: LFE channel should be reordered on decode (ATRAC3Plus only, only 1/2/6/8ch exist):
      * - 6ch: FL FR FC BL BR LFE > FL FR FC LFE BL BR
      * - 8ch: FL FR FC BL BR SL SR LFE > FL FR FC LFE BL BR SL SR */
@@ -191,7 +194,8 @@ ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* p_
         int channel_remap[] = { 0, 1, 2, 7, 7, 7, 7, 7};
         ffmpeg_set_channel_remapping(data, channel_remap);
     }
-
+#endif
+#endif
 
     if (p_samples)
         *p_samples = fact_samples;

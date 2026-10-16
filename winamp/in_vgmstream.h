@@ -66,6 +66,7 @@ typedef struct {
     replay_gain_type_t clip_type;
 
     bool is_xmplay;
+    bool updated;
 } winamp_settings_t;
 
 extern winamp_settings_t defaults;

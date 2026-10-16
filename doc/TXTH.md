@@ -164,6 +164,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #
 # - SDX2           Squareroot-delta-exact 8-bit DPCM
 #   * For many 3DO games
+#   * Special interleave is multiple of 0x1
 #
 # - MPEG           MPEG Audio Layer file (MP1/2/3)
 #   * For some games (usually PC/PS3)

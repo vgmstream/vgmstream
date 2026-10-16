@@ -1,27 +1,25 @@
 # vgmstream lib build help
-This document explains how to build various external dependencies used in vgmstream.  Like *vgmstream*, most external libs use C and need to be compiled as such.
+This document explains how to build various external dependencies used in vgmstream.
 
-The main purpose this doc is to have a reference of what each lib is doing, and to rebuild Windows DLLs. Linux libs are handled automatically using CMake, though you can use these steps too.
+The main purpose is to have a reference of what each lib is doing, and to rebuild Windows DLLs. Linux libs are handled automatically using CMake.
 
-See [BUILD](BUILD.md#external-libraries) for a description of each lib first.
+See [BUILD](BUILD.md#external-libraries) for a description of each lib.
 
 ## Intro
-Guide is mainly geared towards **Windows** DLLs, as a reference for later updates. For **Linux/Mac**, libs are already included when using *CMake*, but you can mostly follow this with minor tweaks (like using default install folders) to create linkable `.so` libs, should you need to.
+Guide is mainly geared towards **Windows** DLLs, as a reference for later updates. For **Linux/Mac**, libs are already included when using *CMake*, but you can mostly follow this with minor tweaks to create linkable `.so` libs.
 
-Unless mentioned, their latest version should be ok to use, though included DLLs may be a bit older. Each lib is compiled using a *recommended version*, but most should work with recent versions (FFMpeg may rarely change the *API* though). Most libs don't provide official pre-compiled *binaries*, or only for certain versions, so we need to compile them ourselves.
+Each lib is compiled using a *recommended version*, but most should work with recent versions (FFMpeg may rarely change the *API* though). Most libs don't provide official pre-compiled *binaries*, so we need to compile them ourselves.
 
 ### Requirements
-Guide assumes you followed the steps above to install Git, GCC (MingW or MSYS2) or Visual Studio, but you'll need GCC most of the time. This guide uses the command line to describe repeatable steps, though for MSVC DLLs you may open `.sln` and compile manually. Both MSVC's and GCC's DLLs should work fine and with comparable performance.
+Guide assumes you followed the steps in [BUILD](BUILD.md) to install Git, GCC (MingW or MSYS2) or Visual Studio, but you'll need GCC most of the time. Some projects allow using MSVC or GCC; both should work fine and with comparable performance.
 
-MSVC commands use `msbuild.exe`, which can be called by opening VS's *x86 Native Tools for VS 20xx* console, found on Windows start menu. It can also be added to regular `PATH` for CMD/MSYS2 as well, but since location changes around you may need to download *vswhere* (locator) to find it:
+MSVC commands use `msbuild.exe`, which can be called by opening VS's **x86 Native Tools for VS 20xx** console, found on Windows start menu. It can also be added to regular `PATH` for CMD/MSYS2 as well, but since location changes with versions you may need to download *vswhere* (locator) to find it:
 ```bat
 curl --location https://github.com/Microsoft/vswhere/releases/download/2.6.7/vswhere.exe --output vswhere.exe
 REM #path to MSBuild
 vswhere.exe -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe
 REM set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin
 ```
-
-On Windows 10, `curl` is included by default but you may need to get it first (or just manually download and unzip files).
 
 ### Tools and PATHs
 When using Mingw+Git you may add their location to Windows' `PATH` variable, so programs like `gcc.exe` work as-is in Windows CMD without writing the full path. This can be done temporarily by writing in the command line: `set PATH=C:\(path-to-mingw)\mingw32\bin;C:\Git\usr\bin;%PATH%` (for example), or in Windows' system variables panel.
@@ -92,10 +90,10 @@ However, *those flags aren't consistent between libs*, meaning in one using *con
 ### Xiph's releases and exports
 Sometimes we use "official releases" sources rather than using Git's sources. Both should be the same, but releases have pre-generated *./configure*, while Git needs to call `autogen.sh` that calls `autoreconf` that generates a base `configure` script. Since getting `autoreconf` working on **Windows** without MSYS2 requires extra steps (not described), Xiph's releases are recommended.
 
-When building a DLL/lib compiler sets *exported symbols* (functions). Xiph's *autoconf* may generate DLLs correctly, but don't detect Mingw/Win config properly and export all symbols by default. This is fixed manually, but there may be better ways to handle it (to be researched).
+When building a DLL/lib, compiler sets *exported symbols* (functions). Xiph's *autoconf* may generate DLLs correctly, but don't detect Mingw/Win config properly and export all symbols by default. This is fixed manually, but there may be better ways to handle it (to be researched).
 
 ### Shared libs details
-Roughly, a `.dll` is a Windows "shared library"; Linux equivalent would be a `.so` file. First, `.c` files are compiled into objects (`.o` in GCC, `.obj` in MSCV), then can be made into a `.dll`. Later, when a program needs that DLL (or rather, it's functions), a compiler can use it as long as some conditions are met.
+Roughly, a `.dll` is a Windows "shared library"; Linux's equivalent would be a `.so` file. First, `.c` files are compiled into objects (`.o` in GCC, `.obj` in MSCV), then can be made into a `.dll`. Later, when a program needs that DLL (or rather, it's functions), a compiler can use it as long as some conditions are met.
 
 DLL must *export symbols* (functions), which on a Windows's DLL is done with:
 - adding `__declspec(dllexport)` to a function (usually done with `#define EXPORT ...` and similar ways)
@@ -126,9 +124,9 @@ Must use *autotools*, though some scripts may simplify the process (`makedll.sh`
 
 #### Source
 ```bat
-curl --location https://sourceforge.net/projects/mpg123/files/mpg123/1.31.1/mpg123-1.31.1.tar.bz2 --output mpg123-1.31.1.tar.bz2
-tar -xf mpg123-1.31.1.tar.bz2
-cd mpg123-1.31.1
+curl --location https://sourceforge.net/projects/mpg123/files/mpg123/1.33.7/mpg123-1.33.7.tar.bz2 --output mpg123-1.33.7.tar.bz2
+tar -xf mpg123-1.33.7.tar.bz2
+cd mpg123-1.33.7
 ```
 
 #### With GCC
@@ -147,7 +145,7 @@ make clean install install-strip
 ```
 
 #### With MSVC
-Untested/not possible.
+Untested/not possible?
 
 
 ### libg719_decode
@@ -205,6 +203,7 @@ curl --location http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.zip --
 tar -xf libvorbis-1.3.7.zip
 cd libvorbis-1.3.7
 ```
+
 #### With GCC
 *Notes*:
 - `-ffast-math` isn't enabled by default but seems safe and commonly done elsewhere
@@ -379,22 +378,16 @@ Untested/outdated.
 
 
 ### libopus
-This is used below by FFmpeg (but can be disabled), as a static lib (`.a`/`.lib`) rather than DLL.
-
-If you wonder why use it through FFmpeg instead of directly, all work was already done for FFmpeg's opus so it was faster and easier this way.
+Used below by FFmpeg (but can be disabled), as a static lib (`.a`/`.lib`) rather than DLL.
 
 #### Source
 ```bat
-curl --location https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz --output opus-1.3.1.tar.gz
-tar -xf opus-1.3.1.tar.gz
-cd opus-1.3.1
+curl --location https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz --output opus-1.6.1.tar.gz
+tar -xf opus-1.6.1.tar.gz
+cd opus-1.6.1
 ```
 
 #### With GCC
-**Notes**
-- `CFLAGS` on *configure* overwrite defaults
-- remove `--prefix` for pkg-config to work properly?
-
 ```bat
 REM # 32-bit lib
 sh ./configure --host=mingw32 --enable-static --disable-shared --disable-doc --disable-extra-programs --prefix=/c/vgmstream-dlls/out/opus-32
@@ -405,185 +398,162 @@ sh ./configure --host=mingw32 --enable-static --disable-shared --disable-doc --d
 make clean install-strip LDFLAGS="-m64 -static-libgcc" AM_CFLAGS="-m64"
 ```
 
-#### With MSVC
-**Notes**:
-- if you have called *configure* first, delete `config.h` on root or you may get odd errors
-
+#### With MSVC + CMake
 ```bat
-del config.h
-cd win32/VS2015
+REM # 32-bit .lib
+cmake -S . -B build-vs-x86 -G "Visual Studio 16 2019" -A Win32 -DOPUS_STATIC_RUNTIME=ON -DCMAKE_INSTALL_PREFIX="C:\vgmstream-dlls\out\opus-vs-32"
+cmake --build build-vs-x86 --config Release
+cmake --install build-vs-x86 --config Release
 
-REM # 32-bit lib
-MSBuild.exe opus.sln /p:Platform=Win32 /p:Configuration=Release /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v142
-
-REM # 64-bit lib
-MSBuild.exe opus.sln /p:Platform=x64 /p:Configuration=Release /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v142
+REM # 64-bit .lib
+cmake -S . -B build-vs-x64 -G "Visual Studio 16 2019" -A x64 -DOPUS_STATIC_RUNTIME=ON -DCMAKE_INSTALL_PREFIX="C:\vgmstream-dlls\out\opus-vs-64"
+cmake --build build-vs-x64 --config Release
+cmake --install build-vs-x64 --config Release
 ```
 
 ### FFmpeg
-vgmstream's FFmpeg builds for **Windows** and static builds for **Linux** remove many unnecessary parts of FFmpeg to trim down its gigantic size, and, on Windows, are also built with the "-vgmstream" suffix to prevent clashing with other plugins. Current options can be seen in `ffmpeg_options.txt`. Shared **Linux** builds usually link to system FFmpeg without issues, while standard FFmpeg DLLs may work (renamed to -vgmstream).
+vgmstream's FFmpeg builds for **Windows** and static builds for **Linux** remove many unnecessary parts of FFmpeg to trim down its gigantic size, and, on Windows, are also built with the "-vgmstream" suffix to prevent clashing with other plugins. 
 
-GCC and MSVC need `yasm.exe` somewhere in `PATH` to properly compile/optimize: https://yasm.tortall.net (add `--disable-yasm` to *configure* options to disable, may decrease performance).
+Those options are passed to the *configure* script before compilation. Current options can be seen in `vgmstream/ext_libs/extra/ffmpeg_options.txt`, but should work with default options as well.
 
-FFmpeg uses separates DLLs, that depend on each other like this:
-- avutil: none (uses bcrypt only in Win7+, could be be patched out)
+Should work with any recent version of FFmpeg. When updating FFmpeg versions careful testing is recommended. *vgmstream* fixes a few of FFmpeg's quirks during playback; some may need to be removed depending on version.
+
+FFmpeg uses separates libs/DLLs, that depend on each other like this:
+- avutil: none
 - swresample: avutil
 - avformat: avcodec, avutil
 - avcodec: avutil, swresample
 
-When updating FFmpeg versions careful testing is recommended. *vgmstream* fixes a few of FFmpeg's quirks during playback; some may need to be tweaked depending on version.
+#### Extra notes
 
-#### Source
-```bat
-# clone only current tag's "depth" as otherwise FFmpeg history is pretty big
-git clone https://git.ffmpeg.org/ffmpeg.git --depth 1 --branch n5.1.2
-cd ffmpeg
-```
+##### Linked headers
+If you are using your own FFmpeg libs (not pre-compiled for vgmstream), make sure you compile with the FFmpeg `.h` headers provided by your lib and not those in `ext_includes`. vgmstream **will crash** if the FFmpeg version has changed (see `LIB*_VERSION_MAJOR` and possibly `LIB*_VERSION_MINOR`), even if it compiles correctly.
 
-#### Headers
-If you are using your own FFmpeg libs (not pre-compiled for vgmstream), make sure you compile with the FFmpeg `.h` headers provided by your lib and not those in `ext_includes`. vgmstream *will* crash if the FFmpeg version has changed (see `LIB*_VERSION_MAJOR` and possibly `LIB*_VERSION_MINOR`), even if it compiles correctly.
+##### libopus vs FFmpeg's opus
+FFmpeg is compiled with *libopus* (external lib) rather than internal *opus*.
 
-#### libopus vs FFmpeg's opus
-FFmpeg can be compiled with *libopus* (external lib) rather than internal *opus*. We use *libopus* because FFmpeg decodes incorrectly certain games (mostly low bitrate). In older versions this was audibly wrong, though currently the differences shouldn't matter that much, but still not that accurate compared to *libopus* (PCM sample diffs of +5000). Getting *libopus* recognized can be unwieldly, so internal *opus* is a decent enough substitute. 
+We use *libopus* because FFmpeg decodes incorrectly certain games (mostly low bitrate). In older versions this was audibly wrong, though currently the differences shouldn't be too noticeable. Getting *libopus* recognized can be unwieldly, so internal *opus* is a decent enough substitute.
 
 To disable it, go to `ffmpeg_options.txt` and remove `--enable-libopus` plus change `libopus` to `opus` in `--enable-decoder`. Also, when calling *configure* remove `--enable-custom-modes` (a *libopus*-only option).
 
-#### libopus and pkg-config
+If you wonder why use it through FFmpeg instead of directly, all work was already done for FFmpeg's opus so it easier this way.
+
+##### libopus and pkg-config
 FFmpeg uses *pkg-config* (a kind of "installed lib manager") to detect pre-compiled *libopus*. On Linux it should detect *libopus* after `make install` with default `--prefix`, or adding opus's `--prefix` path to `PKG_CONFIG_PATH`. On Windows, MSYS2 *probably* works the same.
 
 However when compiling with MSVC it's not clear how to mix Windows-style `.lib` and *pkg-config*, though should be possible (*media-autobuild_suite* project does it?). For now as a temp hack, we can force FFmpeg to skip pkg-config and manually pass lib's location. But if you can get *pkg-config* to work ignore "pkg-config hack" steps (**TODO**: to be researched).
 
+##### nasm
+FFmpeg needs `nasm` somewhere in `PATH` for assembly optimizations.
+
+To disable it, add `--disable-x86asm` to the ffmpeg *configure* options (older versions used `yasm` / `--disable-yasm`).
+
+
+#### Source and builds
+```sh
+# clone only current tag's "depth" as otherwise FFmpeg history is pretty big
+git clone https://git.ffmpeg.org/ffmpeg.git --depth 1 --branch n9.0.2
+cd ffmpeg
+```
+
+FFmpeg needs *autotools* and GCC or MSVC installed, in a *MSYS2* environment (preferably) or manually from *mingw32*.
+
+
 #### With GCC
-**Notes**:
-- *do not* call `make install` directly without `make` first, doesn't properly execute needed dependencies (won't have version numbers)
+**Notes**
+- there may be issues with atomics/threads in some cases.
 
 ```sh
-# read current options (removing comments and line breaks); change file path if needed (or manually copy options below)
-FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/extra/ffmpeg_options.txt`
-echo $FFMPEG_OPTIONS
+# read current options, removing comments and line breaks (copy from vgmstream's source)
+FFMPEG_OPTIONS=`sed -e '/^#/d' ../ffmpeg_options.txt`
 
-# PKG-CONFIG HACK: disables pkg-config in FFmpeg's configure (use only if *configure* throws a pkg-config error)
-sed -i -e "s/require_pkg_config libopus/: #require_pkg_config libopus/g" configure
+# make Opus known to pkconfig
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/c/vgmstream-dlls/out/opus-32/lib/pkgconfig"
 
-# PKG-CONFIG HACK (untested): pass the following to configure
-# --extra-cflags="-I(path to opus's /include)" --extra-ldflags="-L(path to opus's /lib) -lopus -static-libgc"
-
-# 32-bit DLL
-sh ./configure $FFMPEG_OPTIONS --target-os=mingw32 --arch=x86 --enable-custom-modes --extra-ldflags="-static-libgcc" --prefix=/c/vgmstream-dlls/out/ffmpeg-32 
-make clean
-make
-make install
-
-# 64-bit DLL
-sh ./configure $FFMPEG_OPTIONS --target-os=mingw32 --arch=x86_64 --enable-custom-modes --extra-ldflags="-static-libgcc" --prefix=/c/vgmstream-dlls/out/ffmpeg-64
+# 32-bit DLL: prepare options + compile + copy
+sh ./configure $FFMPEG_OPTIONS --target-os=mingw32 --arch=x86 --extra-ldflags="-static-libgcc -static" --prefix=/c/vgmstream-dlls/out/ffmpeg-32 
 make clean
 make
 make install
 ```
 
-#### With MSVC
-Supported but also needs *autotools* with MSYS2, and several hoops:
-- have MSVC's `cl.exe`/`link.exe` compiler/linker in `PATH` (`cl.exe` returns info)
-  - it's kinda hard to find out so best would be opening VS's *x86 Native Tools for VS 20xx* console, found on Windows start menu
-- (libopus only) temp add opus's include and lib paths into MSVC's `INCLUDE` and `LIB` console variables
-  - `set INCLUDE=%LIB%;C:\(path to include)`
-  - `set LIB=%LIB%;C:\(path to lib)`
-- open MSYS2's ming32 console keeping PATH:
-  - `C:\msys64\msys2_shell.cmd -mingw32 -use-full-path` (32-bit)
-  - `C:\msys64\msys2_shell.cmd -mingw64 -use-full-path` (64-bit)
-- a new console should open, you can close *x86 Native Tools Command Prompt* now
-- check `which cl` is found (shows VS's path)
-- check `which link` is MSVC's and not `/usr/bin/link.exe`
-  - temp rename wrong `link.exe` if needed: `mv /usr/bin/link.exe /usr/bin/link.exe.bak`
-  - beware as *mingw32* and *ming64* consoles may have different settings/links
-- make sure git/gcc/make/autotools/mingw/pkg-config(pkgconf?)/mingw-w64 are installed in MSYS2
-- make sure yasm is installed (`pacman -S yasm`)
-- (libopus only but kinda optional) install pkg-config
-- get *libopus*, compile it with VS (to get a `.lib`) as described before
-- get FFmpeg's source and enter it
-- call *configure/make/make install* with options described above, changing:
-  - `--target-os=mingw32` to `--target-os=win32 --toolchain=msvc`
-- if you get "*compiler cannot create executables*" errors make sure that:
-  - you have open the *mingw32* (32-bit) or *mingw64* (64-bit) console
-  - `which link` is properly set
-  - *libopus*'s `opus.lib` path ib `LIB` is correctly set
-- if you get pkg-config errors, try hack to disable it (see below)
-- if you still get errors, try disabling libopus (remove `--enable-libopus` and change `libopus` to `opus` in `--enable-decoder`)
-- if you still get errors, try deleting opusffmpeg dirs and *carefully* redo the steps
-  - missing a single step or changing stuff will likely cause issues!
-After a while (+5-10min) you should get DLLs. When compiling 64-bit DLLs, open *x64 Native Tools for VS 20xx* console instead, compile *libopus* 64-bit and set `--target-os=win64`.
+```sh
+# read current options, removing comments and line breaks (copy from vgmstream's source)
+FFMPEG_OPTIONS=`sed -e '/^#/d' ../ffmpeg_options.txt`
 
-Reportedly this helper project works (automates all of the above):
-- https://github.com/m-ab-s/media-autobuild_suite
-`ffmpeg_options.txt` and `media-autobuild_suite.ini` (outdated?) for it can be found in *vgmstream* source.
+# make Opus known to pkconfig
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/c/vgmstream-dlls/out/opus-64/lib/pkgconfig"
 
-In theory adding Git+Mingw+yasm in `PATH` inside the VS console would work (temp include: `set PATH=%PATH%;C:\Git\usr\bin;C:\(mingw-path)\mingw32\bin;C:\yasm`), but seems to have issues with existing `awk`.
+# 64-bit DLL: prepare options + compile + copy
+sh ./configure $FFMPEG_OPTIONS --target-os=mingw32 --arch=x86_64 --extra-ldflags="-static-libgcc -static" --prefix=/c/vgmstream-dlls/out/ffmpeg-64
+make clean
+make
+make install
+```
 
-Extra info:
-- http://ffmpeg.org/platform.html
-- https://trac.ffmpeg.org/wiki/CompilationGuide/MSVC
-- https://github.com/OpenChemistry/tomviz-superbuild/blob/master/projects/win32/BuildFFMPEG.md
+#### With MSVC + MSYS2 (32-bit)
+First install MSYS2 and Visual Studio. Then compile *libopus* with MSVC to get a `.lib` (see above).
 
-##### 32-bit scripts
-**x86 Native Tools Command Prompt**
+Open **x86 Native Tools Command Prompt for VS 20xx** console, found on Windows' start menu, and run:
 ```bat
-REM compile libopus first: download, enter win32/VS2015, call MSBuild.exe, etc (detailed above)
-
-set INCLUDE=%INCLUDE%;C:\vgmstream-dlls\sources\opus-1.3.1\include
-set LIB=%LIB%;C:\vgmstream-dlls\sources\opus-1.3.1\win32\VS2015\Win32\Release
-
 C:\msys64\msys2_shell.cmd -mingw32 -use-full-path
 ```
 
-**MSYS2's mingw32 console**
+A new *MSYS2* console should open. You can close the *Command Prompt* now. Some checks (first time only):
 ```sh
-# download FFmpeg first, etc
-cd /c/vgmstream-dlls/sources/ffmpeg
+# Both must show MSVC's path, exported by *VS Native Tools Command Prompt*
+# If link is /usr/bin/link.exe, try temp-renaming it: mv /usr/bin/link.exe /usr/bin/link.exe.bak
+which cl
+which link
 
-# read current options (removing comments and line breaks); change file path if needed (or manually copy options below)
-FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/extra/ffmpeg_options.txt`
-echo $FFMPEG_OPTIONS
+# Install all needed dependencies
+pacman -S --needed git gcc make autotools pkg-config nasm
+#pacman -S --needed mingw-w64
+```
 
-# PKG-CONFIG HACK: disables pkg-config in FFmpeg's configure (use only if *configure* throws a pkg-config error)
-sed -i -e "s/require_pkg_config libopus/: #require_pkg_config libopus/g" configure
+Finally enter the `ffmpeg` dir and build the DLL:
+```sh
+# read current options, removing comments and line breaks (copy from vgmstream's source)
+FFMPEG_OPTIONS=`sed -e '/^#/d' ../ffmpeg_options.txt`
 
-# opus should be on INCLUDE/LIB path now, otherwise try: 
-# --extra-cflags="-I."-I(full windows-style path)
-# --extra-ldflags="(full windows-style path)\opus.lib"
-sh ./configure $FFMPEG_OPTIONS --target-os=win32 --toolchain=msvc --arch=x86 --extra-ldflags="opus.lib" --prefix=/c/vgmstream-dlls/out/ffmpeg-32
+# make MSVC Opus known to pkconfig
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/c/vgmstream-dlls/out/opus-vs-32/lib/pkgconfig"
+
+# 32-bit DLL: prepare options + compile + copy
+sh ./configure $FFMPEG_OPTIONS --target-os=win32 --toolchain=msvc --arch=x86 --prefix=/c/vgmstream-dlls/out/ffmpeg-vs-32
 make clean
 make
 make install
-``` 
+```
+After a while (+5-10min) you should get the DLLs in the 'prefix' dir, in `bin/*.dll`. You need the `include/*.h` and `lib/.def` too.
 
-##### 64-bit scripts
-**x64 Native Tools Command Prompt**
+If you get errors, try deleting the opus/ffmpeg dirs and *carefully* redo the steps. For example, it may throw errors about *libopus*' MSVCRT if it's not compiled with `-DOPUS_STATIC_RUNTIME=ON`.
+
+ (in `ffmpeg_options.txt` remove `--enable-libopus` and change `libopus` to `opus` in `--enable-decoder`).
+
+
+#### With MSVC + MSYS2 (64-bit)
+The steps are the same, but using the **x64 Native Tools Command Prompt for VS 20xx** console and x64 variables:
 ```bat
-REM compile libopus first: download, enter win32/VS2015, call MSBuild.exe, etc (detailed above)
-
-set INCLUDE=%INCLUDE%;C:\vgmstream-dlls\sources\opus-1.3.1\include
-set LIB=%LIB%;C:\vgmstream-dlls\sources\opus-1.3.1\win32\VS2015\x64\Release
-
 C:\msys64\msys2_shell.cmd -mingw64 -use-full-path
 ```
 
-**MSYS2's mingw32 console**
+Repeat the compile steps but change *pkconfig* and `sh configure` to write 64-bit files:
 ```sh
-# download FFmpeg first, etc
-cd /c/vgmstream-dlls/sources/ffmpeg
+# read current options, removing comments and line breaks (copy from vgmstream's source)
+FFMPEG_OPTIONS=`sed -e '/^#/d' ../ffmpeg_options.txt`
 
-# read current options (removing comments and line breaks); change file path if needed (or manually copy options below)
-FFMPEG_OPTIONS=`sed -e '/^#/d' ../vgmstream/ext_libs/extra/ffmpeg_options.txt`
-echo $FFMPEG_OPTIONS
+# make MSVC Opus known to pkconfig
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/c/vgmstream-dlls/out/opus-vs-64/lib/pkgconfig"
 
-# PKG-CONFIG HACK: disables pkg-config in FFmpeg's configure (use only if *configure* throws a pkg-config error)
-sed -i -e "s/require_pkg_config libopus/: #require_pkg_config libopus/g" configure
-
-# opus should be on INCLUDE/LIB path now, otherwise try: 
-# --extra-cflags="-I."-I(full windows-style path)
-# --extra-ldflags="(full windows-style path)\opus.lib"
-sh ./configure $FFMPEG_OPTIONS --target-os=win64 --toolchain=msvc --arch=x86_64 --extra-ldflags="opus.lib" --prefix=/c/vgmstream-dlls/out/ffmpeg-64
+# 64-bit DLL: prepare options + compile + copy
+sh ./configure $FFMPEG_OPTIONS --target-os=win64 --toolchain=msvc --arch=x86_64 --prefix=/c/vgmstream-dlls/out/ffmpeg-vs-64
 make clean
 make
 make install
-``` 
+```
+
+#### Extra info
+- http://ffmpeg.org/platform.html
+- https://trac.ffmpeg.org/wiki/CompilationGuide/MSVC
+- https://github.com/m-ab-s/media-autobuild_suite (reportedly automates the above steps)

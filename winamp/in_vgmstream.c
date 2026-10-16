@@ -43,6 +43,17 @@ typedef struct {
     double volume;
 } winamp_state_t;
 
+/* info cache (optimization) */
+typedef struct {
+    in_char lastfn[WINAMP_PATH_LIMIT]; // name of the currently playing file
+
+    in_char info_fn[WINAMP_PATH_LIMIT];
+    in_char info_title[GETFILEINFO_TITLE_LENGTH];
+    int64_t info_time;
+    bool info_valid;
+    bool info_was_protocol;
+} winamp_cache_t;
+
 
 /* Winamp needs at least 576 16-bit samples, stereo, doubled in case DSP effects are active */
 #define SAMPLE_BUFFER_SIZE 576
@@ -52,19 +63,12 @@ const in_char* tagfile_name = wa_L("!tags.m3u");
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
 
 libvgmstream_t* vgmstream = NULL;
-in_char lastfn[WINAMP_PATH_LIMIT] = {0}; /* name of the currently playing file */
 
 winamp_settings_t defaults;
 winamp_settings_t settings;
+winamp_cache_t cache;
 winamp_state_t state;
 short sample_buffer[SAMPLE_BUFFER_SIZE * 2 * WINAMP_MAX_CHANNELS]; //TODO: dynamic alloc
-
-/* info cache (optimization) */
-in_char info_fn[WINAMP_PATH_LIMIT] = {0};
-in_char info_title[GETFILEINFO_TITLE_LENGTH];
-int64_t info_time;
-bool info_valid;
-bool info_was_protocol;
 
 
 /* ***************************************** */
@@ -311,9 +315,11 @@ static int winamp_IsOurFile(const in_char *fn) {
     char filename_utf8[WINAMP_PATH_LIMIT];
     bool valid;
 
-    //;vgm_logi("\nwinamp_IsOurFile: init\n");
+    //;vgm_logi("\nwinamp_IsOurFile: start\n");
 
-    /* Winamp file opening 101:
+    /* Return 1 if we actually handle the format or 0 to let other plugins handle it, while handling certain edge cases.
+     *
+     *  Winamp file opening 101:
      * - load modules from plugin dir, in NTFS order (mostly alphabetical *.dll but not 100% like explorer.exe)
      *   > plugin list in options is ordered by description so doesn't reflect this priority
      * - make path to file
@@ -321,83 +327,139 @@ static int winamp_IsOurFile(const in_char *fn) {
      *   > generally plugins just return 0 as it's meant for protocols (a few do check the file's header there)
      * - find first module that reports that supports file extension (see build_extension_list)
      *   > for shared extensions this means plugin priority affects who hijacks the file
-     * - if still no result, retry the above 2 steps with "hi." + default extension (from config: default .mp3, path if not set?)
+     * - if still no result, retry the above 2 steps with "hi.mp3"
+     *   > the extension is configurable in "Playlist > Assume file extension ..." but can't be disabled
      *   > procotols supported by Winamp (cda:// http:// rtcp:// etc) also reach this "hi.mp3" stage (only if no extension is used?)
      *   > seems skipped when doing playlist manipulation/subsongs
-     * - if still nothing, any unplayable file will be considered "hi.mp3" by Winamp and accepted as a 0:00 file
-     *   > this is annoying so vgmstream "accepts" hi.mp3 yet won't play it, so time is blank instead of 0:00
-     *   > but must ignore "hi.mp3" if current file was a protocol to allow it
+     *   > since regular files start with a path, this is never a real file
+     * - if still nothing, this unplayable file will be considered "hi.mp3" by Winamp and accepted as a 0:00 file
+     * 
+     * Winamp uses a variation of the bizarre "hi.mp3" mechanism to query for media info in some cases.
      *
      * Notes:
-     * * if module/vgmstream is given the file (even if can't play it) Winamp will call GetInfo and stop if not valid info is returned
-     * * on init seems Winamp calls IsOurFile with "cda://" protocol, should be ignored by is_valid() as well as any other protocol
+     * - if module/vgmstream is given or accept the file (even if can't play it), Winamp will call GetInfo and stop if not valid info is returned
+     * - on init seems Winamp calls IsOurFile with "cda://" (sometimes hi.file://) protocol to probe for responses
      */
 
-    // detect repeat retries
-    if (wa_strcmp(fn, info_fn) == 0) { //TODO may need to check file size to invalidate cache
-        //;vgm_logi("winamp_IsOurFile: repeated call\n");
-        return info_valid;
+
+    // detect changes in config that don't restart the instance (only happens in Winamp 5.8+?)
+    // (could try to detect elsewhere but Winamp seems to call this first before GetInfo and such)
+    if (settings.updated) {
+        settings.updated = false;
+
+        cache.info_fn[0] = '\0';
+        cache.info_valid = false;
+        cache.info_was_protocol = false;
     }
 
-    // 'accept' hi.mp3; won't play so it'll show with blank time instead of 0:00
-    if (/*settings.exts_common_on &&*/ wa_strncmp(fn, wa_L("hi."), 3) == 0) {
-        if (info_was_protocol) { 
-            // don't 'accept' with protocols, that somehow also go through hi.mp3 before playing
-            //;vgm_logi("winamp_IsOurFile: ignored fakefile (was a protocol)\n");
+
+    // detect repeat info checks, since Winamp queries the same info multiple times in various ways
+    if (cache.info_fn[0] != '\0') {
+        //;wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, fn);
+        //;vgm_logi("winamp_IsOurFile: checking path %s\n", filename_utf8);
+        //;wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, cache.info_fn);
+        //;vgm_logi("winamp_IsOurFile: checking path vs old cache path %s\n", filename_utf8);
+
+        //TODO maybe could check the file size to reject
+        if (wa_strcmp(fn, cache.info_fn) == 0) {
+            //;vgm_logi("winamp_IsOurFile: repeated path call, valid=%i\n", cache.info_valid);
+            return cache.info_valid;
+        }
+
+        if (wa_strncmp(fn, wa_L("hi.file://"), 10) == 0 && wa_strcmp(fn + 10, cache.info_fn) == 0) {
+            //;vgm_logi("winamp_IsOurFile: repeated hi.file:// call, valid=%i\n", cache.info_valid);
+            return cache.info_valid;
+        }
+
+        if (wa_strncmp(fn, wa_L("hi."), 3) == 0 && wa_strcmp(fn + 3, cache.info_fn) == 0) {
+            //;vgm_logi("winamp_IsOurFile: repeated hi.(path) call, valid=%i\n", cache.info_valid);
+            return cache.info_valid;
+        }
+    }
+
+
+    // handle Winamp's arcane "hi.*" fake file handling, considering:
+    // - "hi.(ext)"" is used when no plugin can handle an unplayable file, and will be accepted by default as a 0:00 file
+    // - protocols also seem to re-send "hi.(ext)""
+    // - info box/media library uses hi.(path) to query for decoder info (only in some skins), should be caught
+    if (wa_strncmp(fn, wa_L("hi."), 3) == 0) {
+        //;wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, fn);
+
+        if (cache.info_was_protocol) { 
+            // don't 'accept' protocols, that somehow also send hi.mp3 right before playing
+            //;vgm_logi("winamp_IsOurFile: ignored winamp's protocol/path fakefile %s\n", filename_utf8);
             return 0;
         }
-        //;vgm_logi("winamp_IsOurFile: accepted fakefile\n");
+
+        if (wa_strstr(fn, wa_L("://")) || wa_strchr(fn, '\\')) { 
+            // also ignore paths (hi.file://C:\... or hi.C:\...) used by the info box. Should be handled by cache.info_fn.
+            // Could peek file contents (to tell .vgm appart), but presumably Winamp expects an extension check here.
+            //;vgm_logi("winamp_IsOurFile: ignored winamp's path fakefile %s\n", filename_utf8);
+            return 0;
+        }
+
+        if (wa_strcmp(fn, wa_L("hi.")) == 0) {
+            // not sure if possible
+            //;vgm_logi("winamp_IsOurFile: ignored winamp's mini fakefile %s\n", filename_utf8);
+            return 0;
+        }
+
+
+        // 'accept' "hi.(ext)" (unplayable files), so vgmstream ignores them and they show with blank time rather than 0:00.
+        // With vgmstream installed having unplayable files as 0:00 is highly annoying (hard to detect if some odd format 
+        // doesn't actually work), so it's always 'accepted' (regardless of exts_common_on, since anythin becomes hi.mp3).
+        //;vgm_logi("winamp_IsOurFile: accepted winamp's unplayable fakefile %s\n", filename_utf8);
         return 1;
     }
 
-    info_was_protocol = wa_strstr(fn, wa_L("://"));
+    cache.info_was_protocol = wa_strstr(fn, wa_L("://"));
 
-    vcfg.skip_standard = false; /* validated by Winamp after IsOurFile, reject just in case */
-    vcfg.accept_unknown = settings.exts_unknown_on;
-    vcfg.accept_common = settings.exts_common_on;
+    cache.info_valid = false; /* may not be playable */
+    wa_istrcpy(cache.info_fn, WINAMP_PATH_LIMIT, fn); /* copy now for repeat calls */
+
+
+    // Actually check if the file is valid. The extension alone isn't enough, as we may hijack stuff like in_vgm's *.vgm or .spc,
+    // so also try to open/get info from the file (slower, so keep some stuff in cache)
 
     wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, fn);
-    //;vgm_logi("winamp_IsOurFile: %s\n", filename_utf8);
+    //;vgm_logi("winamp_IsOurFile: file=%s\n", filename_utf8);
 
-    /* Return 1 if we actually handle the format or 0 to let other plugins handle it. Checking the 
-     * extension alone isn't enough, as we may hijack stuff like in_vgm's *.vgm, so also try to
-     * open/get info from the file (slower so keep some cache) */
+    vcfg.skip_standard = false; // validated by Winamp after IsOurFile, reject just in case
+    vcfg.accept_unknown = settings.exts_unknown_on;
+    vcfg.accept_common = settings.exts_common_on;
+    //;vgm_logi("winamp_IsOurFile: check is_valid exts (unk=%i, common=%i)\n", vcfg.accept_unknown, vcfg.accept_common);
 
-    info_valid = false; /* may not be playable */
-    wa_istrcpy(info_fn, WINAMP_PATH_LIMIT, fn); /* copy now for repeat calls */
-
-    /* basic extension check */
+    // basic extension check
     valid = libvgmstream_is_valid(filename_utf8, &vcfg);
     if (!valid) {
-        //;vgm_logi("winamp_IsOurFile: false is-valid\n");
+        //;vgm_logi("winamp_IsOurFile: is_valid ko (rejected)\n");
         return 0;
     }
 
+    //;vgm_logi("winamp_IsOurFile: is_valid ok, check contents\n");
 
-    /* format check */
+    // format check
     infostream = init_vgmstream_winamp_fileinfo(fn);
     if (!infostream) {
-        //;vgm_logi("winamp_IsOurFile: invalid infostream\n");
+        //;vgm_logi("winamp_IsOurFile: invalid infostream (rejected)\n");
         return 0;
     }
 
-    info_valid = true;
+    cache.info_valid = true;
+    if (infostream->format->channels > WINAMP_MAX_CHANNELS) // just in case...
+        cache.info_valid = false;
 
-    if (infostream->format->channels > WINAMP_MAX_CHANNELS) {
-        info_valid = false;
-    }
+    // first thing winamp does after accepting a file is asking for time/title, so keep those around to avoid re-parsing the file
+    if (cache.info_valid) {
+        cache.info_time = infostream->format->play_samples * 1000LL / infostream->format->sample_rate;
 
-    /* first thing winamp does after accepting a file is asking for time/title, so keep those around to avoid re-parsing the file */
-    if (info_valid) {
-        info_time = infostream->format->play_samples * 1000LL / infostream->format->sample_rate;
-
-        get_title(info_title, GETFILEINFO_TITLE_LENGTH, fn, infostream);
+        get_title(cache.info_title, GETFILEINFO_TITLE_LENGTH, fn, infostream);
     }
 
     //;vgm_logi("winamp_IsOurFile: accepted\n");
     libvgmstream_free(infostream);
 
-    return info_valid;
+    return cache.info_valid;
 }
 
 
@@ -438,7 +500,7 @@ static int winamp_Play(const in_char *fn) {
     state.volume = get_album_gain_volume(fn);
 
     /* save original name */
-    wa_istrcpy(lastfn, WINAMP_PATH_LIMIT, fn);
+    wa_istrcpy(cache.lastfn, WINAMP_PATH_LIMIT, fn);
 
     /* open the output plugin */
     max_latency = input_module.outMod->Open(vgmstream->format->sample_rate, vgmstream->format->channels, 16, 0, 0);
@@ -608,17 +670,17 @@ static void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in
         /* Sometimes called even if no file is playing (usually when hovering "O" > preferences... submenu).
          * No idea what's that about so try to reuse last info */
         if (!vgmstream) {
-            if (info_valid) {
+            if (cache.info_valid) {
                 if (title)
-                    wa_istrcpy(title, title_size, info_title);
+                    wa_istrcpy(title, title_size, cache.info_title);
                 if (length_in_ms)
-                    *length_in_ms = info_time;
+                    *length_in_ms = cache.info_time;
             }
             return;
         }
 
         if (title) {
-            get_title(title, title_size, lastfn, vgmstream);
+            get_title(title, title_size, cache.lastfn, vgmstream);
         }
 
         if (length_in_ms) {
@@ -630,11 +692,11 @@ static void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in
         //;{ char f8[WINAMP_PATH_LIMIT]; wa_ichar_to_char(f8,WINAMP_PATH_LIMIT,fn); vgm_logi("winamp_GetFileInfo: file %s\n", f8); }
 
         /* not changed from last IsOurFile (most common) */
-        if (info_valid && wa_strcmp(fn, info_fn) == 0) {
+        if (cache.info_valid && wa_strcmp(fn, cache.info_fn) == 0) {
             if (title)
-                wa_istrcpy(title, title_size, info_title);
+                wa_istrcpy(title, title_size, cache.info_title);
             if (length_in_ms)
-                *length_in_ms = info_time;
+                *length_in_ms = cache.info_time;
             return;
         }
 

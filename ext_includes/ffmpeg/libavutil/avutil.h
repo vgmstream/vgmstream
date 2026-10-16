@@ -41,7 +41,6 @@
  * @li @ref lavd "libavdevice" special devices muxing/demuxing library
  * @li @ref lavu "libavutil" common utility library
  * @li @ref lswr "libswresample" audio resampling, format conversion and mixing
- * @li @ref lpp  "libpostproc" post processing library
  * @li @ref libsws "libswscale" color conversion and scaling library
  *
  * @section ffmpeg_versioning Versioning and compatibility
@@ -257,7 +256,12 @@ const char *av_get_media_type_string(enum AVMediaType media_type);
  * Internal time base represented as fractional value
  */
 
+#ifdef __cplusplus
+/* ISO C++ forbids compound-literals. */
+#define AV_TIME_BASE_Q          av_make_q(1, AV_TIME_BASE)
+#else
 #define AV_TIME_BASE_Q          (AVRational){1, AV_TIME_BASE}
+#endif
 
 /**
  * @}
@@ -294,7 +298,6 @@ char av_get_picture_type_char(enum AVPictureType pict_type);
  */
 
 #include "common.h"
-#include "error.h"
 #include "rational.h"
 #include "version.h"
 #include "macros.h"
@@ -309,40 +312,6 @@ static inline void *av_x_if_null(const void *p, const void *x)
 {
     return (void *)(intptr_t)(p ? p : x);
 }
-
-/**
- * Compute the length of an integer list.
- *
- * @param elsize  size in bytes of each list element (only 1, 2, 4 or 8)
- * @param term    list terminator (usually 0 or -1)
- * @param list    pointer to the list
- * @return  length of the list, in elements, not counting the terminator
- */
-unsigned av_int_list_length_for_size(unsigned elsize,
-                                     const void *list, uint64_t term) av_pure;
-
-/**
- * Compute the length of an integer list.
- *
- * @param term  list terminator (usually 0 or -1)
- * @param list  pointer to the list
- * @return  length of the list, in elements, not counting the terminator
- */
-#define av_int_list_length(list, term) \
-    av_int_list_length_for_size(sizeof(*(list)), list, term)
-
-#if FF_API_AV_FOPEN_UTF8
-/**
- * Open a file using a UTF-8 filename.
- * The API of this function matches POSIX fopen(), errors are returned through
- * errno.
- * @deprecated Avoid using it, as on Windows, the FILE* allocated by this
- *             function may be allocated with a different CRT than the caller
- *             who uses the FILE*. No replacement provided in public API.
- */
-attribute_deprecated
-FILE *av_fopen_utf8(const char *path, const char *mode);
-#endif
 
 /**
  * Return the fractional representation of the internal time base.

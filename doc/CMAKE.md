@@ -85,7 +85,7 @@ sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresamp
 # for vgmstream123 and audacious
 sudo apt-get install -y libao-dev audacious-dev
 # for static builds
-sudo apt-get install -y yasm libopus-dev
+sudo apt-get install -y nasm libopus-dev
 # actual cmake
 sudo apt-get install -y cmake
 

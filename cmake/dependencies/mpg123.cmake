@@ -11,8 +11,8 @@ if(NOT WIN32 AND USE_MPEG)
 			DIR mpg123
 			FETCH_PRIORITY file svn git
 			
-			FILE_DOWNLOAD https://downloads.sourceforge.net/mpg123/mpg123-1.31.1.tar.bz2
-			FILE_SUBDIR mpg123-1.31.1
+			FILE_DOWNLOAD https://downloads.sourceforge.net/mpg123/mpg123-1.33.7.tar.bz2
+			FILE_SUBDIR mpg123-1.33.7
 			
 			# unknown current version, to be fixed
 			#SVN_REPOSITORY svn://scm.orgis.org/mpg123/trunk
@@ -21,7 +21,7 @@ if(NOT WIN32 AND USE_MPEG)
 			# "official" git repo: https://www.mpg123.de/trunk/.git/ but *very* slow (HTTP emulation)
 			# "official" git mirror (default branch is not master), works too
 			GIT_REPOSITORY https://github.com/madebr/mpg123
-			GIT_TAG aec901b7a636b6eb61e03a87ff3547c787e8c693
+			GIT_TAG 295c21d649b04ef0e242df7eee259b5a9651f69c
 			GIT_UNSHALLOW ON
 		)
 		

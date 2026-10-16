@@ -50,7 +50,7 @@ enum AVTXType {
 
     /**
      * Standard MDCT with a sample data type of float, double or int32_t,
-     * respecively. For the float and int32 variants, the scale type is
+     * respectively. For the float and int32 variants, the scale type is
      * 'float', while for the double variant, it's 'double'.
      * If scale is NULL, 1.0 will be used as a default.
      *
@@ -75,7 +75,9 @@ enum AVTXType {
      * the double variant, it's a 'double'. If scale is NULL, 1.0 will be used
      * as a default.
      *
-     * The stride parameter must be set to the size of a single sample in bytes.
+     * For forward transforms (R2C), stride must be the spacing between two
+     * samples in bytes. For inverse transforms, the stride must be set
+     * to the spacing between two complex values in bytes.
      *
      * The forward transform performs a real-to-complex DFT of N samples to
      * N/2+1 complex values.
@@ -88,6 +90,44 @@ enum AVTXType {
     AV_TX_FLOAT_RDFT  = 6,
     AV_TX_DOUBLE_RDFT = 7,
     AV_TX_INT32_RDFT  = 8,
+
+    /**
+     * Real to real (DCT) transforms.
+     *
+     * The forward transform is a DCT-II.
+     * The inverse transform is a DCT-III.
+     *
+     * The input array is always overwritten. DCT-III requires that the
+     * input be padded with 2 extra samples. Stride must be set to the
+     * spacing between two samples in bytes.
+     */
+    AV_TX_FLOAT_DCT  = 9,
+    AV_TX_DOUBLE_DCT = 10,
+    AV_TX_INT32_DCT  = 11,
+
+    /**
+     * Discrete Cosine Transform I
+     *
+     * The forward transform is a DCT-I.
+     * The inverse transform is a DCT-I multiplied by 2/(N + 1).
+     *
+     * The input array is always overwritten.
+     */
+    AV_TX_FLOAT_DCT_I  = 12,
+    AV_TX_DOUBLE_DCT_I = 13,
+    AV_TX_INT32_DCT_I  = 14,
+
+    /**
+     * Discrete Sine Transform I
+     *
+     * The forward transform is a DST-I.
+     * The inverse transform is a DST-I multiplied by 2/(N + 1).
+     *
+     * The input array is always overwritten.
+     */
+    AV_TX_FLOAT_DST_I  = 15,
+    AV_TX_DOUBLE_DST_I = 16,
+    AV_TX_INT32_DST_I  = 17,
 
     /* Not part of the API, do not use */
     AV_TX_NB,
@@ -115,9 +155,8 @@ typedef void (*av_tx_fn)(AVTXContext *s, void *out, void *in, ptrdiff_t stride);
  */
 enum AVTXFlags {
     /**
-     * Performs an in-place transformation on the input. The output argument
-     * of av_tn_fn() MUST match the input. May be unsupported or slower for some
-     * transform types.
+     * Allows for in-place transformations, where input == output.
+     * May be unsupported or slower for some transform types.
      */
     AV_TX_INPLACE = 1ULL << 0,
 
@@ -134,6 +173,16 @@ enum AVTXFlags {
      * Ignored for all transforms but inverse MDCTs.
      */
     AV_TX_FULL_IMDCT = 1ULL << 2,
+
+    /**
+     * Perform a real to half-complex RDFT.
+     * Only the real, or imaginary coefficients will
+     * be output, depending on the flag used. Only available for forward RDFTs.
+     * Output array must have enough space to hold N complex values
+     * (regular size for a real to complex transform).
+     */
+    AV_TX_REAL_TO_REAL      = 1ULL << 3,
+    AV_TX_REAL_TO_IMAGINARY = 1ULL << 4,
 };
 
 /**

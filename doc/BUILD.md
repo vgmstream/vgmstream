@@ -2,23 +2,20 @@
 This document explains how to build each of vgmstream's components and libraries.
 
 ## Compilation requirements
-vgmstream can be compiled using one of several build scripts that are available in this repository. Components are detailed below, but if you are new to development you probably want one of these:
-- **Windows**: [simple scripts](#simple-scripts-builds) + [Visual Studio 2019](#microsofts-visual-c-msvc--visual-studio--msbuild-compiler)
-- **Linux**: [CMake](#cmake-builds) + [GCC](#gcc--make-compiler)
-- **macOS**: [CMake](#cmake-builds) + [Clang](#clang-compiler)
-- **Web**: [CMake](#cmake-builds) + [Emscripten](#emscripten-compiler)
+- **Windows**: [helper scripts + Visual Studio (2022/2026/latest)](#windows)
+- **Linux**: [CMake + GCC](#linux)
+- **macOS**: [CMake + Clang](#macos)
+- **Web**: [CMake + Emscripten](#emscripten-compiler)
 
-Because each module has different quirks one can't use a single tool for everything. You should be able to build most using a standard *compiler* (GCC/MSVC/Clang) using common *build systems* (scripts/CMake/autotools) in any typical *OS* (Windows/Linux/macOS).
+Because each module has different quirks there isn't a simple unified way to build everything, but see the [Quick guide](#quick-guide) below.
 
-64-bit support should work but hasn't been as throughly tested, since most used components are plugins for 32-bit players. Windows libraries for extra codecs are included for 32-bit only at the moment.
-
-Though it's rather flexible (like using Windows with GCC and autotools), some combos may be a bit more complex to get working depending on your system and other factors.
+You should be able to build all using a standard *compiler* (GCC/MSVC/Clang) with a common *build system* (scripts/CMake/autotools) in any typical *OS* (Windows/Linux/macOS).
 
 
 ## Quick guide
 
 ### Linux
-- Use these commands to install dependencies and compile with CMake + make
+- Use these commands to install dependencies and compile with *CMake* + *make*
 ```sh
 sudo apt-get update
 # base deps
@@ -40,32 +37,35 @@ make
 ```
 - Output files are located in `./build` and subdirs
 - May use `./make-build-cmake.sh` instead (same thing)
-  - autotools and simple makefiles also work (less libs)
+  - can be built with autotools or simple makefiles as well (explained later)
 
 ### macOS
 - *Should* work with CMake + make, like the above example
-  - Replace `apt-get intall` with manual installation of those deps
+  - Replace `apt-get install` with manual installation of those deps
   - Or with *Homebrew*: `brew install cmake mpg123 libvorbis ffmpeg libao`
 - May try https://formulae.brew.sh/formula/vgmstream instead (not part of this project)
 
 ### Windows
-- Install Visual Studio (VS): https://www.visualstudio.com/downloads/ (for C/C++, include "MFC support" and "ATL support")
-  - Currently defaults to VS 2019 and Win 10/11
-- If you don't have VS 2019 and Win 10/11 you'll need to change project's defaults
-  - Manually open .sln and change them in Visual Studio
-  - Or make a file called `msvc-build.config.ps1` in vgmstream's source root, with your installed toolset and SDK:
+- Install *Visual Studio* (VS): https://www.visualstudio.com/downloads/ (for C/C++)
+  - Install it with *MFC support* and *ATL support*
+- Run `msvc-build-init.bat` to download needed dependencies to the `dependencies` dir
+- Open the `.sln` and change the project's defaults in Visual Studio: *PlatformToolset* and *WindowsTargetPlatformVersion*
+  - Or make a file called `msvc-build.config.ps1` in *vgmstream*'s source root, with your toolset and SDK:
 ```ps1
-# - toolsets: "" (default), "v140" (VS 2015), "v141" (VS 2017), "v141_xp" (XP support), "v142" (VS 2019), etc
-# - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
-$toolset = "142"
+# - toolsets: "v143" (VS 2022), "v145" (VS 2026), etc
+# - sdks: "8.1" (Win8 SDK), "10.0" (Win10/11 SDK), etc
+$toolset = "143"
 $sdk = "10.0"
 ```
-- Execute file `msvc-build-package.bat` to compile
-- Output files are located in `./bin`
+- Execute file `msvc-build-package.bat` to compile (or build in Visual Studio)
+- Resulting files are located in `./bin`
 
 
 ## Full guide
-This guide is mainly geared towards beginner devs, introducing concepts in steps. Many things may be obvious to experienced devs, so feel free to skim or skip sections.
+This section explain in detail the various ways you can use to compile *vgmstream*.
+
+You need to pick a *compiler* and some *build* system, depending on your use case and personal preferences. See the [Quick guide](#quick-guide) for a more direct explanation.
+
 
 ### GCC / Make (compiler)
 Common C compiler, most development is done with this.
@@ -90,26 +90,24 @@ On **Windows** you need one of these:
     - `pacman -S git gcc make autotools` (also mingw-w64-i686/mingw-w64-x86_64?)
 
 
-On **Linux** it should be included by default in the distribution, or can be easily installed using the distro's package manager (for example `sudo apt-get install gcc g++ make`).
+On **Linux** it's often included by default, or can be installed using the distro's package manager (for example `sudo apt-get install gcc g++ make`).
 
 On **macOS** may be installed with a package manager like *Homebrew*, but using *Clang* is probably easier.
 
 Any versions that are not too ancient should work, since vgmstream uses standard C. GCC usually comes with *Make*, a program that can be used to build vgmstream.
 
 ### Microsoft's Visual C++ (MSVC) / Visual Studio / MSBuild (compiler)
-Alt C compiler (**Windows** only), auto-generated builds for Windows use this. Bundled in:
-- Visual Studio (2017/2019/2022/latest): https://www.visualstudio.com/downloads/
+*Windows-only* C/C++ compiler, auto-generated builds for Windows use this. Bundled in:
+- Visual Studio (2022/2026/latest): https://www.visualstudio.com/downloads/
 
-Visual Studio Community (free) should work, but you may need to register after a trial period. Even after trial you can still use *MSBuild*, command-line tool that actually does all the building, calling the *MSVC* compiler (Visual Studio itself is just an IDE for development and not actually needed).
+*Visual Studio Community* (free) should work, but you may need to register after a trial period. Even after the trial you can still use *MSBuild*, a command-line tool that actually does all the building, calling the *MSVC* compiler. Visual Studio itself is just an IDE for development and not actually needed.
 
-Instead of the full (usually huge) Visual Studio, you can also get "Build Tools for Visual Studio", variation that only installs *MSBuild* and necessary files without the IDE. Usually found in the above link, under "Tools for Visual Studio" (or google as MS's links tend to move around).
+Instead of the full (usually huge) Visual Studio, you can also get "Build Tools for Visual Studio", variation that only installs *MSBuild* and necessary files without the IDE.
 
-When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build foobar2000 plugin (you can modify that or re-install IDE later, by running installed "Visual Studio Installer"). You can include MSVC v142 (2019) toolset, too, just in case, since it's mainly tested with that. foobar2000 plugin needs MSVC v143 (2022), but other components work with earlier versions.
-
-Older versions of MSVC (2010 and earlier) have limited C support and may not work with latest commits, while reportedly beta/new versions aren't always very stable. Also, only projects (`.vcxproj`) for VS2015+ are included (CMake may be able to generate older `.vcproj` if you really need them). Some very odd issues affecting MSVC only have been found and fixed before. Keep in mind all of this if you run into problems.
+When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build the foobar2000 plugin (you can modify that later, by running the "Visual Studio Installer"). foobar2000 plugin needs MSVC v143 (2022), but other components may work with earlier versions.
 
 ### Clang (compiler)
-Alt C compiler, reportedly works fine on **macOS** and may used as a replacement of GCC without issues.
+C compiler alternative to GCC, reportedly works fine on **macOS** and may used as a replacement of GCC without issues.
 - https://releases.llvm.org/download.html
 
 Should be usable on **Linux** and possibly **Windows** with CMake. For default Makefiles may need to set compiler vars appropriately (`CC=clang`, `AR=llvm-ar` and so on).
@@ -160,25 +158,28 @@ Load `vgmstream-cli.js` in a web page, you will be able to call the `callMain()`
 For a fully-featured player see:
 - https://github.com/KatieFrogs/vgmstream-web
 
+
 ### Simple scripts (builds)
-Default build scripts are included in the source that can compile vgmstream, though limited in some ways.
+Basic build scripts are included in the source and can compile vgmstream, though are limited in some ways.
 
-**For MSVC**: there is a default Visual Studio `.sln` file that should be up to date (run `./msvc-build-init.bat` first, or see the foobar section to get extra dependencies manually, then open). A PowerShell script also automates compilation (on **Windows 7** may need recent .NET framework and PowerShell versions), simply run `./msvc-build.bat`.
+#### MSVC
+**For MSVC**: there is a default Visual Studio `.sln` file that should be up to date. Run `./msvc-build-init.bat` first to get extra dependencies, or read the foobar section to manually install them. A PowerShell script also automates compilation: `./msvc-build.bat` (may need recent .NET framework and PowerShell versions on earlier Windows).
 
-First, you may need to either open the `.sln` and change project compiler (*PlatformToolset*) and SDK (*WindowsTargetPlatformVersion*) to your installed version, or edit `msvc-build.ps1` and set the variables near *CONFIG*. To avoid modifying files, you can also create a file named `msvc-build.config.ps1` with:
+You may need to either open the `.sln` and change project compiler (*PlatformToolset*) and SDK (*WindowsTargetPlatformVersion*) to your installed version, or edit `msvc-build.ps1` and set the variables near *CONFIG*. To avoid modifying files, you can also create a file named `msvc-build.config.ps1` with:
 ```ps1
-# - toolsets: "" (default), "v140" (VS 2015), "v141" (VS 2017), "v141_xp" (XP support), "v142" (VS 2019), etc
-# - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
-$toolset = "142"
+# - toolsets: "v143" (VS 2022), "v145" (VS 2026), etc
+# - sdks: "8.1" (Win8 SDK), "10.0" (Win10/11 SDK), etc
+$toolset = "143"
 $sdk = "10.0"
 ```
-It's also possible to call MSBuild and pass those values from the CMD, see foobar section for an example.
+It's also possible to call *MSBuild* and pass those values from the CMD, see foobar section for an example.
 
-Once finished resulting binaries are in the *./Release* folder. Remember you need to copy extra `.dll` to run them (see [USAGE.md](USAGE.md)).
+When building in MSVC the resulting binaries are in the *./Release* folder (you need to copy extra `*.dll` as explained in  [USAGE.md](USAGE.md)), or use `msvc-build-package.bat` to get it all pre-packaged in `./bin`.
 
-**For GCC/CLang**: there are basic Makefiles that work like usual with *make* (like `make vgmstream_cli EXTRA_CFLAGS="-DVGM_DEBUG_OUTPUT`). Artifacts are usually in their subdir (*./cli*, *./winamp*, etc).
+#### Makefiles
+**For GCC/CLang**: there are basic Makefiles that work like usual with *make* (like `make vgmstream_cli`). Artifacts are usually in their subdir (*./cli*, *./winamp*, etc).
 
-On **Windows** this compiles with extra libs enabled by default.
+On **Windows** with GCC this compiles with extra libs enabled by default.
 
 On **Linux** there is no fancy autodetection (try CMake or autotools for that), so you need to make sure libs are in your system and pass flags to enable them manually (install/compile libs then `make vgmstream_cli VGM_VORBIS=1 ...`). Check or run `make-build.sh` for a basic example that builds CLI and vgmstream123 with most libs enabled for a Ubuntu-style distro (if you get errors on your system just tweak or comment out offending parts).
 
@@ -517,13 +518,14 @@ Adds support for Vorbis, inside Ogg as `.ogg` (plain or encrypted) or custom var
 
 ### mpg123
 Adds support for MPEG (MP1/MP2/MP3), used in formats that may have custom MPEG like `.ahx`, `.msf`, `.xvag`, `.scd`, etc.
-- Source: https://sourceforge.net/projects/mpg123/files/mpg123/1.31.1/mpg123-1.31.1.tar.bz2
-  - Git mirror: https://github.com/madebr/mpg123 (commit `aec901b7a636b6eb61e03a87ff3547c787e8c693`)
+- Source: https://sourceforge.net/projects/mpg123/files/mpg123/1.33.7/mpg123-1.33.7.tar.bz2
+  - Git mirror: https://github.com/madebr/mpg123
+    - does not track branches correctly (close but incorrect commit: `295c21d649b04ef0e242df7eee259b5a9651f69c`)
   - SVN repository: svn://scm.orgis.org/mpg123/trunk (version: ?)
 - Official Windows binaries:
-  - https://www.mpg123.de/download/win32/1.31.0/mpg123-1.31.0-x86.zip (32-bit)
-  - https://www.mpg123.de/download/win64/1.31.0/mpg123-1.31.0-x86-64.zip (64-bit)
-- Version: 1.32.0 / 1.31.1
+  - https://www.mpg123.de/download/win32/1.33.7/mpg123-1.33.7-x86.zip (32-bit)
+  - https://www.mpg123.de/download/win64/1.33.7/mpg123-1.33.7-x86-64.zip (64-bit)
+- Version: 1.33.7
 - DLL: `libmpg123-0.dll`
 - lib: `-lmpg123`
 - licensed under the LGPL v2.1
@@ -543,16 +545,16 @@ Adds support for multiple codecs: ATRAC3 (`.at3`), ATRAC3plus (`.at3`), XMA1/2 (
   - Git mirror: https://github.com/FFmpeg/FFmpeg/ (tag `n5.1.2`)
 - Official Windows binaries: none
 - Version: n5.1.2
-- DLLs: `avcodec-vgmstream-59.dll`, `avformat-vgmstream-59.dll`, `avutil-vgmstream-57.dll`, `swresample-vgmstream-4.dll`
+- DLLs: `avcodec-vgmstream-63.dll`, `avformat-vgmstream-63.dll`, `avutil-vgmstream-61.dll`, `swresample-vgmstream-7.dll`
 - lib: `-lavcodec -lavformat -lavutil -lswresample`
 - primarily licensed under the LGPL v2.1 or later, with portions licensed under the GPL v2
 
 ### libopus
 Indirectly used by FFmpeg for improved Opus (`.opus` and variants) support.
-- Source:  https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz
-  - Git mirror: https://github.com/xiph/opus (tag `v1.3.1`)
+- Source: https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz
+  - Git mirror: https://github.com/xiph/opus (tag `v1.6.1`)
 - Official Windows binaries: none
-- Version: v1.3.1
+- Version: v1.6.1
 - DLLs: (part of FFmpeg)
 - lib: (part of FFmpeg)
 - licensed under a variant of the BSD license: https://opus-codec.org/license/

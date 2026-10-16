@@ -63,20 +63,20 @@ if(USE_FFMPEG)
 			DIR ffmpeg
 			#GIT_REPOSITORY https://git.ffmpeg.org/ffmpeg.git #broken at the moment
 			GIT_REPOSITORY https://github.com/FFmpeg/FFmpeg
-			GIT_TAG n7.1.1
+			GIT_TAG n9.0.2
 		)
 
 		if(FFMPEG_PATH)
 			set(FFMPEG_COMPILE YES)
 
 			set(FFMPEG_CONF_DEMUXER
-				ac3 eac3 spdif asf xwma mov oma xmv ogg flac wav aac mp3 smacker bink binka caf mpc mpc8 tak ape
+				ac3 eac3 spdif asf xwma mov oma xmv ogg flac wav aac mp3 smacker bink caf mpc mpc8 tak ape flv voc
 			)
 			set(FFMPEG_CONF_PARSER
 				ac3 mpegaudio xma vorbis opus
 			)
 			set(FFMPEG_CONF_DECODER
-			ac3 eac3 wmapro wmav1 wmav2 xma1 xma2 aac atrac3 atrac3p mp2float mp3float smackaud binkaudio_dct binkaudio_rdft pcm_s16be pcm_s16be_planar pcm_s16le pcm_s16le_planar pcm_s8 pcm_s8_planar flac vorbis mpc7 mpc8 alac adpcm_ima_qt adpcm_ima_dk3 adpcm_ima_dk4 tak ape
+			ac3 eac3 wmapro wmav1 wmav2 xma1 xma2 aac atrac3 atrac3p mp2float mp3float smackaud binkaudio_dct binkaudio_rdft pcm_s16be pcm_s16be_planar pcm_s16le pcm_s16le_planar pcm_s8 pcm_s8_planar pcm_u8 flac vorbis mpc7 mpc8 alac adpcm_ima_qt adpcm_ima_dk3 adpcm_ima_dk4 tak ape adpcm_swf
 			)
 			if(USE_FFMPEG_LIBOPUS)
 				list(APPEND FFMPEG_CONF_DECODER libopus)
@@ -95,7 +95,6 @@ if(USE_FFMPEG)
 				--disable-doc
 				--disable-avdevice
 				--disable-swscale
-				--disable-postproc
 				--disable-avfilter
 				--disable-network
 				--disable-everything
