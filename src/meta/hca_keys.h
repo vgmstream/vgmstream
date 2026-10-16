@@ -1679,6 +1679,9 @@ static const hcakey_info hcakey_list[] = {
     // Final Fantasy Resonance Demo (PC)
     {39734930526541068},        // 008D2AB57335950C
 
+    // Tales of Eternia Remastered (PC)
+    {31847960372542034},        // 0071258D1CD37A52
+
 };
 
 #endif
