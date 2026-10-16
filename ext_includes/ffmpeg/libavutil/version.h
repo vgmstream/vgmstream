@@ -35,7 +35,7 @@
  * Useful to check and match library version in order to maintain
  * backward compatibility.
  *
- * The FFmpeg libraries follow a versioning sheme very similar to
+ * The FFmpeg libraries follow a versioning scheme very similar to
  * Semantic Versioning (http://semver.org/)
  * The difference is that the component called PATCH is called MICRO in FFmpeg
  * and its value is reset to 100 instead of 0 to keep it above or equal to 100.
@@ -72,15 +72,15 @@
 /**
  * @defgroup lavu_ver Version and Build diagnostics
  *
- * Macros and function useful to check at compiletime and at runtime
+ * Macros and function useful to check at compile time and at runtime
  * which version of libavutil is in use.
  *
  * @{
  */
 
-#define LIBAVUTIL_VERSION_MAJOR  57
-#define LIBAVUTIL_VERSION_MINOR  28
-#define LIBAVUTIL_VERSION_MICRO 100
+#define LIBAVUTIL_VERSION_MAJOR  61
+#define LIBAVUTIL_VERSION_MINOR   1
+#define LIBAVUTIL_VERSION_MICRO 102
 
 #define LIBAVUTIL_VERSION_INT   AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, \
                                                LIBAVUTIL_VERSION_MINOR, \
@@ -105,15 +105,10 @@
  * @{
  */
 
-#define FF_API_D2STR                    (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_DECLARE_ALIGNED          (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_COLORSPACE_NAME          (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_AV_MALLOCZ_ARRAY         (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_FIFO_PEEK2               (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_FIFO_OLD_API             (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_XVMC                     (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_OLD_CHANNEL_LAYOUT       (LIBAVUTIL_VERSION_MAJOR < 58)
-#define FF_API_AV_FOPEN_UTF8            (LIBAVUTIL_VERSION_MAJOR < 58)
+#define FF_API_CPU_FLAG_FORCE           (LIBAVUTIL_VERSION_MAJOR < 62)
+#define FF_API_DOVI_L11_INVALID_PROPS   (LIBAVUTIL_VERSION_MAJOR < 62)
+#define FF_API_ASSERT_FPU               (LIBAVUTIL_VERSION_MAJOR < 62)
+#define FF_API_VULKAN_SYNC_QUEUES       (LIBAVUTIL_VERSION_MAJOR < 62)
 
 /**
  * @}

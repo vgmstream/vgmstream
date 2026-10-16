@@ -52,20 +52,20 @@ if(MSVC)
 	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib ${CMAKE_CURRENT_BINARY_DIR}/avcodec.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-63.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-63.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib ${CMAKE_CURRENT_BINARY_DIR}/avformat.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-63.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-63.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib ${CMAKE_CURRENT_BINARY_DIR}/avutil.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-61.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-61.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib ${CMAKE_CURRENT_BINARY_DIR}/swresample.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-7.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-7.def)
 		file(GLOB AVCODEC_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavcodec/*.h")
 		file(GLOB AVFORMAT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavformat/*.h")
 		file(GLOB AVUTIL_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavutil/*.h")
@@ -150,20 +150,20 @@ elseif(MINGW)
 	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def -l ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib -D avcodec-vgmstream-59.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-63.def -l ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib -D avcodec-vgmstream-63.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-63.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def -l ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib -D avformat-vgmstream-59.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-63.def -l ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib -D avformat-vgmstream-63.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-63.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def -l ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib -D avutil-vgmstream-57.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-61.def -l ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib -D avutil-vgmstream-61.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-61.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def -l ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib -D swresample-vgmstream-4.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-7.def -l ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib -D swresample-vgmstream-7.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-7.def)
 		add_custom_target(ffmpeg
 			DEPENDS
 				${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib

@@ -156,8 +156,8 @@ ifeq ($(TARGET_OS),Windows_NT)
   VGM_FFMPEG ?= 1
   ifneq ($(VGM_FFMPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG -I../ext_includes/ffmpeg
-    LIBS_LDFLAGS += -lavcodec-vgmstream-59 -lavformat-vgmstream-59 -lavutil-vgmstream-57 -lswresample-vgmstream-4
-    LIBS_TARGET_EXT_LIBS += avcodec-vgmstream-59.dll.a avformat-vgmstream-59.dll.a avutil-vgmstream-57.dll.a swresample-vgmstream-4.dll.a
+    LIBS_LDFLAGS += -lavcodec-vgmstream-63 -lavformat-vgmstream-63 -lavutil-vgmstream-61 -lswresample-vgmstream-7
+    LIBS_TARGET_EXT_LIBS += avcodec-vgmstream-63.dll.a avformat-vgmstream-63.dll.a avutil-vgmstream-61.dll.a swresample-vgmstream-7.dll.a
   endif
 
   VGM_CELT ?= 1

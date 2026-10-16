@@ -40,7 +40,17 @@
 #include <string.h>
 
 #include "attributes.h"
+#include "error.h"
 #include "macros.h"
+#include "version.h"
+
+#ifdef HAVE_AV_CONFIG_H
+#   include "config.h"
+#   include "intmath.h"
+#   include "internal.h"
+#else
+#   include "mem.h"
+#endif /* HAVE_AV_CONFIG_H */
 
 //rounded division & shift
 #define RSHIFT(a,b) ((a) > 0 ? ((a) + ((1<<(b))>>1))>>(b) : ((a) + ((1<<(b))>>1)-1)>>(b))
@@ -83,11 +93,6 @@
 
 /* misc math functions */
 
-#ifdef HAVE_AV_CONFIG_H
-#   include "config.h"
-#   include "intmath.h"
-#endif
-
 #ifndef av_ceil_log2
 #   define av_ceil_log2     av_ceil_log2_c
 #endif
@@ -118,9 +123,6 @@
 #ifndef av_clip_uintp2
 #   define av_clip_uintp2   av_clip_uintp2_c
 #endif
-#ifndef av_mod_uintp2
-#   define av_mod_uintp2    av_mod_uintp2_c
-#endif
 #ifndef av_sat_add32
 #   define av_sat_add32     av_sat_add32_c
 #endif
@@ -144,6 +146,9 @@
 #endif
 #ifndef av_clipd
 #   define av_clipd         av_clipd_c
+#endif
+#ifndef av_zero_extend
+#   define av_zero_extend   av_zero_extend_c
 #endif
 #ifndef av_popcount
 #   define av_popcount      av_popcount_c
@@ -248,8 +253,8 @@ static av_always_inline av_const int16_t av_clip_int16_c(int a)
  */
 static av_always_inline av_const int32_t av_clipl_int32_c(int64_t a)
 {
-    if ((a+0x80000000u) & ~UINT64_C(0xFFFFFFFF)) return (int32_t)((a>>63) ^ 0x7FFFFFFF);
-    else                                         return (int32_t)a;
+    if ((a+UINT64_C(0x80000000)) & ~UINT64_C(0xFFFFFFFF)) return (int32_t)((a>>63) ^ 0x7FFFFFFF);
+    else                                                  return (int32_t)a;
 }
 
 /**
@@ -260,7 +265,7 @@ static av_always_inline av_const int32_t av_clipl_int32_c(int64_t a)
  */
 static av_always_inline av_const int av_clip_intp2_c(int a, int p)
 {
-    if (((unsigned)a + (1 << p)) & ~((2 << p) - 1))
+    if (((unsigned)a + (1U << p)) & ~((2U << p) - 1))
         return (a >> 31) ^ ((1 << p) - 1);
     else
         return a;
@@ -274,18 +279,21 @@ static av_always_inline av_const int av_clip_intp2_c(int a, int p)
  */
 static av_always_inline av_const unsigned av_clip_uintp2_c(int a, int p)
 {
-    if (a & ~((1<<p) - 1)) return (~a) >> 31 & ((1<<p) - 1);
-    else                   return  a;
+    if (a & ~((1U<<p) - 1)) return (~a) >> 31 & ((1U<<p) - 1);
+    else                    return  a;
 }
 
 /**
  * Clear high bits from an unsigned integer starting with specific bit position
  * @param  a value to clip
- * @param  p bit position to clip at
+ * @param  p bit position to clip at. Must be between 0 and 31.
  * @return clipped value
  */
-static av_always_inline av_const unsigned av_mod_uintp2_c(unsigned a, unsigned p)
+static av_always_inline av_const unsigned av_zero_extend_c(unsigned a, unsigned p)
 {
+#if defined(HAVE_AV_CONFIG_H) && defined(ASSERT_LEVEL) && ASSERT_LEVEL >= 2
+    if (p > 31) abort();
+#endif
     return a & ((1U << p) - 1);
 }
 
@@ -467,13 +475,13 @@ static av_always_inline av_const int av_parity_c(uint32_t v)
  * to prevent undefined results.
  */
 #define GET_UTF8(val, GET_BYTE, ERROR)\
-    val= (GET_BYTE);\
+    val= (uint8_t)(GET_BYTE);\
     {\
         uint32_t top = (val & 128) >> 1;\
         if ((val & 0xc0) == 0x80 || val >= 0xFE)\
             {ERROR}\
         while (val & top) {\
-            unsigned int tmp = (GET_BYTE) - 128;\
+            unsigned int tmp = (uint8_t)(GET_BYTE) - 128;\
             if(tmp>>6)\
                 {ERROR}\
             val= (val<<6) + tmp;\
@@ -492,11 +500,11 @@ static av_always_inline av_const int av_parity_c(uint32_t v)
  *                  typically a goto statement.
  */
 #define GET_UTF16(val, GET_16BIT, ERROR)\
-    val = (GET_16BIT);\
+    val = (uint16_t)(GET_16BIT);\
     {\
         unsigned int hi = val - 0xD800;\
         if (hi < 0x800) {\
-            val = (GET_16BIT) - 0xDC00;\
+            val = (uint16_t)(GET_16BIT) - 0xDC00;\
             if (val > 0x3FFU || hi > 0x3FFU)\
                 {ERROR}\
             val += (hi<<10) + 0x10000;\
@@ -566,13 +574,5 @@ static av_always_inline av_const int av_parity_c(uint32_t v)
             PUT_16BIT\
         }\
     }\
-
-
-
-#include "mem.h"
-
-#ifdef HAVE_AV_CONFIG_H
-#    include "internal.h"
-#endif /* HAVE_AV_CONFIG_H */
 
 #endif /* AVUTIL_COMMON_H */

@@ -33,9 +33,12 @@
 --disable-avdevice
 --disable-swresample
 --disable-swscale
---disable-postproc
 --disable-avfilter
 --disable-network
+
+# older FFmpeg only
+#--disable-postproc
+
 
 # individual components (re-enabled below as needed): decoders, encoder, hwaccels, demuxers, muxers, parsers, protocols, bsfs, indevs, outdevs, filters
 --disable-everything
@@ -86,11 +89,13 @@
 # - wav: common
 # - aac: 3DS games, demuxed videos
 # - mp3: common (for rare cases, shouldn't be used directly)
-# - smacker,bink,binka: games with RAD Game Tools videos/audio
+# - smacker,bink: games with RAD Game Tools videos
 # - caf: iOS games
 # - mpc,mpc8: Android games
 # - tak,ape: extra for rips with compressed .wav
---enable-demuxer=ac3,eac3,spdif,asf,xwma,mov,oma,xmv,ogg,flac,wav,aac,mp3,smacker,bink,binka,caf,mpc,mpc8,tak,ape
+# - flv: Shockwave Flash games
+# - voc: Creative Voice File (with PCM8_U)
+--enable-demuxer=ac3,eac3,spdif,asf,xwma,mov,oma,xmv,ogg,flac,wav,aac,mp3,smacker,bink,caf,mpc,mpc8,tak,ape,flv,voc
 
 # parsers take data streams and splits into frames (handles raw-ish formats)
 # - ac3: raw AC3 
@@ -108,7 +113,7 @@
 # - atrac3,atrac3p: PSP/PS3 games
 # - mp2float,mp3float: common
 # - smackaud,binkaudio_dct,binkaudio_rdft: games with RAD Game Tools videos/audio
-# - pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,pcm_s8,pcm_s8_planar: for .wav not detected properly in riff.c
+# - pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,pcm_s8,pcm_s8_planar,pcm_u8: for .wav not accepted in riff.c
 # - flac: common (rare in games)
 # - vorbis: common (for rare cases, shouldn't be used directly)
 # - opus/libopus: Switch/PC games
@@ -116,7 +121,8 @@
 # - alac,adpcm_ima_qt: iOS games
 # - adpcm_ima_dk3,adpcm_ima_dk4: Saturn videos
 # - tak,ape: extra for rips with compressed .wav
---enable-decoder=ac3,eac3,wmapro,wmav1,wmav2,xma1,xma2,aac,atrac3,atrac3p,mp2float,mp3float,smackaud,binkaudio_dct,binkaudio_rdft,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,pcm_s8,pcm_s8_planar,flac,vorbis,libopus,mpc7,mpc8,alac,adpcm_ima_qt,adpcm_ima_dk3,adpcm_ima_dk4,tak,ape
+# - adpcm_swf: Shockwave Flash games
+--enable-decoder=ac3,eac3,wmapro,wmav1,wmav2,xma1,xma2,aac,atrac3,atrac3p,mp2float,mp3float,smackaud,binkaudio_dct,binkaudio_rdft,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,pcm_s8,pcm_s8_planar,pcm_u8,flac,vorbis,libopus,mpc7,mpc8,alac,adpcm_ima_qt,adpcm_ima_dk3,adpcm_ima_dk4,tak,ape,adpcm_swf
 
 ###############################################################################
 # OS/TESTS

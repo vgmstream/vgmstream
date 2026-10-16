@@ -27,11 +27,8 @@
 #include "libavutil/hwcontext.h"
 #include "libavutil/log.h"
 #include "libavutil/pixfmt.h"
-#include "libavutil/rational.h"
-#include "libavutil/samplefmt.h"
 
 #include "libavcodec/codec_id.h"
-#include "libavcodec/version_major.h"
 
 /**
  * @addtogroup lavc_core
@@ -50,12 +47,6 @@
  * avcodec_default_get_buffer2 or avcodec_default_get_encode_buffer.
  */
 #define AV_CODEC_CAP_DR1                 (1 <<  1)
-#if FF_API_FLAG_TRUNCATED
-/**
- * @deprecated Use parsers to always send proper frames.
- */
-#define AV_CODEC_CAP_TRUNCATED           (1 <<  3)
-#endif
 /**
  * Encoder or decoder requires flushing with NULL input at the end in order to
  * give the complete and correct output.
@@ -87,18 +78,6 @@
 #define AV_CODEC_CAP_SMALL_LAST_FRAME    (1 <<  6)
 
 /**
- * Codec can output multiple frames per AVPacket
- * Normally demuxers return one frame at a time, demuxers which do not do
- * are connected to a parser to split what they return into proper frames.
- * This flag is reserved to the very rare category of codecs which have a
- * bitstream that cannot be split into frames without timeconsuming
- * operations like full decoding. Demuxers carrying such bitstreams thus
- * may return multiple frames in a packet. This has many disadvantages like
- * prohibiting stream copy in many cases thus it should only be considered
- * as a last resort.
- */
-#define AV_CODEC_CAP_SUBFRAMES           (1 <<  8)
-/**
  * Codec is experimental and is thus avoided in favor of non experimental
  * encoders
  */
@@ -125,9 +104,6 @@
  * multithreading-capable external libraries.
  */
 #define AV_CODEC_CAP_OTHER_THREADS       (1 << 15)
-#if FF_API_AUTO_THREADS
-#define AV_CODEC_CAP_AUTO_THREADS        AV_CODEC_CAP_OTHER_THREADS
-#endif
 /**
  * Audio encoder supports receiving a different number of samples in each call.
  */
@@ -142,17 +118,6 @@
  * choice for probing.
  */
 #define AV_CODEC_CAP_AVOID_PROBING       (1 << 17)
-
-#if FF_API_UNUSED_CODEC_CAPS
-/**
- * Deprecated and unused. Use AVCodecDescriptor.props instead
- */
-#define AV_CODEC_CAP_INTRA_ONLY       0x40000000
-/**
- * Deprecated and unused. Use AVCodecDescriptor.props instead
- */
-#define AV_CODEC_CAP_LOSSLESS         0x80000000
-#endif
 
 /**
  * Codec is backed by a hardware implementation. Typically used to
@@ -169,9 +134,9 @@
 #define AV_CODEC_CAP_HYBRID              (1 << 19)
 
 /**
- * This codec takes the reordered_opaque field from input AVFrames
- * and returns it in the corresponding field in AVCodecContext after
- * encoding.
+ * This encoder can reorder user opaque values from input AVFrames and return
+ * them with corresponding output packets.
+ * @see AV_CODEC_FLAG_COPY_OPAQUE
  */
 #define AV_CODEC_CAP_ENCODER_REORDERED_OPAQUE (1 << 20)
 
@@ -181,6 +146,14 @@
  * remain pending.
  */
 #define AV_CODEC_CAP_ENCODER_FLUSH   (1 << 21)
+
+/**
+ * The encoder is able to output reconstructed frame data, i.e. raw frames that
+ * would be produced by decoding the encoded bitstream.
+ *
+ * Reconstructed frame output is enabled by the AV_CODEC_FLAG_RECON_FRAME flag.
+ */
+#define AV_CODEC_CAP_ENCODER_RECON_FRAME (1 << 22)
 
 /**
  * AVProfile.
@@ -214,19 +187,9 @@ typedef struct AVCodec {
      */
     int capabilities;
     uint8_t max_lowres;                     ///< maximum value for lowres supported by the decoder
-    const AVRational *supported_framerates; ///< array of supported framerates, or NULL if any, array is terminated by {0,0}
-    const enum AVPixelFormat *pix_fmts;     ///< array of supported pixel formats, or NULL if unknown, array is terminated by -1
-    const int *supported_samplerates;       ///< array of supported audio samplerates, or NULL if unknown, array is terminated by 0
-    const enum AVSampleFormat *sample_fmts; ///< array of supported sample formats, or NULL if unknown, array is terminated by -1
-#if FF_API_OLD_CHANNEL_LAYOUT
-    /**
-     * @deprecated use ch_layouts instead
-     */
-    attribute_deprecated
-    const uint64_t *channel_layouts;         ///< array of support channel layouts, or NULL if unknown. array is terminated by 0
-#endif
+
     const AVClass *priv_class;              ///< AVClass for the private context
-    const AVProfile *profiles;              ///< array of recognized profiles, or NULL if unknown, array is terminated by {FF_PROFILE_UNKNOWN}
+    const AVProfile *profiles;              ///< array of recognized profiles, or NULL if unknown, array is terminated by {AV_PROFILE_UNKNOWN}
 
     /**
      * Group name of the codec implementation.
@@ -239,11 +202,6 @@ typedef struct AVCodec {
      * (usually AVCodec.name will be of the form "<codec_name>_<wrapper_name>").
      */
     const char *wrapper_name;
-
-    /**
-     * Array of supported channel layouts, terminated with a zeroed layout.
-     */
-    const AVChannelLayout *ch_layouts;
 } AVCodec;
 
 /**
