@@ -758,6 +758,7 @@ static const char* extension_list[] = {
     "xnb",
     "xsh",
     "xsf",
+    "xsnd", //txth/reserved [3DO Interactive Sampler (3DO)]
     "xst",
     "xse",
     "xsew",
