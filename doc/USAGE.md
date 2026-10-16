@@ -13,10 +13,10 @@ Put the following files somewhere Windows can find them:
 - `libvorbis.dll`
 - `libmpg123-0.dll`
 - `libg719_decode.dll`
-- `avcodec-vgmstream-59.dll`
-- `avformat-vgmstream-59.dll`
-- `avutil-vgmstream-57.dll`
-- `swresample-vgmstream-4.dll`
+- `avcodec-vgmstream-63.dll`
+- `avformat-vgmstream-63.dll`
+- `avutil-vgmstream-61.dll`
+- `swresample-vgmstream-7.dll`
 - `libcelt-0061.dll`
 - `libcelt-0110.dll`
 - `libspeex-1.dll`
