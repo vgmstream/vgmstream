@@ -25,9 +25,9 @@ static int cache_read(void* user_data, uint8_t* dst, int64_t offset, int length)
         return 0;
 
     /* is the part of the requested length in the buffer? */
-    if (priv->offset >= priv->buf_offset && priv->offset < priv->buf_offset + priv->valid_size) {
+    if (offset >= priv->buf_offset && offset < priv->buf_offset + priv->valid_size) {
         size_t buf_limit;
-        int buf_into = (int)(priv->offset - priv->buf_offset);
+        int buf_into = (int)(offset - priv->buf_offset);
 
         buf_limit = priv->valid_size - buf_into;
         if (buf_limit > length)
@@ -36,7 +36,7 @@ static int cache_read(void* user_data, uint8_t* dst, int64_t offset, int length)
         memcpy(dst, priv->buf + buf_into, buf_limit);
         read_total += buf_limit;
         length -= buf_limit;
-        priv->offset += buf_limit;
+        offset += buf_limit;
         dst += buf_limit;
     }
 
@@ -49,14 +49,14 @@ static int cache_read(void* user_data, uint8_t* dst, int64_t offset, int length)
         size_t buf_limit;
 
         /* ignore requests at EOF */
-        if (priv->offset >= priv->file_size) {
+        if (offset >= priv->file_size) {
             //offset = priv->file_size; /* seems fseek doesn't clamp offset */
             //VGM_ASSERT_ONCE(offset > sf->file_size, "STDIO: reading over file_size 0x%x @ 0x%lx + 0x%x\n", sf->file_size, offset, length);
             break;
         }
 
         /* fill the buffer (offset now is beyond buf_offset) */
-        priv->buf_offset = priv->offset;
+        priv->buf_offset = offset;
         priv->valid_size = priv->libsf->read(priv->libsf->user_data, priv->buf, priv->buf_offset, priv->buf_size);
 
         /* decide how much must be read this time */
@@ -68,14 +68,14 @@ static int cache_read(void* user_data, uint8_t* dst, int64_t offset, int length)
         /* give up on partial reads (EOF) */
         if (priv->valid_size < buf_limit) {
             memcpy(dst, priv->buf, priv->valid_size);
-            priv->offset += priv->valid_size;
+            offset += priv->valid_size;
             read_total += priv->valid_size;
             break;
         }
 
         /* use the new buffer */
         memcpy(dst, priv->buf, buf_limit);
-        priv->offset += buf_limit;
+        offset += buf_limit;
         read_total += buf_limit;
         length -= buf_limit;
         dst += buf_limit;
