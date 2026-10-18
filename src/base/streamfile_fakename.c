@@ -38,7 +38,8 @@ static STREAMFILE* fakename_open(FAKENAME_STREAMFILE* sf, const char* const file
 
         sf->inner_sf->get_name(sf->inner_sf, original_filename, PATH_LIMIT);
         new_inner_sf = sf->inner_sf->open(sf->inner_sf, original_filename, buf_size);
-        return open_fakename_streamfile(new_inner_sf, sf->fakename, NULL);
+
+        return open_fakename_streamfile_f(new_inner_sf, sf->fakename, NULL);
     }
     else {
         return sf->inner_sf->open(sf->inner_sf, filename, buf_size);

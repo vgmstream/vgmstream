@@ -98,7 +98,7 @@ static void buffer_get_name(BUFFER_STREAMFILE* sf, char* name, size_t name_size)
 
 static STREAMFILE* buffer_open(BUFFER_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     STREAMFILE* new_inner_sf = sf->inner_sf->open(sf->inner_sf,filename,buf_size);
-    return open_buffer_streamfile(new_inner_sf, buf_size); /* original buffer size is preferable? */
+    return open_buffer_streamfile_f(new_inner_sf, buf_size); /* original buffer size is preferable? */
 }
 
 static void buffer_close(BUFFER_STREAMFILE* sf) {
