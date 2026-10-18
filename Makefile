@@ -121,6 +121,11 @@ ifneq ($(VGM_G7221),0)
   LIBS_CFLAGS  += -DVGM_USE_G7221
 endif
 
+VGM_G7221 ?= 1
+ifneq ($(VGM_G7221),0)
+  LIBS_CFLAGS  += -DVGM_USE_G719
+endif
+
 VGM_ATRAC9 ?= 1
 ifneq ($(VGM_ATRAC9),0)
   LIBS_CFLAGS  += -DVGM_USE_ATRAC9
@@ -144,13 +149,6 @@ ifeq ($(TARGET_OS),Windows_NT)
     LIBS_CFLAGS  += -DVGM_USE_MPEG
     LIBS_LDFLAGS += -lmpg123-0
     LIBS_TARGET_EXT_LIBS += libmpg123-0.dll.a
-  endif
-
-  VGM_G719 ?= 1
-  ifneq ($(VGM_G719),0)
-    LIBS_CFLAGS  += -DVGM_USE_G719
-    LIBS_LDFLAGS += -lg719_decode
-    LIBS_TARGET_EXT_LIBS += libg719_decode.dll.a
   endif
 
   VGM_FFMPEG ?= 1

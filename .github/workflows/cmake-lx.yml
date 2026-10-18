@@ -59,13 +59,6 @@ jobs:
             ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/lib
           key: linux-${{ env.RELEASE }}-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
   
-      - name: Cache g719
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{runner.workspace}}/build/dependencies/libg719_decode/libg719_decode.a
-          key: linux-${{ env.RELEASE }}-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
-  
       - name: Cache mpg123
         uses: actions/cache@v5
         with:

@@ -12,7 +12,6 @@ or compile them manually, even (see tech docs).
 Put the following files somewhere Windows can find them:
 - `libvorbis.dll`
 - `libmpg123-0.dll`
-- `libg719_decode.dll`
 - `avcodec-vgmstream-63.dll`
 - `avformat-vgmstream-63.dll`
 - `avutil-vgmstream-61.dll`
