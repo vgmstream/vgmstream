@@ -1,4 +1,6 @@
 #include "../streamfile.h"
+#include "../util/vgmstream_limits.h"
+#include "../util/log.h"
 
 typedef struct {
     STREAMFILE vt;
@@ -14,7 +16,10 @@ typedef struct {
 } IO_STREAMFILE;
 
 static size_t io_read(IO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
-    return sf->read_callback(sf->inner_sf, dst, (off_t)offset, length, sf->data);
+    if (sf->read_callback)
+        return sf->read_callback(sf->inner_sf, dst, (off_t)offset, length, sf->data);
+    else
+        return sf->inner_sf->read(sf->inner_sf, dst, offset, length); /* default */
 }
 
 static size_t io_get_size(IO_STREAMFILE* sf) {
@@ -33,8 +38,19 @@ static void io_get_name(IO_STREAMFILE* sf, char* name, size_t name_size) {
 }
 
 static STREAMFILE* io_open(IO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
-    STREAMFILE* new_inner_sf = sf->inner_sf->open(sf->inner_sf,filename,buf_size);
-    return open_io_streamfile_ex(new_inner_sf, sf->data, sf->data_size, sf->read_callback, sf->size_callback, sf->init_callback, sf->close_callback);
+    char original_filename[PATH_LIMIT];
+    STREAMFILE* new_inner_sf = NULL;
+
+    new_inner_sf = sf->inner_sf->open(sf->inner_sf,filename,buf_size);
+    sf->inner_sf->get_name(sf->inner_sf, original_filename, PATH_LIMIT);
+
+    /* detect re-opening the file */
+    if (strcmp(filename, original_filename) == 0) {
+        return open_io_streamfile_ex_f(new_inner_sf, sf->data, sf->data_size, sf->read_callback, sf->size_callback, sf->init_callback, sf->close_callback);
+    }
+    else {
+        return new_inner_sf; // IO shouldn't apply callbacks when opening other files (like companion .*key)
+    }
 }
 
 static void io_close(IO_STREAMFILE* sf) {
