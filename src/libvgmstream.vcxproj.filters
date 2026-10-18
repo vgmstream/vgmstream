@@ -892,9 +892,6 @@
     <ClCompile Include="coding\sassc_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\scp_adpcm.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="coding\sdx2_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

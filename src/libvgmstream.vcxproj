@@ -354,7 +354,6 @@
     <ClCompile Include="coding\ptadpcm_decoder.c" />
     <ClCompile Include="coding\relic_decoder.c" />
     <ClCompile Include="coding\sassc_decoder.c" />
-    <ClCompile Include="coding\scp_adpcm.c" />
     <ClCompile Include="coding\sdx2_decoder.c" />
     <ClCompile Include="coding\speex_decoder.c" />
     <ClCompile Include="coding\tac_decoder.c" />
