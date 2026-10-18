@@ -1,4 +1,5 @@
 /* Decodes IS22 (Interleaved Siren22) a.k.a ITU-T G.719 (standardization of Polycom's Siren 22).
+ * Unlike 'Siren 14', Namco's exes don't seem to contain name strings for this codec.
  *
  * Namco's version (decompiled from various exes) is very similar to the reference decoder:
  * - uses the float point ref implementation (ref. also has a fixed point version)
