@@ -44,8 +44,9 @@ static STREAMFILE* clamp_open(CLAMP_STREAMFILE* sf, const char* const filename, 
 
     /* detect re-opening the file */
     if (strcmp(filename, original_filename) == 0) {
-        return open_clamp_streamfile(new_inner_sf, sf->start, sf->size); /* clamp again */
-    } else {
+        return open_clamp_streamfile_f(new_inner_sf, sf->start, sf->size);
+    }
+    else {
         return new_inner_sf;
     }
 }

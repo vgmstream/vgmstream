@@ -39,16 +39,6 @@ if(MSVC)
 		source_group("Header Files\\vorbis" FILES ${VORBIS_HEADERS})
 	endif()
 
-	if(USE_G719)
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.exp
-			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def /machine:${MSVC_MACHINE_TYPE} /out:${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def)
-		add_custom_target(libg719_decode
-			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
-			SOURCES ${VGM_SOURCE_DIR}/ext_includes/g719.h)
-	endif()
-
 	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib ${CMAKE_CURRENT_BINARY_DIR}/avcodec.exp
 			COMMAND lib
@@ -136,15 +126,6 @@ elseif(MINGW)
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libvorbis.def)
 		add_custom_target(libvorbis
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libvorbis.lib)
-	endif()
-
-	if(USE_G719)
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
-			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def -l ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def)
-		add_custom_target(libg719_decode
-			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib)
 	endif()
 
 	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)

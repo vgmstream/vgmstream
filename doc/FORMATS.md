@@ -2164,7 +2164,7 @@ are used in few games.
   - Xiph Vorbis (Ogg, FSB, Wwise, OGL, Silicon Knights)
   - CRI HCA
   - ITU-T G.722.1 annex C a.k.a. Polycom Siren 14 (Namco)
-  - ITU-T G.719 annex B a.k.a. Polycom Siren 22
+  - ITU-T G.719 a.k.a. Polycom Siren 22 (Namco)
   - Xiph Opus (Ogg, Switch, EA, UE4, Exient, FSB)
   - Xiph CELT (FSB)
   - Microsoft XMA1/2

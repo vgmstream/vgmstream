@@ -23,7 +23,7 @@ sudo apt-get install -y gcc g++ make cmake build-essential git pkg-config
 # optional: for extra formats (can be ommited to build with static libs)
 sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
-sudo apt-get install -y yasm libopus-dev pkg-config autoconf libtool-bin
+sudo apt-get install -y nasm libopus-dev pkg-config autoconf libtool-bin
 # optional: for vgmstream 123 and audacious
 sudo apt-get install -y libao-dev audacious-dev
 
@@ -529,15 +529,6 @@ Adds support for MPEG (MP1/MP2/MP3), used in formats that may have custom MPEG l
 - DLL: `libmpg123-0.dll`
 - lib: `-lmpg123`
 - licensed under the LGPL v2.1
-
-### libg719_decode
-Adds support for ITU-T G.719 (standardization of Polycom Siren 22), used in a few Namco `.bnsf` games.
-- Source: https://github.com/kode54/libg719_decode (commit `da90ad8a676876c6c47889bcea6a753f9bbf7a73`)
-- Official Windows binaries: none
-- Version: latest
-- DLL: `libg719_decode.dll`
-- lib: ---
-- unknown license (reference decoder, possibly not valid/Polycom's)
 
 ### FFmpeg
 Adds support for multiple codecs: ATRAC3 (`.at3`), ATRAC3plus (`.at3`), XMA1/2 (`.xma`), WMA v1 (`.wma`), WMA v2 (`.wma`), WMAPro (`.xwma`), AAC (`.mp4`, `.aac`), Bink (`.bik`), Smacker (`.smk`), AC3/SPDIF (`.ac3`), Opus (`.opus`), Musepack (`.mpc`), FLAC (`.flac`), etc. Vorbis, MPEG and PCM and a few others are also included for rare cases.

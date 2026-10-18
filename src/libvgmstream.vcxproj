@@ -121,6 +121,8 @@
     <ClInclude Include="coding\libs\clhca.h" />
     <ClInclude Include="coding\libs\clhca_data.h" />
     <ClInclude Include="coding\libs\compresswave_lib.h" />
+    <ClInclude Include="coding\libs\g719_dec.h" />
+    <ClInclude Include="coding\libs\g719_internal.h" />
     <ClInclude Include="coding\libs\g7221_aes.h" />
     <ClInclude Include="coding\libs\g7221_data.h" />
     <ClInclude Include="coding\libs\g7221_lib.h" />
@@ -382,6 +384,10 @@
     <ClCompile Include="coding\libs\circus_vq_lib.c" />
     <ClCompile Include="coding\libs\clhca.c" />
     <ClCompile Include="coding\libs\compresswave_lib.c" />
+    <ClCompile Include="coding\libs\g719_dec.c" />
+    <ClCompile Include="coding\libs\g719_tables.c" />
+    <ClCompile Include="coding\libs\g719_transform.c" />
+    <ClCompile Include="coding\libs\g719_unpack.c" />
     <ClCompile Include="coding\libs\g7221_aes.c" />
     <ClCompile Include="coding\libs\g7221_lib.c" />
     <ClCompile Include="coding\libs\g72x_vgmstream.c" />

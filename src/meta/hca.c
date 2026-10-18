@@ -29,7 +29,7 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
 
     /* checks */
     if ((read_u32be(0x00,sf) & 0x7F7F7F7F) != get_id32be("HCA\0")) /* masked in encrypted files */
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "hca"))
         return NULL;

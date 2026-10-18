@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/* Decodes Sony's ATRAC9, a transform-based (MDCT).
+/* Decodes Sony's ATRAC9, a transform-based (MDCT) codec.
  */
 
 //TO-DO: remove?

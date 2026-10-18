@@ -91,13 +91,6 @@ macro(setup_target TARGET)
 
 	if(USE_G719)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_G719)
-		if(WIN32 AND LINK)
-			add_dependencies(${TARGET} libg719_decode)
-			target_link_libraries(${TARGET} PRIVATE ${VGM_BINARY_DIR}/ext_libs/libg719_decode.lib)
-		endif()
-		if(NOT WIN32 AND LINK)
-			target_link_libraries(${TARGET} PRIVATE g719_decode)
-		endif()
 	endif()
 
 	if(USE_ATRAC9)
@@ -134,7 +127,6 @@ macro(install_dlls INSTALL_PREFIX)
 	# Paths to the DLLs
 	set(MPEG_DLL ${VGM_SOURCE_DIR}/ext_libs/libmpg123-0.dll)
 	set(VORBIS_DLL ${VGM_SOURCE_DIR}/ext_libs/libvorbis.dll)
-	set(G719_DLL ${VGM_SOURCE_DIR}/ext_libs/libg719_decode.dll)
 	set(FFMPEG_DLL
 		${VGM_SOURCE_DIR}/ext_libs/avcodec-vgmstream-63.dll
 		${VGM_SOURCE_DIR}/ext_libs/avformat-vgmstream-63.dll

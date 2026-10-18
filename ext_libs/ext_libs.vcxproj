@@ -49,11 +49,6 @@
       <Command>lib /def:libvorbis.def /machine:x86 /out:libvorbis.lib</Command>
       <Outputs>libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="libg719_decode.def">
-      <Message>Building library stub</Message>
-      <Command>lib /def:libg719_decode.def /machine:x86 /out:libg719_decode.lib</Command>
-      <Outputs>libg719_decode.lib;libg719_decode.exp;%(Outputs)</Outputs>
-    </CustomBuild>
     <CustomBuild Include="avcodec-vgmstream-63.def">
       <Message>Building library stub</Message>
       <Command>lib /def:avcodec-vgmstream-63.def /machine:x86 /out:avcodec.lib</Command>
@@ -100,11 +95,6 @@
       <Message>Building library stub</Message>
       <Command>lib /def:libvorbis.def /machine:x64 /out:dll-x64\libvorbis.lib</Command>
       <Outputs>dll-x64\libvorbis.lib;dll-x64\libvorbis.exp;%(Outputs)</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="libg719_decode.def">
-      <Message>Building library stub</Message>
-      <Command>lib /def:libg719_decode.def /machine:x64 /out:dll-x64\libg719_decode.lib</Command>
-      <Outputs>dll-x64\libg719_decode.lib;dll-x64\libg719_decode.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="avcodec-vgmstream-63.def">
       <Message>Building library stub</Message>

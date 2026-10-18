@@ -148,43 +148,6 @@ make clean install install-strip
 Untested/not possible?
 
 
-### libg719_decode
-Use MSVC and `g719.sln`, or GCC and the Makefile included.
-
-#### Source
-```bat
-git clone https://github.com/kode54/libg719_decode
-git -C libg719_decode checkout da90ad8a676876c6c47889bcea6a753f9bbf7a73
-cd libg719_decode
-```
-
-#### With GCC
-```bat
-REM # 32-bit DLL
-mkdir C:\vgmstream-dlls\out\g719-32\
-make clean shared EXTRA_CFLAGS="-m32" EXTRA_LDFLAGS="-m32 -static-libgcc" OUTPUT_DIR=C:\vgmstream-dlls\out\g719-32\
-
-REM # 64-bit DLL
-mkdir C:\vgmstream-dlls\out\g719-64\
-make clean shared EXTRA_CFLAGS="-m64" EXTRA_LDFLAGS="-m64 -static-libgcc" OUTPUT_DIR=C:\vgmstream-dlls\out\g719-64\
-```
-
-#### With MSVC
-```bat
-REM # 32-bit DLL
-MSBuild.exe g719.sln /p:Platform=Win32 /p:Configuration=Release /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v142
-mkdir C:\vgmstream-dlls\out\g719-32
-copy /B .\Release\libg719_decode.dll C:\vgmstream-dlls\out\g719-32\libg719_decode.dll
-
-REM # 64-bit DLL
-MSBuild.exe g719.sln /p:Platform=x64 /p:Configuration=Release /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v142
-mkdir C:\vgmstream-dlls\out\g719-64
-copy /B .\x64\Release\libg719_decode.dll C:\vgmstream-dlls\out\g719-64\libg719_decode.dll
-
-REM add /t:Clean to the above to clean up compilation
-```
-
-
 ### libvorbis/libogg
 Should be buildable with *autotools* (Git releases need to use `autogen.sh` first) or MSVC (projects in `./win32/`, may not be up to date). *CMake* may work as well.
 
