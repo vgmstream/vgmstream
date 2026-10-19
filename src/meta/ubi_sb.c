@@ -10,6 +10,8 @@
 /* arbitrary max values to detect incorrect reads */
 #define SB_MAX_LAYER_COUNT 16 
 #define SB_MAX_CHAIN_COUNT 256 // +150 exist in Tonic Trouble
+#define SB_MAX_CONTAINER_DEPTH 8 // containers inside containers
+#define SB_MAX_CONTAINER_VISITS 4096 // entries checked per event, in case containers repeat each other
 #define SB_MAX_SUBSONGS 128000 // +50000 isn't uncommon with maps
 #define SB_MAX_MAPS 1024
 #define SB_INDEX_BUFFER 0x100
@@ -95,6 +97,17 @@ typedef struct {
     off_t random_sequence_count;
     size_t random_entry_size;
     int random_percent_int;
+
+    off_t switch_extra_offset;
+    off_t switch_entry_count;
+    size_t switch_entry_size;
+
+    off_t chain_extra_offset;
+    off_t chain_entry_count;
+    size_t chain_entry_size;
+
+    off_t event_reference;
+    off_t event_pitch;
 
     int is_padded_section1_offset;
     int is_padded_section2_offset;
@@ -2530,6 +2543,87 @@ VGM_LOG("3\n");
     return true;
 }
 
+/* Checks if an event or container reference (0x40000000 + entry number) plays the current header,
+ * directly or through containers (random, switch and chain types). */
+static bool reference_plays_header(ubi_sb_header* sb, STREAMFILE* sf, uint32_t reference, int depth, int* visits_left) {
+    read_u32_t read_u32 = sb->big_endian ? read_u32be : read_u32le;
+
+    if (--(*visits_left) < 0)
+        return false;
+    if ((reference & 0xF0000000) != 0x40000000)
+        return false;
+    uint32_t entry_number = reference & 0x0FFFFFFF;
+    if (entry_number >= sb->section2_num)
+        return false;
+    if (entry_number == (uint32_t)sb->header_index)
+        return true;
+    if (depth >= SB_MAX_CONTAINER_DEPTH) /* containers may point to each other */
+        return false;
+
+    off_t offset = sb->section2_offset + sb->cfg.section2_entry_size * entry_number;
+    off_t extra_offset, entry_count;
+    size_t entry_size;
+    switch (read_u32(offset + 0x04, sf)) {
+        case 0x04: /* old chain */
+            extra_offset = sb->cfg.chain_extra_offset;
+            entry_count = sb->cfg.chain_entry_count;
+            entry_size = sb->cfg.chain_entry_size;
+            break;
+        case 0x08: /* old switch */
+            extra_offset = sb->cfg.switch_extra_offset;
+            entry_count = sb->cfg.switch_entry_count;
+            entry_size = sb->cfg.switch_entry_size;
+            break;
+        case 0x0a: /* old random */
+            extra_offset = sb->cfg.random_extra_offset;
+            entry_count = sb->cfg.random_sequence_count;
+            entry_size = sb->cfg.random_entry_size;
+            break;
+        default:
+            return false;
+    }
+    if (entry_size == 0) /* not configured */
+        return false;
+
+    off_t table_offset = read_u32(offset + extra_offset, sf) + sb->sectionX_offset;
+    uint32_t count = read_u32(offset + entry_count, sf);
+    if (count > SB_MAX_CHAIN_COUNT)
+        return false;
+    for (uint32_t i = 0; i < count; i++) {
+        uint32_t entry_reference = read_u32(table_offset + entry_size * i, sf);
+        if (reference_plays_header(sb, sf, entry_reference, depth + 1, visits_left))
+            return true;
+    }
+    return false;
+}
+
+/* Events (section1) play headers and may set a pitch over their sample rate, so some voices are stored
+ * at a higher rate than they're played at (ex. Splinter Cell (PC) soldiers are stored at 16000 Hz but
+ * played at 2/3 of that). Applies the pitch of the first event that plays the current audio header. */
+static void apply_event_pitch(ubi_sb_header* sb, STREAMFILE* sf) {
+    read_u32_t read_u32 = sb->big_endian ? read_u32be : read_u32le;
+
+    if (!sb->cfg.event_pitch || sb->type != UBI_AUDIO)
+        return;
+
+    for (uint32_t i = 0; i < sb->section1_num; i++) {
+        off_t offset = sb->section1_offset + sb->cfg.section1_entry_size * i;
+
+        /* types: 1 = play, 2 = stop */
+        if (read_u32(offset + 0x04, sf) != 0x01)
+            continue;
+        int visits_left = SB_MAX_CONTAINER_VISITS;
+        if (!reference_plays_header(sb, sf, read_u32(offset + sb->cfg.event_reference, sf), 0, &visits_left))
+            continue;
+
+        /* 16.16 fixed point, ignoring unexpected values */
+        uint32_t pitch = read_u32(offset + sb->cfg.event_pitch, sf);
+        if (pitch >= 0x4000 && pitch <= 0x40000)
+            sb->sample_rate = (int)(((uint64_t)sb->sample_rate * pitch + 0x8000) >> 16);
+        return;
+    }
+}
+
 /* parse a bank and its possible audio headers */
 static bool parse_sb(ubi_sb_header* sb, STREAMFILE* sf, int target_subsong) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
@@ -2566,6 +2660,8 @@ static bool parse_sb(ubi_sb_header* sb, STREAMFILE* sf, int target_subsong) {
 
         if (!parse_header(sb, sf, offset, i))
             return false;
+
+        apply_event_pitch(sb, sf);
 
         build_readable_name(sb->readable_name, sizeof(sb->readable_name), sb);
     }
@@ -2780,6 +2876,18 @@ static void config_sb_random_old(ubi_sb_header* sb, off_t sequence_count, off_t 
     sb->cfg.random_entry_size = entry_size;
     sb->cfg.random_percent_int = 1;
 }
+static void config_sb_switch_old(ubi_sb_header* sb, off_t entry_count, size_t entry_size) {
+    sb->cfg.switch_entry_count = entry_count;
+    sb->cfg.switch_entry_size = entry_size;
+}
+static void config_sb_chain_old(ubi_sb_header* sb, off_t entry_count, size_t entry_size) {
+    sb->cfg.chain_entry_count = entry_count;
+    sb->cfg.chain_entry_size = entry_size;
+}
+static void config_sb_event(ubi_sb_header* sb, off_t reference, off_t pitch) {
+    sb->cfg.event_reference = reference;
+    sb->cfg.event_pitch = pitch;
+}
 
 static bool check_project_file(STREAMFILE* sf_header, const char* name, bool has_localized_banks) {
     STREAMFILE* sf_test = open_streamfile_by_pathname(sf_header, name);
@@ -2922,8 +3030,9 @@ static bool config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
      * - external filename or internal filename on some platforms (earlier versions)
      * - external filename offset in the extra table (later versions)
      * - end flags?
-     * A few games (Splinter Cell, Rainbow Six) have wrong voice sample rates,
-     * maybe there is some pitch value too.
+     * A few games have voices stored at a higher sample rate than they're played at.
+     * In Splinter Cell (PC) the events playing them set a pitch (see apply_event_pitch),
+     * and Rainbow Six may work the same way.
      *
      * Type 02 (old?/new):
      * Chain, possibly to play with config (ex: type 08 (float 0.3) + 01)
@@ -2934,6 +3043,7 @@ static bool config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
      * Type 04 (old?/new), 0a (old):
      * Table of N types + chance % (sums to 65536), to play one as random. Usually N
      * voice/sfx variations like death screams, or sequence alts.
+     * Splinter Cell (PC) maps use 04 for a chain instead: N entry numbers, played in order.
      *
      * Type 05 (new), 0c (old): sequences
      * N audio segment, normally with lead-in but not lead-outs.  Sequences can reuse
@@ -2964,7 +3074,8 @@ static bool config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
      * Type 08 (new), 0f (old):
      * Silence, with a value representing duration (no sample rate/channels/extra table/etc given).
      * Typically used in chains to extend play time of another audio.
-     * For older games 08 is used for something else (maybe equivalent to 02?)
+     * For older games 08 is used for something else: in Splinter Cell (PC) maps it's a switch,
+     * a table of N entry numbers + values, to play one chosen by a value.
      */
 
     /* debug strings reference:
@@ -3056,6 +3167,10 @@ static bool config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         sb->cfg.sequence_extra_offset   = 0x10;
 
         sb->cfg.layer_extra_offset      = 0x10;
+
+        sb->cfg.random_extra_offset     = 0x10;
+        sb->cfg.switch_extra_offset     = 0x10;
+        sb->cfg.chain_extra_offset      = 0x10;
     } else {
         sb->cfg.audio_stream_size       = 0x08;
         sb->cfg.audio_extra_offset      = 0x0c;
@@ -3303,6 +3418,12 @@ static bool config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_layer_hs(sb, 0x24, 0x64, 0x5c, 0x34);
         config_sb_layer_sh(sb, 0x18, 0x00, 0x06, 0x08, 0x14);
+
+        /* events play voices through these, some with a lower pitch */
+        config_sb_random_old(sb, 0x1c, 0x0c);
+        config_sb_switch_old(sb, 0x1c, 0x08);
+        config_sb_chain_old(sb, 0x2c, 0x04);
+        config_sb_event(sb, 0x08, 0x10);
         return true;
     }
 
