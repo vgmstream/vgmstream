@@ -25,8 +25,10 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
      * .at3: Silent Hill HD Collection (PS3), Z/X Zekkai no Crusade (PS3)
      * .mp3: Darkstalkers Resurrection (PS3)
      * .str: Pac-Man and the Ghostly Adventures (PS3)
-     * .snd: HamsterBall (PS3) */
-    if (!check_extensions(sf,"msf,msa,at3,mp3,str,snd"))
+     * .snd: HamsterBall (PS3)
+     * .msenc: Jak and Daxter Collection (PSV)
+     * .ps3audio: CellFactor: Psychokinetic Wars (PS3) */
+    if (!check_extensions(sf,"msf,msa,at3,mp3,str,snd,msenc,ps3audio"))
         return NULL;
 
     start_offset = 0x40;

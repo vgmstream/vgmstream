@@ -392,6 +392,7 @@ static const char* extension_list[] = {
     "msh",
     "msd",
     "mse",
+    "msenc",
     "msf",
     "mss",
     "msv",
@@ -471,6 +472,7 @@ static const char* extension_list[] = {
     "pona",
     "pos",
     "ps3",
+    "ps3audio",
     "psb",
     "psf",
     "psh", //fake extension for .vsv (to be removed)
