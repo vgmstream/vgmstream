@@ -26,7 +26,7 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
      * .mp3: Darkstalkers Resurrection (PS3)
      * .str: Pac-Man and the Ghostly Adventures (PS3)
      * .snd: HamsterBall (PS3)
-     * .msenc: Jak and Daxter Collection (PSV)
+     * .msenc: Jak and Daxter Collection (PS3/PSV)
      * .ps3audio: CellFactor: Psychokinetic Wars (PS3) */
     if (!check_extensions(sf,"msf,msa,at3,mp3,str,snd,msenc,ps3audio"))
         return NULL;
