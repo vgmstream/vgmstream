@@ -2544,13 +2544,15 @@ VGM_LOG("3\n");
 }
 
 /* Checks if an event or container reference (0x40000000 + entry number) plays the current header,
- * directly or through containers (random, switch and chain types). */
+ * directly or through containers (random, switch and chain types). Splinter Cell (PC)'s MAPS.SM0
+ * mostly uses a plain entry number instead. */
 static bool reference_plays_header(ubi_sb_header* sb, STREAMFILE* sf, uint32_t reference, int depth, int* visits_left) {
     read_u32_t read_u32 = sb->big_endian ? read_u32be : read_u32le;
 
     if (--(*visits_left) < 0)
         return false;
-    if ((reference & 0xF0000000) != 0x40000000)
+    uint32_t reference_type = reference & 0xF0000000;
+    if (reference_type != 0x40000000 && reference_type != 0x00000000)
         return false;
     uint32_t entry_number = reference & 0x0FFFFFFF;
     if (entry_number >= sb->section2_num)
