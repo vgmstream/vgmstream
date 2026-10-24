@@ -25,8 +25,10 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
      * .at3: Silent Hill HD Collection (PS3), Z/X Zekkai no Crusade (PS3)
      * .mp3: Darkstalkers Resurrection (PS3)
      * .str: Pac-Man and the Ghostly Adventures (PS3)
-     * .snd: HamsterBall (PS3) */
-    if (!check_extensions(sf,"msf,msa,at3,mp3,str,snd"))
+     * .snd: HamsterBall (PS3)
+     * .msenc: Jak and Daxter Collection (PS3/PSV)
+     * .ps3audio: CellFactor: Psychokinetic Wars (PS3) - fake/added by UE Viewer */
+    if (!check_extensions(sf,"msf,msa,at3,mp3,str,snd,msenc,ps3audio"))
         return NULL;
 
     start_offset = 0x40;
@@ -66,8 +68,8 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
     if (vgmstream->sample_rate == 0) /* some MSFv1 (PS-ADPCM only?) [Megazone 23 - Aoi Garland (PS3)] */
         vgmstream->sample_rate = 48000;
 
-    /* rare MSFv0 only? [Jak and Daxter Collection (PS3, PS-ADPCM), Saints Row 2 (PS3, ATRAC3)] */
-    if (/*read_u8(0x03, sf) == '0' &&*/ read_u32be(0x28, sf) != 0xFFFFFFFF)
+    /* rare MSF0 only? [Jak and Daxter Collection (PS3, PS-ADPCM), Saints Row 2 (PS3, ATRAC3)] */
+    if (read_u32be(0x28, sf) != 0xFFFFFFFF)
         read_string(vgmstream->stream_name, 0x18, 0x28, sf); /* 0x18th byte (at 0x3F) is always 0xFF in SR2 */
 
     switch (codec) {
