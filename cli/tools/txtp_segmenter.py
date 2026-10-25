@@ -43,6 +43,7 @@ def parse():
     parser.add_argument("-c","--command", help="sets any command (free text)")
     parser.add_argument("-ci","--command-inline", help="sets any inline command (free text)")
     parser.add_argument("-m","--multi", help="only write txtp that have multiple results", action='store_true')
+    parser.add_argument("-r","--recursive", help="find files in subfolders", action='store_true')
 
     return parser.parse_args()
 
@@ -106,8 +107,10 @@ def main():
     # get target files
     files = []
     for file in args.files:
+        if args.recursive and '**' not in file:
+            file = '**/' + file
         print(file)
-        files += glob.glob(file)
+        files += glob.glob(file, recursive=args.recursive)
 
     # process matches and add to output list
     txtps = {}
