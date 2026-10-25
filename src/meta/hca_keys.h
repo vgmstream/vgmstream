@@ -1682,6 +1682,8 @@ static const hcakey_info hcakey_list[] = {
     // Tales of Eternia Remastered (PC)
     {31847960372542034},        // 0071258D1CD37A52
 
+    // Jujutsu Kaisen: Phantom Parade (PC)
+    {7825649332975864},        // 001BCD62F8A0F8F8
 };
 
 #endif
