@@ -30,7 +30,7 @@ There are no hard coding rules but for consistency one should follow the style u
 - `lowercase_helper_structs_t`, `UPPERCASE_INTERNAL_STRUCTS`
 - spaces in calcs/ifs/etc may be added as desired for clarity
   - ex. `if (simple_check)` or `if ( complex_and_important_stuff(weird + weird) )`
-  - though generally you should split steps if readibility is impaired
+  - though generally you should split steps if readability is impaired
 - `goto` are used to abort and reach "fail" sections (typical C cleanup style), beware vars should be defined first
 - pointer definitions should keep the `*` together for consistency 
   - ex. `VGMSTREAM* init_x() { ... }` `STREAMFILE* sf = ...`
@@ -206,7 +206,7 @@ The main `.c` file is usually named after the format's header id or official/com
 
 Different formats may use the same extension, but this isn't a problem as long as the header id or some other validation tells them apart, and should be implemented in separate `.c` files.
 
-If the format is headerless or very simple to tell it appart (like only having sample rate + channels in the header), *TXTH* is used instead of adding direct support.
+If the format is headerless or very simple to tell it apart (like only having sample rate + channels in the header), *TXTH* is used instead of adding direct support.
 
 Some simple-but-common formats may be allowed for historical reasons, but they are considered "lower priority" and `.txth` files take precedence over them if found.
 
@@ -273,7 +273,7 @@ Some decoders simply decode samples for 1 frame. They have full control on the d
 They are meant to be used in flat layouts for more complex codecs that decode many samples at once (MP3-like).
 
 Adding a new decoder involves:
-- *src/coding/(decoder-name).c*: create `decode_x` and related functions. At tbe bottom define `const codec_info_t hca_decoder = { ... }` with references to those functions.
+- *src/coding/(decoder-name).c*: create `decode_x` and related functions. At the bottom define `const codec_info_t hca_decoder = { ... }` with references to those functions.
 - *src/coding/codec_info.c*: add decoder's new definition as extern and also in the 
 - *src/formats.c*: add coding type description
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (decoder-name).c parser in VS

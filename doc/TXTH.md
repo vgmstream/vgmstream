@@ -45,7 +45,7 @@ Extension must be accepted/added to vgmstream (plugins like foobar2000 only load
 
 Note that TXTH has *lower* priority than most (not all) vgmstream formats, by design. This means your `.txth` may be ignored if vgmstream thinks it can play your file better. If vgmstream plays your file somewhat off, rather renaming to force a `.txth`, report the bug so that and similar cases can be fixed. TXTH isn't meant to be a replacement of vgmstream's parsers, but a way to play cases that aren't a good fit be added directly to vgmstream.
 
-If you put `debug = 1` on top of the TXTP, vgmstream will ouput to the plugin/CLI's console some info about values being read, useful while testing more complex cases.
+If you put `debug = 1` on top of the TXTP, vgmstream will output to the plugin/CLI's console some info about values being read, useful while testing more complex cases.
 
 ## Available commands
 The file is made of lines with `key = value` commands describing a header. Commands are all case sensitive and spaces are optional: `key=value`, `key  =   value`, and so on are all ok, while `Key = VaLuE` is not. Comments start with `#` and can be inlined.
@@ -495,7 +495,7 @@ Some experimental fields for special calculations:
 
 `subsong_sum = (value)` sums values at offset for all subsongs up to current subsong. Mainly used to calculate subsong offset from sizes. Example: `subsong_sum = @0x10` + `start_offset = subsong_sum`.
 
-`subsong_delta = (value)`: substracts next subsong's value with current value. Mainly used to calculate subsong size from offsets. Example: `subsong_delta = @0x14` + `data_size = subsong_delta`. The 'next' value in the last subsong can be configured with `subsong_delta_max` (defaults to data_size).
+`subsong_delta = (value)`: subtracts next subsong's value with current value. Mainly used to calculate subsong size from offsets. Example: `subsong_delta = @0x14` + `data_size = subsong_delta`. The 'next' value in the last subsong can be configured with `subsong_delta_max` (defaults to data_size).
 
 #### NAMES
 Sets the name of the stream, most useful when used with subsongs. TXTH will read a string at `name_offset`, with `name_size characters`.
