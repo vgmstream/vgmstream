@@ -41,8 +41,9 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
      * .gsf: 007 - Everything or Nothing (GC)
      * (extensionless): SSX (PS2) (inside .big)
      * .r: The Sims 2: Pets (PSP) (short for "res")
-     * .snd: Command & Conquer 3: Tiberum Sun (PC) videos */
-    if (!check_extensions(sf, "asf,lasf,str,chk,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,,r,snd"))
+     * .snd: Command & Conquer 3: Tiberum Sun (PC) videos
+     * .bnk: 2010 FIFA World Cup South Africa (Wii) standalone chants */
+    if (!check_extensions(sf, "asf,lasf,str,chk,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,,r,snd,bnk"))
         return NULL;
 
     /* check header */
