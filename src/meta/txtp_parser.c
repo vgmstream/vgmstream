@@ -223,7 +223,7 @@ static int get_mask(const char* params, uint32_t* value) {
             break;
 
         for (int i = r1; i < r2 + 1; i++) {
-            mask |= (1 << i);
+            mask |= (1u << i);
         }
 
         params += n;
