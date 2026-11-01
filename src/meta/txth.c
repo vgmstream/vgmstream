@@ -73,6 +73,7 @@ typedef enum {
     DPCM_KCEJ,
     IMA_SNDS,
     XBOX_SABER,
+    SCP_IMA,
 
     UNKNOWN = 255,
 } txth_codec_t;
@@ -293,6 +294,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case DVI_IMA:       coding = coding_DVI_IMA; break;
         case IMA_HV:        coding = coding_HV_IMA; break;
         case IMA_SNDS:      coding = coding_SNDS_IMA; break;
+        case SCP_IMA:       coding = coding_SCP_IMA; break;
 #ifdef VGM_USE_MPEG
         case MPEG:          coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
@@ -559,6 +561,10 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             // only multichannel (4ch) files have an alt layout
             if (vgmstream->channels <= 2)
                 coding = coding_XBOX_IMA;
+            break;
+
+        case coding_SCP_IMA:
+            vgmstream->layout_type = layout_none;
             break;
 
         case coding_NGC_DTK:
@@ -1116,6 +1122,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"ULAW"))         return ULAW;
     else if (is_string(val,"ALAW"))         return ALAW;
     else if (is_string(val,"DPCM_KCEJ"))    return DPCM_KCEJ;
+    else if (is_string(val,"SCP_IMA"))          return SCP_IMA;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -2386,6 +2393,8 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case IMA_HV:
         case IMA_SNDS:
             return ima_bytes_to_samples(bytes, txth->channels);
+        case SCP_IMA:
+            return scp_ima_bytes_to_samples(bytes, txth->channels);
         case AICA:
         case YMZ:
         case CP_YM:

@@ -49,11 +49,14 @@ void decode_ubi_sce_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channels
 void decode_hvqm4_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, uint16_t frame_format);
 void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_crankcase_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_scp_ima(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 size_t ima_bytes_to_samples(size_t bytes, int channels);
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels);
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels);
 size_t dat4_ima_bytes_to_samples(size_t bytes, int channels);
 size_t apple_ima4_bytes_to_samples(size_t bytes, int channels);
+size_t scp_ima_bytes_to_samples(size_t bytes, int channels);
 int xbox_check_format(STREAMFILE* sf, uint32_t offset, uint32_t max, int channels);
 
 /* ngc_dsp_decoder */
@@ -277,8 +280,6 @@ void decode_oki16(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, i
 void decode_oki4s(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, bool is_stereo);
 void decode_oki_um(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int shift);
 size_t oki_bytes_to_samples(size_t bytes, int channels);
-
-
 /* ptadpcm_decoder */
 void decode_ptadpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
 size_t ptadpcm_bytes_to_samples(size_t bytes, int channels, size_t frame_size);

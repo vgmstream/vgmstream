@@ -65,7 +65,7 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
     if (read_u32be(schl_offset, sf_mus) != EA_BLOCKID_HEADER)
         goto fail;
 
-    vgmstream = load_vgmstream_ea_schl(sf_mus, schl_offset);
+    vgmstream = load_vgmstream_ea_schl(sf_mus, schl_offset, true);
     if (!vgmstream)
         goto fail;
 
@@ -412,7 +412,7 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_schl_main(STREAMFILE* sf, const char
         if (read_u32be(sound_offset, sf_mus) != EA_BLOCKID_HEADER)
             goto fail;
 
-        vgmstream = load_vgmstream_ea_schl(sf_mus, sound_offset);
+        vgmstream = load_vgmstream_ea_schl(sf_mus, sound_offset, true);
     }
 
     if (!vgmstream)
@@ -515,19 +515,6 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
         if (sf_mus) return sf_mus;
 
         get_streamfile_filename(sf, file_name, PATH_LIMIT); /* reset for next loop */
-    }
-
-    /* hack when when multiple maps point to the same mus, uses name before "+"
-     * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ
-     * [Need for Speed II (PS1), Need for Speed III (PS1)] */
-    {
-        char* mod_name = strchr(file_name, '+');
-        if (mod_name)
-        {
-            mod_name[0] = '\0';
-            sf_mus = open_streamfile_by_filename(sf, file_name);
-            if (sf_mus) return sf_mus;
-        }
     }
 
     vgm_logi("EA MPF: .mus file not found (find and put together)\n");

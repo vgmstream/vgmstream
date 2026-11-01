@@ -261,12 +261,6 @@ bool decode_setup_coding(VGMSTREAM* vgmstream) {
             //interleave_max = ?;
             break;
 
-        case coding_NDS_IMA:
-        case coding_DAT4_IMA:
-            interleave_min = 0x04 + 0x01;
-            //interleave_max = ?;
-            break;
-
         case coding_PSX_cfg:
         case coding_PSX_pivotal:
             frame_min = 0x02;
@@ -433,6 +427,8 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_CD_IMA: /* (0x24 - 0x04) * 2 */
         case coding_CRANKCASE_IMA: /* (0x23 - 0x3) * 2 */
             return 64;
+        case coding_SCP_IMA:
+            return (0x2E3 - 0x04) * 2;
         case coding_APPLE_IMA4:
             return 64;
         case coding_MS_IMA:
@@ -443,9 +439,10 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return ((vgmstream->interleave_block_size - 0x04 * vgmstream->channels) * 2 / vgmstream->channels) + 1; /* +1 from header sample */
         case coding_RAD_IMA:
             return (vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels;
-        case coding_NDS_IMA:
         case coding_DAT4_IMA:
-            return (vgmstream->interleave_block_size - 0x04) * 2;
+            return (0x20 - 0x04) * 2;
+        case coding_NDS_IMA:
+            return (0x200 - 0x04) * 2;
         case coding_AWC_IMA:
             return (0x800 - 0x04) * 2;
         case coding_RAD_IMA_mono:
@@ -629,10 +626,12 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_SNDS_IMA:
             return 0x01;
         case coding_RAD_IMA:
-        case coding_NDS_IMA:
-        case coding_DAT4_IMA:
         case coding_REF_IMA:
             return vgmstream->interleave_block_size;
+        case coding_DAT4_IMA:
+            return 0x20;
+        case coding_NDS_IMA:
+            return 0x200;
         case coding_MS_IMA:
         case coding_MS_IMA_mono:
             return vgmstream->frame_size;
@@ -655,6 +654,8 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return 0x24;
         case coding_CRANKCASE_IMA:
             return 0x23;
+        case coding_SCP_IMA:
+            return 0x2E3;
         case coding_XBOX_IMA_mch:
         case coding_XBOX_IMA_saber:
         case coding_FSB_IMA:
@@ -748,7 +749,9 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
 int decode_get_samples_per_shortframe(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            return (vgmstream->interleave_last_block_size-4)*2;
+            if (vgmstream->interleave_last_block_size < 0x04)
+                return 0;
+            return (vgmstream->interleave_last_block_size - 0x04) * 2;
         default:
             return decode_get_samples_per_frame(vgmstream);
     }
@@ -1368,6 +1371,12 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_CRANKCASE_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_crankcase_ima(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
+            }
+            break;
+        case coding_SCP_IMA:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_scp_ima(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;

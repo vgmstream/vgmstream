@@ -196,7 +196,6 @@ static const char* extension_list[] = {
     "dyx", //txth/reserved [Shrek 4 (iOS)]
 
     "e4x",
-    "eam",
     "eas",
     "eda", //txth/reserved [Project Eden (PS2)]
     "emff", //fake extension for .mul (to be removed)
@@ -250,6 +249,7 @@ static const char* extension_list[] = {
     "hps",
     "hsf",
     "hvqm",
+    "hvg", //txth/reserved [Star Wars Episode III (PS2)]
     "hwx", //txth/reserved [Star Wars Episode III (Xbox)]
     "hx2",
     "hx3",
@@ -937,6 +937,7 @@ static const coding_info coding_info_list[] = {
         {coding_HVQM4_IMA,          "Hudson HVQM4 4-bit IMA ADPCM"},
         {coding_CD_IMA,             "Crystal Dynamics 4-bit IMA ADPCM"},
         {coding_CRANKCASE_IMA,      "CrankcaseAudio REV 4-bit IMA ADPCM"},
+        {coding_SCP_IMA,            "Smoking Car Productions 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
         {coding_MSADPCM_mono,       "Microsoft 4-bit ADPCM (mono)"},
@@ -1015,7 +1016,7 @@ static const coding_info coding_info_list[] = {
         {coding_G7221C,             "ITU G.722.1 annex C (Polycom Siren 14)"},
 #endif
 #ifdef VGM_USE_G719
-        {coding_G719,               "ITU G.719 annex B (Polycom Siren 22)"},
+        {coding_G719,               "ITU G.719 (Polycom Siren 22)"},
 #endif
 #ifdef VGM_USE_ATRAC9
         {coding_ATRAC9,             "ATRAC9"},

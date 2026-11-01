@@ -233,7 +233,7 @@ static VGMSTREAM* init_vgmstream_ea_abk_schl_main(STREAMFILE* sf) {
             if (read_u32be(schl_offset, sf_ast) != EA_BLOCKID_HEADER)
                 goto fail;
 
-            vgmstream = load_vgmstream_ea_schl(sf_ast, schl_offset);
+            vgmstream = load_vgmstream_ea_schl(sf_ast, schl_offset, true);
             if (!vgmstream)
                 goto fail;
 
@@ -260,9 +260,9 @@ static VGMSTREAM* init_vgmstream_ea_abk_schl_main(STREAMFILE* sf) {
             if (!data_s) goto fail;
 
             /* load intro and loop segments */
-            data_s->segments[0] = load_vgmstream_ea_schl(sf_ast, schl_offset);
+            data_s->segments[0] = load_vgmstream_ea_schl(sf_ast, schl_offset, true);
             if (!data_s->segments[0]) goto fail;
-            data_s->segments[1] = load_vgmstream_ea_schl(sf_ast, schl_loop_offset);
+            data_s->segments[1] = load_vgmstream_ea_schl(sf_ast, schl_loop_offset, true);
             if (!data_s->segments[1]) goto fail;
 
             /* setup segmented VGMSTREAMs */

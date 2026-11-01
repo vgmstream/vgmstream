@@ -147,6 +147,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For some High Voltage Software PC games [NBA Hangtime (PC), NHL Open Ice (PC)]
 # - IMA_SNDS       Heavy Iron Studios's IMA ADPCM
 #   * For some Heavy Iron Studios PC games [The Incredibles (PC)]
+# - SCP_IMA        Smoking Car Productions's IMA ADPCM
+#   * For Smoking Car Productions games [The Last Express (PC)]
 #
 # - MSADPCM        Microsoft ADPCM (mono/stereo)
 #   * For some PC games

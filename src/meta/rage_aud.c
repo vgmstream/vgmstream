@@ -144,7 +144,7 @@ static bool parse_aud_header(STREAMFILE* sf, aud_header* aud) {
     read_u16 = aud->big_endian ? read_u16be : read_u16le;
 
     uint64_t table_offset = read_u64(0x00, sf);
-    if (table_offset > 0x20000 || table_offset < 0x1c) /* typically 0x1c~0x1000, seen ~0x19000 */
+    if (table_offset > 0x24000 || table_offset < 0x1c) /* typically 0x1c~0x1000, seen ~0x21000 */
         return false;
 
     /* use bank's stream count to detect */

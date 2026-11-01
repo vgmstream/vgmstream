@@ -95,6 +95,7 @@ typedef enum {
     coding_MTF_IMA,         /* Capcom MT Framework IMA ADPCM */
     coding_CD_IMA,          /* Crystal Dynamics IMA ADPCM */
     coding_CRANKCASE_IMA,   /* CrankcaseAudio REV IMA ADPCM */
+    coding_SCP_IMA,         /* Smoking Car Productions 4-bit IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
     coding_MSADPCM_mono,    /* Microsoft ADPCM (mono) */
@@ -183,7 +184,7 @@ typedef enum {
 #endif
 
 #ifdef VGM_USE_G719
-    coding_G719,            /* ITU G.719 annex B (Polycom Siren 22) */
+    coding_G719,            /* ITU G.719 (Polycom Siren 22) */
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)

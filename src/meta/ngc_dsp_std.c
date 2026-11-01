@@ -180,7 +180,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
     {
         for (i = 0; i < dspm->channels; i++) {
             if (!read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian, &dspm->cfg)) {
-                //;VGM_LOG("DSP: bad header\n");
+                //;VGM_LOG("DSP: bad header in channel %i\n", i);
                 return NULL;
             }
         }
@@ -1180,6 +1180,10 @@ VGMSTREAM* init_vgmstream_idsp_tt(STREAMFILE* sf) {
         dspm.max_channels = 2;
         dspm.header_offset = 0x20;
         /* 0x10+: null */
+
+        // Lego Harry Potter: Years 1-4 (Wii): ch2 header in 's Y1_CLASS_LOBBY_QUI.GCM is slightly different
+        dspm.ignore_header_agreement = true;
+        dspm.ignore_loop_ps = true;
     }
     else if (version_main == 0x03 && version_sub == 0x12c) {
         /* Lego The Lord of the Rings (Wii) */
