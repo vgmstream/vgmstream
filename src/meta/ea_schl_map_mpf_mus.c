@@ -517,19 +517,6 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
         get_streamfile_filename(sf, file_name, PATH_LIMIT); /* reset for next loop */
     }
 
-    /* hack when when multiple maps point to the same mus, uses name before "+"
-     * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ
-     * [Need for Speed II (PS1), Need for Speed III (PS1)] */
-    {
-        char* mod_name = strchr(file_name, '+');
-        if (mod_name)
-        {
-            mod_name[0] = '\0';
-            sf_mus = open_streamfile_by_filename(sf, file_name);
-            if (sf_mus) return sf_mus;
-        }
-    }
-
     vgm_logi("EA MPF: .mus file not found (find and put together)\n");
     return NULL;
 }
