@@ -196,7 +196,6 @@ static const char* extension_list[] = {
     "dyx", //txth/reserved [Shrek 4 (iOS)]
 
     "e4x",
-    "eam",
     "eas",
     "eda", //txth/reserved [Project Eden (PS2)]
     "emff", //fake extension for .mul (to be removed)
@@ -1015,7 +1014,7 @@ static const coding_info coding_info_list[] = {
         {coding_G7221C,             "ITU G.722.1 annex C (Polycom Siren 14)"},
 #endif
 #ifdef VGM_USE_G719
-        {coding_G719,               "ITU G.719 annex B (Polycom Siren 22)"},
+        {coding_G719,               "ITU G.719 (Polycom Siren 22)"},
 #endif
 #ifdef VGM_USE_ATRAC9
         {coding_ATRAC9,             "ATRAC9"},

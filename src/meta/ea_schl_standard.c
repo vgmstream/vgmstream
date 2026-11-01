@@ -29,7 +29,6 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
      * .lasf: fake for plugins
      * .str: ~early [ex. FIFA 98 (PS1), FIFA 2002 (PS1)]
      * .chk: ~early [ex. NBA Live 98 (PS1)]
-     * .eam: ~mid?
      * .exa: ~mid [ex. 007 - From Russia with Love]
      * .sng: ~late (FIFA games)
      * .aud: ~late [ex. FIFA 14 (3DS)]
@@ -41,9 +40,9 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
      * .xsf: 007 - Agent Under Fire (Xbox)
      * .gsf: 007 - Everything or Nothing (GC)
      * (extensionless): SSX (PS2) (inside .big)
-     * .r: The Sims 2: Pets (PSP) (not l/r, shorter "res")
+     * .r: The Sims 2: Pets (PSP) (short for "res")
      * .snd: Command & Conquer 3: Tiberum Sun (PC) videos */
-    if (!check_extensions(sf, "asf,lasf,str,chk,eam,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,,r,snd"))
+    if (!check_extensions(sf, "asf,lasf,str,chk,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,,r,snd"))
         return NULL;
 
     /* check header */
