@@ -200,7 +200,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DSP
 - **ea_schl_standard.c**
   - (container)
-  - *ea_schl*: `.asf .lasf .str .chk .eam .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless) .r .snd`
+  - *ea_schl*: `.asf .lasf .str .chk .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless) .r .snd .bnk`
   - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast .cat .gen .(extensionless)`
   - *ea_schl_video*: `.uv .dct .mpc .lmpc .vp6 .mad .wve`
   - *ea_pt*: `.pth .dat .ldat + .ptd`
@@ -752,7 +752,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16BE PCM16LE PSX_cfg XMA1 XMA2
 - **msf.c**
   - Sony MSF header [*MSF*]
-  - *msf*: `.msf .msa .at3 .mp3 .str .snd`
+  - *msf*: `.msf .msa .at3 .mp3 .str .snd .msenc .ps3audio`
   - Codecs: PCM16BE PCM16LE PSX ATRAC3 FFmpeg(various)
 - **sndp.c**
   - Premium Agency SNDP header [*SNDP*]
@@ -2008,7 +2008,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - TXTH generic header [*TXTH*]
   - *txth*: `.txth + .(external)`
     - Subfiles: *from_STREAMFILE*
-  - Codecs: PSX PSX_badflags HEVAG XBOX_IMA XBOX_IMA_saber NGC_DTK PCM24LE PCM24BE PCM16LE PCM16LE_U PCM16BE PCM8 PCM8_U PCM8_SB ULAW ALAW DPCM_KCEJ PCMFLOAT SDX2 DVI_IMA HV_IMA SNDS_IMA MPEG_layer3 IMA AICA MSADPCM NGC_DSP MS_IMA APPLE_IMA4 PCFX PCM4 PCM4_U OKI16 OKI4S TGC ASF EA_XA XA XA_EA CP_YM SDX2_int DVI_IMA_mono IMA_mono AICA_int EA_XA_int MS_IMA_mono MSADPCM_mono XBOX_IMA_mono NGC_DSP_subint FFmpeg(various) AAC ATRAC3 ATRAC3PLUS XMA1 XMA2
+  - Codecs: PSX PSX_badflags HEVAG XBOX_IMA XBOX_IMA_saber NGC_DTK PCM24LE PCM24BE PCM16LE PCM16LE_U PCM16BE PCM8 PCM8_U PCM8_SB ULAW ALAW DPCM_KCEJ PCMFLOAT SDX2 DVI_IMA HV_IMA SNDS_IMA SCP_IMA MPEG_layer3 IMA AICA MSADPCM NGC_DSP MS_IMA APPLE_IMA4 PCFX PCM4 PCM4_U OKI16 OKI4S TGC ASF EA_XA XA XA_EA CP_YM SDX2_int DVI_IMA_mono IMA_mono AICA_int EA_XA_int MS_IMA_mono MSADPCM_mono XBOX_IMA_mono NGC_DSP_subint FFmpeg(various) AAC ATRAC3 ATRAC3PLUS XMA1 XMA2
 - **ngc_adpdtk.c**
   - Nintendo .DTK raw header [*DTK*]
   - *dtk*: `.dtk .adp .trk .wav .lwav`
