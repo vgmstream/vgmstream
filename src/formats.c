@@ -936,6 +936,7 @@ static const coding_info coding_info_list[] = {
         {coding_HVQM4_IMA,          "Hudson HVQM4 4-bit IMA ADPCM"},
         {coding_CD_IMA,             "Crystal Dynamics 4-bit IMA ADPCM"},
         {coding_CRANKCASE_IMA,      "CrankcaseAudio REV 4-bit IMA ADPCM"},
+        {coding_SCP_IMA,            "Smoking Car Productions 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
         {coding_MSADPCM_mono,       "Microsoft 4-bit ADPCM (mono)"},

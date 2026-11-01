@@ -365,6 +365,111 @@ static void cd_ima_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_
     if (*index > 88) *index=88;
 }
 
+
+typedef enum { MONO, } ima_layout_t;
+typedef enum { IMA_ADD, IMA_MUL, IMA_SCP, } ima_expand_t;
+typedef enum { MONO_4LE, MONO_4BE, MONO_3BE, MONO_2, NONE } ima_header_t;
+
+// config for headered IMA frames, which are all very similar
+typedef struct {
+    ima_layout_t layout;        // how nibble are arranged
+    ima_expand_t expand;        // nibble to sample method
+    ima_header_t header;        // header format
+    uint32_t frame_size;        // incluing header
+    uint32_t header_size;       // can be derived from header_t, but explicit for clarity
+    bool high_nibble_first;
+    //bool write_header_sample; // outputs the hist sample in the header
+    //bool skip_tail_nibble;    // some formats leave the last nibble empty, since header nibble is used
+} ima_config_t;
+
+static void decode_generic_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, const ima_config_t* cfg) {
+    uint8_t frame[0x800] = {0};
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    if (cfg->frame_size > sizeof(frame) || cfg->header_size >= cfg->frame_size) {
+        VGM_LOG("IMA: wrong frame size\n");
+        return;
+    }
+
+    int i, sample_pos = 0;
+
+    /* external interleave (fixed size), mono */
+    int block_samples = (cfg->frame_size - cfg->header_size) * 2; // + (cfg->write_header_sample ? 1 : 0);
+    int frames_in = first_sample / block_samples;
+    first_sample = first_sample % block_samples;
+
+    uint32_t frame_offset = stream->offset + cfg->frame_size * frames_in;
+    read_streamfile(frame, frame_offset, cfg->frame_size, stream->streamfile); // ignore EOF errors
+
+
+    /* handle frame header */
+    if (first_sample == 0) {
+        switch (cfg->header) {
+            case MONO_4LE:  // normal header (hist+step), mono
+                hist1   = get_s16le(frame + 0x00);
+                step_index = get_u8(frame + 0x02); // traditionally byte 0x03 is reserved/null; some formats read it as 16b anyway
+                break;
+            case MONO_4BE:  // same
+            case MONO_3BE:
+                hist1   = get_s16be(frame + 0x00);
+                step_index = get_u8(frame + 0x02);
+                break;
+            case NONE:  // for interleaved non-headered IMA
+                break;
+            default:
+                VGM_LOG("IMA: unknown header type\n");
+                return;
+        }
+
+        step_index = _clamp_s32(step_index, 0, 88);
+
+        //if (write_header_sample) {
+        //    ...
+        //}
+    }
+
+
+    /* decode nibbles */
+    int shift = (cfg->high_nibble_first ? 4 : 0);
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        // nibble offset
+        int pos = cfg->header_size;
+        switch (cfg->layout) {
+            case MONO: // straight
+                pos += i / 2;
+                break;
+            default:
+                VGM_LOG("IMA: unknown layout\n");
+                return;
+        }
+
+        // nibble-to-sample
+        switch (cfg->expand) {
+            case IMA_ADD:
+                std_ima_expand_nibble_data(frame[pos], shift, &hist1, &step_index);
+                break;
+            case IMA_MUL:
+                std_ima_expand_nibble_mul_data(frame[pos], shift, &hist1, &step_index, false);
+                break;
+            case IMA_SCP:
+                std_ima_expand_nibble_mul_data(frame[pos], shift, &hist1, &step_index, true);
+                break;
+            default:
+                VGM_LOG("IMA: unknown expand\n");
+                return;
+        }
+        shift ^= 4; // alternate between high or low nibble
+
+        outbuf[sample_pos] = (short)(hist1);
+        sample_pos += channelspacing;
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
+
 /* ************************************ */
 /* DVI/IMA                              */
 /* ************************************ */
@@ -1462,6 +1567,42 @@ void decode_crankcase_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channe
     stream->adpcm_step_index = step_index;
 }
 
+/* Smoking Car Productions IMA, from exe (some info from: https://github.com/scummvm/scummvm/blob/master/engines/lastexpress/sound/mixer.cpp) 
+ *
+ * Original code uses a 'volume' value to select 16 functions in an array, that seem to only differ in how sample is scaled down.
+ * It uses two giant 8 * 2 * 89 = 1424 tables with precalculated IMA delta/step values.
+ *
+ *    for (int i = 0; i < 89; i++) {
+ *        int delta_step = ima_step_size_table[i];
+ *        for (int code = 0; code < 8 * 2; code++) {
+ *            int step = i + ima_index_table[code]
+ *            steps[i][code] = clamp(step, 0, 88); // << 6; // scaled for row size (16*4) since OG tables seem unidimensional
+ *
+ *            int delta = ((2 * (code & 7) + 1) *  delta_step) >> 3; // standard 'mul' IMA
+ *            if (delta > 32767) delta = 32767; // extra clamp unlike original 'mul' IMA (int table so clamped by mistake?)
+ *            deltas[i][code] = (code & 8) ? -delta : delta;
+ *        }
+ *    }
+ *
+ * So decoding becomes:
+ *    sample = delta[step_index][code] + hist;
+ *    step_index = steps[step_index][code];
+ *
+ * This uses original IMA decoding rather than giant tables, with the extra clamp (tiny diffs in some files).
+ */
+static const ima_config_t scp_cfg = {
+    .layout = MONO, // no stereo files known
+    .expand = IMA_SCP,
+    .header = MONO_4LE, // format reads step index like 16b though
+    .frame_size = 0x2e3,
+    .header_size = 0x04,
+    .high_nibble_first = true,
+};
+
+void decode_scp_ima(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    decode_generic_ima(stream, outbuf, channelspacing, first_sample, samples_to_do, &scp_cfg);
+}
+
 /* ************************************************************* */
 
 size_t ima_bytes_to_samples(size_t bytes, int channels) {
@@ -1506,7 +1647,7 @@ size_t apple_ima4_bytes_to_samples(size_t bytes, int channels) {
 }
 
 size_t scp_ima_bytes_to_samples(size_t bytes, int channels) {
-    return cfg_ima_bytes_to_samples(bytes, 0x2e3 * channels, 0x04 * channels, false, channels);
+    return cfg_ima_bytes_to_samples(bytes, scp_cfg.frame_size * channels, scp_cfg.header_size * channels, false, channels);
 }
 
 
