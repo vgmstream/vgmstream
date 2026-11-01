@@ -75,8 +75,8 @@ static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int file_version) {
     switch(adm.header_version) {
         case 0x00070000: /* The Crew Motorfest (PC) */
             vgmstream->coding_type = coding_CRANKCASE_IMA;
-            //vgmstream->layout_type = layout_interleave;
-            //vgmstream->interleave_block_size = 0x23;
+            vgmstream->layout_type = layout_interleave; // mono only?
+            vgmstream->interleave_block_size = 0x23;
             break;
 
         default: /* The Grand Tour Game (PC) [0x00050000], MotoGP 21 (PC) [0x00060000] */

@@ -261,12 +261,6 @@ bool decode_setup_coding(VGMSTREAM* vgmstream) {
             //interleave_max = ?;
             break;
 
-        case coding_NDS_IMA:
-        case coding_DAT4_IMA:
-            interleave_min = 0x04 + 0x01;
-            //interleave_max = ?;
-            break;
-
         case coding_PSX_cfg:
         case coding_PSX_pivotal:
             frame_min = 0x02;
@@ -445,9 +439,10 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return ((vgmstream->interleave_block_size - 0x04 * vgmstream->channels) * 2 / vgmstream->channels) + 1; /* +1 from header sample */
         case coding_RAD_IMA:
             return (vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels;
-        case coding_NDS_IMA:
         case coding_DAT4_IMA:
-            return (vgmstream->interleave_block_size - 0x04) * 2;
+            return (0x20 - 0x04) * 2;
+        case coding_NDS_IMA:
+            return (0x200 - 0x04) * 2;
         case coding_AWC_IMA:
             return (0x800 - 0x04) * 2;
         case coding_RAD_IMA_mono:
@@ -631,10 +626,12 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_SNDS_IMA:
             return 0x01;
         case coding_RAD_IMA:
-        case coding_NDS_IMA:
-        case coding_DAT4_IMA:
         case coding_REF_IMA:
             return vgmstream->interleave_block_size;
+        case coding_DAT4_IMA:
+            return 0x20;
+        case coding_NDS_IMA:
+            return 0x200;
         case coding_MS_IMA:
         case coding_MS_IMA_mono:
             return vgmstream->frame_size;
@@ -752,7 +749,9 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
 int decode_get_samples_per_shortframe(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            return (vgmstream->interleave_last_block_size-4)*2;
+            if (vgmstream->interleave_last_block_size < 0x04)
+                return 0;
+            return (vgmstream->interleave_last_block_size - 0x04) * 2;
         default:
             return decode_get_samples_per_frame(vgmstream);
     }
