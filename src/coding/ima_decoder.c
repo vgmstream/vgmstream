@@ -80,29 +80,29 @@ static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
 
 /* Apple's IMA variation. Exactly the same except it uses 16b history (probably more sensitive to overflow/sign extend?) */
 static void std_ima_expand_nibble_16(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int16_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
     step = ima_step_size_table[*step_index];
 
     delta = step >> 3;
-    if (sample_nibble & 1) delta += step >> 2;
-    if (sample_nibble & 2) delta += step >> 1;
-    if (sample_nibble & 4) delta += step;
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    if (code & 1) delta += step >> 2;
+    if (code & 2) delta += step >> 1;
+    if (code & 4) delta += step;
+    if (code & 8) delta = -delta;
+    sample += delta;
 
-    *hist1 = clamp16(sample_decoded); /* no need for this, actually */
-    *step_index += ima_index_table[sample_nibble];
+    *hist1 = clamp16(sample); /* no need for this, actually */
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
 
 /* Original IMA expansion, but using MULs rather than shift+ADDs (faster for newer processors).
  * There is minor rounding difference between ADD and MUL expansions, noticeable/propagated in non-headered IMAs. */
-static void std_ima_expand_nibble_mul(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+static void std_ima_expand_nibble_mul_data(uint8_t byte, int nibble_shift, int32_t* hist1, int32_t* step_index, bool clamp_delta) {
+    int code, sample, step, delta;
 
     /* simplified through math from:
      *  - diff = (code + 1/2) * (step / 4)
@@ -110,38 +110,45 @@ static void std_ima_expand_nibble_mul(VGMSTREAMCHANNEL * stream, off_t byte_offs
      *    > diff = (code + 1/2) * 2 * step / 8
      * final diff = [signed] ((code * 2 + 1) * step) / 8 */
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
+    code = (byte >> nibble_shift) & 0xf;
+    sample = *hist1;
     step = ima_step_size_table[*step_index];
 
-    delta = (sample_nibble & 0x7);
+    delta = (code & 0x7);
     delta = ((delta * 2 + 1) * step) >> 3;
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    if (clamp_delta && delta > 32767)
+        delta = 32767;
+    if (code & 8) delta = -delta;
+    sample += delta;
 
-    *hist1 = clamp16(sample_decoded);
-    *step_index += ima_index_table[sample_nibble];
+    *hist1 = clamp16(sample);
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
 
+static void std_ima_expand_nibble_mul(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_index) {
+    uint8_t byte = read_u8(byte_offset,stream->streamfile);
+    std_ima_expand_nibble_mul_data(byte, nibble_shift, hist1, step_index, false);
+}
+
 /* Camelot IMA (Mario Golf, Mario Tennis; maybe other Camelot games) */
 static void camelot_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
     step = ima_step_size_table[*step_index];
 
-    sample_decoded = sample_decoded << 3;
-    delta = (sample_nibble & 0x07);
+    sample = sample << 3;
+    delta = (code & 0x07);
     delta = step * delta * 2 + step; /* custom */
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
-    sample_decoded = sample_decoded >> 3;
+    if (code & 8) delta = -delta;
+    sample += delta;
+    sample = sample >> 3;
 
-    *hist1 = clamp16(sample_decoded);
-    *step_index += ima_index_table[sample_nibble];
+    *hist1 = clamp16(sample);
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -152,7 +159,7 @@ static void camelot_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offs
 static void snds_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample, step, delta;
 
-    uint8_t code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
+    uint8_t code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
     sample = *hist1;
 
     int code_pos = code & 7;
@@ -171,100 +178,100 @@ static void snds_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, 
 
 /* Omikron: The Nomad Soul, algorithm from the .exe */
 static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
     step = ima_step_size_table[*step_index];
 
     delta = 0;
-    if(sample_nibble & 4) delta = step * 4;
-    if(sample_nibble & 2) delta += step * 2;
-    if(sample_nibble & 1) delta += step;
+    if(code & 4) delta = step * 4;
+    if(code & 2) delta += step * 2;
+    if(code & 1) delta += step;
     delta >>= 2;
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    if (code & 8) delta = -delta;
+    sample += delta;
 
-    *hist1 = clamp16(sample_decoded);
-    *step_index += ima_index_table[sample_nibble];
+    *hist1 = clamp16(sample);
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
 
 /* Fairly OddParents (PC) .WV6: minor variation, reverse engineered from the .exe */
 static void wv6_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
     step = ima_step_size_table[*step_index];
 
-    delta = (sample_nibble & 0x7);
+    delta = (code & 0x7);
     delta = ((delta * step) >> 3) + ((delta * step) >> 2);
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    if (code & 8) delta = -delta;
+    sample += delta;
 
-    *hist1 = clamp16(sample_decoded);
-    *step_index += ima_index_table[sample_nibble];
+    *hist1 = clamp16(sample);
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
 
 /* High Voltage variation, reverse engineered from .exes [Lego Racers (PC), NBA Hangtime (PC)] */
-static void hv_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+static void hv_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_index) {
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
     step = ima_step_size_table[*step_index];
 
-    delta = (sample_nibble & 0x7);
+    delta = (code & 0x7);
     delta = (delta * step) >> 2;
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    if (code & 8) delta = -delta;
+    sample += delta;
 
-    *hist1 = clamp16(sample_decoded);
-    *step_index += ima_index_table[sample_nibble];
+    *hist1 = clamp16(sample);
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
 
 /* FFTA2 IMA, different hist and sample rounding, reverse engineered from the ROM */
-static void ffta2_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index, int16_t *out_sample) {
-    int sample_nibble, sample_decoded, step, delta;
+static void ffta2_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_index, int16_t *out_sample) {
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
-    sample_decoded = *hist1; /* predictor value */
-    step = ima_step_size_table[*step_index] * 0x100; /* current step (table in ROM is pre-multiplied though) */
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
+    step = ima_step_size_table[*step_index] * 0x100; // table in ROM is pre-multiplied
 
     delta = step >> 3;
-    if (sample_nibble & 1) delta += step >> 2;
-    if (sample_nibble & 2) delta += step >> 1;
-    if (sample_nibble & 4) delta += step;
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    if (code & 1) delta += step >> 2;
+    if (code & 2) delta += step >> 1;
+    if (code & 4) delta += step;
+    if (code & 8) delta = -delta;
+    sample += delta;
 
     /* custom clamp16 */
-    if (sample_decoded > 0x7FFF00)
-        sample_decoded = 0x7FFF00;
-    else if (sample_decoded < -0x800000)
-        sample_decoded = -0x800000;
+    if (sample > 0x7FFF00)
+        sample = 0x7FFF00;
+    else if (sample < -0x800000)
+        sample = -0x800000;
 
-    *hist1 = sample_decoded;
-    *out_sample = (short)((sample_decoded + 128) / 256); /* int16 sample rounding, hist is kept as int32 */
+    *hist1 = sample;
+    *out_sample = (short)((sample + 128) / 256); // int16 sample rounding, hist is kept as int32
 
-    *step_index += ima_index_table[sample_nibble];
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
 
 /* Yet another IMA expansion, from the exe */
-static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_index) {
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
-    sample_decoded = *hist1; /* predictor value */
-    step = ima_step_size_table[*step_index]; /* current step */
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
+    step = ima_step_size_table[*step_index];
 
     /* table has 2 different values, not enough to bother adding the full table */
     if (step == 22385)
@@ -272,35 +279,34 @@ static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
     else if (step == 24623)
         step = 24633;
 
-    delta = (sample_nibble & 0x07);
-    if (sample_nibble & 8) delta = -delta;
+    delta = (code & 0x07);
+    if (code & 8) delta = -delta;
     delta = (step >> 1) + delta * step; /* custom */
-    sample_decoded += delta;
+    sample += delta;
 
     /* in Zapper somehow the exe tries to clamp hist but actually doesn't (bug? not in Lilo & Stitch),
      * seems the pcm buffer must be clamped outside though to fix some scratchiness */
-    *hist1 = sample_decoded;//clamp16(sample_decoded);
-    *step_index += ima_index_table[sample_nibble];
+    *hist1 = sample;//clamp16(sample_decoded);
+    *step_index += ima_index_table[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
 
-static const int CIMAADPCM_INDEX_TABLE[16] = {8,  6,  4,  2,  -1, -1, -1, -1,
-                                             -1, -1, -1, -1, 2,  4,  6,  8};
+static const int CIMAADPCM_INDEX_TABLE[16] = {8,  6,  4,  2,  -1, -1, -1, -1, -1, -1, -1, -1, 2,  4,  6,  8};
 
 /* Capcom's MT Framework modified IMA, reverse engineered from the exe */
-static void mtf_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+static void mtf_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_index) {
+    int code, sample, step, delta;
 
-    sample_nibble = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
-    sample_decoded = *hist1;
+    code = (read_u8(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample = *hist1;
     step = ima_step_size_table[*step_index];
 
-    delta = step * (2 * sample_nibble - 15);
-    sample_decoded += delta;
+    delta = step * (2 * code - 15);
+    sample += delta;
 
-    *hist1 = sample_decoded;
-    *step_index += CIMAADPCM_INDEX_TABLE[sample_nibble];
+    *hist1 = sample;
+    *step_index += CIMAADPCM_INDEX_TABLE[code];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -1464,39 +1470,43 @@ size_t ima_bytes_to_samples(size_t bytes, int channels) {
     return bytes * 2 / channels;
 }
 
+static size_t cfg_ima_bytes_to_samples(size_t bytes, int block_size, int block_header_size, bool write_header_sample, int channels) {
+    if (block_size <= 0 || channels <= 0) return 0;
+    if (block_header_size < 0 || block_header_size >= block_size) return 0;
+
+    // get samples from usable samples per block and totals
+    uint32_t block_count = (bytes / block_size);
+    int frame_samples = (block_size - block_header_size) * 2 / channels + (write_header_sample ? 1 : 0);
+    size_t samples = block_count * frame_samples;
+
+    // last block may be small, unlikely though (encoder aligns)
+    int extra_size = (bytes % block_size);
+    if (extra_size && extra_size > block_header_size) {
+        int extra_samples = (extra_size - block_header_size) * 2 / channels + (write_header_sample ? 1 : 0);
+        samples += extra_samples;
+    }
+
+    return samples;
+}
+
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
-    if (block_align <= 0 || channels <= 0) return 0;
-    /* MS-IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
-    return (bytes / block_align) * ((block_align - 0x04*channels) * 2 / channels + 1)
-            + ((bytes % block_align) ? (((bytes % block_align) - 0x04*channels) * 2 / channels + 1) : 0);
+    return cfg_ima_bytes_to_samples(bytes, block_align, 0x04 * channels, true, channels);
 }
 
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels) {
-    int mod;
-    int block_align = 0x24 * channels;
-    if (channels <= 0) return 0;
-
-    mod = bytes % block_align;
-    /* XBOX IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
-    return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels
-            + ((mod > 0 && mod > 0x04*channels) ? (mod - 0x04*channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
+    return cfg_ima_bytes_to_samples(bytes, 0x24 * channels, 0x04 * channels, false, channels);
 }
 
 size_t dat4_ima_bytes_to_samples(size_t bytes, int channels) {
-    int block_align = 0x20 * channels;
-    if (channels <= 0) return 0;
-
-    int mod = bytes % block_align;
-    /* DAT4 IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
-    return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels
-            + ((mod > 0 && mod > 0x04*channels) ? (mod - 0x04*channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
+    return cfg_ima_bytes_to_samples(bytes, 0x20 * channels, 0x04 * channels, false, channels);
 }
 
 size_t apple_ima4_bytes_to_samples(size_t bytes, int channels) {
-    int block_align = 0x22 * channels;
-    if (channels <= 0) return 0;
-    return (bytes / block_align) * (block_align - 0x02*channels) * 2 / channels
-            + ((bytes % block_align) ? ((bytes % block_align) - 0x02*channels) * 2 / channels : 0);
+    return cfg_ima_bytes_to_samples(bytes, 0x22 * channels, 0x02 * channels, false, channels);
+}
+
+size_t scp_ima_bytes_to_samples(size_t bytes, int channels) {
+    return cfg_ima_bytes_to_samples(bytes, 0x2e3 * channels, 0x04 * channels, false, channels);
 }
 
 
