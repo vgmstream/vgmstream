@@ -249,6 +249,7 @@ static const char* extension_list[] = {
     "hps",
     "hsf",
     "hvqm",
+    "hvg", //txth/reserved [Star Wars Episode III (PS2)]
     "hwx", //txth/reserved [Star Wars Episode III (Xbox)]
     "hx2",
     "hx3",
