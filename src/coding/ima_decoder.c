@@ -347,7 +347,7 @@ static void cd_ima_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_
 
 typedef enum { MONO, } ima_layout_t;
 typedef enum { IMA_ADD, IMA_MUL, IMA_SCP, } ima_expand_t;
-typedef enum { MONO_4LE, MONO_4BE, MONO_3BE, MONO_2BE, NONE } ima_header_t;
+typedef enum { MONO_4LE, MONO_4BE, MONO_3BE, MONO_2BE, MONO_RAD, NONE } ima_header_t;
 
 // config for headered IMA frames, which are all very similar
 typedef struct {
@@ -393,6 +393,10 @@ static void decode_generic_ima(VGMSTREAMCHANNEL* stream, short* outbuf, int chan
             case MONO_3BE:
                 hist1   = get_s16be(frame + 0x00);
                 step_index = get_u8(frame + 0x02);
+                break;
+            case MONO_RAD:  // inverted header
+                step_index  = get_s16le(frame + 0x00);
+                hist1       = get_s16le(frame + 0x02);
                 break;
             case MONO_2BE:
                 hist1 = (int16_t)(get_u16be(frame + 0x00) & 0xff80);
@@ -1041,36 +1045,20 @@ void decode_rad_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample_t * 
     stream->adpcm_step_index = step_index;
 }
 
-void decode_rad_ima_mono(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-    int i, sample_count;
-    int32_t hist1 = stream->adpcm_history1_32;
-    int step_index = stream->adpcm_step_index;
 
-    //semi-external interleave?
-    int block_samples = 0x14 * 2;
-    first_sample = first_sample % block_samples;
+ima_config_t rad_mono_cfg = {
+    .layout = MONO,
+    .expand = IMA_ADD,
+    .header = MONO_RAD,
+    .frame_size = 0x14,
+    .header_size = 0x04,
+    .high_nibble_first = false,
+};
 
-    //inverted header
-    if (first_sample == 0) {
-        off_t header_offset = stream->offset;
-
-        step_index = read_s16le(header_offset,stream->streamfile);
-        hist1 = read_s16le(header_offset+2,stream->streamfile);
-        if (step_index < 0) step_index=0;
-        if (step_index > 88) step_index=88;
-    }
-
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + 4 + i/2;
-        int nibble_shift = (i&1?4:0); //low nibble first
-
-        std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-        outbuf[sample_count] = (short)(hist1);
-    }
-
-    stream->adpcm_history1_32 = hist1;
-    stream->adpcm_step_index = step_index;
+void decode_rad_ima_mono(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    decode_generic_ima(stream, outbuf, channelspacing, first_sample, samples_to_do, &rad_mono_cfg);
 }
+
 
 ima_config_t apple_cfg = {
     .layout = MONO,
@@ -1465,6 +1453,7 @@ void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacin
     stream->adpcm_step_index = step_index;
 }
 
+
 ima_config_t crankcase_cfg = {
     .layout = MONO,
     .expand = IMA_ADD,
@@ -1478,6 +1467,7 @@ ima_config_t crankcase_cfg = {
 void decode_crankcase_ima(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     decode_generic_ima(stream, outbuf, channelspacing, first_sample, samples_to_do, &crankcase_cfg);
 }
+
 
 /* Smoking Car Productions IMA, from exe (some info from: https://github.com/scummvm/scummvm/blob/master/engines/lastexpress/sound/mixer.cpp) 
  *
