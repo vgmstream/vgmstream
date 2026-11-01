@@ -14,13 +14,15 @@ static uint32_t read_f80be(off_t offset, STREAMFILE* sf) {
     int32_t exponent = ((buf[0]<<8) | (buf[1])) & 0x7fff;
     exponent -= 16383;
 
-    int32_t mantissa = 0;
+    uint32_t mantissa = 0;
     for (int i = 0; i < 8; i++) {
         int32_t shift = exponent - 7 - i * 8;
-        if (shift >= 0)
-            mantissa |= buf[i+2] << shift;
+        if (shift >= 32)
+            continue; /* no representable bits */
+        else if (shift >= 0)
+            mantissa |= (uint32_t)buf[i+2] << shift;
         else if (shift > -8)
-            mantissa |= buf[i+2] >> -shift;
+            mantissa |= (uint32_t)buf[i+2] >> -shift;
     }
 
     if (buf[0] & 0x80)
