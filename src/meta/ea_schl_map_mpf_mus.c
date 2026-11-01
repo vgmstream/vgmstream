@@ -65,7 +65,7 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
     if (read_u32be(schl_offset, sf_mus) != EA_BLOCKID_HEADER)
         goto fail;
 
-    vgmstream = load_vgmstream_ea_schl(sf_mus, schl_offset);
+    vgmstream = load_vgmstream_ea_schl(sf_mus, schl_offset, true);
     if (!vgmstream)
         goto fail;
 
@@ -412,7 +412,7 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_schl_main(STREAMFILE* sf, const char
         if (read_u32be(sound_offset, sf_mus) != EA_BLOCKID_HEADER)
             goto fail;
 
-        vgmstream = load_vgmstream_ea_schl(sf_mus, sound_offset);
+        vgmstream = load_vgmstream_ea_schl(sf_mus, sound_offset, true);
     }
 
     if (!vgmstream)

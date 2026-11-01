@@ -65,11 +65,11 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
     /* offsets are always big endian */
     sound_offset = read_u16be(0x0C + (0x02 + num_params) * (target_stream - 1), sf) * offset_mult;
     if (read_u32be(sound_offset, sf_dat) == EA_BLOCKID_HEADER) { /* "SCHl" */
-        vgmstream = load_vgmstream_ea_schl(sf_dat, sound_offset);
+        vgmstream = load_vgmstream_ea_schl(sf_dat, sound_offset, true);
         if (!vgmstream)
             goto fail;
     }
-    else if (read_u32be(sound_offset, sf_dat) == 0x56414770) { /* "VAGp" */
+    else if (read_u32be(sound_offset, sf_dat) == get_id32be("VAGp")) {
         /* Need for Speed: Hot Pursuit 2 (PS2) */
         sound_size = read_u32be(sound_offset + 0x0c, sf_dat) + 0x30;
         temp_sf = setup_subfile_streamfile(sf_dat, sound_offset, sound_size, "vag");
@@ -166,7 +166,7 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
     if (read_u32be(sound_offset, sf_dat) != EA_BLOCKID_HEADER)
         goto fail;
 
-    vgmstream = load_vgmstream_ea_schl(sf_dat, sound_offset);
+    vgmstream = load_vgmstream_ea_schl(sf_dat, sound_offset, true);
     if (!vgmstream)
         goto fail;
 

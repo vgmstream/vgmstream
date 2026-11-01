@@ -572,8 +572,8 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ea_mpf_mus_schl(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ea_msb_mus_schl(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ea_pt(STREAMFILE* sf);
-VGMSTREAM* load_vgmstream_ea_bnk(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
-VGMSTREAM* load_vgmstream_ea_schl(STREAMFILE* sf, off_t offset);
+VGMSTREAM* load_vgmstream_ea_bnk(STREAMFILE* sf, off_t offset, int target_stream, bool is_embedded);
+VGMSTREAM* load_vgmstream_ea_schl(STREAMFILE* sf, off_t offset, bool is_embedded);
 VGMSTREAM* load_vgmstream_ea_pt(STREAMFILE* sf_head, STREAMFILE* sf_body, off_t head_offset, size_t head_size, off_t body_offset);
 
 VGMSTREAM* init_vgmstream_ea_patl(STREAMFILE* sf);
