@@ -47,7 +47,7 @@ static const int8_t ima_index_table[16] = {
 
 
 /* Original IMA expansion, using shift+ADDs to avoid MULs (slow back then) */
-static void std_add_ima_expand_nibble_byte(uint8_t byte, int shift, int32_t* hist1, int32_t* index) {
+static void std_add_ima_expand_nibble_byte(uint8_t byte, int shift, int32_t* hist1, int32_t* index, bool clamp_nds) {
     int code, sample, step, delta;
 
     /* simplified through math from:
@@ -67,7 +67,10 @@ static void std_add_ima_expand_nibble_byte(uint8_t byte, int shift, int32_t* his
     if (code & 8) delta = -delta;
     sample += delta;
 
-    *hist1 = _clamp_s32(sample, -32768, 32767);
+    if (clamp_nds)
+        *hist1 = _clamp_s32(sample, -32767, 32767);
+    else
+        *hist1 = _clamp_s32(sample, -32768, 32767);
     *index += ima_index_table[code];
     if (*index < 0) *index = 0;
     if (*index > 88) *index = 88;
@@ -75,7 +78,7 @@ static void std_add_ima_expand_nibble_byte(uint8_t byte, int shift, int32_t* his
 
 static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     uint8_t byte = read_u8(byte_offset,stream->streamfile);
-    std_add_ima_expand_nibble_byte(byte, nibble_shift, hist1, step_index);
+    std_add_ima_expand_nibble_byte(byte, nibble_shift, hist1, step_index, false);
 }
 
 /* Original IMA expansion, but using MULs rather than shift+ADDs (faster for newer processors).
@@ -346,7 +349,7 @@ static void cd_ima_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_
 
 
 typedef enum { MONO, } ima_layout_t;
-typedef enum { IMA_ADD, IMA_MUL, IMA_SCP, } ima_expand_t;
+typedef enum { IMA_ADD, IMA_MUL, IMA_NDS, IMA_SCP, } ima_expand_t;
 typedef enum { MONO_4LE, MONO_4BE, MONO_3BE, MONO_2BE, MONO_RAD, NONE } ima_header_t;
 
 // config for headered IMA frames, which are all very similar
@@ -436,10 +439,13 @@ static void decode_generic_ima(VGMSTREAMCHANNEL* stream, short* outbuf, int chan
         // nibble-to-sample
         switch (cfg->expand) {
             case IMA_ADD:
-                std_add_ima_expand_nibble_byte(frame[pos], shift, &hist1, &step_index);
+                std_add_ima_expand_nibble_byte(frame[pos], shift, &hist1, &step_index, false);
                 break;
             case IMA_MUL:
                 std_mul_ima_expand_nibble_byte(frame[pos], shift, &hist1, &step_index, false);
+                break;
+            case IMA_NDS: //TODO: improve
+                std_add_ima_expand_nibble_byte(frame[pos], shift, &hist1, &step_index, true);
                 break;
             case IMA_SCP:
                 std_mul_ima_expand_nibble_byte(frame[pos], shift, &hist1, &step_index, true);
@@ -982,7 +988,7 @@ void decode_xbox_ima_saber(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int chann
 
 ima_config_t nds_cfg = {
     .layout = MONO,
-    .expand = IMA_ADD,
+    .expand = IMA_NDS,
     .header = MONO_4LE,
     .frame_size = 0x200,
     .header_size = 0x04,
@@ -1010,6 +1016,7 @@ ima_config_t dat4_cfg = {
 void decode_dat4_ima(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     decode_generic_ima(stream, outbuf, channelspacing, first_sample, samples_to_do, &dat4_cfg);
 }
+
 
 void decode_rad_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     int i, sample_count;
