@@ -31,7 +31,8 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
     if (!is_id32be(0x04,sf, "ftyp"))
         return NULL;
 
-    /* .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS)
+    /* .mp4,m4a,m4v: common
+     * .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS)
      * .msd: UNO (iOS) */
     if (!check_extensions(sf,"mp4,m4a,m4v,lmp4,bin,lbin,msd"))
         return NULL;
@@ -75,6 +76,9 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
 
     /* needed for CRI MP4, otherwise FFmpeg usually reads standard delay */
     ffmpeg_set_skip_samples(vgmstream->codec_data, mp4.encoder_delay);
+
+    /* from resets in xHE-AAC */
+    ffmpeg_set_force_seek(vgmstream->codec_data);
 
     return vgmstream;
 
