@@ -444,7 +444,7 @@ static bool parse_fmt(riff_fmt_t* fmt, STREAMFILE* sf, uint32_t offset, uint32_t
             if (fmt->extra_size < 0x16) // 0x12 + (0x06 + 0x10)
                 return false;
             uint32_t guid1 = read_u32  (offset + 0x18,sf); // 32-bit
-            uint32_t guid2 = (read_u16 (offset + 0x1C,sf) << 16) | (read_u16 (offset + 0x1E,sf)); // 16-bit + 16-bit
+            uint32_t guid2 = ((uint32_t)read_u16 (offset + 0x1C,sf) << 16) | (uint32_t)read_u16 (offset + 0x1E,sf); // 16-bit + 16-bit
             uint32_t guid3 = read_u32be(offset + 0x20,sf); // 8-bit x4
             uint32_t guid4 = read_u32be(offset + 0x24,sf); // 8-bit x4
             //;VGM_LOG("riff: guid %08x %08x %08x %08x\n", guid1, guid2, guid3, guid4);
