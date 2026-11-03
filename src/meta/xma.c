@@ -22,8 +22,9 @@ VGMSTREAM* init_vgmstream_xma(STREAMFILE* sf) {
      * .wav: Super Meat Boy (X360)
      * .nps: Beautiful Katamari (X360)
      * .str: Sonic & Sega All Stars Racing (X360)
-     * .kmx: Warriors: Legends of Troy (X360) */
-    if (!check_extensions(sf, "xma,xma2,wav,lwav,nps,str,kmx"))
+     * .kmx: Warriors: Legends of Troy (X360)
+     * .xma.new: Silent Hill HD Collection (X360) */
+    if (!check_extensions(sf, "xma,xma2,wav,lwav,nps,str,kmx,new"))
         goto fail;
 
     {

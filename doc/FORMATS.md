@@ -752,7 +752,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16BE PCM16LE PSX_cfg XMA1 XMA2
 - **msf.c**
   - Sony MSF header [*MSF*]
-  - *msf*: `.msf .msa .at3 .mp3 .str .snd .msenc .ps3audio`
+  - *msf*: `.msf .msa .at3 .new .mp3 .str .snd .msenc .ps3audio`
   - Codecs: PCM16BE PCM16LE PSX ATRAC3 FFmpeg(various)
 - **sndp.c**
   - Premium Agency SNDP header [*SNDP*]
@@ -918,7 +918,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: XMA
 - **xma.c**
   - Microsoft XMA RIFF header [*XMA_RIFF*]
-  - *xma*: `.xma .xma2 .wav .lwav .nps .str .kmx`
+  - *xma*: `.xma .xma2 .wav .lwav .nps .str .kmx .new`
   - Codecs: XMA
 - **sndx.c**
   - Sony SNDX header [*SNDX*]
