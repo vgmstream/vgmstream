@@ -918,7 +918,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: XMA
 - **xma.c**
   - Microsoft XMA RIFF header [*XMA_RIFF*]
-  - *xma*: `.xma .xma2 .wav .lwav .nps .str .kmx`
+  - *xma*: `.xma .xma2 .wav .lwav .nps .str .kmx .new`
   - Codecs: XMA
 - **sndx.c**
   - Sony SNDX header [*SNDX*]
