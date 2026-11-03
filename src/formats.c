@@ -416,6 +416,7 @@ static const char* extension_list[] = {
     "naac",
     "nds",
     "ndp", //fake extension/header id for .nds
+    "new",
     "nlsd",
     "no",
     "nop",
