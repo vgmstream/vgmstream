@@ -211,6 +211,7 @@ static void load_vconfig(libvgmstream_config_t* vcfg, audacious_settings_t* cfg)
     vcfg->fade_time = cfg->fade_time;
     vcfg->fade_delay = cfg->fade_delay;
     vcfg->ignore_loop = cfg->ignore_loop;
+    vcfg->auto_downmix_channels = cfg->downmix_channels;
 }
 
 static void parse_tagfile(const char* filename, Tuple & tuple) {
