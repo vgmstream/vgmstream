@@ -2,6 +2,11 @@
 #include "../vgmstream.h"
 #include "../util/endianness.h"
 
+typedef struct {
+    uint16_t hist1;
+    uint8_t step_index;
+} ima_state_t;
+
 /* RAGE AUD (MC:LA, GTA IV) blocks */
 void block_update_rage_aud(off_t block_offset, VGMSTREAM* vgmstream) {
     STREAMFILE* sf = vgmstream->ch[0].streamfile;
@@ -71,5 +76,38 @@ void block_update_rage_aud(off_t block_offset, VGMSTREAM* vgmstream) {
         /* use seek table's start entry to find channel offset */
         size_t interleave_size = read_u32(seek_info_offset + 0x00 + seek_info_entry_size * i, sf) * 0x800;
         vgmstream->ch[i].offset = block_offset + header_size + interleave_size;
+    }
+}
+
+void seek_layout_blocked_rage_aud(VGMSTREAM* vgmstream, int32_t seek_sample) {
+    if (!vgmstream->codec_data) return;
+
+    if (seek_sample == vgmstream->current_sample || seek_sample >= vgmstream->num_samples) return;
+
+    bool update_ima = false;
+    if (seek_sample < vgmstream->current_sample) {
+        reset_vgmstream(vgmstream);
+        update_ima = true;
+    }
+
+    while (true) {
+        int32_t next_block = vgmstream->current_sample - vgmstream->samples_into_block + vgmstream->current_block_samples;
+        if (next_block > seek_sample) break;
+        vgmstream->current_sample = next_block;
+        vgmstream->samples_into_block = 0;
+        block_update_rage_aud(vgmstream->next_block_offset, vgmstream);
+        update_ima = true;
+    }
+
+    if (update_ima) {
+        int state = vgmstream->current_sample / 4096;
+        int states = vgmstream->num_samples / 4096;
+        if (state >= states) state = states - 1;
+        ima_state_t* seek_tab = vgmstream->codec_data;
+        int i;
+        for (i = 0; i < vgmstream->channels; i++) {
+            vgmstream->ch[i].adpcm_history1_32 = seek_tab[state + i * states].hist1;
+            vgmstream->ch[i].adpcm_step_index = seek_tab[state + i * states].step_index;
+        }
     }
 }
