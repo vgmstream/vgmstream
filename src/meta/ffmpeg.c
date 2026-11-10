@@ -55,6 +55,9 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     if (id == get_id32be("CRID") || id == get_id32be("@UTF"))
         return NULL;
 
+    // plays bigfiles as a single stream
+    if (id == get_id32be("SCHl"))
+        return NULL;
 
     if (target_subsong == 0) target_subsong = 1;
 
