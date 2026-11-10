@@ -74,7 +74,7 @@
  */
 #define LIBVGMSTREAM_API_VERSION_MAJOR 0x01    // breaking API/ABI changes
 #define LIBVGMSTREAM_API_VERSION_MINOR 0x01    // compatible API/ABI changes
-#define LIBVGMSTREAM_API_VERSION_PATCH 0x00    // fixes
+#define LIBVGMSTREAM_API_VERSION_PATCH 0x01    // fixes
 
 /* Current API version, for dynamic checks. returns hex value: 0xMMmmpppp = MM-major, mm-minor, pppp-patch
  * - use when loading vgmstream as a dynamic library to ensure API/ABI compatibility
@@ -84,6 +84,7 @@ LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void);
 /* CHANGELOG:
  * - 1.0.0: initial version
  * - 1.1.0: add libstreamfile_close helper as part of the API
+ * - 1.1.1: _seek resets 'done' flag
  */
 
 

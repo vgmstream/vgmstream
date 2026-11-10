@@ -97,7 +97,7 @@ VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
 #ifdef VGM_USE_VORBIS
         case 0x05: { /* Ogg Vorbis [Final Fantasy VI (iOS), Dragon Quest II-VI (iOS)] */
             STREAMFILE* temp_sf;
-            VGMSTREAM *ogg_vgmstream = NULL;
+            VGMSTREAM* ogg_vgmstream = NULL;
             ogg_vorbis_meta_info_t ovmi = {0};
 
             ovmi.meta_type = vgmstream->meta_type;
@@ -107,7 +107,7 @@ VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
 
             /* enable encryption */
             if (version >= 3 && (flags & 8)) {
-                temp_sf = setup_sqex_streamfile(sf, start_offset, stream_size, 1, 0x00, 0x00, "ogg");
+                temp_sf = setup_sqex_streamfile(sf, start_offset, stream_size, 1, 0x00, 0x00, 0x00, "ogg");
                 if (!temp_sf) goto fail;
 
                 ogg_vgmstream = init_vgmstream_ogg_vorbis_config(temp_sf, 0x00, &ovmi);

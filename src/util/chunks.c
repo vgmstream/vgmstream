@@ -58,6 +58,13 @@ bool next_chunk(chunk_t* chunk, STREAMFILE* sf) {
     return true;
 }
 
+void align_chunk(chunk_t* chunk, uint8_t aligment) {
+    uint8_t extra = chunk->current % aligment;
+    if (extra == 0x00)
+        return;
+    chunk->current += aligment - extra;
+}
+
 
 /* ************************************************************************* */
 

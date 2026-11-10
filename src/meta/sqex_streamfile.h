@@ -5,13 +5,14 @@
 
 typedef struct {
     size_t start;
-    size_t key_start;
+    uint8_t key_start;
+    uint8_t key_xor; // xor not used in SEAD but sdlib/SEDB
 } sqex_io_data;
 
 
 static size_t sqex_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, sqex_io_data* data) {
     /* Found in FFXII_TZA.exe (same key in SCD Ogg V3), also in AKB's sdlib as "EncKey" */
-    static const uint8_t key[0x100] = {
+    static const uint8_t key[256] = {
         0x3A,0x32,0x32,0x32,0x03,0x7E,0x12,0xF7,0xB2,0xE2,0xA2,0x67,0x32,0x32,0x22,0x32, // 00-0F
         0x32,0x52,0x16,0x1B,0x3C,0xA1,0x54,0x7B,0x1B,0x97,0xA6,0x93,0x1A,0x4B,0xAA,0xA6, // 10-1F
         0x7A,0x7B,0x1B,0x97,0xA6,0xF7,0x02,0xBB,0xAA,0xA6,0xBB,0xF7,0x2A,0x51,0xBE,0x03, // 20-2F
@@ -29,14 +30,15 @@ static size_t sqex_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t l
         0xE2,0xA2,0x67,0x32,0x32,0x12,0x32,0xB2,0x32,0x32,0x32,0x32,0x75,0xA3,0x26,0x7B, // E0-EF
         0x83,0x26,0xF9,0x83,0x2E,0xFF,0xE3,0x16,0x7D,0xC0,0x1E,0x63,0x21,0x07,0xE3,0x01, // F0-FF
     };
-    int i;
+
     size_t bytes = read_streamfile(dest, offset, length, sf);
 
     /* decrypt data (xor) */
     //if (offset >= data->start) {
-        for (i = 0; i < bytes; i++) {
-            if (offset + i >= data->start) { //todo recheck
-                dest[i] ^= key[(data->key_start + (offset - data->start) + i) % sizeof(key)];
+        for (int i = 0; i < bytes; i++) {
+            if (offset + i >= data->start) { //TODO: improve
+                uint8_t xor_byte = key[(data->key_start + (offset - data->start) + i) % sizeof(key)] ^ data->key_xor;
+                dest[i] ^= xor_byte;
             }
         }
     //}
@@ -45,7 +47,7 @@ static size_t sqex_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t l
 }
 
 /* decrypts subfile if needed */
-static STREAMFILE* setup_sqex_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size, int encryption, size_t header_size, size_t key_start, const char* ext) {
+static STREAMFILE* setup_sqex_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size, bool encryption, size_t header_size, uint8_t key_start, uint8_t key_xor, const char* ext) {
     STREAMFILE* new_sf = NULL;
 
     /* setup sf */
@@ -56,6 +58,7 @@ static STREAMFILE* setup_sqex_streamfile(STREAMFILE* sf, off_t subfile_offset, s
 
         io_data.start = header_size;
         io_data.key_start = key_start;
+        io_data.key_xor = key_xor;
 
         new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(sqex_io_data), sqex_io_read, NULL);
     }
@@ -64,4 +67,4 @@ static STREAMFILE* setup_sqex_streamfile(STREAMFILE* sf, off_t subfile_offset, s
     return new_sf;
 }
 
-#endif /* _SQEX_SEAD_STREAMFILE_H_ */
+#endif

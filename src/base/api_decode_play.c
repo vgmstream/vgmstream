@@ -173,6 +173,11 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample) {
     if (!priv->vgmstream)
         return;
 
+    // for rare cases where the player seeks after done (fake reset)
+    if (priv->decode_done) {
+        libvgmstream_reset(lib);
+    }
+
     /*rc_t rc = */ seek_vgmstream(priv->vgmstream, sample);
     rc_t rc = RC_RENDER_OK;
 
