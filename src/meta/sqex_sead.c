@@ -304,7 +304,8 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
             off_t subfile_offset = sead.extradata_offset + 0x10;
             size_t subfile_size = sead.stream_size + sead.extradata_size - 0x10;
 
-            size_t key_start = sead.extradata_id & 0xff;
+            uint8_t key_start = sead.extradata_id & 0xff;
+            uint8_t key_xor = 0x00;
             size_t header_size = read_u16(sead.extradata_offset+0x02, sf);
             int encryption = read_u8(sead.extradata_offset+0x0d, sf);
             /* encryption type 0x01 found in Final Fantasy XII TZA (PS4/PC)
@@ -323,7 +324,7 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
             /* 0x0e: reserved x2 */
             /* 0x10+ HCA header */
 
-            temp_sf = setup_sqex_streamfile(sf, subfile_offset, subfile_size, encryption, header_size, key_start, "hca");
+            temp_sf = setup_sqex_streamfile(sf, subfile_offset, subfile_size, encryption, header_size, key_start, key_xor, "hca");
             if (!temp_sf) goto fail;
 
             temp_vgmstream = init_vgmstream_hca(temp_sf);
