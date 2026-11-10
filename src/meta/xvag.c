@@ -26,6 +26,14 @@ typedef struct {
 
     size_t data_size;
     off_t stream_offset;
+
+    uint32_t fmat_offset;
+    uint32_t fmat_size;
+    uint32_t mpin_offset;
+    //uint32_t mpin_size;
+    uint32_t a9in_offset;
+    //uint32_t a9in_size;
+
 } xvag_header;
 
 static bool init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* xvag, off_t chunk_offset);
@@ -36,9 +44,8 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     xvag_header xvag = {0};
-    
-    off_t start_offset, chunk_offset, first_offset = 0x20;
-    size_t chunk_size;
+
+    off_t start_offset;
     int total_subsongs = 0, target_subsong = sf->stream_index;
 
 
@@ -63,27 +70,53 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
     // 0x0a: always 0?
     // 0x0b: version-flag? (0x5f/0x60/0x61/0x62/etc)
 
+    {
+        chunk_t rc = {0};
+
+        rc.current = 0x20;
+        rc.be_size = xvag.big_endian;
+        while (next_chunk(&rc, sf)) {
+            switch(rc.type) {
+                case 0x666D6174: // "fmat"
+                    xvag.fmat_offset = rc.offset;
+                    xvag.fmat_size = rc.size;
+                    break;
+                case 0x6D70696E: // "mpin"
+                    xvag.mpin_offset = rc.offset;
+                    //xvag.mpin_size = rc.size;
+                    break;
+                case 0x6139696E: // "a9in"
+                    xvag.a9in_offset = rc.offset;
+                    //xvag.a9in_size = rc.size;
+                    break;
+                default:
+                    // some newer chunks (sndv, reln, etc) aren't padded yet are aligned to 32-bit [Ghost of Yotei (PS5)]
+                    align_chunk(&rc, 0x04);
+                    break;
+            }
+        }
+    }
 
     /* "fmat": base format (always first) */
-    if (!find_chunk(sf, get_id32be("fmat"), first_offset, 0, &chunk_offset,&chunk_size, xvag.big_endian, true, false))
-        goto fail;
-    xvag.channels    = read_s32(chunk_offset+0x00,sf);
-    xvag.codec       = read_s32(chunk_offset+0x04,sf);
-    xvag.num_samples = read_s32(chunk_offset+0x08,sf);
+    if (!xvag.fmat_offset)
+        return NULL;
+    xvag.channels    = read_s32(xvag.fmat_offset+0x00,sf);
+    xvag.codec       = read_s32(xvag.fmat_offset+0x04,sf);
+    xvag.num_samples = read_s32(xvag.fmat_offset+0x08,sf);
     // 0x0c: samples again?
 
-    VGM_ASSERT(xvag.num_samples != read_s32(chunk_offset+0x0c,sf), "XVAG: num_samples values don't match\n");
+    VGM_ASSERT(xvag.num_samples != read_s32(xvag.fmat_offset+0x0c,sf), "XVAG: num_samples values don't match\n");
 
-    xvag.factor      = read_s32(chunk_offset+0x10,sf); // for interleave
-    xvag.sample_rate = read_s32(chunk_offset+0x14,sf);
-    xvag.data_size   = read_u32(chunk_offset+0x18,sf); // not always accurate
+    xvag.factor      = read_s32(xvag.fmat_offset+0x10,sf); // for interleave
+    xvag.sample_rate = read_s32(xvag.fmat_offset+0x14,sf);
+    xvag.data_size   = read_u32(xvag.fmat_offset+0x18,sf); // not always accurate
 
     /* extra data, seen in versions 0x61+ */
-    if (chunk_size > 0x1c) {
+    if (xvag.fmat_size > 0x1c) {
         /* number of interleaved subsongs */
-        xvag.subsongs = read_s32(chunk_offset+0x1c,sf);
+        xvag.subsongs = read_s32(xvag.fmat_offset+0x1c,sf);
         /* number of interleaved layers (layers * channels_per_layer = channels) */
-        xvag.layers   = read_s32(chunk_offset+0x20,sf);
+        xvag.layers   = read_s32(xvag.fmat_offset+0x20,sf);
     }
     else {
         xvag.subsongs = 1;
@@ -167,9 +200,6 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
             if (xvag.layers > 1 && !(xvag.layers*1 == vgmstream->channels || xvag.layers*2 == vgmstream->channels)) goto fail;
 
             /* "mpin": mpeg info */
-            if (!find_chunk(sf, 0x6D70696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1, 0)) /*"mpin"*/
-                goto fail;
-
             /* all layers/subsongs share the same config; not very useful but for posterity:
              * - 0x00: mpeg version
              * - 0x04: mpeg layer
@@ -187,8 +217,8 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
              * - 0x34: data size
              * (rest is padding)
              * */
-            cfg.chunk_size = read_s32(chunk_offset+0x1c,sf);
-            cfg.skip_samples = read_s32(chunk_offset+0x20,sf);
+            cfg.chunk_size = read_s32(xvag.mpin_offset+0x1c,sf);
+            cfg.skip_samples = read_s32(xvag.mpin_offset+0x20,sf);
             cfg.interleave = cfg.chunk_size * xvag.factor;
 
             vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
@@ -214,13 +244,10 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
             // 0x04: samples per frame
             // 0x0c: fact num_samples (no change)
             // 0x10: encoder delay1
-            if (!find_chunk(sf, get_id32be("a9in"),first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1, 0))
-                goto fail;
-
             if (xvag.layers > 1) {
                 /* some Vita/PS4 multichannel [flower (Vita), Uncharted Collection (PS4)]. PS4 ATRAC9 also
                  * does single-stream >2ch, but this can do configs ATRAC9 can't, like 5ch/14ch/etc */
-                vgmstream->layout_data = build_layered_xvag(sf, &xvag, chunk_offset, start_offset);
+                vgmstream->layout_data = build_layered_xvag(sf, &xvag, xvag.a9in_offset, start_offset);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_ATRAC9;
                 vgmstream->layout_type = layout_layered;
@@ -229,9 +256,9 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
             }
             else {
                 /* interleaved subsongs (section layers) */
-                size_t frame_size = read_u32(chunk_offset+0x00,sf);
+                size_t frame_size = read_u32(xvag.a9in_offset+0x00,sf);
 
-                if (!init_xvag_atrac9(sf, vgmstream, &xvag, chunk_offset))
+                if (!init_xvag_atrac9(sf, vgmstream, &xvag, xvag.a9in_offset))
                     goto fail;
                 temp_sf = setup_xvag_streamfile(sf, start_offset, frame_size*xvag.factor,frame_size, (target_subsong-1), total_subsongs);
                 if (!temp_sf) goto fail;

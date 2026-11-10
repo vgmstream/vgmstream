@@ -18,6 +18,8 @@ typedef struct {
 
 /* reads from current offset and updates chunk_t */
 bool next_chunk(chunk_t* chunk, STREAMFILE* sf);
+// for dumb formats
+void align_chunk(chunk_t* chunk, uint8_t aligment);
 
 #if 0
 enum { 
