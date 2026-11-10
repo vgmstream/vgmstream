@@ -2922,8 +2922,8 @@ static bool config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
      * - external filename or internal filename on some platforms (earlier versions)
      * - external filename offset in the extra table (later versions)
      * - end flags?
-     * A few games (Splinter Cell, Rainbow Six) have wrong voice sample rates,
-     * maybe there is some pitch value too.
+     * A few games (Splinter Cell, Rainbow Six) store voices at a higher sample rate
+     * than played, while events set a pitch value (see sc-mod-tool).
      *
      * Type 02 (old?/new):
      * Chain, possibly to play with config (ex: type 08 (float 0.3) + 01)

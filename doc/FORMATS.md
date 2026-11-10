@@ -1,9 +1,9 @@
 # vgmstream support list
 
-## Supported formats
 The following list is auto-generated, and may be missing a few things, but should give
 you an idea of what vgmstream supports.
 
+## Notes
 Keep in mind that while the extension is the most obvious way to identify files,
 different formats can reuse them (a `.wav` could be a standard Windows WAV, or many
 other things). Similarly, just because vgmstream supports a few `.bnk` formats
@@ -23,7 +23,7 @@ Support for the listed formats below should be complete enough. If you have file
 a supported that don't play feel free to report. Often it means the format may be a bit
 different internally (encrypted, different versions, etc) and not always can be fixed.
 
-### List
+## Supported formats
 - **adx.c**
   - CRI ADX header (type 03) [*ADX_03*]
   - CRI ADX header (type 04) [*ADX_04*]
