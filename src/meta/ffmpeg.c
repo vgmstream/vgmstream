@@ -5,6 +5,49 @@
 
 static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end);
 
+/* reject some formats handled elsewhere (better fail and check there than let buggy FFmpeg take over) */
+static bool is_valid(STREAMFILE* sf) {
+
+    uint32_t size = get_streamfile_size(sf);
+
+    // too small so have anything useful, don't waste time parsing
+    if (size < 0x10)
+        return false;
+
+    uint32_t id = read_u32be(0x00, sf);
+
+    // don't try to open split headers and other mini files, but allow some rare formats that can go tiny
+    if (size <= 0x1000 &&
+        !(id == get_id32be("RIFF") || id == get_id32be("FORM") || id == get_id32be("Crea")))
+        return false;
+
+    // rejected FSB may play as wonky .mp3
+    if ((id & 0xFFFFFF00) == get_id32be("FSB\0"))
+        return false;
+
+    // typically incorrectly extracted files with padding, best handle in riff.c that reads loops points
+    if (id == get_id32be("RIFF") && (read_u16le(0x14, sf) == 0x0270 || check_extensions(sf, "at3,at9")))
+        return false;
+
+    // rejected binka are probably bugs
+    if (id == get_id32be("1FCB"))
+        return false;
+
+    // ffmpeg with .usm may print some odd errors
+    if (id == get_id32be("CRID") || id == get_id32be("@UTF"))
+        return false;
+
+    // plays bigfiles as a single stream
+    if (id == get_id32be("SCHl"))
+        return false;
+
+    // many odd codecs
+    if (check_extensions(sf, "sbao,bao"))
+        return false;
+
+    return true;
+}
+
 /* parses any format supported by FFmpeg and not handled elsewhere:
  * - MPC (.mpc, mp+): Moonshine Runners (PC), Asphalt 7 (PC)
  * - FLAC (.flac):  Warcraft 3 Reforged (PC), Call of Duty: Ghosts (PC)
@@ -31,32 +74,7 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     //    return NULL;
 
     /* don't try to open headers and other mini files */
-    if (get_streamfile_size(sf) <= 0x1000)
-        return NULL;
-
-    /* reject some formats handled elsewhere (better fail and check there than let buggy FFmpeg take over) */
-    uint32_t id = read_u32be(0x00, sf);
-
-    // rejected FSB may play as wonky .mp3
-    if ((id & 0xFFFFFF00) == get_id32be("FSB\0"))
-        return NULL;
-
-    // typically incorrectly extracted files with padding, best handle in riff.c that reads loops points
-    if (id == get_id32be("RIFF") && (read_u16le(0x14, sf) == 0x0270 || check_extensions(sf, "at3")))
-        return NULL;
-
-    if (id == get_id32be("1FCB"))
-        return NULL;
-
-    if (check_extensions(sf, "sbao,bao"))
-        return NULL;
-
-    // ffmpeg with .usm may print some odd errors
-    if (id == get_id32be("CRID") || id == get_id32be("@UTF"))
-        return NULL;
-
-    // plays bigfiles as a single stream
-    if (id == get_id32be("SCHl"))
+    if (!is_valid(sf))
         return NULL;
 
     if (target_subsong == 0) target_subsong = 1;
@@ -114,7 +132,7 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     /* detect broken RIFFs */
     if (is_id32be(0x00, sf, "RIFF")) {
         uint32_t size = read_u32le(0x04, sf);
-        /* There is a log in RIFF too but to be extra sure and sometimes FFmpeg don't handle it (this is mainly for wrong AT3).
+        /* There is a log in RIFF too but to be extra sure and sometimes FFmpeg don't handle it.
          * Some proper RIFF can be parsed here too (like DUCK). */
         if (size + 0x08 > get_streamfile_size(sf)) {
             vgm_logi("RIFF/FFmpeg: incorrect size, file may have missing data\n");
