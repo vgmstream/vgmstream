@@ -50,12 +50,6 @@ void* init_atrac9(atrac9_config* cfg) {
         goto fail; /* unknown multichannel layout */
     }
 
-    if (data->info.dmc_mode) {
-        // should work but not seen in the wild
-        VGM_LOG("ATRAC9: DMC mode found\n");
-        goto fail;
-    }
-
 
     // must hold at least one superframe and its samples
     data->buf_size = data->info.superframe_size;
