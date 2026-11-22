@@ -2,6 +2,9 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 #include "../util/meta_utils.h"
+#include "../util/companion_files.h"
+#include "sygn_decryption_streamfile.h"
+
 
 /* SYGN - Bandai Namco's SOL-AVES engine Sygnus sound lib (evolution of NuSound) */
 VGMSTREAM* init_vgmstream_sygn(STREAMFILE* sf) {
@@ -72,6 +75,40 @@ VGMSTREAM* init_vgmstream_sygn(STREAMFILE* sf) {
     close_streamfile(temp_sf);
     return vgmstream;
 
+fail:
+    close_streamfile(temp_sf);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* Same as the above but for encrypted data. Normally this isn't too interesting to implement,
+ * but seems to be part of the audio engine, since it uses the same mask and algo (AES192 ECB) that NuSound used. */
+VGMSTREAM* init_vgmstream_sygn_encrypted(STREAMFILE* sf) {
+    STREAMFILE* temp_sf = NULL;
+    VGMSTREAM* vgmstream = NULL;
+
+    /* checks */
+    if (is_id32be(0x00, sf, "SYGN")) // ignore non-encrypted
+        return NULL;
+    if (!check_extensions(sf,"soundstream"))
+        return NULL;
+
+    uint8_t keybuf[0x18] = {0};
+
+    size_t key_size = read_key_file(keybuf, sizeof(keybuf), sf);
+    if (key_size != sizeof(keybuf))
+        return NULL;
+
+    //TODO: this doesn't remove block padding (not very important)
+    temp_sf = setup_sygn_streamfile(sf, keybuf, key_size);
+    if (!temp_sf) goto fail;
+
+    vgmstream = init_vgmstream_sygn(temp_sf);
+    if (!vgmstream) goto fail;
+
+    close_streamfile(temp_sf);
+    return vgmstream;
 fail:
     close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
