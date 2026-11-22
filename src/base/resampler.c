@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include "resampler.h"
+#include "../util/vgmstream_limits.h"
 
 /*
  * resampling 101:
@@ -33,7 +33,7 @@
 /* TODO:
  * - allow bigger ring_bufs to copy more at once if possible
  * - instead of making dst as big as possible, use "feed" flags and mark consumed src
- * - allow chaging ratio on real time (would need to reset init ringbuf and sinc)
+ * - allow changing ratio on real time (would need to reset init ringbuf and sinc)
  */
 
 
@@ -43,7 +43,7 @@
 #endif
 // arbitrary limits
 #define MIN_CHANNELS 1
-#define MAX_CHANNELS 64
+#define MAX_CHANNELS VGMSTREAM_MAX_CHANNELS
 #define MIN_RATIO (3000.0 / 192000.0)
 #define MAX_RATIO (192000.0 / 3000.0)
 
