@@ -1064,4 +1064,6 @@ VGMSTREAM* init_vgmstream_xma_ue5(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ka(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_sygn(STREAMFILE* sf);
+
 #endif

@@ -227,10 +227,9 @@ bool decode_setup_coding(VGMSTREAM* vgmstream) {
     }
 
     // TODO: unify interleave/frame_size
-    size_t interleave_min = 0;
-    size_t interleave_max = 0;
-    size_t frame_min = 0;
-    size_t frame_max = 0;
+    size_t interleave_min = 0, interleave_max = 0;
+    size_t interleave_last_min = 0, interleave_last_max = 0;
+    size_t frame_min = 0, frame_max = 0;
     switch(vgmstream->coding_type) {
         case coding_CRI_ADX:
         case coding_CRI_ADX_enc_8:
@@ -289,8 +288,15 @@ bool decode_setup_coding(VGMSTREAM* vgmstream) {
             break;
 
         case coding_PTADPCM:
-            interleave_min = 0x05; // has header samples
+            interleave_min = 0x05; // has header samples + index
             interleave_max = 0x104;
+            break;
+
+        case coding_SYGNUS:
+            interleave_min = 0x09; // has header samples (float) + index
+            interleave_max = 0x108;
+            interleave_last_min = 0x04; // odd but true (only header sample is written)
+            interleave_last_max = 0x108;
             break;
 
         default:
@@ -299,6 +305,17 @@ bool decode_setup_coding(VGMSTREAM* vgmstream) {
 
     if ((interleave_min && vgmstream->interleave < interleave_min) || (interleave_max && vgmstream->interleave > interleave_max)) {
         VGM_LOG("VGMSTREAM: decoder with wrong interleave size %x, expected [%x, %x]\n", vgmstream->interleave, interleave_min, interleave_max);
+        return false;
+    }
+
+    if (vgmstream->interleave_last > vgmstream->interleave) {
+        VGM_LOG("VGMSTREAM: decoder with wrong interleave_last %x vs %x\n", vgmstream->interleave_last, vgmstream->interleave);
+        return false;
+    }
+
+    if (vgmstream->interleave_last && 
+        ((interleave_last_min && vgmstream->interleave_last < interleave_last_min) || (interleave_last_max && vgmstream->interleave_last > interleave_last_max))) {
+        VGM_LOG("VGMSTREAM: decoder with wrong interleave_last size %x, expected [%x, %x]\n", vgmstream->interleave_last, interleave_last_min, interleave_last_max);
         return false;
     }
 
@@ -522,6 +539,8 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return (vgmstream->interleave_block_size - 0x06)*2 + 2;
         case coding_PTADPCM:
             return (vgmstream->interleave_block_size - 0x05)*2 + 2;
+        case coding_SYGNUS:
+            return (vgmstream->interleave_block_size - 0x09)*2 + 2; // 512
         case coding_UBI_ADPCM:
             return 0; /* varies per mode */
         case coding_IMUSE:
@@ -735,6 +754,8 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_PTADPCM:
             return vgmstream->interleave_block_size;
+        case coding_SYGNUS:
+            return vgmstream->interleave_block_size;
         /* UBI_ADPCM: varies per mode? */
         /* IMUSE: VBR */
         /* EA_MT: VBR, frames of bit counts or PCM frames */
@@ -749,9 +770,13 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
 int decode_get_samples_per_shortframe(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            if (vgmstream->interleave_last_block_size < 0x04)
+            if (vgmstream->interleave_last < 0x04)
                 return 0;
-            return (vgmstream->interleave_last_block_size - 0x04) * 2;
+            return (vgmstream->interleave_last - 0x04) * 2;
+        case coding_SYGNUS:
+            if (vgmstream->interleave_last < 0x09)
+                return (vgmstream->interleave_last / 0x04); // header samples only
+            return (vgmstream->interleave_last - 0x09) * 2 + 2;
         default:
             return decode_get_samples_per_frame(vgmstream);
     }
@@ -760,7 +785,10 @@ int decode_get_samples_per_shortframe(VGMSTREAM* vgmstream) {
 int decode_get_shortframe_size(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            return vgmstream->interleave_last_block_size;
+            return vgmstream->interleave_last;
+        // TODO: not working?
+        case coding_SYGNUS:
+            return vgmstream->interleave_last;
         default:
             return decode_get_frame_size(vgmstream);
     }
@@ -1541,6 +1569,13 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_PTADPCM:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ptadpcm(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
+                        vgmstream->interleave_block_size);
+            }
+            break;
+        case coding_SYGNUS:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_sygnus(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
                         vgmstream->interleave_block_size);
             }
