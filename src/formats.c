@@ -588,6 +588,7 @@ static const char* extension_list[] = {
     "snz", //txth/reserved [Killzone HD (PS3)]
     "sod",
     "sounds",
+    "soundstream",
     "son",
     "spc",
     "sph",
@@ -966,6 +967,7 @@ static const coding_info coding_info_list[] = {
         {coding_OKI4S,              "OKI 4-bit ADPCM (4-shift)"},
         {coding_OKI_UM,             "OKI 4-bit ADPCM (UltraMarine)"},
         {coding_PTADPCM,            "Platinum 4-bit ADPCM"},
+        {coding_SYGNUS,             "Bandai Namco Sygnus 4-bit ADPCM"},
         {coding_IMUSE,              "LucasArts iMUSE VIMA ADPCM"},
         {coding_COMPRESSWAVE,       "CompressWave Huffman ADPCM"},
 
@@ -1565,6 +1567,7 @@ static const meta_info meta_info_list[] = {
         {meta_CWV,                  "Nintendo .CWV header"},
         {meta_XMA_UE5,              "Unreal Engine 5 XMA header"},
         {meta_KA_SOUND,             "Knowledge Adventure KA Sound header"},
+        {meta_SYGN,                 "Bandai Namco SYGN header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* dst, size_t dst_size) {

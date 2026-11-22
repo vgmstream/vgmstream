@@ -126,6 +126,7 @@ typedef enum {
     coding_OKI4S,           /* OKI 4-bit ADPCM with 16-bit output and cuadruple step */
     coding_OKI_UM,          /* OKI 4-bit ADPCM with 16-bit output and custom expand */
     coding_PTADPCM,         /* Platinum 4-bit ADPCM */
+    coding_SYGNUS,          /* Bandai Namco Sygnus 4-bit ADPCM */
     coding_IMUSE,           /* LucasArts iMUSE Variable ADPCM */
     coding_COMPRESSWAVE,    /* CompressWave Huffman ADPCM */
 
@@ -752,6 +753,7 @@ typedef enum {
     meta_CWV,
     meta_XMA_UE5,
     meta_KA_SOUND,
+    meta_SYGN,
 } meta_t;
 
 #endif

@@ -181,7 +181,10 @@ typedef struct {
     };
     size_t interleave_first_block_size; /* different interleave for first block */
     size_t interleave_first_skip;   /* data skipped before interleave first (needed to skip other channels) */
-    size_t interleave_last_block_size; /* smaller interleave for last block */
+    union {                         /* interleave, or rarely block/frame size (depending on the codec) */
+        size_t interleave_last_block_size;
+        size_t interleave_last; // alias
+    };
     size_t frame_size;              /* for codecs with configurable size */
 
     /* subsong config */

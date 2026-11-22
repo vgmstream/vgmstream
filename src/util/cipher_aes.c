@@ -1,13 +1,15 @@
 #include <stdlib.h>
-#include "g7221_aes.h"
+#include "cipher_aes.h"
 
-/* Namco's NUS AES is just standard AES-192 in ECB mode, so this can be swapped with another lib,
+/* AES ECB 192 from Namco's NuSound lib.
+ *
+ * Namco's NUS AES is just standard AES-192 in ECB mode, so this can be swapped with another lib,
  * if more code needs AES. Most implementations out there either use pre-calculated look-up tables,
  * or calculate manually every AES op. Namco's code calculates tables first in a slightly different
  * layout, so it may be interesting as a sort of doc piece. */
 
 
-struct s14aes_handle {
+struct aes_handle_t {
     /* substitution box look-up table and the inverse */
     uint8_t sbox[256];
     uint8_t ibox[256];
@@ -31,7 +33,7 @@ struct s14aes_handle {
 #define GET_B3(x)  (((x) >> 24) & 0xFF)
 
 
-static void aes_key_expand(s14aes_handle* ctx, const uint8_t* key, uint32_t* rk) {
+static void aes_key_expand(aes_handle_t* ctx, const uint8_t* key, uint32_t* rk) {
     int i;
 
     rk[0] = GET_U32LE(key + 0);
@@ -61,7 +63,7 @@ static void aes_key_expand(s14aes_handle* ctx, const uint8_t* key, uint32_t* rk)
     }
 }
 
-static void aes_init_key(s14aes_handle* ctx, const uint8_t* key) {
+static void aes_init_key(aes_handle_t* ctx, const uint8_t* key) {
     const uint8_t invcols[4][4] = {
         {0x0E,0x0B,0x0D,0x09},
         {0x09,0x0E,0x0B,0x0D},
@@ -116,7 +118,7 @@ static void aes_init_key(s14aes_handle* ctx, const uint8_t* key) {
     }
 }
 
-static void aes_init_state(s14aes_handle* ctx) {
+static void aes_init_state(aes_handle_t* ctx) {
     const uint8_t invcol[4] = {
         0x0E, 0x0B, 0x0D, 0x09
     };
@@ -216,7 +218,7 @@ static void aes_init_state(s14aes_handle* ctx) {
     }
 }
 
-static void aes_decrypt_block(s14aes_handle* ctx, uint8_t* buf) {
+static void aes_decrypt_block(aes_handle_t* ctx, uint8_t* buf) {
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
     uint8_t* ibox = ctx->ibox;
     uint32_t* tds = ctx->tds;
@@ -302,8 +304,8 @@ static void aes_decrypt_block(s14aes_handle* ctx, uint8_t* buf) {
 
 /* **************************** */
 
-s14aes_handle* s14aes_init(void) {
-    s14aes_handle* ctx = malloc(sizeof(s14aes_handle));
+aes_handle_t* aes_init_192_ecb(void) {
+    aes_handle_t* ctx = malloc(sizeof(aes_handle_t));
     if (!ctx) goto fail;
 
     aes_init_state(ctx);
@@ -313,14 +315,14 @@ fail:
     return NULL;
 }
 
-void s14aes_close(s14aes_handle* ctx) {
+void aes_free(aes_handle_t* ctx) {
     free(ctx);
 }
 
-void s14aes_set_key(s14aes_handle* ctx, const uint8_t* key) {
+void aes_set_key(aes_handle_t* ctx, const uint8_t* key) {
     aes_init_key(ctx, key);
 }
 
-void s14aes_decrypt(s14aes_handle* ctx, uint8_t* buf) {
+void aes_decrypt(aes_handle_t* ctx, uint8_t* buf) {
     aes_decrypt_block(ctx, buf);
 }

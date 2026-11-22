@@ -70,5 +70,11 @@ void meta_mark_missing(VGMSTREAM* v);
 
 //void meta_mark_dummy(VGMSTREAM* v);
 
+static inline uint32_t get_interleave_last(uint32_t stream_size, uint32_t interleave, int channels) {
+    if (interleave == 0 || channels <= 0)
+        return 0;
+    return (stream_size % (interleave * channels)) / channels;
+}
+
 
 #endif

@@ -157,7 +157,7 @@ void g719_decode_frame(g719_handle_t* handle, unsigned char* code_words, short* 
 
     // Not replicated here since no games use it. Just AES 192, see Namco's g7721
     //if (encrypted) {
-    //    s14aes_decrypt(handle->aes, data);
+    //    aes_decrypt(handle->aes, data);
     //}
 
     decode_frame(code_words, handle->frame_size, 0, sbuf, &handle->state);

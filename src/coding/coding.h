@@ -280,10 +280,13 @@ void decode_oki16(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, i
 void decode_oki4s(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, bool is_stereo);
 void decode_oki_um(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int shift);
 size_t oki_bytes_to_samples(size_t bytes, int channels);
+
 /* ptadpcm_decoder */
-void decode_ptadpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
+void decode_ptadpcm(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
 size_t ptadpcm_bytes_to_samples(size_t bytes, int channels, size_t frame_size);
 
+/* sygnus_decoder */
+void decode_sygnus(VGMSTREAMCHANNEL* stream, short* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
 
 /* ubi_adpcm_decoder */
 typedef struct ubi_adpcm_codec_data ubi_adpcm_codec_data;
