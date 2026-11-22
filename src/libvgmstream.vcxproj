@@ -123,7 +123,6 @@
     <ClInclude Include="coding\libs\compresswave_lib.h" />
     <ClInclude Include="coding\libs\g719_dec.h" />
     <ClInclude Include="coding\libs\g719_internal.h" />
-    <ClInclude Include="coding\libs\g7221_aes.h" />
     <ClInclude Include="coding\libs\g7221_data.h" />
     <ClInclude Include="coding\libs\g7221_lib.h" />
     <ClInclude Include="coding\libs\g72x_vgmstream.h" />
@@ -204,6 +203,7 @@
     <ClInclude Include="meta\sqex_streamfile.h" />
     <ClInclude Include="meta\sscf_encrypted.h" />
     <ClInclude Include="meta\str_wav_streamfile.h" />
+    <ClInclude Include="meta\sygn_decryption_streamfile.h" />
     <ClInclude Include="meta\txth_streamfile.h" />
     <ClInclude Include="meta\txtp.h" />
     <ClInclude Include="meta\ubi_bao_config.h" />
@@ -226,6 +226,7 @@
     <ClInclude Include="util\bitstream_msb.h" />
     <ClInclude Include="util\channel_mappings.h" />
     <ClInclude Include="util\chunks.h" />
+    <ClInclude Include="util\cipher_aes.h" />
     <ClInclude Include="util\cipher_blowfish.h" />
     <ClInclude Include="util\cipher_xxtea.h" />
     <ClInclude Include="util\companion_files.h" />
@@ -356,6 +357,7 @@
     <ClCompile Include="coding\sassc_decoder.c" />
     <ClCompile Include="coding\sdx2_decoder.c" />
     <ClCompile Include="coding\speex_decoder.c" />
+    <ClCompile Include="coding\sygnus_decoder.c" />
     <ClCompile Include="coding\tac_decoder.c" />
     <ClCompile Include="coding\tantalus_decoder.c" />
     <ClCompile Include="coding\tgcadpcm_decoder.c" />
@@ -388,7 +390,6 @@
     <ClCompile Include="coding\libs\g719_tables.c" />
     <ClCompile Include="coding\libs\g719_transform.c" />
     <ClCompile Include="coding\libs\g719_unpack.c" />
-    <ClCompile Include="coding\libs\g7221_aes.c" />
     <ClCompile Include="coding\libs\g7221_lib.c" />
     <ClCompile Include="coding\libs\g72x_vgmstream.c" />
     <ClCompile Include="coding\libs\icelib.c" />
@@ -811,6 +812,7 @@
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\swar.c" />
     <ClCompile Include="meta\swav.c" />
+    <ClCompile Include="meta\sygn.c" />
     <ClCompile Include="meta\tac.c" />
     <ClCompile Include="meta\tgc.c" />
     <ClCompile Include="meta\thp.c" />
@@ -908,6 +910,7 @@
     <ClCompile Include="meta\zsnd.c" />
     <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="util\chunks.c" />
+    <ClCompile Include="util\cipher_aes.c" />
     <ClCompile Include="util\cipher_blowfish.c" />
     <ClCompile Include="util\cipher_xxtea.c" />
     <ClCompile Include="util\companion_files.c" />
