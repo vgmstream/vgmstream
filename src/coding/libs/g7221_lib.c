@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include "g7221_lib.h"
-#include "g7221_aes.h"
 #include "g7221_data.h"
+#include "../../util/cipher_aes.h"
 
 /* Decodes Siren14 from Namco's BNSF, a mono MLT/DCT-based codec for speech/sound (low bandwidth).
  * Reverse engineered for various exes with info from Polycom's reference int decoder.
@@ -1099,7 +1099,7 @@ struct g7221_handle {
     int frame_size;
     int test_errors;
     /* AES setup/state */
-    s14aes_handle* aes;
+    aes_handle_t* aes;
     /* state */
     int16_t mlt_coefs[MAX_DCT_LENGTH];
     int16_t old_samples[MAX_DCT_LENGTH >> 1];
@@ -1138,7 +1138,7 @@ int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples
     /* first 0x10 bytes may be encrypted with AES. Original code also saves encrypted bytes,
      * then re-crypts after unpacking, presumably to guard against memdumps. */
     if (encrypted) {
-        s14aes_decrypt(handle->aes, data);
+        aes_decrypt(handle->aes, data);
     }
 
     /* Namco's decoder is designed so that out_samples can be set in place of mlt_coefs,
@@ -1199,7 +1199,7 @@ void g7221_free(g7221_handle* handle) {
     if (!handle)
         return;
 
-    s14aes_close(handle->aes);
+    aes_free(handle->aes);
     free(handle);
 }
 
@@ -1213,7 +1213,7 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
 
     /* disable, useful for testing? */
     if (key == NULL) {
-        s14aes_close(handle->aes);
+        aes_free(handle->aes);
         handle->aes = NULL;
         handle->test_errors = 1; /* force? */
         return 1;
@@ -1221,7 +1221,7 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
 
     /* init AES state (tables) or reuse if already exists */
     if (handle->aes == NULL) {
-        handle->aes = s14aes_init();
+        handle->aes = aes_init_192_ecb();
         if (!handle->aes) return -1;
     }
 
@@ -1235,7 +1235,7 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
     }
 
     /* reset new key */
-    s14aes_set_key(handle->aes, temp_key);
+    aes_set_key(handle->aes, temp_key);
 
     return 0;
 }
