@@ -80,6 +80,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5, FSBKEY_ADD("gfnalknasfg02930293fdksj098234fjeijfiejfei030") }, // ScourgeBringer (Switch)
         { MODE_FSB5, FSBKEY_ADD("skkpycwtxzxnbozd0hb1ial0hxnrbuo0") }, // Return to Monkey Island (PC)
         { MODE_FSB5, FSBKEY_ADD("N2o.studio99!") }, // KartRider: Drift (PC)
+        { MODE_FSB5, FSBKEY_ADD("0a16db5b0a16db5b") }, // TRAHA Global (PC)
 
         /* some games use a key per file, generated from the filename
          * (could add all of them but there are a lot of songs, so external .fsbkey are probably better) */
