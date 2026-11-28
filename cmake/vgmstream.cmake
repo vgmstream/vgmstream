@@ -16,9 +16,12 @@ macro(setup_target TARGET)
 	endif()
 	target_include_directories(${TARGET} PRIVATE ${VGM_SOURCE_DIR}/src)
 	target_include_directories(${TARGET} PRIVATE ${VGM_SOURCE_DIR}/ext_includes)
+
 	# Set up position-independent code for all targets
 	set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-	if(BUILD_STATIC)
+
+	if(BUILD_STATIC AND NOT APPLE)
+		# find static common libs, except on macOS that needs extra handling
 		set_target_properties(${TARGET} PROPERTIES LINK_SEARCH_END_STATIC 1)
 	endif()
 	if(NOT WIN32 AND LINK)

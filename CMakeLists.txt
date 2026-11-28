@@ -120,7 +120,11 @@ endif()
 # Static builds will link all libraries statically
 if(BUILD_STATIC)
 	set(BUILD_SHARED_LIBS OFF)
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
+
+	# macOS can't use -static due to crt0 shenanigans, so ignore it here (will use it for external libs)
+	if(NOT APPLE)
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
+	endif()
 	
 	# Incompatible with static builds
 	set(BUILD_AUDACIOUS OFF)

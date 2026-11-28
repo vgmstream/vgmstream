@@ -1,5 +1,5 @@
 if(NOT WIN32 AND USE_VORBIS)
-	if(NOT OGG_PATH)
+	if(NOT OGG_PATH AND NOT BUILD_STATIC)
 		find_package(Ogg QUIET)
 		
 		if(OGG_FOUND)

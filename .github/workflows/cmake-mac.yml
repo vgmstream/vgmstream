@@ -15,6 +15,8 @@ concurrency:
 
 env:
   BUILD_TYPE: Release
+  # min version var for cmake (otherwise uses runner's?)
+  MACOSX_DEPLOYMENT_TARGET: "11.0"
 
 jobs:
   build:
@@ -29,8 +31,7 @@ jobs:
           fetch-tags: true
 
       - name: Install dependencies
-        run: brew install autoconf automake ffmpeg libao libvorbis mpg123 libtool
-        #cmake pkgconfig
+        run: brew install autoconf automake libtool
 
       - name: Cache celt
         uses: actions/cache@v5
@@ -40,13 +41,51 @@ jobs:
             ${{ github.workspace }}/dependencies/celt-0110
             ${{ github.workspace }}/build/dependencies/celt-0061/libcelt/.libs
             ${{ github.workspace }}/build/dependencies/celt-0110/libcelt/.libs
-          key: mac-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
+          key: mac-${{ env.MACOSX_DEPLOYMENT_TARGET }}-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
+
+      - name: Cache ffmpeg
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/build/dependencies/ffmpeg/bin/usr/local/include
+            ${{ github.workspace }}/build/dependencies/ffmpeg/bin/usr/local/lib
+          key: mac-${{ env.MACOSX_DEPLOYMENT_TARGET }}-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
+
+      - name: Cache mpg123
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/dependencies/mpg123
+            ${{ github.workspace }}/build/dependencies/mpg123/src/libmpg123/.libs
+          key: mac-${{ env.MACOSX_DEPLOYMENT_TARGET }}-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
+
+      - name: Cache speex
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/build/dependencies/speex/libspeex/.libs
+          key: mac-${{ env.MACOSX_DEPLOYMENT_TARGET }}-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
+
+      - name: Cache ogg
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/build/dependencies/ogg/libogg.a
+            ${{ github.workspace }}/build/dependencies/ogg/include
+          key: mac-${{ env.MACOSX_DEPLOYMENT_TARGET }}-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
+
+      - name: Cache vorbis
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/build/dependencies/vorbis/lib/*.a
+          key: mac-${{ env.MACOSX_DEPLOYMENT_TARGET }}-vorbis-${{ hashFiles('cmake/dependencies/vorbis.cmake') }}
 
       - name: Build
         run: |
-          export LIBRARY_PATH=$(brew --prefix)/lib
-          cmake -S . -B build -DBUILD_AUDACIOUS:BOOL=OFF -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+          cmake -S . -B build -DBUILD_AUDACIOUS:BOOL=OFF -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE
           cmake --build build
+          strip build/cli/vgmstream-cli
 
       - name: Upload CLI tools
         uses: actions/upload-artifact@v7

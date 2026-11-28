@@ -49,9 +49,12 @@ if(USE_FFMPEG)
 			set(FFMPEG_SOURCE "(system)")
 		endif()
 	endif()
+
 	if(USE_FFMPEG AND NOT WIN32 AND (NOT FFmpeg_FOUND OR FFMPEG_PATH OR BUILD_STATIC))
 		set(USE_FFMPEG_LIBOPUS OFF)
-		if(NOT EMSCRIPTEN)
+
+        # find libopus, except on macOs/wasm (for easier static ffmpeg)
+		if(NOT EMSCRIPTEN AND NOT APPLE)
 			find_package(PkgConfig REQUIRED)
 			pkg_check_modules(PC_OPUS QUIET opus>=1.1)
 			if(PC_OPUS_FOUND)
@@ -61,7 +64,7 @@ if(USE_FFMPEG)
 
 		FetchDependency(FFMPEG
 			DIR ffmpeg
-			#GIT_REPOSITORY https://git.ffmpeg.org/ffmpeg.git #broken at the moment
+			#GIT_REPOSITORY https://git.ffmpeg.org/ffmpeg.git #possibly slower
 			GIT_REPOSITORY https://github.com/FFmpeg/FFmpeg
 			GIT_TAG n9.0.2
 		)
@@ -119,10 +122,21 @@ if(USE_FFMPEG)
 				--enable-demuxer=${FFMPEG_CONF_DEMUXER}
 				--enable-decoder=${FFMPEG_CONF_DECODER}
 				--enable-swresample
-				--extra-libs=-static
-				--extra-cflags=--static
 				--pkg-config-flags=--static
 			)
+
+			if(APPLE)
+				# on macOS can't be fully static (crt0 stuff), and avoid autodetecting Apple's frameworks just in case
+				list(APPEND FFMPEG_CONF_ARGS
+					--disable-autodetect
+					--enable-pthreads
+				)
+			else()
+				list(APPEND FFMPEG_CONF_ARGS
+					--extra-libs=-static
+					--extra-cflags=--static
+				)
+			endif()
 			if(USE_FFMPEG_LIBOPUS)
 				list(APPEND FFMPEG_CONF_ARGS
 					--enable-libopus
