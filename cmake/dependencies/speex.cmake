@@ -1,5 +1,5 @@
 if(NOT WIN32 AND USE_SPEEX)
-	if(NOT SPEEX_PATH)
+	if(NOT SPEEX_PATH AND NOT BUILD_STATIC)
 		find_package(Speex QUIET)
 		
 		if(Speex_FOUND)

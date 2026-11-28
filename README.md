@@ -64,7 +64,7 @@ The foobar2000 component is also available on https://www.foobar2000.org (curren
 Or compile from source, see the [build guide](doc/BUILD.md).
 
 ### Linux binaries
-Prebuilt CLI binary, statically linked for systems running Linux kernel v3.2 and above:
+Prebuilt CLI binary, statically linked for Linux kernel v3.2 and above:
 - https://vgmstream.org (latest)
 - https://github.com/vgmstream/vgmstream/releases (infrequent numbered releases)
 
@@ -76,7 +76,7 @@ distros run `./make-build-cmake.sh`. The script will need to install dependencie
 may prefer to run steps manually, which the [build guide](doc/BUILD.md) describes in detail.
 
 ### macOS binaries
-Prebuilt CLI binary:
+Prebuilt CLI binary, statically linked for macOS 11 and above:
 - https://vgmstream.org (latest)
 - https://github.com/vgmstream/vgmstream/releases (infrequent numbered releases)
 
